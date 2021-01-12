@@ -1237,11 +1237,10 @@ Begin
                         # Add domain prefix to template name
                         $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
 
+                        # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
                         if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
                             (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
                         {
-                            # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
-
                             # Generate new template oid and cn
                             do
                             {
@@ -1549,8 +1548,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWGKbeRjOz+0wxQZQ/w69dfo5
-# ZxGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyQohzIPUm71YuWajEDI9p0km
+# 2viggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1634,28 +1633,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUv1MZYLBlM56d2/ZTjpBZy1Dwa+gwDQYJ
-# KoZIhvcNAQEBBQAEggIAb8vg9bEPlRiTc4n5FxeKwjmADRm5n8E8La++uZWG1aS2
-# R8C2eO/jG99ETPLfZ5UeS/dFm7eZ1kWBMvJYqTx+jhmvVojsb4lLVTS8wGjNxr/Q
-# CKcfcxgv5BXUOHDIJszZJW0k0ULXJh4AXWvlk8UZzzhrU0CZmrnWNNNp9n+GuNZL
-# CsZYLHxUDkSHB9O2asYZLIkrUWpzx6H7JHKRmRBwx/FJf5kNhPdRbK6jVhP8ERpG
-# q38V8ioLFXBp2XDJylZ0fNLXrb+mj+XGV/6f7Y+P1avjnOCfekrrbl9ZOH4O8aEX
-# S5PfbNA+FEFnrEfflshsA4vCZwrNsF5V+Z4gspaMSrnHoCysQzNbHy9gSHMZvE50
-# oCyUphfvsZaJOP2o8Uiq3WINVp/bwOQ9ifUhYcl2rFRHpJLs2U5pGZM3gVgewnVN
-# t6cxN9qJ+GFu+N24eX0GwZJwxlD4wEjw2bzVxc9UAtJbImoPMO6aO3Ih98+4Eq2/
-# x34tfNTrc2IEoIU/0Zmi1SxTvz4iKW98F/iOAPw1f/DcGVRliIBXRkvwqUksIDq+
-# ovU8fNACIeiuPgM/8FgUCQRGi+oCoByGQ0DsDTf5ZgGXwzdG0OnYA64MxeDEXhqQ
-# HpzcWLl7UDTuk6MtaDRhOF7qv5zjZWumnkHIZOv3sOybO8BO2iaveUcHxzQ8N7Sh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/zQkc28GJEmM8ms/6vyXWelc3AAwDQYJ
+# KoZIhvcNAQEBBQAEggIAfw5IxgDf1kbZLpJr53ohLV93fPM7lxRI/MZirZxG+cDI
+# qYYqT52PNNHZl7d/6elTTsXyioyCyGBt9+uK1Kbk0glJ6dEB5KqkcAbxFuMYxMwn
+# +hjmGVbzVX4Vsna1NqX0eoWPeanIWyRyX4bOWuK1EM16Z+4w7uCsbHmb0nxMx3BN
+# rZseDl788fmfdJaXEdFB/2xkF+CiNyYU7oDXSlyPOS2f7aiBKOcSbYhKUIwLwPpC
+# SEjT+FGP/8g8va8GNAeK1sME5FmOVARePs0IyeQyfsZyK3NKHV3qLl+WgrEZ+wr1
+# Lr/y0IBTQHoA60jbzsQFx9KpZBs2qyVWrkvlPKUtt4Rtu7PTVYHCgwxAJwmrOq5h
+# oGjPcxAPu1hB9RfJN6ndoJHNEvZZFZyNZuBkgex3QT4gBaZVqqu5mR4AyWRoPN5h
+# 8oM5kzASIWMZocw8oCMcKyV8pKiY+Mk3v5oH3tb/HUO/6/Im8IEFmc7dj0GR07RJ
+# 3ChMyfGRbJrJIQf/x66xe3Lfj5tItgvdmrF7ZGXe8UEHF6OF8ouN+2yMUbNICJUe
+# 6yXa/7NEwvNfstS8eSTDfVPwyNcIwq0ShJSwZu+jhPzcBBwB+zp18moIaHe31tUB
+# cStt1ZnnnVx3eSITZDZQPpupfrE+k/oMjGjY0fXw8RXGD+1n5BePsyWPBbxm5vCh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTEyMTYyNzAxWjAjBgkq
-# hkiG9w0BCQQxFgQUnA724qHaXYzzA7HnQ+RdzwZCU4QwDQYJKoZIhvcNAQEBBQAE
-# ggEAJx5wqYPmTHQtS7Qr1J50fhKbpZ1hlzu3rVXtP4RDnq+0nrNh+ZqYZNs5DDPz
-# +oS1f5vaV+YJyYmCiBAYrlS0rbMY4K9jdOP58Vq9n8aDpV4QaUw5XjTtlOwCnbS9
-# 8TEHaLTIwJn9oz0XV/bd8JeElfch3JRVtzjPzcGkKT+Son3dAYiqj3M9ANSqN4dh
-# ArHMENgf1LorV/C/QltAy5soBx5xpgIeT5GaOVGwFb0e1f2hWIlE09kjoTSRDVH1
-# dzMS+krB63A9TzY1W7/OBrdBwMsNsRh9wQKVXw1H9TKLaHvl6BCdcfbJFlwKnQ9F
-# gZht2YU4enLDADkUambSnN0Ojg==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTEyMTgwNzM2WjAjBgkq
+# hkiG9w0BCQQxFgQUrwy11ut1wlnBwi6qoZOWybiatqEwDQYJKoZIhvcNAQEBBQAE
+# ggEAdLYkXqPAluyrdxDyOs/6KKquXPPilTFlBD2otJvDuzy94/I3upqQM7h00ZyL
+# sWRblMf3rScQ2tSLa9cA+8c/+gXQQIN/bZv/Fv5Oguelri6DDBujfZ1I8qlr0Pqn
+# VdMCUCcpnLTlXInf9Pnrs/v1iXZnPGoF0hOaQkF8Mw0mFwwz90XRvMkZvOlWL2ZI
+# GkspT0kXtUgrX7VcP6vJxhG9MlCYAdKH4XpQmB2Cke9v8brOB8/8jaY4Jgp6kU5V
+# ISEaICxoeGj2YnzSS+/PK8chRgerRNK+kPjGcnDBXbxlcZAbw0LSvNP+d/gLfWfI
+# Pl2ctI12fM08ZBd72TfKDNm8+Q==
 # SIG # End signature block
