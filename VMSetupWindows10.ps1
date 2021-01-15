@@ -20,7 +20,7 @@ Param
     $Session,
     $Credential,
 
-    $EnvDataDrive = 'C:'
+    $EnvDataDrive = 'E:'
 )
 
 Begin
