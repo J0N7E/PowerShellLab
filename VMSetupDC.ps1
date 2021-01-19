@@ -515,19 +515,31 @@ Begin
 
                 @{   Name = 'Servers';                          Path = "OU=Computers,OU=$DomainName,$BaseDN"; }
 
-                @{    Name = 'Windows Server 2019';             Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows Server 1809';             Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Certificate Authorities';        Path = "OU=Windows Server 1809,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Federation Services';            Path = "OU=Windows Server 1809,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Application Proxy';          Path = "OU=Windows Server 1809,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Servers';                    Path = "OU=Windows Server 1809,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
 
-                @{     Name = 'Certificate Authorities';        Path = "OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                @{     Name = 'Federation Services';            Path = "OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                @{     Name = 'Web Servers';                    Path = "OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                # FIX
+                # itterate all server versions and add sub OUs
 
-                @{    Name = 'Windows Server';                  Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows Server 2004';             Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Certificate Authorities';        Path = "OU=Windows Server 2004,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Federation Services';            Path = "OU=Windows Server 2004,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Application Proxy';          Path = "OU=Windows Server 2004,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Servers';                    Path = "OU=Windows Server 2004,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
 
-                @{     Name = 'Certificate Authorities';        Path = "OU=Windows Server,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                @{     Name = 'Web Application Proxy';          Path = "OU=Windows Server,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows Server 20H2';             Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Certificate Authorities';        Path = "OU=Windows Server 20H2,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Federation Services';            Path = "OU=Windows Server 20H2,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Application Proxy';          Path = "OU=Windows Server 20H2,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{     Name = 'Web Servers';                    Path = "OU=Windows Server 20H2,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
 
                 @{   Name = 'Workstations';                     Path = "OU=Computers,OU=$DomainName,$BaseDN"; }
-                @{    Name = 'Windows 10';                      Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows 10 1809';                 Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows 10 2004';                 Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{    Name = 'Windows 10 20H2';                 Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
 
                 @{  Name = 'Groups';                            Path = "OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Access Control';                   Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
@@ -582,10 +594,10 @@ Begin
                 if (Test-Path -Path "$env:TEMP\$GpoDir")
                 {
                     # Read baseline gpos
-                    foreach($GPO in (Get-ChildItem -Path "$($env:TEMP)\$GpoDir" -Directory))
+                    foreach($Gpo in (Get-ChildItem -Path "$($env:TEMP)\$GpoDir" -Directory))
                     {
                         # Get gpo name from xml
-                        $GpReportXmlName = (Select-Xml -Path "$($GPO.FullName)\gpreport.xml" -XPath '/').Node.GPO.Name
+                        $GpReportXmlName = (Select-Xml -Path "$($Gpo.FullName)\gpreport.xml" -XPath '/').Node.GPO.Name
 
                         if (-not $GpReportXmlName.StartsWith('MSFT'))
                         {
@@ -597,20 +609,23 @@ Begin
 
                         # Check if gpo exist
                         if (-not (Get-GPO -Name $GpReportXmlName -ErrorAction SilentlyContinue) -and
-                            (ShouldProcess @WhatIfSplat -Message "Importing $($GPO.Name) `"$($GpReportXmlName)`"." @VerboseSplat))
+                            (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportXmlName`"." @VerboseSplat))
                         {
-                            Import-GPO -Path "$env:TEMP\$GpoDir" -BackupId $GPO.Name -TargetName $GpReportXmlName -CreateIfNeeded > $null
+                            Import-GPO -Path "$env:TEMP\$GpoDir" -BackupId $Gpo.Name -TargetName $GpReportXmlName -CreateIfNeeded > $null
                         }
                     }
 
-                    Start-Sleep -Seconds 1
-                    Remove-Item -Path "$($env:TEMP)\$GpoDir" -Recurse -Force
+                    #Start-Sleep -Seconds 1
+                    #Remove-Item -Path "$($env:TEMP)\$GpoDir" -Recurse -Force
                 }
             }
 
             ############
             # Link GPOs
             ############
+
+            # Enforced if ending with +
+            # Disabled if ending with -
 
             $GPOLinks =
             @{
@@ -642,16 +657,7 @@ Begin
                     "$DomainPrefix - Computer - Disable WPAD+"
                 )
 
-                "OU=Windows Server,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
-                @(
-                    'MSFT Windows 10 2004 and Server 2004 - Domain Security'
-                    'MSFT Windows 10 2004 and Server 2004 - Defender Antivirus'
-                    'MSFT Windows Server 2004 - Member Server'
-                    'MSFT Internet Explorer 11 - Computer-'
-                    'MSFT Internet Explorer 11 - User-'
-                )
-
-                "OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                "OU=Windows Server 1809,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
                     'MSFT Windows 10 1809 and Server 2019 - Domain Security'
                     'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
@@ -660,36 +666,12 @@ Begin
                     'MSFT Internet Explorer 11 - User-'
                 )
 
-                "OU=Certificate Authorities,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                "OU=Windows 10 1809,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Computer - Auditing - Certification Services"
-                )
-
-                "OU=Federation Services,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                )
-
-                "OU=Web Application Proxy,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
-                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
-                )
-
-                "OU=Web Servers,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                )
-
-                "OU=Windows 10,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" =
-                @(
-                    'MSFT Windows 10 2004 and Server 2004 - Domain Security'
-                    'MSFT Windows 10 2004 and Server 2004 - Defender Antivirus'
-                    'MSFT Windows 10 2004 - BitLocker'
-                    'MSFT Windows 10 2004 - Computer'
-                    'MSFT Windows 10 2004 - User'
+                    'MSFT Windows 10 1809 and Server 2019 - Domain Security'
+                    'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
+                    'MSFT Windows 10 1809 - Computer'
+                    'MSFT Windows 10 1809 - User'
                     'MSFT Internet Explorer 11 - Computer-'
                     'MSFT Internet Explorer 11 - User-'
                 )
@@ -720,11 +702,63 @@ Begin
                     "$DomainPrefix - Computer - Disable LLMNR"
                     "$DomainPrefix - Computer - Disable WPAD"
                     'MSFT Windows Server 2019 - Domain Controller'
+                    'MSFT Windows Server 2019 - Domain Controller Virtualization Based Security-'
                     'MSFT Windows 10 1809 and Server 2019 - Domain Security'
                     'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus-'
                     'MSFT Internet Explorer 11 - Computer-'
                     'MSFT Internet Explorer 11 - User-'
                     'Default Domain Controllers Policy'
+                )
+
+                # FIX
+                # itterate for all versions below
+
+                "OU=Certificate Authorities,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Computer - Auditing - Certification Services"
+                )
+
+                "OU=Federation Services,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                )
+
+                "OU=Web Application Proxy,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
+                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
+                )
+
+                "OU=Web Servers,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                    "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                )
+            }
+
+            # Add baselines for each build of Windows Server and Windows 10
+            foreach($Version in ('2004', '20H2'))
+            {
+                $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                        "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                        "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
+                        "MSFT Windows Server $Version - Member Server"
+                        "MSFT Internet Explorer 11 - Computer-"
+                        "MSFT Internet Explorer 11 - User-"
+                    )
+                )
+
+                $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                        "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                        "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
+                        "MSFT Windows 10 $Version - Computer"
+                        "MSFT Windows 10 $Version - User"
+                        "MSFT Internet Explorer 11 - Computer-"
+                        "MSFT Internet Explorer 11 - User-"
+                    )
                 )
             }
 
@@ -827,26 +861,65 @@ Begin
 
             $MoveObjects =
             @(
-                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'R*' -and ObjectClass -eq 'computer'";      TargetPath = "OU=Web Application Proxy,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server 2019,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WW*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Windows 10,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'R*' -and ObjectClass -eq 'computer'";      TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'WW*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
 
                 @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Svc*' -and ObjectClass -eq 'user'";        TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
             )
 
+            $VersionHash =
+            @{
+               # build  = version
+                '17763' = '1809'
+                '18362' = '1903'
+                '18363' = '1909'
+                '19041' = '2004'
+                '19042' = '20H2'
+            }
+
             foreach ($Obj in $MoveObjects)
             {
-                $CurrentObj = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope 'Subtree'
+                # Set targetpath
+                $TargetPath = $Obj.TargetPath
 
-                if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$($Obj.TargetPath)" -and
-                   (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$($Obj.TargetPath)`"." @VerboseSplat))
+                # Get object
+                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope 'Subtree'
+
+                # Itterate if multiple results
+                foreach ($CurrentObj in $ADObjects)
                 {
-                    $CurrentObj | Move-ADObject -TargetPath $Obj.TargetPath
+                    # Check if computer
+                    if ($CurrentObj.ObjectClass -eq 'computer')
+                    {
+                        # Get computer build
+                        $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
+                            $_ -match "\((\d+)\)"
+                        } | ForEach-Object { $Matches[1] }
+
+                        # Check build
+                        if (-not $Build)
+                        {
+                            # Set default build
+                            $Build = '17763'
+                        }
+
+                        # Set version
+                        $TargetPath = $TargetPath.Replace('%Version%', $VersionHash[$Build])
+                    }
+
+                    # Check if object is in targetpath
+                    if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$TargetPath" -and
+                       (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$TargetPath`"." @VerboseSplat))
+                    {
+                        # Move object
+                        $CurrentObj | Move-ADObject -TargetPath $TargetPath
+                    }
                 }
             }
 
@@ -1550,8 +1623,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+iNHBwDN9/PCmrfqJjnkM6JN
-# V1aggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPi7dE9JDzgRPUHOhUhBdARJt
+# 5HOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1635,28 +1708,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDS2p6qitlS8CMWmWGDgaWBudvu4wDQYJ
-# KoZIhvcNAQEBBQAEggIAUNZjABufbsAy2ixtu3+TeF+eBOXIq4ytd85c2hITK2o4
-# VMKPqNrgtJAfPZ4mXTUhvGz5aSrB3SpI4pAWjBSfjwMpOT9HxnAVhwDpUs7qjwN1
-# zOnn99kaTHKerYjhWHddAghn56YOU86aDL5+4ELpYPHteScuziM5CsuXywQ8l7G/
-# KvWFdKfw7ad675Zm/72yxAqHZvGxVzcU0GVP9O0amG/GGkxFneR+ntASFYAPr3TW
-# PCP6XC1mc33jkxGEACQQOUhcJtrTTprvkPpNBudon0VoRbcIY1l3pIUN+uc3mgpF
-# 5LDYuJ+CIDnVvQ2itHyvEoDEVS0K7QyaySKP28++mLZTjm3qKDI/X1/j1Ouboop7
-# qDJ5kD4Xpc2Pyxrh3nq/TPU7hbm7ZM8Ou/Eqi9eIrh4Ss8lfWS/euz7T6FG8TAze
-# nFE+xR+JupzGeLAeFUkB/iioQrdgiFVMrcYLWu/s2Rx6qFvfMzC9pyAtveFLFU51
-# rYewVpbObPFDbK/2nYOcP4vOG+3xqx4nfbCnQVwdMdqgx6n31gu6PgDlTC5oT2H5
-# D544kuTiQ3QcdlpiTkMcH0jcspdpJefRvmMTScWEgEfNjB8hqFxJSs/phThG+AsP
-# MkPi5g1XQNyeM+fxY01Gx21PjmgbnjfMUdS+qe3lhKgOS1o8lAX0MrU9Fm7gEYSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUl+DrffS687I5Ud3agJ/lFXFuRskwDQYJ
+# KoZIhvcNAQEBBQAEggIARzFtRWa5Lvuo2SXvLHnUjorjOn0e4aLnuuUvlYcVaGlA
+# GnYA58jM1QUj8oUFcI4LgmbZKOa6PEf6Eo6MVRL9NJ/Ynxj4aMo0WCqqLyfGtOqo
+# 3zXnuohAvQ4vbIqZxtBrjje5uOPJzQRqTjcXekgmc5zfhRQKqgZ4qhRZ+3LAWXn+
+# VFMtogNvH+xAUwuSb8W/2mXqYEpQ/bn10EpYogetSDin7IcdzorTB/IagNsp8S1H
+# 64vNGk0iWca8AsroEMMwYoOILa13zZ+DyK5Ne1P5DaWHoSeMOHfRD8EBX+RrsIMb
+# JXvmxwML/5LmIhOhM57E54+GM9xOHIRD9E1+GXJKh87s1PlAZLM6CCRDzjw1BTyU
+# UaLi3KKWesb8w5KHw2JKLsk5LxKUa6oMBWll4xex2kRfQ63LcDCaajIK1ofGAB6D
+# 3v0SkcEPwaCktwvMG5U0KI10ODIiscaEMSp/58ea63/eN6lonvZXpWPUThtWBVMF
+# nMaolmmhwObndeHSP4ywAX9gngj59JphCD8qPPJsz1l/FfQ35WeMGFEt8RRlLy/G
+# jIwB7zhvaesQ9DCa1JCpQi2HXOvma9vB5m1ByTetQyQL5My0KSOp8g8WRieqprHn
+# KRcX77pjQw16GmFMWclKV9sdi4k3FNzIkhyl3Xcpiocm0Xe/QWLIlL6FnhUL3a2h
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTE1MDEwMDAzWjAjBgkq
-# hkiG9w0BCQQxFgQUHC+BX3dlNIgTbc9XA5pSvzb2qTowDQYJKoZIhvcNAQEBBQAE
-# ggEAB3WJCjDyGxjXjvwS8+YImvee+75vdw3ZdRlBTRpVedAkf/DYbVnsz4y9baeR
-# GpVyWGKjVEUNDUQvo32SR1jxy7fyDYAk5ClNezbT76ydF7+KftNYZAPgPyWN8beQ
-# utgDl0z7fJfX5WrAdXczJexxkX8dAgbm460rCwTsB9ucMu54pvlLdo1Z5KjHc+Bi
-# 1cHkDdkGOjDgHz6pPDzmzFPfewkIuJz9vtbxZWs00uN8zmzIzZaUNIv+5zevFSzD
-# TYdNBsGOWqehMGvVbH+3NW8zW5hB3yx0O7WmVe/BoYMAZUPoLXOeMi9y+MGYY9pe
-# zeL7C3QQgv6jykueFUtzUANHWg==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTE5MDEwMDAyWjAjBgkq
+# hkiG9w0BCQQxFgQU4QOs8knCR+DSPFdtqo3ner338fswDQYJKoZIhvcNAQEBBQAE
+# ggEAK77v1SQOqkO+Qi1TcUipdj5VLlJ51M/sE/X4NlLUpz/bN0/+oXNQjA2AxQ95
+# UX/E/pUIblhWaLmAA4fQT8L6LLsAMJts8tCsLrHTpCSua3heJAuY+q3I2UAGqaQE
+# dG8/+euovXVEKog7pdFa+3gs0CoIF3gfug4hpOPD0FcDT5y90LdexJ51P4+VMAzz
+# EKJv8D8qMNVlNimnUvtvuhPQTcbHUg0Q44Vn/L6UddPQEybxRbdXZREsvTHwGn/5
+# h34q9jvOhuGIvseh8bVUU56TWSz6HQV529cqkDf6RV9u/cNGD5NUZX6Jo/S2G41P
+# YPfbirj15F1N/uUTLPl3sT4t0w==
 # SIG # End signature block
