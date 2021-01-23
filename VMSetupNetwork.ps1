@@ -122,83 +122,75 @@ Begin
             $Win32NetAdapterConfList.EnableWINS($false,$false) > $null
         }
 
-        ###################################
-        # IP Address / DNS ServerAddresses
-        ###################################
+        #############
+        # IP Address
+        #############
 
-        if ($IPAddress -eq 'DHCP')
+        # Check if ip exist
+        if ($IPAddress -eq 'DHCP' -and
+           (Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
+           (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
         {
-            if ((Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
-                (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
-            {
-                # Remove all ip addresses on interface
-                Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
+            # Remove all ip addresses on interface
+            Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
 
-                # Set interface to "Obtain an IP address automatically"
-                Set-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4 -Dhcp Enabled
-            }
-
-            # Get current dns server addresses
-            $CurrentDNSServerAddresses = Get-DnsClientServerAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses
-
-            if ($CurrentDNSServerAddresses -and
-               (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
-            {
-                # Set interface to "Obtain DNS server address automatically"
-                Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
-            }
+            # Set interface to "Obtain an IP address automatically"
+            Set-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4 -Dhcp Enabled
         }
-        else
-        {
-            # Check if ip exist
-            if (-not (Get-NetIPAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $IPAddress }) -and
+        # Compare ip addresses
+        elseif (-not (Get-NetIPAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $IPAddress }) -and
                (ShouldProcess @WhatIfSplat -Message "Adding IP address $IPAddress/$PrefixLength to if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
-            {
-                # Remove all ip addresses on interface
-                Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
+        {
+            # Remove all ip addresses on interface
+            Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
 
-                # Add new ip address
-                New-NetIPAddress -InterfaceIndex $IfIndex -IPAddress $IPAddress -PrefixLength $PrefixLength > $null
-            }
+            # Add new ip address
+            New-NetIPAddress -InterfaceIndex $IfIndex -IPAddress $IPAddress -PrefixLength $PrefixLength > $null
+        }
 
-            # Check if parameter exists
-            if (-not $DNSServerAddresses -and $DefaultGateway -ne 'DHCP')
-            {
-                # Set default dns server addresses
-                $DNSServerAddresses = $DefaultGateway
-            }
+        ######
+        # DNS
+        ######
 
-            # Get current dns server addresses
-            $CurrentDNSServerAddresses = Get-DnsClientServerAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses
+        # Get current dns server addresses
+        $CurrentDNSServerAddresses = Get-DnsClientServerAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses
 
-            # Check dns client server addresses
-            if (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
+        # Check if dns client server addresses exist
+        if ($DNSServerAddresses -eq 'DHCP' -and
+            $CurrentDNSServerAddresses -and
+           (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+        {
+            # Set interface to "Obtain DNS server address automatically"
+            Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
+        }
+        # Compare dns client server addresses
+        elseif (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
                (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
-            {
-                Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ServerAddresses $DNSServerAddresses
-            }
+        {
+            # Set dns server addresses
+            Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ServerAddresses $DNSServerAddresses
         }
 
         ##########
         # Gateway
         ##########
 
+        # Get current gateway
         $CurrentGateway = Get-NetRoute -InterfaceIndex $IfIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue
 
-        if ($DefaultGateway -eq 'DHCP')
-        {
-            if ($CurrentGateway -and
-                (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
-            {
-                    # Remove gateway
-                    $CurrentGateway | Remove-NetRoute -Confirm:$false
-
-            }
-        }
         # Check if gateway exist
+        if ($DefaultGateway -eq 'DHCP' -and
+            $CurrentGateway -and
+           (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+        {
+            # Remove gateway
+            $CurrentGateway | Remove-NetRoute -Confirm:$false
+        }
+        # Compare gateways
         elseif ($DefaultGateway -and $CurrentGateway.NextHop -ne $DefaultGateway -and
                (ShouldProcess @WhatIfSplat -Message "Adding gateway $DefaultGateway to if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
         {
+            # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
         }
     }
@@ -272,8 +264,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJO32aI8t6v/TJlRoErRUyyv8
-# NACggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURRrrjmqDbfCP8hjcJjH/I1CM
+# Dp+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -357,28 +349,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQaaeCfXFhEqz5/jt43ivkcBJF9gwDQYJ
-# KoZIhvcNAQEBBQAEggIAETHYIIIwPoWrM7myOMFjWdRoK/LC+HYfHO0NP3XEr6Pr
-# UohsYm8k8KCOsPNWPf3goAr5TdwIEDlTCnEnwgtzaA8ht9bSTHOWT9mgKR9qt2F1
-# tYqTjlUFnsfve6NdaaYFZnKfW7gaWRmODfs+mAHUEH/u2VQOTO54esgXDc8987Ub
-# YFr8XlBrMMhBnxRelqLcQjV5G1UzUhH2bGAnsDr2TDrEm6Hbux6f4uqIicr51idd
-# wiICD9ZcMONyFU/28RtB7b4qBXlucXBLBhSRmMPCA+p7Vx2co1BiLNRiithvEzEY
-# BP4qiOmxPTS8s7C0yIUjSo/UReI7wTAsIygevTa/Jv/mYC65oMcF9J+mfPoc+bUe
-# KeTSdf15ipMogivDKc2Sthmv7mbtDJARFt6d77vHrBpCiSY4k0yOV0EbqVSe7f4g
-# Jk/mBivfkxmXZhGGPisDECQX35z7EaQ1h1sLFlkd134cGIFGvr1b3LXGuadtljN/
-# WLn6GVINUb5rQrdVdqGGJFeWgSUnb0SsmGEbUH1yUI9moMfpQM/d5KsWo2vsQN84
-# IHC9JADoWS1m6CYNlOi8LLUNjpXf4ZTjPAJkatUVPThnIndQLg127b7RA/wT9fRu
-# I6vN3t4FEm9orQEyP2VaEqGBnnM+H7WQpz4KOTbFZLu3fpuL2YqacBFzxvqfTQ+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgG7+ai9H4CVkyOZyiIJSdMa+3HgwDQYJ
+# KoZIhvcNAQEBBQAEggIANt7s3TOHDIRVhQ2RJJUzry66n5TmGAj9UMBmZrZ2/YLu
+# PMKOWYb/GfUMYsoHo4bJ7GDjwZ5W3WKfJixpxJFqOSpwEReKdm9amyxBevx5mKnV
+# 5ripJSXmfFYLbbObDH/BUiAiwaC7/E8UjHMRobDMIJzJPFxZ/FLRsMYKcWLH5Lhb
+# pYikaYpuB63LnPYIN24RX/CkbAVPjGhOVbvH+64mrGdQiUV6Kdxnhw76X/az2kH4
+# 0qKDbZ8lkzal/YuqVTTL2P0eqekOHGLkzl7Uvr8+Cokn8f6OBweFbr5MfNrH3Gri
+# 47oYpgbeKFVCpF13YsxlOBrBrcr3fjNJa5VUpafaDbak7HmAyb5GmUR3VYAp0cPw
+# 7QYMuxFVfJFs5DXHhb0V7DHoLMOZ1EgiyI2MUCRsuMEBH70n8q1g5d4wJ0dH5On9
+# cMlzvJnkK3irjNYkHnFNoo2cmZJaQ4VIQd0Go+oB6IKelz4YNq/7m5vGUKAP+vqU
+# NKjSEI2t1N0XRWvKfu2DkXb13UNDKxtoabw4Xtkb+wF1BzYHUAmK5YwgkLwoCIWj
+# iK+/D83pu/FWKf9wWp0XwTsTsfCvjH1Vj2XvvDo8I1wHAxcEtoL6zkO/JqPJakNN
+# vG6NsNzzNEsZlPuzM79CPSXtzbAvcuRRlRm9t/aWtCA6V4utHSMi1zOtcOgGBiih
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTIyMDEwMDA2WjAjBgkq
-# hkiG9w0BCQQxFgQU66hYy9QmmE1fjVZw3KSyT/pSSK8wDQYJKoZIhvcNAQEBBQAE
-# ggEAgt7xFfK5z/ROs3anIlKAdTSpQIM/CSY9XX2LhOf4mjPMBzC1dj0c62h18Ygl
-# YbLWh9lLAa/8MIARcjEvWQAqFyI4awn+iRc/7GwGdvhVSZXSORlUnp08GVgheOLy
-# OHWnhD/hAy7HIdkSWjv95MwztA+RnqbFB4Uilgutr1414R4YQpLd06jzEoKXAhUC
-# kU0MJltXtq+9E7Tuf+xLKlSaDOS7MjfQHjT2oF6Nzm9p/ydxzSwt9foFssyddhtF
-# SYRHRUanBp40Kc3Ww5JWPbinhKU6nQ6UgzTpvIuMx/0xmGxivk/GLPMnjxTcYZvf
-# +ef8Q+LPVerHQBq0jDiY6FXM7Q==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTIzMDEwMDAyWjAjBgkq
+# hkiG9w0BCQQxFgQUw8/3knUKCWqywJXyPOVHZRU+spIwDQYJKoZIhvcNAQEBBQAE
+# ggEAFX59aeUYJFkbzbcpWz1ICC0C47v8vAl/yRq6oYDuxtbSV+ZnE0YaUEdfPJSv
+# E8rWzfbxw/JNVxE45DpWX7XkWAIApxP6OnrKSZEWhhdWtGlDHrBx6SxJKOnsQc8L
+# GfRKP8PAGt/Ujqx85GQJwcf/mlWk8bhvyEnnxbxGiiR6R1kCkDkRHbec3pHw6E3b
+# biDVkITT61YoP0/pakOKA7OhOO7eYbMgShKHX2D97LNcRqKJ+2T4NxseU7BH6FbH
+# XdGFJQG8XevjdwyUaf5d8tjfq2WbJFCGM0mmWEZQaCWPygzKpSRTZKQpmEcCY1Ij
+# 9kjLXOJcIzLrPR7i52yFA77lKA==
 # SIG # End signature block
