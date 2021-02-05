@@ -4,7 +4,7 @@
  .NOTES
     AUTHOR Jonas Henriksson
  .LINK
-    https://github.com/bomberclaad
+    https://github.com/J0N7E
 #>
 
 [cmdletbinding(SupportsShouldProcess=$true)]
@@ -20,39 +20,93 @@ Param
     $Session,
     $Credential,
 
+    # Type of CA
+    #[Parameter(Mandatory=$true)]
+    #[ValidateSet('StandaloneRootCA', 'EnterpriseRootCA', 'EnterpriseSubordinateCA')]
+    #[String]$CAType,
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
+    [Switch]$StandaloneRootCA,
+
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Switch]$EnterpriseSubordinateCA,
+
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
+    [Switch]$EnterpriseRootCA,
+
+    # Path to certfile
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA', Mandatory=$true)]
+    [String]$CertFile,
+
     # Default generic lazy pswd
-    # FIX Parameterset for certfile
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     $CertFilePassword = (ConvertTo-SecureString -String 'e72d4D6wYweyLS4sIAuKOif5TUlJjEpB' -AsPlainText -Force),
 
-    # Type of CA
-    [Parameter(Mandatory=$true)]
-    [ValidateSet('StandaloneRootCA', 'EnterpriseRootCA', 'EnterpriseSubordinateCA')]
-    [String]$CAType,
+    # CertKeyContainerName
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA', Mandatory=$true)]
+    [String]$CertKeyContainerName,
 
     # Certificate Authority CN
-    # FIX Parameterset for new key
-    [Parameter(Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [String]$CACommonName,
 
-    # Standalone Root CA domain for DN suffix
-    [Parameter(ParameterSetName='StandaloneRootCA', Mandatory=$true)]
+    # Domain name
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
+    #[Parameter(ParameterSetName='StandaloneRootCA', Mandatory=$true)]
     [String]$DomainName,
 
+    # DSConfigDN
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    #[Parameter(ParameterSetName='StandaloneRootCA')]
+    [Bool]$DSConfigDN = $true,
+
+    # DN Suffix
+    [String]$CADistinguishedNameSuffix,
+
     # Root CA certificate lifespan
-    [Parameter(ParameterSetName='StandaloneRootCA')]
-    [Parameter(ParameterSetName='EnterpriseRootCA')]
+    #[Parameter(ParameterSetName='StandaloneRootCA')]
+    #[Parameter(ParameterSetName='EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [String]$RenewalValidityPeriodUnits = '20',
-    [Parameter(ParameterSetName='StandaloneRootCA')]
-    [Parameter(ParameterSetName='EnterpriseRootCA')]
+    #[Parameter(ParameterSetName='StandaloneRootCA')]
+    #[Parameter(ParameterSetName='EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$RenewalValidityPeriod = 'Years',
 
     # Subordinate CA installation parameters
-    [Parameter(ParameterSetName='EnterpriseSubordinateCA', Mandatory=$true)]
+    #[Parameter(ParameterSetName='EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
     [String]$ParentCACommonName,
-
-    # Path length
-    [String]$PathLength,
 
     # Hash algorithm
     [ValidateSet('MD2', 'MD4', 'MD5', 'SHA1', 'SHA256', 'SHA384', 'SHA512')]
@@ -177,13 +231,8 @@ Param
     #[String]$CustomCryptoProviderName,
     #   [Int]$CustomCryptoProviderType,
 
-    # Path to certfile
-    # FIX Parameterset for certfile
-    [String]$CertFile,
-
-    # CertKeyContainerName
-    # FIX Parameterset for key container
-    [String]$CertKeyContainerName,
+    # Path length
+    [String]$PathLength,
 
     # Directory locations
     # https://www.sysadmins.lv/blog-en/install-adcscertificationauthority-issue-when-installing-an-offline-certification-authority.aspx
@@ -278,6 +327,23 @@ Begin
     if ("'$CryptoProviderName'" -notin $ValidCryptoProviderNames)
     {
         throw "Invalid CryptoProviderName `"$CryptoProviderName`", valid providers for $HashAlgorithmName/$KeyLength is $ValidCryptoProviderNames"
+    }
+
+    ##############
+    # Set CA Type
+    ##############
+
+    if ($StandaloneRootCA.IsPresent)
+    {
+        $CAType = 'StandaloneRootCA'
+    }
+    elseif ($EnterpriseSubordinateCA.IsPresent)
+    {
+        $CAType = 'EnterpriseSubordinateCA'
+    }
+    elseif ($EnterpriseRootCA.IsPresent)
+    {
+        $CAType = 'EnterpriseRootCA'
     }
 
     #################
@@ -473,7 +539,7 @@ Begin
         }
 
         # Get base dn
-        $CADistinguishedNameSuffix = Get-BaseDn -DomainName $DomainName
+        $BaseDn = Get-BaseDn -DomainName $DomainName
 
         #####################
         # Create directories
@@ -532,7 +598,7 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $CADistinguishedNameSuffix&"
+_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 "@
@@ -583,7 +649,7 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $CADistinguishedNameSuffix&"
+_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 "@
@@ -630,7 +696,7 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $CADistinguishedNameSuffix&"
+_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 "@
@@ -858,9 +924,16 @@ _continue_ = "Email = @$DomainName&"
                 # Common parameters
                 $ADCSCAParams +=
                 @{
-                    'CADistinguishedNameSuffix' = $CADistinguishedNameSuffix
                     'CryptoProviderName' = $CryptoProviderName
                     'HashAlgorithmName' = $HashAlgorithmName
+                }
+
+                if ($CADistinguishedNameSuffix)
+                {
+                    $ADCSCAParams +=
+                    @{
+                        'CADistinguishedNameSuffix' = $CADistinguishedNameSuffix
+                    }
                 }
 
                 if ($CAType -match 'Root')
@@ -1107,8 +1180,12 @@ _continue_ = "Email = @$DomainName&"
 
             if ($CAType -match 'Standalone')
             {
-                # Add domain configuration for standalone ca
-                $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$CADistinguishedNameSuffix" -InputFlag $Restart
+                # Check if DSConfigDN should be set
+                if ($DSConfigDN)
+                {
+                    # Add domain configuration for standalone ca
+                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
+                }
 
                 if ($OCSPHostName)
                 {
@@ -1311,11 +1388,24 @@ Process
             # Standalone/Root/Enterprise/Subordinate
             $CAType = $Using:CAType
 
+            # CertFile
+            $CertFile = $Using:CertFile
+            $CertFilePassword = $Using:CertFilePassword
+
+            # CertKeyContainerName
+            $CertKeyContainerName = $Using:CertKeyContainerName
+
             # Certificate Authority common name
             $CACommonName = $Using:CACommonName
 
-            # Standalone Root CA domain for DN suffix
+            # Domain name
             $DomainName = $Using:DomainName
+
+            # DSConfigDN
+            $DSConfigDN = $Using:DSConfigDN
+
+            # DN Suffix
+            $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
 
             # Root CA certificate lifespan
             $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
@@ -1326,19 +1416,13 @@ Process
             $ParentCAFiles = $Using:ParentCAFiles
             $ParentCAResponseFile = $Using:ParentCAResponseFile
 
-            # Path length
-            $PathLength = $Using:PathLength
-
             # Crypto params
             $HashAlgorithmName = $Using:HashAlgorithmName
             $KeyLength = $Using:KeyLength
             $CryptoProviderName = $Using:CryptoProviderName
 
-            # CertFile
-            $CertFile = $Using:CertFile
-            $CertFilePassword = $Using:CertFilePassword
-
-            $CertKeyContainerName = $Using:CertKeyContainerName
+            # Path length
+            $PathLength = $Using:PathLength
 
             # Directory locations
             $LogDirectory = $Using:LogDirectory
@@ -1473,8 +1557,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAbCyZzUzQG9tTNDwC5qt5fhF
-# sNuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnmyVhT2azRU4MTI+eZ4jEKk5
+# sMuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1558,28 +1642,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZkmHkr8FNshGZ7N+UkOQmVm+0LQwDQYJ
-# KoZIhvcNAQEBBQAEggIAWpV+N7+GsnGr2XKOZQHBAJl3YqYLSwF29Igxm2vpI0nh
-# EH0DNl2jqkkZg0Ig+/yQ0mbu23bZLqj0dJSPr390PeM0ejmlEStRsyPc0GR61wcE
-# v1e6n51nhWhAxVesRrUipOPUgOgfjj/UlL0EQ6VyDLGNXlQqPcNBYZ3AlaVRZ9KL
-# /qyvKvZwDENN5iBNbt+2w6D8crvhA7+e2LVrQv8K69EeG/FqMJrJq0EGPkDzIOnN
-# SewsmUm0aabsg7wXhiYJRh6f8ATY28utUlfHmm0rU9TwIt6JYQref+f080Rz0bI5
-# EtHtl8IniaBz0zIH8HJwPgPvGrWDOM/+DoHejoRP+7XT58AayyNNTiD1Upo2MJKb
-# a8bNOy8YQcK/sk+n29MzYTZYWLjvRzSghqJ5p8orIO0+yhJbfPC3+YF8JnOdDeBF
-# v1saMcg9iouXQ636X1Ed+Fp7e0YBCNPx7aftRidS9fkQn+bsIvGgGUdeWm4U/ayD
-# pABTCW8MG9ou8df64D9Ppal/GPMX47fTyCDmjRFTAG3VnBtJ1edzBYFVyrtxHKlC
-# m64lK6+yONpzXK3gcVymOvPn4dbkX8zDxMXWr1aUGgNXirQ8HEL4RG3OEXj6KmvC
-# B+GpH+sY4olGao+Km1pFyPBVUgur3AVBWa76Uw782Sa3+aljyCrRCi+yk4YEcoih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyuo9VyfLPTK9CnIWt5SexVm6cqgwDQYJ
+# KoZIhvcNAQEBBQAEggIAkXoMf6Hmv2BkiWDQkpKwaknNqYr3gbtUzRXi65sGBFn7
+# G7zP++5Li4GVpdqQysTaybNsJ56I6OTnsaPz2bPWUmyvGrLT4CsiKyLy6741VwZ4
+# 6KOZS5bCNaMpjpCbTI7QKyf0dMk5OnA1kUXaapK8ljr2EAFLB0kBxZxJ1XkkGbtT
+# 8s2P5to6QxxAAwe6Z0wxnVR5xD7nnImIcgQ1ERdNdpi8F383iKc9bE/3KMhUacX8
+# 2ww01mcPZj1TlE5wlAuKYLo/pBdAlb/QwNNZnyAEtlReVOPrBZH6KxGE8Zl0oLcE
+# foewBayek4AqVEkVfFpL8FXapw1o3fcejCDa81TM5aO3NJNo0tdX2q/2dA+300cb
+# oG+t12yNkRVFNJXri/BrdBBNmIS5aEBu31M0lqU3CGsZRPIMRvX4HRiVfhUp5qeG
+# +vx6I0ClrHil+LIfzUXQ+tjaeyuNRrLcI2/PKAIqtcZIhI2eQGtBCRYxQG+Vjqzh
+# HclCGnTdA6mAPhfUSwpNhnrRai1PFLh58vKjaWZPpQnvu5+WfN1lzk24F5QBEITF
+# eboMDTfrt8y3HG9qIRMcVF1ZYQikVFq5lnwVsf65rzmQc3Oc9/YgCbfOM97vpl7Q
+# YbvJqInXEgaqIHkfoq1R8BksQHo+SlFM2qghpdEunupQX3vJMVasQbhXbieextSh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMTEyMTYyNzAwWjAjBgkq
-# hkiG9w0BCQQxFgQUtof91geXRj0wapIJ3FiWIYJvh/YwDQYJKoZIhvcNAQEBBQAE
-# ggEAGlHXzBAkNZB22QPkcuuWSl5QOYVJqxZHFLXKEobpZZbdhO5otVXnkT1jzTFm
-# LVabEJahZk4wf5XWrln5rDIrCRhkbM9FzAURaAFKVA2bh9fgZk7w3PBl8ZA1GFyU
-# K9S8AzAHyeHgCHYaVUQeFxSRFiVTYl6EJ3l5aLvW/LT4+dxS3z6mAKFstZOGsQCl
-# I4CVMrvJ09vPIgsJifOmx1RRG1lJfPuSIM8F4IeowYxkqIgdiai/Ii89Z4mK7sVb
-# 5POzUK+oivNNBYXsgL7qhhm2B+bm6WXzvGBwQVsbwC+eUO7v1f7UJ8LeBSoYbiYn
-# C636SaPTN+a7rdrUhko0Rujtew==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ2WjAjBgkq
+# hkiG9w0BCQQxFgQUULCZRpJyv3S5KyvNgpwL2sh4dIUwDQYJKoZIhvcNAQEBBQAE
+# ggEANFK3zmdFagd8Az01RSdhBvVf3o7A1L6m6dV+x+6bR9TYBZLEneVwWJKfH1QX
+# xD96eTQJ8kUJOp1DIiO2XRQmItD5rY1b9lzmcrOvBgcJdzaBB5B+nKe9s/Jup8h/
+# yp8iJ2zo1gKz+xMjC8G1GyDBKYBSUDZNbC09mYhhAVuEOM+Cawh+ZqMdcAyJYZT4
+# vnKZBfL/lo4UksCJelrV69LovL+Bt8Yp6O0zs4lcOa1s0l5oV5Lr0byNfhcfuQCo
+# YnIjYtNVJfOyaj7+OIMjcsT3wxWHCJHxV7izt5bw3TDjvgWUO4mspvSzPa64wQkq
+# iNlz3HftrdtaCdg7pISbvi76kQ==
 # SIG # End signature block
