@@ -1406,7 +1406,7 @@ Begin
             # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
 
             $AdmPwdPS = 'C:\Windows\system32\WindowsPowerShell\v1.0\Modules\AdmPwd.PS\AdmPwd.PS.dll'
-
+<#
             if (-not (Import-Module -Name $AdmPwdPS -Force -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Installing LAPS." @VerboseSplat))
             {
@@ -1432,15 +1432,8 @@ Begin
 
                 # Import module
                 Import-Module -Name $AdmPwdPS -Force
-
-
-
-
-
-
-
             }
-
+#>
             # FIX
             # setup logging
 
@@ -1492,7 +1485,7 @@ Begin
                 New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
 
                 # Export
-                foreach($Template in (Get-ADObject -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,DC=bcl,DC=nu" -SearchScope Subtree -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -Property *))
+                foreach($Template in (Get-ADObject -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -Property *))
                 {
                     # Remove domain prefix
                     $Name = $Template.Name.Replace($DomainPrefix, '')
@@ -1601,8 +1594,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSNP8UUniTYGeC2fiZ6fTR54F
-# U+uggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5kPSpOKr25hZ/Fh2QrhUzMgv
+# Kvmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1686,28 +1679,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWfKzfhc8k/5/LrZTOzkKxTEcKFkwDQYJ
-# KoZIhvcNAQEBBQAEggIAYMCcLLIa+JqUDgG2oBwtetkx7SsH/rEIP5Qg0X0VRdKX
-# 4NVvZCsBMIVffYJZVJ9bVDdrpZSYcXQDP2ZlhFcnLyYngsOam93D7ERiarDaF1E4
-# iey7WT0maueL866FztiW0LIgQ4O969SJY4YLx/BUKrtZjcN299A9sMWoVsgbLnDl
-# DTdyfo+WFvCFiAGjxcDRDkZw0mB6jV3PZTH1jKHPMdF/vapVucLnZM4scvzCwkM3
-# XpKz+aqaaHOmiwGs2SrD+LR0zPduWezrz9ExLDx+D9Pq6IWkRRgaz2M86qk9n9TZ
-# gwFMoh+qOYkfnHAMFrpkul1TdlEDyng0rtQgfRYKCFoheKu+NtYY6MVU1ztrqXt1
-# BsT3qaA+BbmRtV0MTOIhMfw+W/UJFkf+PMC5MFPx9HuDyhmsB4kNH7H6GR/TGm/n
-# y9WjWDiElZ7NnnniDHz8PJYHJkI1mBiJufw1f7ENkVFBdO3eyuhpoWptkiTtgb4v
-# 5bU27V2y9bEsOJtweZ14xfxRA4ExCF4xbbwRmQPLhQWLmOmm3lNYZ1Y75UbIklLH
-# PJkzyOrtyFWZVI8uUtOEB+x+NqcSCdHsKuJNXJxgtWLEZYvIHHnov6hzU7G2hTbj
-# NjJPJuaUsxwPcbs/HissWUxWHuqI1znQ+nCiXxpvf9EVmS9K7zC51PHyH+QMskKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8VJjNQGs7CKt+kFD5OuHcSXU8KgwDQYJ
+# KoZIhvcNAQEBBQAEggIArODGcbrSTXOeym1iiRuVfzdOKLTXj1Mjxav1UPqsAHsf
+# UofUNw0BYZtLnVdCCzq3qpbbxyrw127fUqz0TFWQpZywrHD9LSKEOTuN9gmLSUjH
+# /jOIFVFq9xQWmqGdBtuHQTd3w3Xl2sv8VrZplcDvU5xp7b4jwFAS9+1i+75cZfC1
+# P4IHgM6TgYZgdVM0R6F73Evxrvl8VHFc2F584JUuXUjhv4MdJGX/HiSUIlau6PjP
+# mnvU/BCh64NOiVFEdCCIJ/lzfTfDFtkKCK28PhxbJ6c6/29Tu3aDFLQfQDGBlWtB
+# uPsafHZotF2eYJv6ZoGSsJcA1toHERDPWRzBfTv5d25jlJfz7HDnU56VVQ4cyang
+# /MmBkUb4KzdFJPIfF7yP+sRW7Pm7q/2HW3IxmXdiAlidbILNnJwx0EEfY+2IXGVX
+# FHJsKMrHcb45GwHd2Z7oNx0gW6paizonc4qJJJLtOdIWbJZ8gPcBPAQWMFRQ0Fdz
+# 79NkU3KxR5ciJRMoRWPXCOwX494Stf/LzOjGUQGduwflno3ejb4VdyIbNW9O2deP
+# 9zEWOIyhYUE40fLjXXNSFTet7w5z5vPR98ZZNST2u/tkCPf2TuV0Xe3NJmmJ55f+
+# wMjw96WWjIIWjFxCa/dSg/hiib8jYXbiy+RIRdFG1OPlPCmkDg3KuA0BVZy0/qGh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ4WjAjBgkq
-# hkiG9w0BCQQxFgQU+damWzRJvSFNXX2KPk5O3PGNTdUwDQYJKoZIhvcNAQEBBQAE
-# ggEADjoU2hk1YrV0cxt1ofTnzRhQioc+M9+wxBXkSC84VmoN9RAZU+9zabxeYGJD
-# ZDOnpLmmhr4d5pFUyY0oBocf/zTbOg01UGPTzVpoY065MDlM2ElJaF7iTLMY8pwa
-# rhbuttl74srh4/XR6pmhPed8QwRs8z5QY0i4G8YibPde8wFFFPEAK/DhDjH8R2o4
-# 22iG48K52jZCpIte1pcg3BgDkvBtGLs7btFjCSEIeMqCOpAJCszbg5ftr6Wd/kXJ
-# CVLOoQy+vij5YLHwN1iHKoqjvfc/R1wONKBBVaLWhuVayRUGTt7Kt5CrZnm5cJto
-# FxoAMeB1RDZfyD1WtVKjWRkAdQ==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA3MTAyODQyWjAjBgkq
+# hkiG9w0BCQQxFgQUaY9cuukHEdGoLD1M6+iASgBgRJowDQYJKoZIhvcNAQEBBQAE
+# ggEAOC8DX/fwpDHBbQaZC1O2U6sjY0M6ovSAQbw6IDsl1qSLtUFjtd2u1+8m8L4m
+# VgSNGeeX4RGEYxacaztrM9bLG/7zYqlI4SaZGVp/XsD1O63rTvrnV7N5asKwpz+9
+# 0mmu4ig+eCNSRyaYxXUxxgW8WN3UXpE09j4s6OvGRUo2R0AI6m/0f9LH2oLTCgXm
+# pFBiTP1/XC6jtMkjqt5KmS0iaxnUohYESk9W91ipzzgmoj9tzksRRbKe05tO3VA0
+# kK6nSNmu+c7Pl1BiHtePwtHunXViWB+7n5oI12mTS5arYq0PlB8h/9DMIbOtHEv1
+# K8am9o3fLCT7nio8gu+7W+zaAQ==
 # SIG # End signature block
