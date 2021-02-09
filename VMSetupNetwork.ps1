@@ -156,12 +156,14 @@ Begin
         $CurrentDNSServerAddresses = Get-DnsClientServerAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses
 
         # Check if dns client server addresses exist
-        if ($DNSServerAddresses -eq 'DHCP' -and
-            $CurrentDNSServerAddresses -and
-           (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+        if ($DNSServerAddresses -eq 'DHCP')
         {
-            # Set interface to "Obtain DNS server address automatically"
-            Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
+            if ($CurrentDNSServerAddresses -and
+                (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+            {
+                # Set interface to "Obtain DNS server address automatically"
+                Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
+            }
         }
         # Compare dns client server addresses
         elseif (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
@@ -179,12 +181,14 @@ Begin
         $CurrentGateway = Get-NetRoute -InterfaceIndex $IfIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue
 
         # Check if gateway exist
-        if ($DefaultGateway -eq 'DHCP' -and
-            $CurrentGateway -and
-           (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+        if ($DefaultGateway -eq 'DHCP')
         {
-            # Remove gateway
-            $CurrentGateway | Remove-NetRoute -Confirm:$false
+            if ($CurrentGateway -and
+                (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
+            {
+                # Remove gateway
+                $CurrentGateway | Remove-NetRoute -Confirm:$false
+            }
         }
         # Compare gateways
         elseif ($DefaultGateway -and $CurrentGateway.NextHop -ne $DefaultGateway -and
@@ -264,8 +268,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUf6LbrfU6N6J4/1QEC7iPg30L
-# m7Sggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmwD4fG5qkWlypYp4NDNex0tV
+# 3v+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -349,28 +353,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiJQ78CG4GwWloI2a0W7o+bK/TzEwDQYJ
-# KoZIhvcNAQEBBQAEggIAZlR1mQotIowpjOW64vq41PArEN5lOeFaanoiVNZ6UzF+
-# d3e7Umi+oKK7In9j8wbUhEyo2Yl4NlIAd8BRvmRPdrQ2nATmIIZ3RlevJPVKPUAC
-# rEpgCqW32Omth+hYVatITIBpw9n/cZgyMkcTQ6RfihvLS1eo2N5ciiwh9WBC4CBE
-# 3RX12yOKraq4YniJxKdFNczHLO5g8l0hI0aW0KWr1yGCanJyhk1cYD6fCVzXTFM4
-# KUotM82aLaHKwqbo10nP63RnCNsiUYemSPMMRAAW9o+bOHPnJPphyiMoxDWwc4zC
-# RMLsEQDOlBKgMCBlw+qvwHUhmITb1EVJF/+5EYsqZq9ueqnXA0u1L6ES+qd8uZp4
-# VDoc0proL/pdWRrDp2Ff+VJ+0+9AYQQf+vUO8cUIkEoJmG9nalQRo5o+cR3KQB/z
-# 9plmrJ0KSiSNpjvitNy6eAC+i3LZ1GFnegml48/Wz6+1lAWDZ/dr7KWTYpr0xhKR
-# 2xzyLLCEO/XU8Kg3EHwnFpY1cbfFgELUHJRZtITKATmiN7ziB5A8T101DPWdrGHJ
-# 3wsmJLWesJ5mIdTKhLNlTMX5wlHuhKFKy6mtGTnJAzR0JKO+a5dUZ2ENrgYI/zZc
-# UHqT2voR08RlTD6astRXqRaWij3LsJkr4GWmUSjucv8NF4rJ3h9k5sHsSYJQYgKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaR7EvyGv10cUbCQH6OBS4IAsRJ8wDQYJ
+# KoZIhvcNAQEBBQAEggIAd/t9IZCPvwLdjHL3eSzrsNK/wHKpyOV6QWgzKZg+7TEN
+# SvNYIv0CfFGhAV03JxUqi0J5bt7HjDRmg+pote4MKKIewbZKNDGsqKqaylc8yf+L
+# Or+Z3Ul6Nqhn5bg3yOw4Q98tcmSl3ByQYM0BN3uGghgWAUyocJIybF4N6hP/yw5d
+# MzB1jC8KL27RTJE5hFNBzkWBvK4ovWGC6weZApDuX3CPZQhlZaVLMxnq1ZprVzeK
+# OjSC0ndCGXwzQ77CGEP36c+FA6coBfSveS8vHmsA/n8b+SR1FSgcB7q8h1naMC9q
+# 7y8U4HB8hefA2ZvQ+iUBkYdXLpfLZ9LHV/dDWSozxEhOMTV07B9+t9g8uzn7toUa
+# 0V2GUgI7eYLGwyGrsf6XPsEgzLoRnJbDt2V35zsIKeply8fWw9hHQ3CnUtxf3+7k
+# lfMkVP6AyxtH8N4Hf4d7+NAKrWdujHCzIA3Cv7PoLhsrFMJu6OMyRn92SuFTDHe5
+# +W5OjGVB3FynSImy3aO53ABjQUI7Q3ztXvH3gulVDkIOIXBeDLzCfmJUrG3KvtUu
+# ESmMOomnOYwh4Aj6l05LU9WBuXS5w5w31l6Xk/9FifbjiiyipKgH5IKFCzaqVI5W
+# kIx90yG3DDJABqA+WuQRDBD3GCh2dzuOXthroNj5VXKR7D12rtiwme7z/XLyOqKh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ5WjAjBgkq
-# hkiG9w0BCQQxFgQUjrRwg9TRvj2od4bUE887QWo6MxUwDQYJKoZIhvcNAQEBBQAE
-# ggEAhh+d9vcTM17ubfiWAum+oqK0y0vqWDZYmf+xciWIx3iWev8QYSqBvZQr2egY
-# 3M1yME2FrluXIDYkGEqvx8tDXW6G71vPpxEopNa91hbPSyoss0ID8Z2UB12nNm6O
-# BEXTYpajKiISAlWynX3xoZSDGA6+q7IDmeXRccuJ7TxnGZYJFZYOAuduyh5KltCx
-# Epv5EvHMWWYIwesMo3sY8epuE3NIcEd1igAX6aJKEaxWxjc1MAZFNnNgHIbg6Bnp
-# evJnbiY3PtAchNXV1MTjxEheVgH2N9kv0zQCcErq9KrWp7xVYbKMwo888SlI0elP
-# 2qWKtZudLOPdXtsCs4DHbW2YGQ==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA5MjMzNjEwWjAjBgkq
+# hkiG9w0BCQQxFgQU0wYFEc7HXoVT8tybU9M0gYC4YcswDQYJKoZIhvcNAQEBBQAE
+# ggEAYhtP+DpovFZHMfPz/ISuB89zRGDeJpCLPwjaUvOpP0eSSeky6/yODCmLknIO
+# rLy0FPxFyW9bmJUBwAjXXvw7nx+sFKJuH5wws4EyMZHZ3fZNAuF6IdqntZ5FPClW
+# O4hiHIdMF1Oh4DqdfWa3GK/ktDt1wDxhTmFDJLk3RPGjUVJ7CyfL4WdvMSRZSr6F
+# SBZtSSlEZt8TiI8qcWFGo5txCKl7DktiOYpVRKm+CaqJZWU6H4xwLNeVCqVf4OPJ
+# 4CVvQ7QOh1qvmxJDBZvrPBIz6vFg8yrVQw7NvN/EBc7+LfsQZ7MdZ4NUon5RYgzv
+# yCQoQ+x30h+f9W3MHQLdhGzI3w==
 # SIG # End signature block

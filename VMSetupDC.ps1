@@ -1253,149 +1253,152 @@ Begin
             #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
             #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 
-            # Check if templates exist
-            if (Test-Path -Path "$env:TEMP\Templates")
+            # Set oid path
+            $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+
+            # Get msPKI-Cert-Template-OID
+            $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+
+            # Check if msPKI-Cert-Template-OID exist
+            if (-not $msPKICertTemplateOid -and
+                (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
             {
-                # Set oid path
-                $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+                TryCatch { certutil -InstallDefaultTemplates } > $null
+            }
 
-                # Get msPKI-Cert-Template-OID
-                $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+            # Check if templates exist
+            if ($msPKICertTemplateOid -and (Test-Path -Path "$env:TEMP\Templates"))
+            {
+                # Define empty acl
+                $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
 
-                # Check if msPKI-Cert-Template-OID exist
-                if ($msPKICertTemplateOid)
+                # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
+                $EmptyAcl.SetAccessRuleProtection($true, $false)
+
+                # Set template path
+                $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+
+                # Read templates
+                foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
                 {
-                    # Define empty acl
-                    $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
+                    # Read template file and convert from json
+                    $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
 
-                    # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
-                    $EmptyAcl.SetAccessRuleProtection($true, $false)
+                    # Add domain prefix to template name
+                    $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
 
-                    # Set template path
-                    $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
-
-                    # Read templates
-                    foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
+                    # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
+                    if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
+                        (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
                     {
-                        # Read template file and convert from json
-                        $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
-
-                        # Add domain prefix to template name
-                        $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
-
-                        # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
-                        if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
-                            (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
+                        # Generate new template oid and cn
+                        do
                         {
-                            # Generate new template oid and cn
-                            do
+                           $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
+                           $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
+                           $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
+                        }
+                        while (
+
+                            # Check if oid exist
+                            Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
+                        )
+
+                        # Add domain prefix to template display name
+                        $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
+
+                        # Oid attributes
+                        $NewOidAttributes =
+                        @{
+                            'DisplayName' = $NewTemplateDisplayName
+                            'msPKI-Cert-Template-OID' = $NewOid
+                            'flags' = [System.Int32] '1'
+                        }
+
+                        # Create oid
+                        New-ADObject -Path $OidPath -OtherAttributes $NewOidAttributes -Name $NewOidCn -Type 'msPKI-Enterprise-OID'
+
+                        # Template attributes
+                        $NewTemplateAttributes =
+                        @{
+                            'DisplayName' = $NewTemplateDisplayName
+                            'msPKI-Cert-Template-OID' = $NewOid
+                        }
+
+                        # Import attributes
+                        foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
+                        {
+                            Switch ($Property.Name)
                             {
-                               $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
-                               $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
-                               $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
-                            }
-                            while (
-
-                                # Check if oid exist
-                                Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
-                            )
-
-                            # Add domain prefix to template display name
-                            $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
-
-                            # Oid attributes
-                            $NewOidAttributes =
-                            @{
-                                'DisplayName' = $NewTemplateDisplayName
-                                'msPKI-Cert-Template-OID' = $NewOid
-                                'flags' = [System.Int32] '1'
-                            }
-
-                            # Create oid
-                            New-ADObject -Path $OidPath -OtherAttributes $NewOidAttributes -Name $NewOidCn -Type 'msPKI-Enterprise-OID'
-
-                            # Template attributes
-                            $NewTemplateAttributes =
-                            @{
-                                'DisplayName' = $NewTemplateDisplayName
-                                'msPKI-Cert-Template-OID' = $NewOid
-                            }
-
-                            # Import attributes
-                            foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
-                            {
-                                Switch ($Property.Name)
+                                { $_ -in @('flags',
+                                           'revision',
+                                           'msPKI-Certificate-Name-Flag',
+                                           'msPKI-Enrollment-Flag',
+                                           'msPKI-Minimal-Key-Size',
+                                           'msPKI-Private-Key-Flag',
+                                           'msPKI-RA-Signature',
+                                           'msPKI-Template-Minor-Revision',
+                                           'msPKI-Template-Schema-Version',
+                                           'pKIDefaultKeySpec',
+                                           'pKIMaxIssuingDepth')}
                                 {
-                                    { $_ -in @('flags',
-                                               'revision',
-                                               'msPKI-Certificate-Name-Flag',
-                                               'msPKI-Enrollment-Flag',
-                                               'msPKI-Minimal-Key-Size',
-                                               'msPKI-Private-Key-Flag',
-                                               'msPKI-RA-Signature',
-                                               'msPKI-Template-Minor-Revision',
-                                               'msPKI-Template-Schema-Version',
-                                               'pKIDefaultKeySpec',
-                                               'pKIMaxIssuingDepth')}
-                                    {
-                                        $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
-                                        break
-                                    }
+                                    $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
+                                    break
+                                }
 
-                                    { $_ -in @('msPKI-Certificate-Application-Policy',
-                                               'msPKI-RA-Application-Policies',
-                                               'pKICriticalExtensions',
-                                               'pKIDefaultCSPs',
-                                               'pKIExtendedKeyUsage')}
-                                    {
-                                        $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
-                                        break
-                                    }
+                                { $_ -in @('msPKI-Certificate-Application-Policy',
+                                           'msPKI-RA-Application-Policies',
+                                           'pKICriticalExtensions',
+                                           'pKIDefaultCSPs',
+                                           'pKIExtendedKeyUsage')}
+                                {
+                                    $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
+                                    break
+                                }
 
-                                    { $_ -in @('pKIExpirationPeriod',
-                                               'pKIKeyUsage',
-                                               'pKIOverlapPeriod')}
-                                    {
-                                        $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
-                                        break
-                                    }
+                                { $_ -in @('pKIExpirationPeriod',
+                                           'pKIKeyUsage',
+                                           'pKIOverlapPeriod')}
+                                {
+                                    $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
+                                    break
+                                }
 
-                                    { $_ -in @('Name',
-                                               'DisplayName')}
-                                    {
-                                        break
-                                    }
+                                { $_ -in @('Name',
+                                           'DisplayName')}
+                                {
+                                    break
+                                }
 
-                                    default
-                                    {
-                                        Write-Warning -Message "Missing handler for `"$($Property.Name)`"."
-                                    }
+                                default
+                                {
+                                    Write-Warning -Message "Missing handler for `"$($Property.Name)`"."
                                 }
                             }
-
-                            # Create template
-                            $NewADObj = New-ADObject -Path $CertificateTemplatesPath -Name $NewTemplateName -OtherAttributes $NewTemplateAttributes -Type 'pKICertificateTemplate' -PassThru
-
-                            # Empty acl
-                            Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
                         }
+
+                        # Create template
+                        $NewADObj = New-ADObject -Path $CertificateTemplatesPath -Name $NewTemplateName -OtherAttributes $NewTemplateAttributes -Type 'pKICertificateTemplate' -PassThru
+
+                        # Empty acl
+                        Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
                     }
-
-                    # Read acl files
-                    foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
-                    {
-                        # Read acl file and convert from json
-                        $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
-
-                        foreach ($Ace in $SourceAcl)
-                        {
-                            Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
-                        }
-                    }
-
-                    Start-Sleep -Seconds 1
-                    Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
                 }
+
+                # Read acl files
+                foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
+                {
+                    # Read acl file and convert from json
+                    $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
+
+                    foreach ($Ace in $SourceAcl)
+                    {
+                        Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
+                    }
+                }
+
+                Start-Sleep -Seconds 1
+                Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
             }
 
             # ██╗      █████╗ ██████╗ ███████╗
@@ -1594,8 +1597,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5kPSpOKr25hZ/Fh2QrhUzMgv
-# Kvmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURiVNr8oaYmfqIZwvFg60WPGH
+# DkSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1679,28 +1682,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8VJjNQGs7CKt+kFD5OuHcSXU8KgwDQYJ
-# KoZIhvcNAQEBBQAEggIArODGcbrSTXOeym1iiRuVfzdOKLTXj1Mjxav1UPqsAHsf
-# UofUNw0BYZtLnVdCCzq3qpbbxyrw127fUqz0TFWQpZywrHD9LSKEOTuN9gmLSUjH
-# /jOIFVFq9xQWmqGdBtuHQTd3w3Xl2sv8VrZplcDvU5xp7b4jwFAS9+1i+75cZfC1
-# P4IHgM6TgYZgdVM0R6F73Evxrvl8VHFc2F584JUuXUjhv4MdJGX/HiSUIlau6PjP
-# mnvU/BCh64NOiVFEdCCIJ/lzfTfDFtkKCK28PhxbJ6c6/29Tu3aDFLQfQDGBlWtB
-# uPsafHZotF2eYJv6ZoGSsJcA1toHERDPWRzBfTv5d25jlJfz7HDnU56VVQ4cyang
-# /MmBkUb4KzdFJPIfF7yP+sRW7Pm7q/2HW3IxmXdiAlidbILNnJwx0EEfY+2IXGVX
-# FHJsKMrHcb45GwHd2Z7oNx0gW6paizonc4qJJJLtOdIWbJZ8gPcBPAQWMFRQ0Fdz
-# 79NkU3KxR5ciJRMoRWPXCOwX494Stf/LzOjGUQGduwflno3ejb4VdyIbNW9O2deP
-# 9zEWOIyhYUE40fLjXXNSFTet7w5z5vPR98ZZNST2u/tkCPf2TuV0Xe3NJmmJ55f+
-# wMjw96WWjIIWjFxCa/dSg/hiib8jYXbiy+RIRdFG1OPlPCmkDg3KuA0BVZy0/qGh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUihkcZd/KSQLSUBgZW8iuDiG7UjIwDQYJ
+# KoZIhvcNAQEBBQAEggIANliz8/oU432pgJIGmkNNvV39ZAxWGTgVcX2a+4dAgTao
+# e6bGg/PPEeeNrqXDurwZX7orevC1jcj+Tkqm9+EwfrPzDXIL8KQnolw2vDHN20Xv
+# 44H9OxpisT6MU37wp81KNQlwgj45NBhUOv39hyF4XjS1pWxvhTIofUtt7Rwp67nX
+# v+E7DVU4Sl35Tt2p/16AgvcyR1wt6aQg+0KR4JU4yhdBkAOsHn4MXD0PB/fPYcuP
+# lP0kKnzhbWAb8wBK73erbctx52BRG00CpHuwdHfAfCCQ8l6g5uAXiqKpdDLr++DY
+# 7z6TmdZbb9gPsZ0R0/BRWw+PB2AlBcqhDPlNJ6HDg41ytvnmj7zTU0aYXmnTgog6
+# 2+enS0MR5ek4+DXpx0RMjh5kf7+8HGtrusx11KF1IbvHSFtDxM2n3D5ZdgFy2rBZ
+# /OXdLuluIAGdCLlHtH8Jq/rM2m0gsidMWB2aRwrG6fB01ru7aHFQ+4J1XiW5gcW8
+# myzrGM0hVnZrqH2ajmSFn/Gq7/jkoNp2mgi7Ewg+bOYvNO4i901fvdwn4ahovVge
+# X676CTx7o+/0iAlPfPm0zS+LoWC2QsxqwBq/3/ZDRdDfXbd9h5Ukn4YA8cJQdE0W
+# An3QaocOCmoTywyE6IRDErzaBEOep9V6CzGfL3homOrvIM/plFsQSMgx4WBeL7Kh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA3MTAyODQyWjAjBgkq
-# hkiG9w0BCQQxFgQUaY9cuukHEdGoLD1M6+iASgBgRJowDQYJKoZIhvcNAQEBBQAE
-# ggEAOC8DX/fwpDHBbQaZC1O2U6sjY0M6ovSAQbw6IDsl1qSLtUFjtd2u1+8m8L4m
-# VgSNGeeX4RGEYxacaztrM9bLG/7zYqlI4SaZGVp/XsD1O63rTvrnV7N5asKwpz+9
-# 0mmu4ig+eCNSRyaYxXUxxgW8WN3UXpE09j4s6OvGRUo2R0AI6m/0f9LH2oLTCgXm
-# pFBiTP1/XC6jtMkjqt5KmS0iaxnUohYESk9W91ipzzgmoj9tzksRRbKe05tO3VA0
-# kK6nSNmu+c7Pl1BiHtePwtHunXViWB+7n5oI12mTS5arYq0PlB8h/9DMIbOtHEv1
-# K8am9o3fLCT7nio8gu+7W+zaAQ==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA5MTEyNjE2WjAjBgkq
+# hkiG9w0BCQQxFgQUzZmNx4czkP6eB/H3NZ3xN3BUVecwDQYJKoZIhvcNAQEBBQAE
+# ggEAWQTGX+FOIdEV3hKSWPRGAchfh1rnra4UvpDZ/W1IC8AicELh7l/CHcSGjVSq
+# VFT/fmkqSkV8R9ffCEDXPJfhNAhkG2ejhEW6fYTu6t3g0NoRZLA4EHHKnB+d5ZbV
+# 1TKCXyrTk6ZMFTtlGR1ebhEHOaYjMnLoU0fzCVZEXsQ4/BVdWMa/e/YuPeocEjky
+# JsUAaCs+LQ62fbbuYBn9AsoNZLms9Uc54e0gWRtdEFjSY65tQaU4sKGh5Q/JgM86
+# fPDue6VIYnSmHDhkxwczpWe2KzGxnLb6/7v38KaIm2HEeyENV1dTeSf3Aw/J3h71
+# RPzYpWuvVXsJkyO66WKwaIeZWQ==
 # SIG # End signature block
