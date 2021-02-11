@@ -20,10 +20,7 @@ Param
     $Session,
     $Credential,
 
-    # Type of CA
-    #[Parameter(Mandatory=$true)]
-    #[ValidateSet('StandaloneRootCA', 'EnterpriseRootCA', 'EnterpriseSubordinateCA')]
-    #[String]$CAType,
+    # CAType
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
@@ -67,22 +64,18 @@ Param
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
-    #[Parameter(ParameterSetName='StandaloneRootCA', Mandatory=$true)]
     [String]$DomainName,
 
     # DSConfigDN
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    #[Parameter(ParameterSetName='StandaloneRootCA')]
     [Bool]$DSConfigDN = $true,
 
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
 
     # Root CA certificate lifespan
-    #[Parameter(ParameterSetName='StandaloneRootCA')]
-    #[Parameter(ParameterSetName='EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -90,8 +83,7 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [String]$RenewalValidityPeriodUnits = '20',
-    #[Parameter(ParameterSetName='StandaloneRootCA')]
-    #[Parameter(ParameterSetName='EnterpriseRootCA')]
+
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -102,7 +94,6 @@ Param
     [String]$RenewalValidityPeriod = 'Years',
 
     # Subordinate CA installation parameters
-    #[Parameter(ParameterSetName='EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
@@ -330,6 +321,36 @@ Begin
     }
 
     ##############
+    # Deserialize
+    ##############
+
+    $Serializable =
+    @(
+        @{ Name = 'Session';                                  },
+        @{ Name = 'Credential';         Type = [PSCredential] },
+        @{ Name = 'CertFilePassword';   Type = [SecureString] },
+        @{ Name = 'PublishingUNCs';     Type = [Array]        }
+    )
+
+    #########
+    # Invoke
+    #########
+
+    Invoke-Command -ScriptBlock `
+    {
+        try
+        {
+            . $PSScriptRoot\s_Begin.ps1
+            . $PSScriptRoot\f_ShouldProcess.ps1
+        }
+        catch [Exception]
+        {
+            throw $_
+        }
+
+    } -NoNewScope
+
+    ##############
     # Set CA Type
     ##############
 
@@ -344,6 +365,62 @@ Begin
     elseif ($EnterpriseRootCA.IsPresent)
     {
         $CAType = 'EnterpriseRootCA'
+    }
+
+    ######################
+    # Get parent ca files
+    ######################
+
+    # Initialize
+    $ParentCAFiles = @{}
+    $ParentCAResponseFile = $null
+
+    if ($CAType -match 'Subordinate')
+    {
+        # Itterate all parent ca files
+        foreach($file in (Get-Item -Path "$PSScriptRoot\$ParentCACommonName*"))
+        {
+            if ($file.Name -notmatch 'Response' -and
+                $file.Name -notmatch '.req')
+            {
+                # Get file content
+                $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+            }
+        }
+
+        # Check crt
+        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crt'}))
+        {
+            throw "Can't find `"$ParentCACommonName`" crt, aborting..."
+        }
+
+        # Check crl
+        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crl'}))
+        {
+            throw "Can't find `"$ParentCACommonName`" crl, aborting..."
+        }
+
+        # Check response file
+        $ParentCAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.crt" -ErrorAction SilentlyContinue
+
+        if ($ParentCAResponse -and
+            (ShouldProcess @WhatIfSplat))
+        {
+            # Get file content
+            $ParentCAResponseFile = Get-Content -Path $ParentCAResponse.FullName -Raw
+
+            # Remove response file
+            Remove-Item -Path $ParentCAResponse.FullName
+        }
+    }
+
+    ###############
+    # Get certfile
+    ###############
+
+    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
+    {
+        $CertFile = Get-Content -Path $CertFile -Raw
     }
 
     #################
@@ -415,92 +492,6 @@ Begin
         {
             Set-Variable -Name $Var -Value $Preset.Item($CAType).Item($Var)
         }
-    }
-
-    ##############
-    # Deserialize
-    ##############
-
-    $Serializable =
-    @(
-        @{ Name = 'Session';                                  },
-        @{ Name = 'Credential';         Type = [PSCredential] },
-        @{ Name = 'CertFilePassword';   Type = [SecureString] },
-        @{ Name = 'PublishingUNCs';     Type = [Array]        }
-    )
-
-    #########
-    # Invoke
-    #########
-
-    Invoke-Command -ScriptBlock `
-    {
-        try
-        {
-            . $PSScriptRoot\s_Begin.ps1
-            . $PSScriptRoot\f_ShouldProcess.ps1
-        }
-        catch [Exception]
-        {
-            throw $_
-        }
-
-    } -NoNewScope
-
-    ######################
-    # Get parent ca files
-    ######################
-
-    # Initialize
-    $ParentCAFiles = @{}
-    $ParentCAResponseFile = $null
-
-    if ($CAType -match 'Subordinate')
-    {
-        # Itterate all parent ca files
-        foreach($file in (Get-Item -Path "$PSScriptRoot\$ParentCACommonName*"))
-        {
-            if ($file.Name -notmatch 'Response' -and
-                $file.Name -notmatch '.req')
-            {
-                # Get file content
-                $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
-            }
-        }
-
-        # Check crt
-        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crt'}))
-        {
-            throw "Can't find `"$ParentCACommonName`" crt, aborting..."
-        }
-
-        # Check crl
-        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crl'}))
-        {
-            throw "Can't find `"$ParentCACommonName`" crl, aborting..."
-        }
-
-        # Check response file
-        $ParentCAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.crt" -ErrorAction SilentlyContinue
-
-        if ($ParentCAResponse -and
-            (ShouldProcess @WhatIfSplat))
-        {
-            # Get file content
-            $ParentCAResponseFile = Get-Content -Path $ParentCAResponse.FullName -Raw
-
-            # Remove response file
-            Remove-Item -Path $ParentCAResponse.FullName
-        }
-    }
-
-    ###############
-    # Get certfile
-    ###############
-
-    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
-    {
-        $CertFile = Get-Content -Path $CertFile -Raw
     }
 
     # ███╗   ███╗ █████╗ ██╗███╗   ██╗
@@ -1557,8 +1548,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnmyVhT2azRU4MTI+eZ4jEKk5
-# sMuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh+qzP9S7koKQ/JAZPKx3ms/x
+# Toqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1642,28 +1633,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyuo9VyfLPTK9CnIWt5SexVm6cqgwDQYJ
-# KoZIhvcNAQEBBQAEggIAkXoMf6Hmv2BkiWDQkpKwaknNqYr3gbtUzRXi65sGBFn7
-# G7zP++5Li4GVpdqQysTaybNsJ56I6OTnsaPz2bPWUmyvGrLT4CsiKyLy6741VwZ4
-# 6KOZS5bCNaMpjpCbTI7QKyf0dMk5OnA1kUXaapK8ljr2EAFLB0kBxZxJ1XkkGbtT
-# 8s2P5to6QxxAAwe6Z0wxnVR5xD7nnImIcgQ1ERdNdpi8F383iKc9bE/3KMhUacX8
-# 2ww01mcPZj1TlE5wlAuKYLo/pBdAlb/QwNNZnyAEtlReVOPrBZH6KxGE8Zl0oLcE
-# foewBayek4AqVEkVfFpL8FXapw1o3fcejCDa81TM5aO3NJNo0tdX2q/2dA+300cb
-# oG+t12yNkRVFNJXri/BrdBBNmIS5aEBu31M0lqU3CGsZRPIMRvX4HRiVfhUp5qeG
-# +vx6I0ClrHil+LIfzUXQ+tjaeyuNRrLcI2/PKAIqtcZIhI2eQGtBCRYxQG+Vjqzh
-# HclCGnTdA6mAPhfUSwpNhnrRai1PFLh58vKjaWZPpQnvu5+WfN1lzk24F5QBEITF
-# eboMDTfrt8y3HG9qIRMcVF1ZYQikVFq5lnwVsf65rzmQc3Oc9/YgCbfOM97vpl7Q
-# YbvJqInXEgaqIHkfoq1R8BksQHo+SlFM2qghpdEunupQX3vJMVasQbhXbieextSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGowFVKG0FnPFEK/Eqz/xNz5tKSIwDQYJ
+# KoZIhvcNAQEBBQAEggIAonYqIRJnbMIR5CjUG2K1JpHViBvcyQ/atY8s4tIF7p+z
+# 2WubVI9XshIhHfWIkd4B4GVxW0tpOzRe8l+4YTB+OUqKNjkr55T3vGJuFR00ppJd
+# eQ7C5i5UQ3lQbX9HlMksAOaDT4A/4GYb4o3phFF9bW4rNgPLwX30xlX3CDSDHFNn
+# 33H3bzeByIeKprocf8RvCikO/hOwbIHflHJHJWxeoJ7/OQZPmbBoHtjwVn1FLjFk
+# 8eZI2M6Lbtfa05oMtie95FBAwXs5qCSRr4nD23erj0AfvF2jU1O3BpHeGJ+UAq6z
+# 4eaQzXeIkLPbfoD/rmNlWBi0eNQs40uopRlxHXMrlClORVFFnH+NVvVjcLo7mqeg
+# rtF4U41oM8Hi/Xf9N4VnWp5e6gWgdhyzZgPjvBL81k03YyBnnPc22w9oghvf6A31
+# IHqcQ6QzKc4FOqRemQQ5FZBN6KBgr2LyS9eAwoazhA+Sd6VQNqkb1nkLUspkRBsX
+# c6hWKDAi8nqFJ73KZ234FuKYZupWvaqt7f9SQ0L1/9uCJrv0e4VqvAf+82xxmfNz
+# gTPBPl4bnOox+AwZyguL9QKLH4D+jMzDQR9fytPZZxVgCRxFrKXyk88vRSWpqlbk
+# fv2sOaVwllRlZAysvdGClHWsGiBEkg+fHQwUScNocVSaGXYG6vS/iqzrl/5pU9Wh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ2WjAjBgkq
-# hkiG9w0BCQQxFgQUULCZRpJyv3S5KyvNgpwL2sh4dIUwDQYJKoZIhvcNAQEBBQAE
-# ggEANFK3zmdFagd8Az01RSdhBvVf3o7A1L6m6dV+x+6bR9TYBZLEneVwWJKfH1QX
-# xD96eTQJ8kUJOp1DIiO2XRQmItD5rY1b9lzmcrOvBgcJdzaBB5B+nKe9s/Jup8h/
-# yp8iJ2zo1gKz+xMjC8G1GyDBKYBSUDZNbC09mYhhAVuEOM+Cawh+ZqMdcAyJYZT4
-# vnKZBfL/lo4UksCJelrV69LovL+Bt8Yp6O0zs4lcOa1s0l5oV5Lr0byNfhcfuQCo
-# YnIjYtNVJfOyaj7+OIMjcsT3wxWHCJHxV7izt5bw3TDjvgWUO4mspvSzPa64wQkq
-# iNlz3HftrdtaCdg7pISbvi76kQ==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMDEwMDAxWjAjBgkq
+# hkiG9w0BCQQxFgQUS1tSPoDlHxLLdvcsSoC3gDAhh5gwDQYJKoZIhvcNAQEBBQAE
+# ggEAIOzkIM9JKrMnSYfAjPZawPyRuIfx5CCn0Xr7mZ7LyCZW+KqQ65yNtsFE2C8w
+# LMpp3SMR1plJAVoxSw52gv2HgLffz4ivYpSptgr9PQBCd5CjyQcmJjxdJtkokHPc
+# +51QJRAgz1Q2rE3M9aG3k0qS18FTniTOnbK6iGARU3Ln8xfNm6hWg49XycDzc2GZ
+# 5DLyFnm3Tmd8IGegY+R+9cqGNwoRBCjd8PGIGuhmW45RaMrOKZ7LqhBhAtZuRPzU
+# Z7aZA4/hTrs+7ZKF4rt3OtQOlrug/VmYHWzyNLSwcDlbryyxIVl2G5sLsLBRYlSr
+# pWMM9ZkaSu4ndlrFEFkFW244Tg==
 # SIG # End signature block

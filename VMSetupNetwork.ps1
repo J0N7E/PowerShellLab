@@ -33,7 +33,7 @@ Param
     [String]$DefaultGateway = 'DHCP',
 
     # DNS servers
-    [Array]$DNSServerAddresses
+    $DNSServerAddresses
 )
 
 Begin
@@ -127,15 +127,17 @@ Begin
         #############
 
         # Check if ip exist
-        if ($IPAddress -eq 'DHCP' -and
-           (Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
-           (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
+        if ($IPAddress -eq 'DHCP')
         {
-            # Remove all ip addresses on interface
-            Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
+            if ((Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
+                (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$InterfaceAlias`"." @VerboseSplat))
+            {
+                # Remove all ip addresses on interface
+                Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
 
-            # Set interface to "Obtain an IP address automatically"
-            Set-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4 -Dhcp Enabled
+                # Set interface to "Obtain an IP address automatically"
+                Set-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4 -Dhcp Enabled
+            }
         }
         # Compare ip addresses
         elseif (-not (Get-NetIPAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $IPAddress }) -and
@@ -156,7 +158,7 @@ Begin
         $CurrentDNSServerAddresses = Get-DnsClientServerAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses
 
         # Check if dns client server addresses exist
-        if ($DNSServerAddresses -eq 'DHCP')
+        if (-not $DNSServerAddresses)
         {
             if ($CurrentDNSServerAddresses -and
                 (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$InterfaceAlias`" ." @VerboseSplat))
@@ -268,8 +270,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmwD4fG5qkWlypYp4NDNex0tV
-# 3v+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQGlwGF1/DCsWFN4K+QDwliQN
+# Qa6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -353,28 +355,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaR7EvyGv10cUbCQH6OBS4IAsRJ8wDQYJ
-# KoZIhvcNAQEBBQAEggIAd/t9IZCPvwLdjHL3eSzrsNK/wHKpyOV6QWgzKZg+7TEN
-# SvNYIv0CfFGhAV03JxUqi0J5bt7HjDRmg+pote4MKKIewbZKNDGsqKqaylc8yf+L
-# Or+Z3Ul6Nqhn5bg3yOw4Q98tcmSl3ByQYM0BN3uGghgWAUyocJIybF4N6hP/yw5d
-# MzB1jC8KL27RTJE5hFNBzkWBvK4ovWGC6weZApDuX3CPZQhlZaVLMxnq1ZprVzeK
-# OjSC0ndCGXwzQ77CGEP36c+FA6coBfSveS8vHmsA/n8b+SR1FSgcB7q8h1naMC9q
-# 7y8U4HB8hefA2ZvQ+iUBkYdXLpfLZ9LHV/dDWSozxEhOMTV07B9+t9g8uzn7toUa
-# 0V2GUgI7eYLGwyGrsf6XPsEgzLoRnJbDt2V35zsIKeply8fWw9hHQ3CnUtxf3+7k
-# lfMkVP6AyxtH8N4Hf4d7+NAKrWdujHCzIA3Cv7PoLhsrFMJu6OMyRn92SuFTDHe5
-# +W5OjGVB3FynSImy3aO53ABjQUI7Q3ztXvH3gulVDkIOIXBeDLzCfmJUrG3KvtUu
-# ESmMOomnOYwh4Aj6l05LU9WBuXS5w5w31l6Xk/9FifbjiiyipKgH5IKFCzaqVI5W
-# kIx90yG3DDJABqA+WuQRDBD3GCh2dzuOXthroNj5VXKR7D12rtiwme7z/XLyOqKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9pTE/A8DgSkpuPtJpWdE3ju3vXowDQYJ
+# KoZIhvcNAQEBBQAEggIAmQrmG8Q3sYOrYhHMwgmgWZQB0V3WZDv16Y73e+Ku5XbR
+# 0l7TtWABC5mOSMlTQ6VTKjzkjr8dXeGegnwETcsZmXOD047DnKDT2vJenE8TLMg1
+# C64+JXR3iYZ/rWcrL0QGM8aUzByucNwB+AoOJiuGp6onSW1jgcbWVJAFS1ZpiboW
+# KzAmYlliivUnhmQV74bPXX6E6JY9JB9nMbCl7eimCKqDtRZ6c8y/TYE53o+wJsk/
+# lRuk7koz5LGNftSsBzrgpB5nGl0VJAs+jGgx5WTnsQ6ObKy7SZe8OeqQ/oCB+pH1
+# 0LzbEC0tCZrjQBT/4xDsq5hLVvR7J+fhRL1nkIJj8kwMTXIzKG61Mb6FycQBuGmf
+# DMPTRcUAW3evOK+81HIWqKF8qRF7tWr8Ke1GmnhHJAfCs7NTeC+VQ8hlmO6LgCMu
+# v+UpgXJWEUEloKn1j15SmV+QObJshUNo3AVBsbPm2cozbKII2yGb5B3Z51XaUzU4
+# zN/cIoylPjZL47INgnIEyCH9D+RVLj2ElIPNCFOq8asjYOmdQdroPXLIYON0j9/J
+# OMofe5xuSi5O5Sbwcb7hSFDI+Bogw1mZcrAJoLPrsuyDF7Eq18Bqp0A+374pYTbO
+# pUtC3YJxHes3b/QQnjpflOvPltab/xaAb47VIGLKsTcjy9/6l1r4mCGQPJW81ceh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA5MjMzNjEwWjAjBgkq
-# hkiG9w0BCQQxFgQU0wYFEc7HXoVT8tybU9M0gYC4YcswDQYJKoZIhvcNAQEBBQAE
-# ggEAYhtP+DpovFZHMfPz/ISuB89zRGDeJpCLPwjaUvOpP0eSSeky6/yODCmLknIO
-# rLy0FPxFyW9bmJUBwAjXXvw7nx+sFKJuH5wws4EyMZHZ3fZNAuF6IdqntZ5FPClW
-# O4hiHIdMF1Oh4DqdfWa3GK/ktDt1wDxhTmFDJLk3RPGjUVJ7CyfL4WdvMSRZSr6F
-# SBZtSSlEZt8TiI8qcWFGo5txCKl7DktiOYpVRKm+CaqJZWU6H4xwLNeVCqVf4OPJ
-# 4CVvQ7QOh1qvmxJDBZvrPBIz6vFg8yrVQw7NvN/EBc7+LfsQZ7MdZ4NUon5RYgzv
-# yCQoQ+x30h+f9W3MHQLdhGzI3w==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMDEwMDAyWjAjBgkq
+# hkiG9w0BCQQxFgQUT74yFaLePUZZnHunuTUYXD4gyh4wDQYJKoZIhvcNAQEBBQAE
+# ggEAoqDyHRFFc+Ti/FgD4nOmYx8mWyi/m2hPPSS4hJLzYlWrQvvdu6cUpVCZO8WN
+# nTBoiDoHSEgGY2qITZlFwqhbj36k/dciK8Yqe/hDVH4mTW6VPWfR7ND/xP3Xkopm
+# s8QuyTI6lnKY3bWJ+tvUztGWX1vhtUK9DOqxrlVaNXxz48ZWQaM845IX7O6CLLn5
+# PyJa8F2qn9R7XZoYEIJ9G7JKZTVvF9NQdIKR5MHUeV9iBauyu5M1Ysmlg2iNILQk
+# GJoAo/Db85xpEgDuWm8n/GddusF/mdUX+nkQ0EDc8rgqgU03YVe+TJwWPnzpg4+7
+# I92x/8ry7eWaCuAxPKc5aHpDWA==
 # SIG # End signature block
