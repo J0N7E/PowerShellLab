@@ -281,11 +281,24 @@ Begin
             Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled -Value $true
         }
 
-        # Hide files under wwwroot
+        # Files to be removed
+        $RemoveFiles = @('iisstart.htm', 'iisstart.png')
+
+        # Remove files
+        foreach ($File in $RemoveFiles)
+        {
+            if ((Test-Path -Path "C:\inetpub\wwwroot\$File") -and
+                (ShouldProcess @WhatIfSplat -Message "Remove $File." @VerboseSplat))
+            {
+                Remove-Item -Path "C:\inetpub\wwwroot\$File" -Force
+            }
+        }
+
+        # Hide other files under wwwroot
         foreach ($File in (Get-ChildItem -Path "C:\inetpub\wwwroot" -Exclude '*.crt', '*.crl'))
         {
             if (-not ($File.Attributes -contains 'Hidden') -and
-                ((ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat)))
+                (ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat))
             {
                 $File.Attributes += 'Hidden'
             }
@@ -814,7 +827,6 @@ Process
             $ComputerName = $Using:ComputerName
 
             $CACommonName = $Using:CACommonName
-            $DomainName = $Using:DomainName
 
             $HostName = $Using:HostName
             $ShareName = $Using:ShareName
@@ -908,8 +920,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5+dJqdwABSav9QkC2A1KXJNK
-# TqWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5WVmrLNRldW7uNqZZVWdmmcW
+# pOGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -993,28 +1005,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUq4ULxkLyA2NcQfyavg51LOclE7YwDQYJ
-# KoZIhvcNAQEBBQAEggIAP2EUeiiVyXUs/uS8O35CnBnn4ue87lpAI3w3DUnyFVn5
-# ZuXl2A5Kr59/Q788RqXU7Dy4o3qiDrWvKw+0pk3Nxbpzb4z4D/e0btxlr76ia15a
-# 3h8+Qir866KaxTRTFG/SUoMuVQKU1LdNMx+qjlihckRjyhYEjswHbtdQOADRy8A7
-# kDSOxR2SfRsqTfHCl4c1ZQ/3NYi3OLk5DAjKm15Vo3rEXey4uBQ5HBplgBuP4wc9
-# RHERsAdIjViKSZjYiMDm+B8Am/7YEQIMKAG7sguew9CHoOMAqIDv75V1PKfzzy3U
-# gNa/SNFYqkTYNQdomCgMeh5/cISYp+zkz7nrSX68e5jsQJa8hlXDLN7m5wk6ON3S
-# Jg171fM+6qVZHKq8xXeDJQwbqOB5DRw58ZbB6SrkpFkO8H3PUtmWSsdVFIs7WMnY
-# N3Yd+knM7iW2guad0i86ULKryHd9X8PkeFoJXk5pKZPWlVditWQh9o/8adKsflv/
-# gXvbonGtjm3OLnqyjc9ejV5wcjXcu8iBjw9VtkGZFW8qbYob4SHUJHDbJ2kY491A
-# 6BgCv+J2kuCOQw+FoRGbWLchySl4X4TUtd0ql0ztmDCfHkkMl8DZ19ZFDQsQt7dI
-# I50JiFgjddRuMKf/MUHdeOnMG1K2HAEPW1TuUKg1XIPkUTumx8sis9z9dQ2Q3Sqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqYa6+2zzH4Sl349M87xaP02OP/owDQYJ
+# KoZIhvcNAQEBBQAEggIAHoebJ+z63vQZ9R8amafNWM70mFuI6m9KZgBSv46mUD9S
+# jfjwdlrQSi8g8vh/qp17QR/hWk7PAIy0b0b9a/Z9swKTq9Cx/eLEnvXp0qhGT9P4
+# DyBpHxPwhN7qI9UdYoe3etP+3C/dn05Mk2iUsof/TSSQXdsxyyFuH37goqa1VE8y
+# I9RatVuRSNUEuY8NJnxBISUS3cRp0uGAIQ+7FsejoyliD3QaJ8/WM88U87bj+XDQ
+# mxgzEjlP2qFCIWhJVG+NRRhgnl0ol3k6nBNQ5RauHq+CGNUFWO32oxBbR6ba6klx
+# HKBVF/biPHbqtwPzp1nUZPCzJRfOv/CH2DbbUHdgDgJwW3UrcVJXFZ+ne5yl4Unn
+# 80PAx19OAreM+WnkxryJ0HtJGQS0xjMKpUf/xBS0Q5WPpIyKerzjFbbHjQfeuXY7
+# vPCwBCeUeNYhQwcFD0iQ7f1Axiz595gO7p8g4EvmZORn9C4WOwr3zwl2sgj/L26W
+# k81WT9N7aKM3FGOcQkd6Fmug5/tKTPVD4Yfq73vLj0Cm5nhzEjoz2h4BGTU+v7rS
+# 0pMTmyosMizjRjjCT0NWs4e8U+xbcb1S15C1EnRw09QXZ800hYyP8Pf7SWUYfJBA
+# 2b0lPiLDNb/vnN0pqwfdMt0AJ+LAW+2U7lC5e15/UzWuMWy+xlXXdmVFMmMHXpCh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ3WjAjBgkq
-# hkiG9w0BCQQxFgQUZxMmq18wlIBXx2qtNrFtTezC53kwDQYJKoZIhvcNAQEBBQAE
-# ggEAij1IQ+wDXoDkvplZJu5PSoyPzNcnzGnPUeV78hnf3w3w5zb+7iq//3pX5Y1F
-# ai5Bnqr5CPOsM4IUX1/sjkTu7u13kHaGj1sGOXMssQotTLrN4QRrR/GCqKMuJoHZ
-# bFK8pLYLDnCcsXfLukldPeUE7aFy83++dwCWjnILbWK02HIz5PXAW14iW74Yq7yI
-# NfQBMqVpsnqzfmQe04Q5E6F8ZzVKX+NZKOH+qx7o9xtbEET035OEwJvkzblnlzK6
-# S/ntKmFreyHhK/tLefVyFmNJEq7Crtj1IEWsRfcIN/YjcWyScYQN4Un9ko8ZS0kN
-# P7qw7+W3vtDF3/rryYjyPtz47Q==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMTcwMDAyWjAjBgkq
+# hkiG9w0BCQQxFgQUX3M5TQ/erz/DSUbMY3FyWvDhX90wDQYJKoZIhvcNAQEBBQAE
+# ggEAnN4aJKLFLev8DlBL3xFta0wBFvkWY7G6nkmCEaOFQGgK28mZBMv09ps3bg1z
+# fIrj24lbXgSev04tllEr/qdPlh8ZLcBWvyLyGQKlfFZrcazoiORrX3+iiCjFfumA
+# tRUhhTH5Y3JKJYZ5/2k6l+lwAovlPTOflvzg8fnrVoKEzKvbxmbVbtCHERgKUXsT
+# m508ACtF7y6AXCIKvFVUzBrI645Q0EVlN01Qi1dKt4DmPbUQ5x+K1vsH9vL5nAfn
+# J8rPPSWnMkFcA6pkVc4AuC2BQhvZsICWf6zwHRYI21dxprtpJe0998v0gH9IVzWN
+# 707B/xOypYPB8UioTFFgijSORQ==
 # SIG # End signature block

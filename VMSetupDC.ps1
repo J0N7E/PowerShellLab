@@ -951,6 +951,14 @@ Begin
                 }
 
                 @{
+                    Name        = 'Template ADFS Service Communication'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
                     Name        = 'Template OCSP Response Signing'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
@@ -959,11 +967,11 @@ Begin
                 }
 
                 @{
-                    Name        = 'Template ADFS SSL and Service Communication'
+                    Name        = 'Template Server'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and Name -notlike 'CA*' -and Name -notlike 'ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -1264,7 +1272,14 @@ Begin
             if (-not $msPKICertTemplateOid -and
                 (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
             {
+                # Install default templates
                 TryCatch { certutil -InstallDefaultTemplates } > $null
+
+                # Wait a bit
+                Start-Sleep -Seconds 1
+
+                # Reload msPKI-Cert-Template-OID
+                $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
             }
 
             # Check if templates exist
@@ -1598,8 +1613,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8JSAtViF/JIWCOqMFBjZr3gw
-# Q9qggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUT1Ovb6v8fE9t/i09sGW4J086
+# 4miggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1683,28 +1698,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUX41UpOb9Xu0gzq/d+Q5lqqKDTlIwDQYJ
-# KoZIhvcNAQEBBQAEggIAjLkHRQxyZxkQ5LtVHquh34g5UXHw6zPCGwJzbtJFU/gB
-# aFj3Ji/843sCq8kNlQUtJPmb77B2SNOv0FZe5ZBLGD8yvizTODS/CNQ9CDghXPO6
-# h1YKARXpA/awUlfC2sr57NRXKY7DblSSQSkTPH52dHPptcY1yEeGp7KXX/sX8sSS
-# uyTw9PLfXwRAX7Hz/pLBPyMLADZOyXP/e7x5bvCSwM4uAdTSE6BCGF9e+COPPyr2
-# WoD/0QFPx07SueVe6bl0Y+tM1SD7xZqhQ/h1+LgkPMl3N2O3H5HBf0j9nG67V+dk
-# 871ClnKS5Rw577MaVFEcN31EoUS5GOdaOAZWHIEzU9U4hjPQ935EnLSFwk3okije
-# vqzI/7zJB+c2IG1AbzzAKQjyvROA1GrxV5EU4AG92u9wVffIXzmCGN4AtBZUjUzE
-# evDje7jtW8khhAZUX51x1x/RtF0mCTsUGvQvEr/4w9DPAk6top9xqDlHxi1CixGf
-# DcNsxtHfUNuttJAKdSpWKs4nMDfF+rwRPyPwU0O0csdUttc3xp8c0cGM+KebvGpn
-# vKskZlT+wHLkmGUx+NVPGyaBOGhZDFaOawho7i0AgJ2ktkrrl4WYYbjkINHIrDlL
-# XVDkD70sX3DavlegCrVqWGj5QkpKM33//mqgL+MpsQOEjZdsFqiauD0nYZ6yVJSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCqZtPbggF1r8meWU1IPBjjxAj2kwDQYJ
+# KoZIhvcNAQEBBQAEggIAWkTdEDFhdbhwI4UtcOkT4C+pZntZLT1uY+Y1023DmZGm
+# 3swlW/uWUR/l3duxMtLnQtzx1jcNmg0gBTB+P5z19/I3iWcU8hFqIPPv75arTpqw
+# ETlsB/dblKGdxu0kf8PZirfbUqB+K7pr2hmrGEO/iGJJi6s6xg6OW54vS0DYJQS0
+# mZ/Wk/5661IbAHO4ySevO8C+yTXWrt6t3eS0/S9hCWoSfMHZukWzO5dReZ5DBMF8
+# 064LclLNTevvpY6XF7CMJ3Vtrys2R4lBUKSfq8FR1KW+fNMPGdc0crS/HL4W5n5n
+# s4eiNeLWVt0g2Rfl4qRhSpVFNpgjJgz7/54GTeHqtTAbq21cnzmhn3bB3e+eI+lh
+# XtB97Mf7luu5rg4NP2p9ieqx8qWeK0A2xBQ/Xcw/HAIBBaz/ze7J7irdpTPTebgB
+# WI/hrvuUymx42c8JtRHNgMIeJ71Yz85IKhtnB43puSBxJJlNn7XM6Lhi41+pNDuF
+# C73GOHkomTeBj+uCEkMI7WKT3dTSbnyBhbVr/A1SL1h0zdRr4yWPBALebivUfHDY
+# 1ndxNJcoiE7CMJUEjIlcQrC/jBZxlM8h2YrK5HGn1Vs5A3nHsqblhwHatSVrhHu0
+# YDcIioG4uwDK9WOO7JSWnvPmgNBI77+luffa+yMpPfjB5yARAMcHeWSBm8nM0zah
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMDEwMDAyWjAjBgkq
-# hkiG9w0BCQQxFgQU7Qavk47X7HDL0yrEWnSMO+JxcaMwDQYJKoZIhvcNAQEBBQAE
-# ggEAKY7mDi4r+NFknBH+pMo8dmaYIQ0aWX8vf/s8RUVXTfGQwSf9B3Z09e4gfcKr
-# /8sz4v414I2MvH2BIfh4PDKthI3d39Al9eBCXpYd/yyzD5Yv72NBCCnFVKM2UZiw
-# Cv68ghzZr3/r7+a55R4GFEduOOSGG0x0/8TsftSRzYfxGcS/1Y3ypL1wyXoW5XVT
-# jMrqjNln1DEtDVgyjh3TzJjgyeF1IX7VNPrZi6LBNfnMQNtU22Hq96xJQJJ04eYn
-# O0QVFnTz7dddHNuEvvtFVBfketnWSKJ53oIxD3OcM8ztDEGkuJTayVbosH/UVIv7
-# pr9+1seE7QT8M1RWZ6BqQC6Ctw==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMTcwMDAyWjAjBgkq
+# hkiG9w0BCQQxFgQUXTclt8u/9qO3BfYc6LzI+KA3bf8wDQYJKoZIhvcNAQEBBQAE
+# ggEAfbMgpaAp8zZWlZPbAQckstoRNdvSUoSQDaiDAQjpvamgFLTvKivULTlVd0vM
+# 0n2nCL6iqBGdDdRolFZZwRBlVEVTVvTF919lA/th+oDYBChPjheR8jZRhT7Vi0xC
+# s+KXhpPKyLJQ/KVsAMz6DbA1f3uQ0aOJXyibgKhEciWWO41QJkgL6T+dZpFrG07J
+# gZLlL4tyYbEcFCCSWSB7ti7yJ1KUtX2US46O4vaViJUMDWn0yHsBkXzwaxAnNXoo
+# T4lE2a0suRYZVUrJfwTEf0LMDfNR1wkBYujnAIoZIl7WLCKKrbi4o4Su/92fJR2G
+# 8hLnX/9pOdnDwQN+xHb8KweSMg==
 # SIG # End signature block
