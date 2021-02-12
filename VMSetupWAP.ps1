@@ -169,6 +169,7 @@ Begin
                         else
                         {
                             $Store = 'My'
+                            $ADFSCertificate = $Cert
                         }
 
                         $X509Store = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Store -ArgumentList $Store,'LocalMachine'
@@ -245,15 +246,9 @@ Begin
             FederationServiceTrustCredential = $ADFSTrustCredential
         }
 
-        Write-Host "ADFSFederationServiceName = $ADFSFederationServiceName"
-        Write-Host "CertificateThumbprint = $($ADFSCertificate.Thumbprint)"
-        Write-Host "FederationServiceTrustCredential = $ADFSTrustCredential"
-
         # Check if WAP is configured
         try
         {
-            # FIX
-            # setup more reliable check
             Get-WebApplicationProxyApplication > $null
         }
         catch
@@ -324,59 +319,80 @@ Begin
             New-PAAccount -AcceptTOS -Contact "admin@$DomainName" > $null
         }
 
-        # Get order
-        $Order = Get-PAOrder | Where-Object { $_.MainDomain -eq "*.$DomainName" }
+        ###############
+        # Certificates
+        ###############
 
-        # Check order
-        if(-not $Order -and
-          (ShouldProcess @WhatIfSplat -Message "Adding order for *.$DomainName." @VerboseSplat))
+        $Certificates =
+        @(
+            @("*.$DomainName"),
+            @("adfs.$DomainName", "certauth.adfs.$DomainName", "enterpriseregistration.$DomainName")
+        )
+
+        foreach ($San in $Certificates)
         {
-            # Adding order
-            $Order = New-PAOrder -Domain "*.$DomainName"
-        }
+            # Get order
+            $Order = Get-PAOrder -List | Where-Object { $_.MainDomain -eq $San[0] }
 
-        # Check order status
-        if($Order.Status -eq 'Pending')
-        {
-            # Get auth
-            $Auth = $Order | Get-PAAuthorizations
-
-            # FIX
-            # check Auth status
-            if ($Auth)
+            # Check order
+            if(-not $Order -and
+              (ShouldProcess @WhatIfSplat -Message "Adding order for `"$San`"" @VerboseSplat))
             {
-                # Get token
-                $Token = Get-KeyAuthorization -Token $Auth.DNS01Token -ForDNS
-
-                Write-Host -Object "Add TXT record _acme-challenge.$DomainName with value '$Token'"
-                Read-Host -Prompt "Press <Enter> when done"
-
-                # Resolve
-                $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$DomainName" -Type TXT
-
-                # Check dns
-                if(($TXTRecord | Where-Object { $_.Strings -eq $Token }) -and
-                  (ShouldProcess @WhatIfSplat -Message "Sending challenge." @VerboseSplat))
-                {
-
-                    Send-ChallengeAck -ChallengeUrl $Auth.DNS01Url
-                }
-                elseif ($TXTRecord)
-                {
-                    Write-Warning -Message "TXT record value '$($TXTRecord | Select-Object -ExpandProperty Strings)' differs from token '$Token'"
-                }
-                else
-                {
-                    Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$DomainName"
-                }
+                # Adding order
+                $Order = New-PAOrder -Domain $San
             }
 
-            # Check certificate
-            if(-not (Get-PACertificate | Where-Object { $_.Subject -eq "CN=*.$DomainName" }) -and
-              (ShouldProcess @WhatIfSplat -Message "Getting certificate." @VerboseSplat))
+            # Check order status
+            if($Order.Status -eq 'Pending')
             {
-                # Get certitificate
-                New-PACertificate -AcceptTOS -Domain "*.$DomainName" | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
+                # Get authorizations
+                $Authorizations = $Order | Get-PAAuthorizations
+
+                foreach ($Auth in $Authorizations)
+                {
+                    if ($Auth.DNS01Status -eq 'Pending')
+                    {
+                        # Get token
+                        $Token = Get-KeyAuthorization -ForDNS -Token $Auth.DNS01Token
+
+                        # Prompt
+                        Write-Host -Object "Add TXT record '_acme-challenge.$($Auth.fqdn)' with value '$Token'"
+
+                        do
+                        {
+                            Clear-DnsClientCache
+                            Read-Host  -Prompt "Press <Enter> to resolve dns"
+
+                            # Resolve
+                            $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$($Auth.fqdn)" -Type TXT
+                            $TXTRecordMatch = $TXTRecord | Where-Object { $_.Strings -eq $Token }
+
+                            # Check dns
+                            if($TXTRecordMatch -and
+                              (ShouldProcess @WhatIfSplat -Message "Sending challenge." @VerboseSplat))
+                            {
+                                Send-ChallengeAck -ChallengeUrl $Auth.DNS01Url
+                            }
+                            elseif ($TXTRecord)
+                            {
+                                Write-Warning -Message "TXT record value '$($TXTRecord | Select-Object -ExpandProperty Strings)' differs from token '$Token'"
+                            }
+                            else
+                            {
+                                Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$DomainName"
+                            }
+                        }
+                        until ($TXTRecordMatch)
+                    }
+                }
+
+                # Check certificate
+                if(-not (Get-PACertificate | Where-Object { $_.AllSANs -eq $San }) -and
+                  (ShouldProcess @WhatIfSplat -Message "Getting certificate." @VerboseSplat))
+                {
+                    # Get certitificate
+                    New-PACertificate -AcceptTOS -Domain $San | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
+                }
             }
         }
     }
@@ -451,8 +467,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUB0QkEJhDDT5VXzN2WuskG3jd
-# gPyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPns0dqZv4e0NKVYRve3zosiz
+# dGeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -536,28 +552,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURPivL8QXFyNuw/mkIFH1yQouf2swDQYJ
-# KoZIhvcNAQEBBQAEggIAbm14Ppj4F1ucPD49KJIaJIs6osqe/ZGZJFNFmJzEz/xI
-# Q28jAbgwwk8aGcQQpKJIYlffuRYQUY2feWjESi0DtqTy/FN3ULKOx8A4/BaBXT1d
-# mZX4Qd6iEN1CkTHVc9+vpdd7r0ltNeSkVGg3UxvRU3xe0Niwwj7LvPDz1DY0FWNN
-# aX51eAFaFjn78Ncmza6X0VhOkh/hdSKhIdpJ5v8mi0O8cdN2xMwUeveL2+2rRQ1D
-# fayrAgXUaou5J+QjVk22eIee4G8VXjlNXXyFZjFtR9CeL9CAUKvKkzknguG5Jk9l
-# qDOmRrBxgXAYWljsLMnN28Z1kfIWvKFjz8m2/VTNjtkqS2uVUHPg7Yx/1q5cQIJV
-# /IMXJaggT7M4Q73u8djuqeEN3lCnX71GFCtpR0QNxx+kegzmTiLg+4esedsc9GTm
-# nQWL3DUMJxOtY9ulB6Jekx21JSdKUZGozDM9mcNz60ncTPymhr7govg+rzEm5qNR
-# PFoStAKAAvPdTvCBk88VPcQ8yZMkLokrN6dBw3ZWtHOg20Kw5lXe9yNaJ4b22MGi
-# Ke5VvLBNVUS+ohmQ8Z8sTKHJ8qVqSq3wgdKiZyJcMkFx9W0qgpxWjOYunX3w/Mre
-# 9knHoCHLd82FB8UQbo+FR+birtgbyfGnMg51h+J5KZoBf+dUzpCY6JDhhvslvFWh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUO9AVW7rg9Y8grkzvc79sPNj9FZYwDQYJ
+# KoZIhvcNAQEBBQAEggIACUdr78X7NYmRDDy/p6eANCz5zdfA5Lbb1hFX0+l+jcrb
+# D4XcLZrjBXWAoeGbNqTIswPA8dzKffWUtDbGhzsuZW2cosuGuGFA1KtNqTWAE40D
+# naAeX7ndSlDvskVf2Dn9z5LoPVhTnwKhejMHlOf9F3noAbLavRnPTfpZwHkUDIG+
+# uqoT9+SFX/HzVA8j5HuNL0ksseHFaFArmxPaEKaqOE4O0bM8r0PU5rUqdLv6tBPd
+# qm1uCR2wcB+3ONftwXbySpJCMhkj+4k5qTPTuBjtB/Ccc4mZviy2KiMSINm+yoJk
+# cBjqWm7Zbm54pD/CAbbTPsVPc9wPaaWqzCtHK+FoDsSEl4u/u7eElPZbIjuQJELo
+# sFGBPhRouED4XebyUGXKbf2gzINDrwButzJAEGWsfxVBTbPjlWtiDB2meMO5FUrw
+# 2cd5tWensGL6ovpx0qBReXAel4ZAfv4qiPImRZ9qAuHojL3rZQMLys+q2341pGBz
+# H/PEJW/dYZq5G/8xXYSzfVzHHGOPSaFSBR37Q7+VZ0eAMxF9DasEwF9OUwu7yE+J
+# 3D6Srjeq63OIp2OypT7l/eBrs0q9q5mGqst6GlIww0FPK3jr6yr8bauA4I5jdHkN
+# KbRmv46/L9TDvZo8ailNdEl5cDVQelZXVqVd1/DFgO0RUBmOhfiX+LxRy32n+Zeh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjEyMDEwMDA1WjAjBgkq
-# hkiG9w0BCQQxFgQU5T+56JlbTzdJW6e3mExX7Pe0bJwwDQYJKoZIhvcNAQEBBQAE
-# ggEASgqi+mqVYNZ+ZDTv+JwNuBgwZBhXPRXqQ9A/YqHGjFqeVUwILWGCR98usRAD
-# sWM78bdYSrXrc1fdsPQSXl0v6QM6p6HRl41xVF8uAYCAiTKmQQEPZZOx+bibyTD3
-# qLW5966tC5/pbzF1IF9IW8WAvyniQ1QrdBaDElNlZN0HCnG8iJ/3rkNqet+OIOKK
-# Wo0lcarAjL6kevdshJMMZW9q/YGHIKH5cvGj9qbldM3/GY1T4Wa52sfpjm8LRxnP
-# w9v+B5r5y5zLzU0V7ICVtVsKZ+C22cxjnk7AMc9AYTAMrdkCt4xYkexe+eUK3MSk
-# /phRWGbItP4Guc4opztY5gGX3g==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjEyMTcwMDAxWjAjBgkq
+# hkiG9w0BCQQxFgQUtohpIu93F9CIQPHeGsPdaVYAjtgwDQYJKoZIhvcNAQEBBQAE
+# ggEAESrgdkrQUy2tLy7gBdB1WSPQRi5cYxSegyTeIoUlgPQa9Ikd+344SvgUtxSN
+# n556DVxXShEC7uCsSZstn5AtzHvbxNtEFA1n7P7pFf2sKys2MshRJTPXJ9oiuV8A
+# uyqTZ3ekgH1DGcxPMSScOdt/rgT8jBQo8nqy8X3Bi/7gi4x7vkHnW/ueM2d/7waH
+# bnN8///I9eVkk2MS50f6H2Qp+44K4Yt8oSiJUTv4NlcIvvY6SnsTBsjQvpyxXEsJ
+# PzDNSHzOrVGHSxk2uKWfPzMQbyj7/CIf1BhX2SpELzAeQyNqk7SeMksJ7f3HJ8Rs
+# xlMA6rD/AhRTnyvtOH2lZO1TSw==
 # SIG # End signature block
