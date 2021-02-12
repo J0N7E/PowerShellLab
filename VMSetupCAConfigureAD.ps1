@@ -443,13 +443,10 @@ Begin
             #############
             # Attributes
             #############
-# FIX
-# reinstall and check default DN
-#VERBOSE: Setting "Enterprise CA04" Enrollment Services cACertificateDN = "CN=Enterprise CA04,DC=bcl,DC=nu".
 
             $ESAttributes =
             @(
-                @{ Name = 'cACertificateDN'; Value = "CN=$CACommonName,$BaseDN"; },
+                @{ Name = 'cACertificateDN'; Value = "CN=$CACommonName, $($BaseDN.Replace(',', ', '))"; },  # set space after each ,
                 @{ Name = 'dNSHostName'; Value = "$CAServerName.$DomainName"; },
                 @{ Name = 'flags'; Value = 10; }
             )
@@ -649,8 +646,8 @@ End
 # SIG # Begin signature block
 # MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnaP28toiTF8VqTKrMzEATucW
-# Xw+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwL3y0aupsNXqBX3tfdeL37px
+# ZJOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -734,28 +731,28 @@ End
 # okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmQWtqBAw17++aQXJjnpO14Aqy4MwDQYJ
-# KoZIhvcNAQEBBQAEggIAlICGTaFnN4QwiqgdyReCiXxjyZMpqp2rXbYX2pVO42A/
-# kRXAVLdeBYzBxJFL+dwltEqTDXNUOB/OGw5Tslhusb4yu/gxOW7aVvZjZa3gjoM/
-# EMhyBtyy9OrTrt3J1jGrHv1/cGOVZ7OwKukWWZSs1HI8Wp59Lmt3JxfRsBrHCXRB
-# H6J4s+fc5cejm+9N/+HLIPgeQX7yHbqK5F8HNlbx5cMn2Xg/pDBM9sIheBxMmiVI
-# e8WXbuyb9AUk/dSRipxdq+YFPjNsVxDGw7lTwXlwXeJggVdEGlj38fXxk9J3V12B
-# uvVCwH2FOB0rwH7ZEgAp10mGYG7+/fAbyvbnC7Qqt0tgcd97+dvPYP0WSxGNQqXO
-# Vervg6oywWtWa8+VN2CTxW+/lGt1hCCNaK+BU/f6KG7yQTlkCqYBugFevgxaDTcI
-# c+n07GJa7VSlLRPeH2jFtZKyOPwApP7xL8GO4kQOC9txrKhIJZO7MyIbU07t63Vw
-# msNdd6/XprNUgaMK8IzxOVctej/M1i+vQAw0pp/Ig/B/JxBHjvfTO/Mrwsb6EpGS
-# /sxRlOKdaz1KNr5VdX3fEWHa9QNmD6t1YmpHJstWhdwVxbXhAYVv4VkPQxWeBkkc
-# K0EIq2lcal+qjv1yGdMQPzxdyr86LcseWjPpIFZ3gLrBrt7wGnjocC2dfCl6ZrSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmJwfrSe2/IWRQepUlTddbuXR7qMwDQYJ
+# KoZIhvcNAQEBBQAEggIAeiqj4Eaa4ObPwli6A9v0Rpwg8m2OK86tYk47FALP/Lwn
+# x0G4GMMfL6wejry0r/nTZ4ZuUi/PVK77mrJpGb+AriUmyCMdCKqEaO7AtRuM/O7S
+# uS91/vyRiR/roMYPUd7Fs4EnXbHDhobVfsgZ4fJEpxiGZY7QW3t87hiiioBQCDj4
+# Wjv+j3SdZGqzcTfvbvAcw1Xr3s9UuGsSpUN63CwZwi39mmnLhnuCT0iKMwerQ8lU
+# 96XHB+Ru/uE5NgZmobjc1FuMo3YenDpjSwmN9KHNZdW2CTbLLeA5QjGhgl7AJUUx
+# yNl0E1I5iGwxd8Gl4KMa27/oqFt/7fmHOOWAJawmNHjqWWQujxEV7GpSMnWBysh/
+# mKi+gacJ1kXsRaQ3fskjPtmdPssOobnB3MP0UBK81sRjwxYBcx3KQR4NSbvs5tCx
+# LTZMH71Z0h8uW4r8Oq6R8p65SHHiMFbBWimhx3d86JoQ9DO+halBSJQpVu13pObL
+# 0kvF3wjNgEAtQxYsYE5xsbhWuzsNg8plXOskccErj9c25ly6iomp0Y7u4AIBpX3J
+# J0ojIY8MG1ox7YWb5RTSpUIlbVSwGYbQiSzwbLUUZslGhzpZO6gW17VO8gDlfZeV
+# M0VPAC952rDxNFFqqga1bwb5UniNRZUGaoNwehK2aPrAbMfwRz39f31tbxhnIEWh
 # ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQ2WjAjBgkq
-# hkiG9w0BCQQxFgQUDXYfDI4Na2DdNDTJz/8sU6jurMMwDQYJKoZIhvcNAQEBBQAE
-# ggEAKLYnm9SyZugk/Or3rif3dbuEtFJvF8tGcf+9W0wlSs3SROnA8dOjyu96dfwH
-# i5Oz7o49aJ89f3zOjJqZW3+2qzr/lWVTvHwrY4qKqm4njJX9trSoFkZFhhWmLPrT
-# 2QBRre6a7BpQclwLNSK9vzQ2c1yYbKmRjfsqWt0bv0DqrrTLbfD6y7zGmU2eWzZK
-# 5Od16/mNBQhaj2CtawYi+9CtXag6Y+dxV2TuMNezIo42DqsU+qtFlzZSmnPYEpRs
-# 2HaVvBRZ3eUSvNTsoWFptoy5nAhxBd2axqVxlwdsN7hE+V35Sd2mDMFERqgSxF1Y
-# 3gkH24VmOz3USTHp6LQEP4I8qg==
+# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjEyMDEwMDA0WjAjBgkq
+# hkiG9w0BCQQxFgQUsMuF92u5DT2CxJZXmoMYMn3d5BIwDQYJKoZIhvcNAQEBBQAE
+# ggEAIRzQDoZKOdGie+ay7K9rmQKqnWIwR0OhpSxdIlLeMoEhULT/ft6eytZkQvj+
+# TQFdXuVi/OgNJdJhzz/ZHvyl3G2dW+gZISxyTYvJQ8l4yS+teiPIpuzbCI9f8/9q
+# D/IVthvfjE4zLqzwbVu0a0JZscbWzqfW1JZeaxLXriNdgf5efqNQXI/CcmjQE9WW
+# kAMzLoT/ljQTM5mFM1uEO6beXodohXfoYhSFFO4kVuBDUEE+AcJnMixcELuh1bKc
+# JBz6acyNAJNsB2AGbtiEk1d0gjNSJPQrbF/p7b9qNGd7fCB9i6kSJhQcP7CNYqar
+# zmqe/HzU6V6XqzLEWWsuKEqAPw==
 # SIG # End signature block
