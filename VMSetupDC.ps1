@@ -951,6 +951,14 @@ Begin
                 }
 
                 @{
+                    Name        = 'Delegate AdSync MsDs Consistency Guid Permissions'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                }
+
+                @{
                     Name        = 'Template ADFS Service Communication'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
@@ -1171,6 +1179,34 @@ Begin
             )
 
             Set-Ace -DistinguishedName $BaseDN -AceList $AdSyncPasswordHashSyncPermissions
+
+            ###########################################
+            # AdSync MsDs Consistency Guid Permissions
+            ###########################################
+
+            $AdSyncMsDsConsistencyGuidPermissions =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['user'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['group'];
+                }
+            )
+
+            Set-Ace -DistinguishedName $BaseDN -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
 
             #  ██████╗ ███╗   ███╗███████╗ █████╗
             # ██╔════╝ ████╗ ████║██╔════╝██╔══██╗
@@ -1611,10 +1647,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1PM58av9GPxRCxRNvqPIhfsY
-# CUWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6HBhz4lQK63ufpf0Kj40hS2v
+# hEmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1695,31 +1731,31 @@ End
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUC7BOLWiE63YSoV2ynuncJEF8ccYwDQYJ
-# KoZIhvcNAQEBBQAEggIATTxgUx40SO2nl2SPqNa457gxD2PbFJ3otD8uDU8ZZh8C
-# eJFEav4Jq2KdR8/rp8oPt09D2lcjqeR2WywceEhH03jO1mM5tEUn+1m+S6514Sc6
-# RonE6W0t2/uLY6el7DiILkiIyABY0ikDVIWmtz1CX67/zGzKgzDLjvI2Xm9o5NUj
-# mD/jQJIMm1eWs3m6cDCAQuVoyz2O30ctY//aJQWnvFgvifxS8/6Nlgq9qDslXWwt
-# k0TLfj8He5fY7IxHPyf1KG8OB8tzVJXJQkQjBBXU46QtKG2wloLDA1/HuCLR7NT9
-# zn0UvH+JdfRNxtxWHpYDrC0sc0XijQGAV2MEk8uJRje0OJARPod8bjtvaNOMbrQN
-# 3NliRct4JDBULl9wiuwZzVuvCLOTbn4ln003ZTJQc6N0bXga2YCl/UAafCwjFDTO
-# jKXjWHPZf4tOscV3+Gdzok+nqijU3DIfLC+W1nhxeAv6IlRA9F0KOpsPl9QzbvGi
-# UzURq5K7BIjSrRGeEaObvaiWMBoETyTEYSWseGyFZPGtxWJcTmRbnUm37ZQB+P5l
-# Uz+v+ffmwla57pll4i/zrdWVxAEevSSpbIyxCoehXjRMal6Olvs50vKLLnzBN1lz
-# mWVYLb0HQo8mVoizwa0/PMGqKNJ6Jx5C7p+LcWODj89LbQGP1q2ZS50MskQrQWuh
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8/vS1JJy83+wCCoZLHjYKFfRbzgwDQYJ
+# KoZIhvcNAQEBBQAEggIAV4D+BBZl4ZLPmSU6K2RBgNoxcAhaNVclZU+XMEIN+ARt
+# yRmlBJd5imCVScToe9c+MWIfrfnh1mkLli9spHBJ2aQ4Sg483xH5sSp0P8d2uF1R
+# F+mjCvZVHyiiBeq96ZluJx9YD1fy/zY/wni3euuGq7zi3SmQWzTEsNQQlFDCaAA6
+# EbbKHLWUkXvUOcEmfwht7raPKWWty6GZct6Y/QszHYZHFH6ieHoVOPp/mjGMY0TU
+# V3qlmWa8+W4+kI1Sslptl8suo9HVNn0k+eDkL41Aq83PjkaGTrqE2unUDu05Ljng
+# yHi8SKGhOn6tdezjXWPjoOCuZkO6Q7BewR/9rTqbpsLVd13ZKRDmu9SYsQPbs8yi
+# EBHqXx3bJ8KDSkSgLgjuVgqTKtRpvDf6pdCRfvHgKoaXKeWJ9dgi3uZmzq00zvjD
+# K0CSN19j7K20Z9lRrwF+WX+iumbah2r3YGpHUka3X2qGefm41lJXvqShcsMWSYVd
+# kvOJ+Xsu9i9Onpax5Q9otUkF72vUExHO0SRjsFyyOR+n6BVgk8WImcZ0DWYvXu3R
+# B/STeDccHNJ3tPbwRWBLK6MYLKdYSU0QJaNsHIp9mDhnEvQ/OYWpzA1F/J4lLx8V
+# OJipzGzRGpz0SO7/yWLmqiq1iqxxm1XWcucZlra422uc0L1FSAOsdKYAnCy6vZ6h
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjEyMDEwMDA0WjAjBgkq
-# hkiG9w0BCQQxFgQUzrig/TWZOvIrt4VQNkNV9n+lWPkwDQYJKoZIhvcNAQEBBQAE
-# ggEAMj43fAIOvqVyB3PpBRPyatVPyuZqc3KrVbutBKUEw1OOsUrAREQFctI4pjyw
-# Py1NzQetqRkfJfsCsoVbzaSPN9DiaZGgcx4aIDuWkIB2jxi1bbC+GAZn3RPPAWqC
-# TNXnbCyLMX4UXXsMMwMQcbQo/vHcdTVb0dYodlMdd/+Pq+L1PCGQHrAKTAOJ9z0T
-# oteuJ6fg9dp75ctQS9qPux9sd34xCv1mVCOxpVQ6kiXRAjUwDLzJ21DKaVCMfZD8
-# KX9tpcKnFjp3AyIZNZkS8DKh0WlotoddCo3GNTB5SXSVPK6KARQezyljj/IvpHHb
-# RVt+CU8KQ8KbGMRD2eMwJ4w0NQ==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMwOTAxMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIPwn+UqR2N1QLfxmTyKjyR0IXxlxuz0ktNvfacdS94yo
+# MA0GCSqGSIb3DQEBAQUABIIBAE7k9ZfsIEZkGflKNx5yX1zMBEA5tZO9NLIWHmy3
+# dpI+pY58Jwqjdh3v+UtYldMmiFgu0O3G8YLUqmYMF0bGN7uu2gy6bg9ZmwJrWTya
+# Os5DvaBFrpm1rXzuXpUrDXZKoIMaIur7IdewNLGZ9L18QI0r3gAqFX0At7f4XsAX
+# sKO4+sB0yhA25L6YUlR8prN/dmgfhRwz++XGNFtLFtihdhut+ruspMY7gjemdbuT
+# ZsYZiQcwr7w/ryj3S1AGulIBEg6eXEhvsxPrq1rEk1LBbXDSVAk0TwfohcYUP18B
+# QZ31XXGKyI98ume5KUXPM9tUKdKk1sRWZMdn7jB45C0pygY=
 # SIG # End signature block
