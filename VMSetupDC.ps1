@@ -317,7 +317,7 @@ Begin
                 foreach ($Name in $ServerNames)
                 {
                     # Get record
-                    $ServerHostName = Get-DnsServerResourceRecord -ZoneName $DomainName -RRType A | Where-Object { $_.HostName -like "$Name*" -and $_.Timestamp -notlike $null } | Select-Object -ExpandProperty HostName -First 1
+                    $ServerHostName = Get-DnsServerResourceRecord -ZoneName $DomainName -RRType A | Where-Object { $_.HostName -like "*$Name*" -and $_.Timestamp -notlike $null } | Select-Object -ExpandProperty HostName -First 1
 
                     if ($ServerHostName)
                     {
@@ -634,6 +634,7 @@ Begin
                 @(
                     "$DomainPrefix - Domain - Force Group Policy+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
+                    "$DomainPrefix - Domain - Remote Desktop+"
                     "$DomainPrefix - Domain - Clear Do not allow drive redirection+"
                     "$DomainPrefix - Domain - Clear Deny log on through Terminal Services+"
                     'Default Domain Policy'
@@ -1649,8 +1650,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6HBhz4lQK63ufpf0Kj40hS2v
-# hEmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTtsEIYxN9jIqvfsrV/9TG5QR
+# GTCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1734,28 +1735,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8/vS1JJy83+wCCoZLHjYKFfRbzgwDQYJ
-# KoZIhvcNAQEBBQAEggIAV4D+BBZl4ZLPmSU6K2RBgNoxcAhaNVclZU+XMEIN+ARt
-# yRmlBJd5imCVScToe9c+MWIfrfnh1mkLli9spHBJ2aQ4Sg483xH5sSp0P8d2uF1R
-# F+mjCvZVHyiiBeq96ZluJx9YD1fy/zY/wni3euuGq7zi3SmQWzTEsNQQlFDCaAA6
-# EbbKHLWUkXvUOcEmfwht7raPKWWty6GZct6Y/QszHYZHFH6ieHoVOPp/mjGMY0TU
-# V3qlmWa8+W4+kI1Sslptl8suo9HVNn0k+eDkL41Aq83PjkaGTrqE2unUDu05Ljng
-# yHi8SKGhOn6tdezjXWPjoOCuZkO6Q7BewR/9rTqbpsLVd13ZKRDmu9SYsQPbs8yi
-# EBHqXx3bJ8KDSkSgLgjuVgqTKtRpvDf6pdCRfvHgKoaXKeWJ9dgi3uZmzq00zvjD
-# K0CSN19j7K20Z9lRrwF+WX+iumbah2r3YGpHUka3X2qGefm41lJXvqShcsMWSYVd
-# kvOJ+Xsu9i9Onpax5Q9otUkF72vUExHO0SRjsFyyOR+n6BVgk8WImcZ0DWYvXu3R
-# B/STeDccHNJ3tPbwRWBLK6MYLKdYSU0QJaNsHIp9mDhnEvQ/OYWpzA1F/J4lLx8V
-# OJipzGzRGpz0SO7/yWLmqiq1iqxxm1XWcucZlra422uc0L1FSAOsdKYAnCy6vZ6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULNELpcLZ1o075+DSr5Tb8/+PCbcwDQYJ
+# KoZIhvcNAQEBBQAEggIAePC45kWPljDN6GtVls036LsYxqaZwThrkdI3QRYhvSSv
+# HhEMoIImXorctOgyFUuyuATF+zaxF+5f4wA3GzEumTiC+6j1X3N+DFi6ciKgnGxn
+# 4zP/71V7163+SUCjGqY46hr/Ol6zWi7CwJWWJqT/iMTrb4RNIzRypOs8ihAFPRSZ
+# ramg11+BUPohV+nXPRyZHf9z5xVdoPdt4MeBIdCwICn/srp2gME5Vq8b+dgXAy7Y
+# sJNAn3Qwl5SWorHrglTwyzrwzXPCUgTgfIsJN13v7hXjrNDl1vdq5a8tiPWF91vG
+# dpoYXuIs2Pb5fFmtoCgSY9SXQoufGEvUyMNwLu5HHT4Rbf8MkVj1cu8nsikVjphl
+# RGjtDACWQeQpvkNvNZxx0y9kteToMLYU9IxBJPd4FJVzMMO8HMPolUQ4PxQq5+RH
+# YG7PcbF3MV8rFbuHOhiRdXMBWl14ELyNkvsDmnbXjJewyeax2q5Pwp7UMNVCXNVi
+# mOIsebA0SAwl+AD8Yn4wbBhN4ar+VCCKubgkqkAOxAWJJMkJHRgbacROpWvHKia2
+# RDomv/jkQUu60cUjaAxPeqhjml2u2clfgQArlaZJzpINDpRJw60zvfasY4vhkSCQ
+# 0vgtAvsU/lpp5/Fd+F2XPbOWS5PfZ570rSk3IjXyHkloIl3Qc2rq98zYPwboRNeh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMwOTAxMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIPwn+UqR2N1QLfxmTyKjyR0IXxlxuz0ktNvfacdS94yo
-# MA0GCSqGSIb3DQEBAQUABIIBAE7k9ZfsIEZkGflKNx5yX1zMBEA5tZO9NLIWHmy3
-# dpI+pY58Jwqjdh3v+UtYldMmiFgu0O3G8YLUqmYMF0bGN7uu2gy6bg9ZmwJrWTya
-# Os5DvaBFrpm1rXzuXpUrDXZKoIMaIur7IdewNLGZ9L18QI0r3gAqFX0At7f4XsAX
-# sKO4+sB0yhA25L6YUlR8prN/dmgfhRwz++XGNFtLFtihdhut+ruspMY7gjemdbuT
-# ZsYZiQcwr7w/ryj3S1AGulIBEg6eXEhvsxPrq1rEk1LBbXDSVAk0TwfohcYUP18B
-# QZ31XXGKyI98ume5KUXPM9tUKdKk1sRWZMdn7jB45C0pygY=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMDE3MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIB366yr/h6eP2dKI23oF139qPZwxPUFHcDvdr0P1R2nL
+# MA0GCSqGSIb3DQEBAQUABIIBAIpf9rkGRZvUnYwz7ofqxeKkW4yM1VGkL5MpZbk9
+# +tieau+988UCvEkftsi9cir6tf0BdF4k5eODWmzf0D9mIkhykIOTTiYHQC8/5g7N
+# IszvvlDwTANu2ETDfkrPQG1wCENyhhJRBKcUS0A6mBVvrwPTogLGZvcrsAhFlATL
+# U+lC5i8tVO8/T+34z3ZqGoudc6Gio/FDlaooVAJluxZcEDBFwavdE37oa7nYUZh6
+# SlA0PfjHFbGFZngEYgCQTqEDMr1OXKvXPl+0P0Gmt7hXxSOph9qyFrdiHdVsMByM
+# derdbY8M1otdrf++t86nMjL9aJ4hhjr47KTZr0YmwD109vc=
 # SIG # End signature block
