@@ -36,41 +36,56 @@ Param
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [Switch]$EnterpriseRootCA,
 
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
+    [Switch]$StandaloneSubordinateCA,
+
     # Path to certfile
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CertFile,
 
     # Default generic lazy pswd
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     $CertFilePassword = (ConvertTo-SecureString -String 'e72d4D6wYweyLS4sIAuKOif5TUlJjEpB' -AsPlainText -Force),
 
     # CertKeyContainerName
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CertKeyContainerName,
 
     # Certificate Authority CN
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CACommonName,
 
     # Domain name
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$DomainName,
 
     # DSConfigDN
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    [Bool]$DSConfigDN = $true,
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [Switch]$SetDomainConfig,
 
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
@@ -97,6 +112,9 @@ Param
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$ParentCACommonName,
 
     # Hash algorithm
@@ -283,8 +301,11 @@ Param
     ###########
 
     [Switch]$UsePolicyNameConstraints,
-    [Switch]$SkipPolicyFile,
+
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Switch]$PublishTemplates,
+
     [Switch]$PublishCRL,
     [Switch]$ExportCertificate
 )
@@ -365,6 +386,10 @@ Begin
     elseif ($EnterpriseRootCA.IsPresent)
     {
         $CAType = 'EnterpriseRootCA'
+    }
+    elseif ($StandaloneSubordinateCA.IsPresent)
+    {
+        $CAType = 'StandaloneSubordinateCA'
     }
 
     ######################
@@ -466,6 +491,24 @@ Begin
         }
 
         EnterpriseSubordinateCA =
+        @{
+            # CAPolicy parameters
+            PathLength = 0
+
+            # Post setup registry settings
+            CRLPeriodUnits = 1
+            CRLPeriod = 'Weeks'
+            CRLOverlapUnits = 84
+            CRLOverlapPeriod = 'Hours'
+            CRLDeltaPeriodUnits = 0
+            CRLDeltaPeriod = 'Days'
+            CRLDeltaOverlapUnits = 0
+            CRLDeltaOverlapPeriod = 'Minutes'
+            ValidityPeriodUnits = 1
+            ValidityPeriod = 'Years'
+        }
+
+        StandaloneSubordinateCA =
         @{
             # CAPolicy parameters
             PathLength = 0
@@ -589,9 +632,55 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
+"@
+}
+
+#########################
+# Enterprise Subordinate
+#########################
+
+$CAPolicy_EnterpriseSubordinateCA =
+@"
+[Version]
+Signature="`$Windows NT$"
+
+[PolicyStatementExtension]
+Policies=AllIssuancePolicy
+Critical=No
+
+[AllIssuancePolicy]
+OID=2.5.29.32.0
+Notice="All Issuance Policy"
+
+[BasicConstraintsExtension]
+Pathlength=$PathLength
+Critical=Yes
+
+[Certsrv_Server]
+RenewalKeyLength=$KeyLength
+CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
+CRLDeltaPeriod=$CRLDeltaPeriod
+AlternateSignatureAlgorithm=0
+LoadDefaultTemplates=0
+"@
+
+if ($UsePolicyNameConstraints.IsPresent)
+{
+@"
+[Strings]
+szOID_NAME_CONSTRAINTS = "2.5.29.30"
+
+[Extensions]
+Critical = %szOID_NAME_CONSTRAINTS%
+%szOID_NAME_CONSTRAINTS% = "{text}"
+
+_continue_ = "SubTree=Include&"
+_continue_ = "DNS = $DomainName&"
+_continue_ = "UPN = @$DomainName&"
+_continue_ = "Email = @$DomainName&"
+_continue_ = "DirectoryName = $BaseDn&"
 "@
 }
 
@@ -640,17 +729,17 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
+_continue_ = "DirectoryName = $BaseDn&"
 "@
 }
 
 #########################
-# Enterprise Subordinate
+# Standalone Subordinate
 #########################
 
-$CAPolicy_EnterpriseSubordinateCA =
+$CAPolicy_StandaloneSubordinateCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -672,7 +761,6 @@ RenewalKeyLength=$KeyLength
 CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
 CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
-LoadDefaultTemplates=0
 "@
 
 if ($UsePolicyNameConstraints.IsPresent)
@@ -687,19 +775,15 @@ Critical = %szOID_NAME_CONSTRAINTS%
 
 _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
-_continue_ = "DirectoryName = $BaseDn&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 "@
 }
-        if (-not $SkipPolicyFile.IsPresent)
-        {
-            # Save CA policy to temp
-            Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
+        # Save CA policy to temp
+        Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
 
-            # Move to systemroot if different
-            Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -Delete -TargetPath "$env:SystemRoot\CAPolicy.inf" @VerboseSplat
-        }
+        # Move to systemroot if different
+        Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -Delete -Backup -TargetPath "$env:SystemRoot\CAPolicy.inf" @VerboseSplat
 
         # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
         # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
@@ -1172,13 +1256,14 @@ _continue_ = "Email = @$DomainName&"
             if ($CAType -match 'Standalone')
             {
                 # Check if DSConfigDN should be set
-                if ($DSConfigDN)
+                if ($SetDomainConfig.IsPresent)
                 {
                     # Add domain configuration for standalone ca
+                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
 
-                if ($OCSPHostName)
+                if ($OCSPHostName -or $CAType -match 'Subordinate')
                 {
                     # Enable ocsp extension requests
                     $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
@@ -1392,8 +1477,8 @@ Process
             # Domain name
             $DomainName = $Using:DomainName
 
-            # DSConfigDN
-            $DSConfigDN = $Using:DSConfigDN
+            # Domain config
+            $SetDomainConfig = $Using:SetDomainConfig
 
             # DN Suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
@@ -1461,7 +1546,6 @@ Process
             ###########
 
             $UsePolicyNameConstraints = $using:UsePolicyNameConstraints
-            $SkipPolicyFile = $Using:SkipPolicyFile
             $PublishTemplates = $Using:PublishTemplates
             $PublishCRL = $Using:PublishCRL
             $ExportCertificate = $Using:ExportCertificate
@@ -1546,10 +1630,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh+qzP9S7koKQ/JAZPKx3ms/x
-# Toqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxJfOH69FpSYdsZ2Uj6+hr7od
+# Speggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1630,31 +1714,31 @@ End
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGowFVKG0FnPFEK/Eqz/xNz5tKSIwDQYJ
-# KoZIhvcNAQEBBQAEggIAonYqIRJnbMIR5CjUG2K1JpHViBvcyQ/atY8s4tIF7p+z
-# 2WubVI9XshIhHfWIkd4B4GVxW0tpOzRe8l+4YTB+OUqKNjkr55T3vGJuFR00ppJd
-# eQ7C5i5UQ3lQbX9HlMksAOaDT4A/4GYb4o3phFF9bW4rNgPLwX30xlX3CDSDHFNn
-# 33H3bzeByIeKprocf8RvCikO/hOwbIHflHJHJWxeoJ7/OQZPmbBoHtjwVn1FLjFk
-# 8eZI2M6Lbtfa05oMtie95FBAwXs5qCSRr4nD23erj0AfvF2jU1O3BpHeGJ+UAq6z
-# 4eaQzXeIkLPbfoD/rmNlWBi0eNQs40uopRlxHXMrlClORVFFnH+NVvVjcLo7mqeg
-# rtF4U41oM8Hi/Xf9N4VnWp5e6gWgdhyzZgPjvBL81k03YyBnnPc22w9oghvf6A31
-# IHqcQ6QzKc4FOqRemQQ5FZBN6KBgr2LyS9eAwoazhA+Sd6VQNqkb1nkLUspkRBsX
-# c6hWKDAi8nqFJ73KZ234FuKYZupWvaqt7f9SQ0L1/9uCJrv0e4VqvAf+82xxmfNz
-# gTPBPl4bnOox+AwZyguL9QKLH4D+jMzDQR9fytPZZxVgCRxFrKXyk88vRSWpqlbk
-# fv2sOaVwllRlZAysvdGClHWsGiBEkg+fHQwUScNocVSaGXYG6vS/iqzrl/5pU9Wh
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8gS00UCpQYVmQM1m7eHD9TVbZjAwDQYJ
+# KoZIhvcNAQEBBQAEggIAmsQMo+yTQgT+PwV8URCzYfjfQfonHeyjxq7DQm4YMooa
+# rKyrrbEa89R1JoK/glb82yhsFuQBmDqUwZePzQ+HBqg3MZmP0yJ0Vv1JeDYUi5t3
+# NkVsBFdQJzshzRUtI0Bm4F/j8PpbJZt6hhoRPC7KuWQUv/PxKPpwHBEGRIWsA3Hj
+# DYdCQBDHbWJw03XVIwkISh5sQ8AePYhs2NIfiXsJbjc+5jB5o5lc/wgtjARCUK7V
+# tKMT8QKxOaxl1XG/YA6Lr+PCS2aeL7IPOL3dH3d/ljlefBB/e8NP10CC8iQQ8bUv
+# OeyI9V07bHB2es7Uj7hx+VKmgK35OLooW+qB4yF7+tk08pLbln59/p9a36Z8YP9K
+# m+iP1dAQdGlIfOTA8Du6T/qN6p1opd56Kkus3DWeM91Vzyh0RcXIi1K5Lw7HPmXr
+# /ixEaEvFV+tnp/wRnVYP4rNAy+hQYQjLgFPVqUEXmgGoBapwGCQFHOtkQYYPJqut
+# z6C4pcXA2BnLF/lMRmrapbooggNNC2xVtcOpvXJi4gvnhdx5I5y2mZNDiezg0OlU
+# 3OBioIvqlbzpCG6hs369NJYipjjmPJxYRjxpkjqDOczHsCKxmLuvwb/SYr23kzAc
+# btw1I6PjV5Hmst0sPTdEmNEKga1DQI2PVTOMXi7nCg1PLWIONuM3Os1gHfK/C4Ch
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMDEwMDAxWjAjBgkq
-# hkiG9w0BCQQxFgQUS1tSPoDlHxLLdvcsSoC3gDAhh5gwDQYJKoZIhvcNAQEBBQAE
-# ggEAIOzkIM9JKrMnSYfAjPZawPyRuIfx5CCn0Xr7mZ7LyCZW+KqQ65yNtsFE2C8w
-# LMpp3SMR1plJAVoxSw52gv2HgLffz4ivYpSptgr9PQBCd5CjyQcmJjxdJtkokHPc
-# +51QJRAgz1Q2rE3M9aG3k0qS18FTniTOnbK6iGARU3Ln8xfNm6hWg49XycDzc2GZ
-# 5DLyFnm3Tmd8IGegY+R+9cqGNwoRBCjd8PGIGuhmW45RaMrOKZ7LqhBhAtZuRPzU
-# Z7aZA4/hTrs+7ZKF4rt3OtQOlrug/VmYHWzyNLSwcDlbryyxIVl2G5sLsLBRYlSr
-# pWMM9ZkaSu4ndlrFEFkFW244Tg==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMTAxMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIN1eagXvupTEC+8VOs0ZkK7+jAGDT19M0BigS8dI0xzF
+# MA0GCSqGSIb3DQEBAQUABIIBAKQz+tW2+y53gnLMUVdOut0eJ3+wsaJKtmRKVX1F
+# ga6N6QrCyD9UCPryMM7Q0ds70562dXQnedOk+uNaLbfUarECX/4hjgaAbl1ppPck
+# l81oV6yzvYGHSiPqXGOR62R9HugJ5eQMMtxTrxkh5MQnGv2QCjCPfgNapYqeXcGs
+# t7jWH1vnAoSX7meIT9veX7Pg82P2B1X3pwURZINJ8BvyiZQ0l6w9fW0lpDyXjgzc
+# Ep7TOVu/0tdeqGs7+euYf4zTlQT1l6zdttWfRQAV0rDgR6SFkINfMXQzXoPpSUCT
+# ICjwJrG37hQWIWX0DJvc7/XqvE2i35LmulWPt9OXwfOIsyA=
 # SIG # End signature block

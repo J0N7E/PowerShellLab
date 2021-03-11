@@ -312,7 +312,7 @@ Begin
                 $Server = @{}
 
                 # Define server records to get
-                $ServerNames = @('ADFS', 'AS', 'WAP')
+                $ServerNames = @('ADFS', 'AS', 'APP', 'WAP')
 
                 foreach ($Name in $ServerNames)
                 {
@@ -333,10 +333,15 @@ Begin
                 )
 
                 # Check if server exist
-                if ($Server.AS)
+                if ($Server.APP)
+                {
+                    $DnsRecords += @{ Name = 'pki';  Type = 'CNAME';  Data = "$($Server.APP).$DomainName." }
+                }
+                elseif ($Server.AS)
                 {
                     $DnsRecords += @{ Name = 'pki';  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
                 }
+
 
                 foreach($Rec in $DnsRecords)
                 {
@@ -453,7 +458,8 @@ Begin
                 $DhcpReservations =
                 @(
                     @{ Name = "ADFS";  IPAddress = "$DomainNetworkId.150"; }
-                    @{ Name = "AS";  IPAddress = "$DomainNetworkId.200"; }
+                    @{ Name = "AS";    IPAddress = "$DomainNetworkId.200"; }
+                    @{ Name = "APP";   IPAddress = "$DomainNetworkId.200"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)
@@ -844,12 +850,12 @@ Begin
 
             $MoveObjects =
             @(
+                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'";  TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'R*' -and ObjectClass -eq 'computer'";      TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WW*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "(Name -like 'WIN*' -or Name -like 'WW*') -and ObjectClass -eq 'computer'";  TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "(Name -like 'RTR*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
 
                 @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
@@ -964,7 +970,7 @@ Begin
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -972,7 +978,7 @@ Begin
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "(Name -like 'CA*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
+                    Filter      = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -988,7 +994,7 @@ Begin
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like 'WAP*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*WAP*' -and ObjectClass -eq 'computer'"
                 }
             )
 
@@ -1240,7 +1246,7 @@ Begin
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter = "Name -like 'ADFS*' -and ObjectClass -eq 'computer'"
+                    Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -1256,7 +1262,7 @@ Begin
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    Filter = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
                 }
             )
 
@@ -1650,8 +1656,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTtsEIYxN9jIqvfsrV/9TG5QR
-# GTCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVxL2rJe0KHFVJDu4mk9wZbkZ
+# Mduggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1735,28 +1741,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULNELpcLZ1o075+DSr5Tb8/+PCbcwDQYJ
-# KoZIhvcNAQEBBQAEggIAePC45kWPljDN6GtVls036LsYxqaZwThrkdI3QRYhvSSv
-# HhEMoIImXorctOgyFUuyuATF+zaxF+5f4wA3GzEumTiC+6j1X3N+DFi6ciKgnGxn
-# 4zP/71V7163+SUCjGqY46hr/Ol6zWi7CwJWWJqT/iMTrb4RNIzRypOs8ihAFPRSZ
-# ramg11+BUPohV+nXPRyZHf9z5xVdoPdt4MeBIdCwICn/srp2gME5Vq8b+dgXAy7Y
-# sJNAn3Qwl5SWorHrglTwyzrwzXPCUgTgfIsJN13v7hXjrNDl1vdq5a8tiPWF91vG
-# dpoYXuIs2Pb5fFmtoCgSY9SXQoufGEvUyMNwLu5HHT4Rbf8MkVj1cu8nsikVjphl
-# RGjtDACWQeQpvkNvNZxx0y9kteToMLYU9IxBJPd4FJVzMMO8HMPolUQ4PxQq5+RH
-# YG7PcbF3MV8rFbuHOhiRdXMBWl14ELyNkvsDmnbXjJewyeax2q5Pwp7UMNVCXNVi
-# mOIsebA0SAwl+AD8Yn4wbBhN4ar+VCCKubgkqkAOxAWJJMkJHRgbacROpWvHKia2
-# RDomv/jkQUu60cUjaAxPeqhjml2u2clfgQArlaZJzpINDpRJw60zvfasY4vhkSCQ
-# 0vgtAvsU/lpp5/Fd+F2XPbOWS5PfZ570rSk3IjXyHkloIl3Qc2rq98zYPwboRNeh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCURNtp2tkP0CYIkDShsrXLuAoHAwDQYJ
+# KoZIhvcNAQEBBQAEggIAGmXZpWJdDKDcv0sLOX+X3JHIUcZ6OUDqcs4hT6S3VQ9e
+# lQEvUAbJwmTdNZ95QjZy2iVptXgcwoUo/ja94AOAzht75R8zAiREXJm57xiFjqUx
+# GOWCGxoghEkv8BS+ERzqGNEzAY47z86Uh+aNI8iH21ggIRmvj/f3Un/auKSrUpwk
+# hspuBd2XO+lT/RM9RsNSlYrqMvjd+jvpWyWcAhz5QMnkutwr6uNQBajPAPWlgASX
+# MZXzw0a09gREDPSC2aEq16HnL8Zv4F35uHIsfsCaHNtIoZIuGdd3lXf0jJc5N7Xj
+# a5G0Nq3qvd1/Me8i+XPYfqSgu/G9mFIuEcKAkywtyVzwp1bRh9RLha7CMB0bNLyP
+# 19KVpwYCnFoi1sMBLVGj4Q8xrFzh2sR5Bu03l5QlJa3uBJGizEnz7mGf1wHtILO1
+# R3AVYnC3/9MlVyavUfF8KhWDZI/TlEUPIIhREd1c4Dl6oxfdp8zjpmBw/6w0Lqgs
+# Z6e7b3wizIbSTMKa/Ko5eMxDspmx3/z2jpZ9PWIOahtIAS01wY+ieAGF4kjqNwQh
+# VxrVkXPelCk8b94GI1hRT7GzjX9exwuVZlMZRuF9SXtRs6DdENZiomOHivMdAAVk
+# 6nCeZe7dEhE6qsepDxARY4A9XxLebQ46JJ/YkDry/OrkYCZHc/zuP8WE5j2JHoKh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMDE3MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIB366yr/h6eP2dKI23oF139qPZwxPUFHcDvdr0P1R2nL
-# MA0GCSqGSIb3DQEBAQUABIIBAIpf9rkGRZvUnYwz7ofqxeKkW4yM1VGkL5MpZbk9
-# +tieau+988UCvEkftsi9cir6tf0BdF4k5eODWmzf0D9mIkhykIOTTiYHQC8/5g7N
-# IszvvlDwTANu2ETDfkrPQG1wCENyhhJRBKcUS0A6mBVvrwPTogLGZvcrsAhFlATL
-# U+lC5i8tVO8/T+34z3ZqGoudc6Gio/FDlaooVAJluxZcEDBFwavdE37oa7nYUZh6
-# SlA0PfjHFbGFZngEYgCQTqEDMr1OXKvXPl+0P0Gmt7hXxSOph9qyFrdiHdVsMByM
-# derdbY8M1otdrf++t86nMjL9aJ4hhjr47KTZr0YmwD109vc=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMTAxMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIOoQ2qzBISbm+zqasPuL+8UeM31sHCFCvfAs9Zq0SwVE
+# MA0GCSqGSIb3DQEBAQUABIIBAMJ3fyN+Wtr4NID4sA6Qa9vFD8rw5NbTKfAIlgcr
+# 5mMzz6NVxnIU9r0+neDbX/UGBjBWRoIpi4rN0hHQNJ8d0GTryqxYxAw3bKhCBQoh
+# wKDWdgJUoeRC8vZqHt59xbKmeYCPXamFGprH2icI+0PBYBPlYuI9CpZGsMYZbwvM
+# /LM6ncnq9iDahfyJeYDGLx2g68nwoQFmOBAsndwESJoevabbZS8LE2xEMY6iRMEj
+# x+339vlvcEx1nDqSa2u8ewZkoc7TzvdFb/5V81v8p0hELDSBk1cUEClSUGbSFi0C
+# z+vHhHxIr4VmyrdGD667yxHva+TKN15r35s8FT1OFVx9Imk=
 # SIG # End signature block
