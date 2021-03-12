@@ -603,14 +603,23 @@ Begin
                     # Read baseline gpos
                     foreach($Gpo in (Get-ChildItem -Path "$($env:TEMP)\$GpoDir" -Directory))
                     {
+                        # Set gpreport filepath
+                        $GpReport = "$($Gpo.FullName)\gpreport.xml"
+
                         # Get gpo name from xml
-                        $GpReportXmlName = (Select-Xml -Path "$($Gpo.FullName)\gpreport.xml" -XPath '/').Node.GPO.Name
+                        $GpReportXmlName = (Select-Xml -Path $GpReport -XPath '/').Node.GPO.Name
 
                         if (-not $GpReportXmlName.StartsWith('MSFT'))
                         {
                             if (-not $GpReportXmlName.StartsWith($DomainPrefix))
                             {
                                 $GpReportXmlName = "$DomainPrefix - $($GpReportXmlName.Remove(0, $GpReportXmlName.IndexOf('-') + 2))"
+                            }
+
+                            # Check if intranet gpo
+                            if ($GpReportXmlName -match 'Computer - Intranet')
+                            {
+                                ((Get-Content -Path $GpReport -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReport
                             }
                         }
 
@@ -1518,7 +1527,18 @@ Begin
                 # Export
                 foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
                 {
-                    Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup" > $null
+                    # Backup gpo
+                    $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
+
+                    # Check if intranet gpo
+                    if ($Backup.DisplayName -match 'Computer - Intranet')
+                    {
+                        # Get backup filepath
+                        $GpReport = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
+
+                        # Replace domain wildcard with placeholder
+                        ((Get-Content -Path $GpReport -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReport
+                    }
                 }
 
                 foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
@@ -1656,8 +1676,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVxL2rJe0KHFVJDu4mk9wZbkZ
-# Mduggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2tzHKmjct9P4zInV3+VlHqFD
+# saWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1741,28 +1761,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCURNtp2tkP0CYIkDShsrXLuAoHAwDQYJ
-# KoZIhvcNAQEBBQAEggIAGmXZpWJdDKDcv0sLOX+X3JHIUcZ6OUDqcs4hT6S3VQ9e
-# lQEvUAbJwmTdNZ95QjZy2iVptXgcwoUo/ja94AOAzht75R8zAiREXJm57xiFjqUx
-# GOWCGxoghEkv8BS+ERzqGNEzAY47z86Uh+aNI8iH21ggIRmvj/f3Un/auKSrUpwk
-# hspuBd2XO+lT/RM9RsNSlYrqMvjd+jvpWyWcAhz5QMnkutwr6uNQBajPAPWlgASX
-# MZXzw0a09gREDPSC2aEq16HnL8Zv4F35uHIsfsCaHNtIoZIuGdd3lXf0jJc5N7Xj
-# a5G0Nq3qvd1/Me8i+XPYfqSgu/G9mFIuEcKAkywtyVzwp1bRh9RLha7CMB0bNLyP
-# 19KVpwYCnFoi1sMBLVGj4Q8xrFzh2sR5Bu03l5QlJa3uBJGizEnz7mGf1wHtILO1
-# R3AVYnC3/9MlVyavUfF8KhWDZI/TlEUPIIhREd1c4Dl6oxfdp8zjpmBw/6w0Lqgs
-# Z6e7b3wizIbSTMKa/Ko5eMxDspmx3/z2jpZ9PWIOahtIAS01wY+ieAGF4kjqNwQh
-# VxrVkXPelCk8b94GI1hRT7GzjX9exwuVZlMZRuF9SXtRs6DdENZiomOHivMdAAVk
-# 6nCeZe7dEhE6qsepDxARY4A9XxLebQ46JJ/YkDry/OrkYCZHc/zuP8WE5j2JHoKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU71fV/LW/6IKSkEaMW8yhBH9NL2MwDQYJ
+# KoZIhvcNAQEBBQAEggIAgLjq+6cvr0bJ0EFpjdDLWoLY57CvYJbX/G5HXpG1IJya
+# DmX0JGFryz5nRajq2mdrChXloSJ9TKeK9m8r30iLfJNGl64glV+YWEXWI5GdE2lO
+# sUyOkHxwMcWJbXDki/42szhy5NkmQNhH+JKHB7pgOwUd3Z6wYUl1pzFr/ZrcqFju
+# OgdebnyyRdCp7vULVc+UKH1ahbBLSfd7McnNh2lz+Mt9Xn9fv/+R0fzLHRuAWkMw
+# XJKTbgeJwghOrkclSMWGRmHqxspxeijKtaepcSgfuCq5p8mI6LThikp845V/C0aC
+# ZtiMIw36r312owb+qRHW4InW0ESFrEwSJpntmPtcPRGQDp8pAUVX4n8s3+K5pgJg
+# JDBDS2+mqVAaeFdM5jelnLrPkWLkMeQVLdKOZQKfCS65yzQwKD5tVSHgC4QcjSyx
+# dpose30unTEV+mpySphzRzLkF28XejHQoQwBkyn6W39NxZhifm6eLBDL1/c3Ie8x
+# n4BXjnVU3epJFBlHJ9EmDyeKRZol7ebNRIPhtpBx1WpbUrnPRBF1ea5j968qWLMJ
+# WPqpbV1ziFp+mVqfRsPrq7NpIiFeN3bLPsiVQDL1fNHB2Hr8boW6GJGONNR9SIWm
+# Q2NpM5aUPCsfweeP8V9nZYa10w3GAnFktYRgcCu654IXZnTUw3y/IWWpXF2zHWGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMTAxMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIOoQ2qzBISbm+zqasPuL+8UeM31sHCFCvfAs9Zq0SwVE
-# MA0GCSqGSIb3DQEBAQUABIIBAMJ3fyN+Wtr4NID4sA6Qa9vFD8rw5NbTKfAIlgcr
-# 5mMzz6NVxnIU9r0+neDbX/UGBjBWRoIpi4rN0hHQNJ8d0GTryqxYxAw3bKhCBQoh
-# wKDWdgJUoeRC8vZqHt59xbKmeYCPXamFGprH2icI+0PBYBPlYuI9CpZGsMYZbwvM
-# /LM6ncnq9iDahfyJeYDGLx2g68nwoQFmOBAsndwESJoevabbZS8LE2xEMY6iRMEj
-# x+339vlvcEx1nDqSa2u8ewZkoc7TzvdFb/5V81v8p0hELDSBk1cUEClSUGbSFi0C
-# z+vHhHxIr4VmyrdGD667yxHva+TKN15r35s8FT1OFVx9Imk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMjAxMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIOvIPI72JJK4wxktV+gWOORiSnAdOLDW+5qBNQbZwD5+
+# MA0GCSqGSIb3DQEBAQUABIIBABizxZ0qMgwFCRP+B3QjYa8cSJyluYUu5O+EOPqT
+# FuDpCUwtKR3Wu7Jjp3BjoZtiAgaCkRLydSJ5j0SrtbecxJQJLvlEjAUXXklA6mkj
+# gsQlNN76/T0ptF4cX8dYvf2wSbdlTptl02LrsVV7WpQBw+7YQXCl6SYc19oKzu6x
+# YZqiKC7RH+Q8E1vUllnBlB7ywIRlulWk7qlhhClk/WQnMikbhDCtRbWK6Kx2t7yl
+# HLl8y6IjVpA3PWRY4ATCvXGFkJeawqLJngvKPqwoKOkfL8N+azJscWcWVSAvgD5q
+# w8EIKBt4cXIC4ie1dHtfQ75cjIL2r6z/uLXm/LlQgUTNB14=
 # SIG # End signature block

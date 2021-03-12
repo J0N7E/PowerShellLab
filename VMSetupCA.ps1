@@ -78,14 +78,14 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$DomainName,
 
-    # DSConfigDN
+    # DSConfigDN / DSDomainDN
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [Switch]$SetDomainConfig,
+    [Switch]$AddDomainConfig,
 
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
@@ -1256,7 +1256,7 @@ _continue_ = "Email = @$DomainName&"
             if ($CAType -match 'Standalone')
             {
                 # Check if DSConfigDN should be set
-                if ($SetDomainConfig.IsPresent)
+                if ($AddDomainConfig.IsPresent)
                 {
                     # Add domain configuration for standalone ca
                     $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
@@ -1478,7 +1478,7 @@ Process
             $DomainName = $Using:DomainName
 
             # Domain config
-            $SetDomainConfig = $Using:SetDomainConfig
+            $AddDomainConfig = $Using:AddDomainConfig
 
             # DN Suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
@@ -1632,8 +1632,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxJfOH69FpSYdsZ2Uj6+hr7od
-# Speggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEQA0MEaPffNRzy12bsNpF1Tj
+# yBmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1717,28 +1717,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8gS00UCpQYVmQM1m7eHD9TVbZjAwDQYJ
-# KoZIhvcNAQEBBQAEggIAmsQMo+yTQgT+PwV8URCzYfjfQfonHeyjxq7DQm4YMooa
-# rKyrrbEa89R1JoK/glb82yhsFuQBmDqUwZePzQ+HBqg3MZmP0yJ0Vv1JeDYUi5t3
-# NkVsBFdQJzshzRUtI0Bm4F/j8PpbJZt6hhoRPC7KuWQUv/PxKPpwHBEGRIWsA3Hj
-# DYdCQBDHbWJw03XVIwkISh5sQ8AePYhs2NIfiXsJbjc+5jB5o5lc/wgtjARCUK7V
-# tKMT8QKxOaxl1XG/YA6Lr+PCS2aeL7IPOL3dH3d/ljlefBB/e8NP10CC8iQQ8bUv
-# OeyI9V07bHB2es7Uj7hx+VKmgK35OLooW+qB4yF7+tk08pLbln59/p9a36Z8YP9K
-# m+iP1dAQdGlIfOTA8Du6T/qN6p1opd56Kkus3DWeM91Vzyh0RcXIi1K5Lw7HPmXr
-# /ixEaEvFV+tnp/wRnVYP4rNAy+hQYQjLgFPVqUEXmgGoBapwGCQFHOtkQYYPJqut
-# z6C4pcXA2BnLF/lMRmrapbooggNNC2xVtcOpvXJi4gvnhdx5I5y2mZNDiezg0OlU
-# 3OBioIvqlbzpCG6hs369NJYipjjmPJxYRjxpkjqDOczHsCKxmLuvwb/SYr23kzAc
-# btw1I6PjV5Hmst0sPTdEmNEKga1DQI2PVTOMXi7nCg1PLWIONuM3Os1gHfK/C4Ch
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBS+g9nze/5NHXi5q1mWa0D9neXowDQYJ
+# KoZIhvcNAQEBBQAEggIAD2mHKk4R1KaDk9U55jZ/9O5PnU9LgwZuXH8YyKTBLo2y
+# rFfeoJ8SlbAIYISBUNDr0U2yj9yTX6ZofbjAGjZH97mHG08zjZ3KBCalD797Lo4r
+# zSWjPN4brCwfcBKzMv88tbMtjK2fq7lXIslDhblx4SryjoPlT8DmgShOtLNUn4k9
+# Nm7MXMDw7IqElH3dBoMSMzpXOCbd9GWDN3KhKct6TJLxZZrupVPvh0lYzZVaJPOs
+# WA0JxJQeTculD2x+ucglKGHSsnfslg+FTNsKt9MjHDjd9k188xtxH68Tsqv+dtLx
+# LmLzuONcLpfd7Ug0GcTroGIx7qzonxOAeYKV3HbS8LT4Smky1xF1XPMtQ1T7n7iW
+# wqvhSXg8/w0EO21EhCP0+OUASqxqF1IyDeppqdOllre6Pvvpi0TqE4vPmBDjZwgX
+# qqAsBWkqwIXG4m5SAvYkazxWUSJNTxR5PU1RTM3S5jdNILNeQCvB4JNddirOUvjT
+# Wc/iXKLy52IHel+HL+AK1YY9JRIvTc3Mp62Z7yyV5pfLHXzCFPFjQxQnlTI8af+S
+# JI29ZsIB1/gG1L1ew27s2gwEjUgg89Gh2p+qpCBp4xl0zu7hN7udkB8Pwsw9B54P
+# TQhqH23HYsvI2Jr2RZzu+DHwxN6JqFFivy/nv42S8bZbdInNy6/7ypuvQK8x+jSh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMTAxMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIN1eagXvupTEC+8VOs0ZkK7+jAGDT19M0BigS8dI0xzF
-# MA0GCSqGSIb3DQEBAQUABIIBAKQz+tW2+y53gnLMUVdOut0eJ3+wsaJKtmRKVX1F
-# ga6N6QrCyD9UCPryMM7Q0ds70562dXQnedOk+uNaLbfUarECX/4hjgaAbl1ppPck
-# l81oV6yzvYGHSiPqXGOR62R9HugJ5eQMMtxTrxkh5MQnGv2QCjCPfgNapYqeXcGs
-# t7jWH1vnAoSX7meIT9veX7Pg82P2B1X3pwURZINJ8BvyiZQ0l6w9fW0lpDyXjgzc
-# Ep7TOVu/0tdeqGs7+euYf4zTlQT1l6zdttWfRQAV0rDgR6SFkINfMXQzXoPpSUCT
-# ICjwJrG37hQWIWX0DJvc7/XqvE2i35LmulWPt9OXwfOIsyA=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMjAxMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIITrJqNyZOtN8rKkr9EGB9pPTx3+kyRwlVvJ3O9+tQuH
+# MA0GCSqGSIb3DQEBAQUABIIBAIGfiIYm36Vi2CxEl2y2AwbWXk5mHiDcud0wd4A6
+# hdfKgvC2ZWNY3Wa8fT+3U9p82qhK0jWkCU2hARrKuzCRx3AGK+13R+vyAKPPv7Ga
+# ZwFWzAX7c5hdPhCdI7F10Ry6/hBP5dMmAGgo/MBrogxF1O/kS5LkEe+M6v/KAZoh
+# /ZbhefPk/tMazUipUpyebOKqKDLeU72lKv4CaWrhMcERI4JABqEXs1Y42R7NSpl2
+# gAZHiwdoxh7ypOK/0zkqzksionKhEJUI3d3+1d5qLSO8kMif6kcxkKv2X1cpGwEV
+# la2sQUZbYLApdzNj7MswUXwOW818XPtdF5Q8Jh9dWinyi4E=
 # SIG # End signature block
