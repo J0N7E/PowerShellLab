@@ -69,6 +69,9 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CACommonName,
 
+    # DN Suffix
+    [String]$CADistinguishedNameSuffix,
+
     # Domain name
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
@@ -86,9 +89,6 @@ Param
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [Switch]$AddDomainConfig,
-
-    # DN Suffix
-    [String]$CADistinguishedNameSuffix,
 
     # Root CA certificate lifespan
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
@@ -392,6 +392,25 @@ Begin
         $CAType = 'StandaloneSubordinateCA'
     }
 
+    ###########
+    # CertFile
+    ###########
+
+    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
+    {
+        $CACommonName = $CertFile.BaseName
+        $CertFile = Get-Content -Path $CertFile -Raw
+    }
+
+    #######################
+    # CertKeyContainerName
+    #######################
+
+    if ($CertKeyContainerName -and -not $CACommonName)
+    {
+        $CACommonName = $CertKeyContainerName
+    }
+
     ######################
     # Get parent ca files
     ######################
@@ -437,15 +456,6 @@ Begin
             # Remove response file
             Remove-Item -Path $ParentCAResponse.FullName
         }
-    }
-
-    ###############
-    # Get certfile
-    ###############
-
-    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
-    {
-        $CertFile = Get-Content -Path $CertFile -Raw
     }
 
     #################
@@ -966,13 +976,13 @@ _continue_ = "Email = @$DomainName&"
             if ($CertFile)
             {
                 # Get content
-                Set-Content -Path "$env:TEMP\$CACommonName.p12" -Value $CertFile
+                Set-Content -Path "$env:TEMP\CertFile.p12" -Value $CertFile
 
                 # Certfile parameters
                 $ADCSCAParams +=
                 @{
                     'CertFilePassword' = $CertFilePassword
-                    'CertFile' = "$env:TEMP\$CACommonName.p12"
+                    'CertFile' = "$env:TEMP\CertFile.p12"
                 }
             }
             else
@@ -1632,8 +1642,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEQA0MEaPffNRzy12bsNpF1Tj
-# yBmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNEps5mdKjUW74q3Xu8imZplh
+# 4Oaggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1717,28 +1727,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBS+g9nze/5NHXi5q1mWa0D9neXowDQYJ
-# KoZIhvcNAQEBBQAEggIAD2mHKk4R1KaDk9U55jZ/9O5PnU9LgwZuXH8YyKTBLo2y
-# rFfeoJ8SlbAIYISBUNDr0U2yj9yTX6ZofbjAGjZH97mHG08zjZ3KBCalD797Lo4r
-# zSWjPN4brCwfcBKzMv88tbMtjK2fq7lXIslDhblx4SryjoPlT8DmgShOtLNUn4k9
-# Nm7MXMDw7IqElH3dBoMSMzpXOCbd9GWDN3KhKct6TJLxZZrupVPvh0lYzZVaJPOs
-# WA0JxJQeTculD2x+ucglKGHSsnfslg+FTNsKt9MjHDjd9k188xtxH68Tsqv+dtLx
-# LmLzuONcLpfd7Ug0GcTroGIx7qzonxOAeYKV3HbS8LT4Smky1xF1XPMtQ1T7n7iW
-# wqvhSXg8/w0EO21EhCP0+OUASqxqF1IyDeppqdOllre6Pvvpi0TqE4vPmBDjZwgX
-# qqAsBWkqwIXG4m5SAvYkazxWUSJNTxR5PU1RTM3S5jdNILNeQCvB4JNddirOUvjT
-# Wc/iXKLy52IHel+HL+AK1YY9JRIvTc3Mp62Z7yyV5pfLHXzCFPFjQxQnlTI8af+S
-# JI29ZsIB1/gG1L1ew27s2gwEjUgg89Gh2p+qpCBp4xl0zu7hN7udkB8Pwsw9B54P
-# TQhqH23HYsvI2Jr2RZzu+DHwxN6JqFFivy/nv42S8bZbdInNy6/7ypuvQK8x+jSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUurGO08xBw6oFtrh5ME6/MsZW/JUwDQYJ
+# KoZIhvcNAQEBBQAEggIAhVwm3yu0NCRxj+s7rR6dN0/1YLFUdHxv2Wxx4C8QYred
+# J2KfjcfE/CS+3oPa4PmAEx54x7uhnUsBeTXmd+f3IiehQyp4HN+QixXHfdNPzFDw
+# 7A4BUkXSv7GqwCKVotlU8nJa3QJ8e/9q7IBGNQzLoyhMlXSh5h76fwuPoag/96q1
+# mb+4YUVSe/XpKfZs33SI3K8kXTwrHCyXb3kZV+wi6fonn3ImiffJP0FFJVrGw7OW
+# Bw315rGZxo+uMDxPt9yGnf3KLj69L2HO9YROvRF06qDSHZwslYgaKBCMyILml5o5
+# RPxNhJKi4ZicE2l5pyhpJOk6FlXGZaLMH72ZWYcRHY81W/E90GEFCOR9aO5EFQSV
+# Wie0KOahsXqmlzle8w1U1gaH9MSA+1mKvkMzO5R8Pp6PYL+OgVu6V3TuYjY8V2Js
+# s+oG7NQR+nz+sy1owHdc8Xo1rn29WcfbV3G7lfzrIPVY/WhxZF5dsqa21wOdS/pc
+# g0764kAHObQw1JqkViFZxCgIJDPRQzYTiv+bL16KB3NAckZq1cSFh6PV1FKxR2o3
+# P0T+mq8Jn21UCVCTAnwy49Fb121KT1jdoWrfTIIw8k2H56gq0+TZMH+N6ZYSNwLt
+# JmkuoyuXS2CKsyilW79o4E2ou64ja0iCQH3STabMxg/VFgS9/6whao2kPDfPZ5+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMjAxMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIITrJqNyZOtN8rKkr9EGB9pPTx3+kyRwlVvJ3O9+tQuH
-# MA0GCSqGSIb3DQEBAQUABIIBAIGfiIYm36Vi2CxEl2y2AwbWXk5mHiDcud0wd4A6
-# hdfKgvC2ZWNY3Wa8fT+3U9p82qhK0jWkCU2hARrKuzCRx3AGK+13R+vyAKPPv7Ga
-# ZwFWzAX7c5hdPhCdI7F10Ry6/hBP5dMmAGgo/MBrogxF1O/kS5LkEe+M6v/KAZoh
-# /ZbhefPk/tMazUipUpyebOKqKDLeU72lKv4CaWrhMcERI4JABqEXs1Y42R7NSpl2
-# gAZHiwdoxh7ypOK/0zkqzksionKhEJUI3d3+1d5qLSO8kMif6kcxkKv2X1cpGwEV
-# la2sQUZbYLApdzNj7MswUXwOW818XPtdF5Q8Jh9dWinyi4E=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMjE3MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEINqSBFsgqWD5/hOobnHoenVnYWZu8/nQJxBWqZWTJmw+
+# MA0GCSqGSIb3DQEBAQUABIIBAENTKS+bSxCXESk9lHKaUy+x+TJr0pUwPFz9+r9r
+# PaUUGdtPTuJLNn0YlPmE/255W3jUyoweXevHStZN9CCybDmrBgv80bydeetyrzzs
+# kDdZygPO+5VDyYdH/fbOVgfPo/quhaB81U+9bSl98AZVVTyCM6unNU9AgVf2MAJf
+# Ow1cFruCki1/7BFuyv7o/4v29idqN/HVguhNpghHysqk/UgVjqb3ECojWnkE0aRm
+# ypsajAK8TcurrnJTnqvLthCx6pb7xrSaeUR+Nu6BBEKAQ7vrbAHHNWz00VGaOcxf
+# HX6Nk9KXL3ND5PgeGdvHdPAwLL6Xzx1huGIgtbSRMl7Lc6w=
 # SIG # End signature block
