@@ -138,8 +138,8 @@ Begin
     foreach($file in (Get-Item -Path "$PSScriptRoot\$CACommonName*"))
     {
         if ($file.Name -notmatch 'Response' -and
-            $file.Name -notmatch '.req' -and
-            $file.Name -notmatch '.p12')
+            $file.Extension -ne '.req' -and
+            $file.Extension -ne '.p12')
         {
             # Get file content
             $CAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
@@ -159,7 +159,7 @@ Begin
     }
 
     # Check response file
-    $CAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.crt" -ErrorAction SilentlyContinue
+    $CAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName OSCP Signing-Response.crt" -ErrorAction SilentlyContinue
 
     if ($CAResponse -and
         (ShouldProcess @WhatIfSplat))
@@ -377,6 +377,26 @@ Begin
 
             # Copy
             Copy-DifferentItem -SourcePath "$env:TEMP\$CACommonName\$($file.Key.Name)" -TargetPath "C:\inetpub\wwwroot\$($file.Key.Name)" @VerboseSplat
+
+            if (-not $Domain -and $file.Key.Extension -eq '.crt')
+            {
+
+
+
+                if ($file.Key.Name -match 'Root' -and
+                    -not (TryCatch { certutil -store root "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to trusted root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore root "$($file.Key.FullName)" } > $null
+                }
+
+                if (($file.Key.Name -match 'Sub' -or $file.Key.Name -match 'Issuing') -and
+                    -not (TryCatch { certutil -store ca "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to intermediate ca store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore ca "$($file.Key.FullName)" } > $null
+                }
+            }
         }
 
         # Remove temp directory
@@ -570,18 +590,12 @@ Begin
                     # Request
                     ##########
 
-                    $OCSPCertifiateSubject = "CN=$ComputerName"
-
-                    if ($DomainName)
-                    {
-                        $OCSPCertifiateSubject += ".$DomainName"
-                    }
 # FIX
 # test KSP provider with SHA256
 $RequestInf =
 @"
 [NewRequest]
-Subject = "$OCSPCertifiateSubject"
+Subject = "CN=$CACommonName OCSP Signing"
 MachineKeySet = True
 ProviderName = "Microsoft Enhanced Cryptographic Provider v1.0"
 KeyLength = 2048
@@ -683,7 +697,7 @@ OID="1.3.6.1.5.5.7.3.9"
         if (Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing.req")
         {
             # Check if file exist
-            $CAResponseFileExist = Test-Path -Path "$env:TEMP\$CACommonName-Response.crt"
+            $CAResponseFileExist = Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
 
             # Check if response file exist
             if (($CAResponseFile -or $CAResponseFileExist) -and
@@ -691,11 +705,11 @@ OID="1.3.6.1.5.5.7.3.9"
             {
                 if (-not $CAResponseFileExist)
                 {
-                    Set-Content -Path "$env:TEMP\$CACommonName-Response.crt" -Value $CAResponseFile
+                    Set-Content -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt" -Value $CAResponseFile
                 }
 
                 # Try installing certificate
-                TryCatch { certreq -q -accept "`"$env:TEMP\$CACommonName-Response.crt`"" } -ErrorAction Stop > $null
+                TryCatch { certreq -q -accept "`"$env:TEMP\$CACommonName OSCP Signing-Response.crt`"" } -ErrorAction Stop > $null
 
                 ############
                 # Configure
@@ -770,12 +784,15 @@ OID="1.3.6.1.5.5.7.3.9"
                 Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.req"
 
                 # Remove response file
-                Remove-Item -Path "$env:TEMP\$CACommonName-Response.crt"
+                Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
             }
             else
             {
-                # Update group policy
-                Start-Process cmd -ArgumentList "/c gpupdate"
+                if ($DomainName)
+                {
+                    # Update group policy
+                    Start-Process cmd -ArgumentList "/c gpupdate"
+                }
 
                 # Output requestfile
                 Write-Request -Path "$env:TEMP"
@@ -918,10 +935,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5WVmrLNRldW7uNqZZVWdmmcW
-# pOGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHa8267B923ruf3tW0XOHXDwK
+# 6+yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1002,31 +1019,31 @@ End
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqYa6+2zzH4Sl349M87xaP02OP/owDQYJ
-# KoZIhvcNAQEBBQAEggIAHoebJ+z63vQZ9R8amafNWM70mFuI6m9KZgBSv46mUD9S
-# jfjwdlrQSi8g8vh/qp17QR/hWk7PAIy0b0b9a/Z9swKTq9Cx/eLEnvXp0qhGT9P4
-# DyBpHxPwhN7qI9UdYoe3etP+3C/dn05Mk2iUsof/TSSQXdsxyyFuH37goqa1VE8y
-# I9RatVuRSNUEuY8NJnxBISUS3cRp0uGAIQ+7FsejoyliD3QaJ8/WM88U87bj+XDQ
-# mxgzEjlP2qFCIWhJVG+NRRhgnl0ol3k6nBNQ5RauHq+CGNUFWO32oxBbR6ba6klx
-# HKBVF/biPHbqtwPzp1nUZPCzJRfOv/CH2DbbUHdgDgJwW3UrcVJXFZ+ne5yl4Unn
-# 80PAx19OAreM+WnkxryJ0HtJGQS0xjMKpUf/xBS0Q5WPpIyKerzjFbbHjQfeuXY7
-# vPCwBCeUeNYhQwcFD0iQ7f1Axiz595gO7p8g4EvmZORn9C4WOwr3zwl2sgj/L26W
-# k81WT9N7aKM3FGOcQkd6Fmug5/tKTPVD4Yfq73vLj0Cm5nhzEjoz2h4BGTU+v7rS
-# 0pMTmyosMizjRjjCT0NWs4e8U+xbcb1S15C1EnRw09QXZ800hYyP8Pf7SWUYfJBA
-# 2b0lPiLDNb/vnN0pqwfdMt0AJ+LAW+2U7lC5e15/UzWuMWy+xlXXdmVFMmMHXpCh
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrDQQ5EXLcNH4WYmy1g/D3wM44oswDQYJ
+# KoZIhvcNAQEBBQAEggIAZdWO2aEfWiR8shZxCKsI7nUCI4oGSezeaxbZPCTNI+PU
+# 0EBvCOXI+UX6ApKL2wdZ0F1CAW3yycftCZewoctzZvK2RDSIl+ijK07rIPZp8+dG
+# 26miwMEBGf8iJvXFRiImp6a+HTeWJZb+2nNLmvcaGaN9m4QEQKVDcr98abtfpGon
+# dYwKGrrxtf3OcRYrnzPpDCn64XXs70SC+WKQUQrhnDlP5C0LTUS+3Rkqcuz/zR3a
+# 86WJiwHMoSL25an1UrIX0tb83KUMd/yslyNS8KQI+AJ5NZDx4YcYDtLYsgOxStTI
+# h2dikIGBZMRTq/HjWJjKBcNTMaamXq5q5grbqxRMhybCZEBcvrKnl2FIsCbU/et6
+# 0rzs3K90JAAy8UzXk5UaZtcz7UP/EDWnMpvsCJayWxxgd8E4O/Hzkph14Sa60cJa
+# qvbl1F2hjAZ80tVHmh9FVz0Q8mRWLQdoxWnhzWw2MmY0uq5eJ8ANpPdSsAQ46KXb
+# 6AwEXy8ib+f4V5imbQZrCo4mbUL00WQG9Ult3K/mLvDjA9hjryUHDAp6zhifc1bE
+# PFve5F4wj9Gy15r6dvSa0/N7TNvqIiDgTyTw54lt63Mct40Zy1I2R/O45E9yfLzP
+# N2zRPHpTCa8KGz4GrJdHuNzaUCRoVE9dmGGWJvb3UKCogbQ3LUU8H8x9m0VpfCeh
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMTcwMDAyWjAjBgkq
-# hkiG9w0BCQQxFgQUX3M5TQ/erz/DSUbMY3FyWvDhX90wDQYJKoZIhvcNAQEBBQAE
-# ggEAnN4aJKLFLev8DlBL3xFta0wBFvkWY7G6nkmCEaOFQGgK28mZBMv09ps3bg1z
-# fIrj24lbXgSev04tllEr/qdPlh8ZLcBWvyLyGQKlfFZrcazoiORrX3+iiCjFfumA
-# tRUhhTH5Y3JKJYZ5/2k6l+lwAovlPTOflvzg8fnrVoKEzKvbxmbVbtCHERgKUXsT
-# m508ACtF7y6AXCIKvFVUzBrI645Q0EVlN01Qi1dKt4DmPbUQ5x+K1vsH9vL5nAfn
-# J8rPPSWnMkFcA6pkVc4AuC2BQhvZsICWf6zwHRYI21dxprtpJe0998v0gH9IVzWN
-# 707B/xOypYPB8UioTFFgijSORQ==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMzE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIHcrHDVbA8LG+bD1wCbuJQVy3eOMQK/93Y7CnXIyi+Sa
+# MA0GCSqGSIb3DQEBAQUABIIBAEdq2//kSIUeTOQ1syyJ6QJFcyBMYtCTk/YPhmxt
+# k75lHOX5EXoWt+1dDFYJTMzQoq4atIQm3zG0a9Z/tBwmp6OOauPlwRjK0znqovuz
+# iCX4//M3C58JkzwFCodd6m6HLCykViDAepBgt7KIYscn4KAeXg8iDxOwx7KlBNW0
+# Tr8hdPsRyh4sdr9qqMgD6osLNyy6Y2vFPVFsPHkhB8yoNoDxntljRPgWrcImf5b8
+# WfGPL/kZb+sdCK+9xkQ+2PUtO5JKifIUfDzxzD89Zj+IYw+5hcMlwDtH+Wt+sCqt
+# xvrCSPN6Mb7Q4/10GMFk7/bpAchd3uI/F9lrz283T1WrNuU=
 # SIG # End signature block
