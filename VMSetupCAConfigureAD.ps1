@@ -29,7 +29,10 @@ Param
     [String]$CACommonName,
 
     [Parameter(Mandatory=$true)]
-    [String]$CAServerName
+    [String]$CAServerName,
+
+    [Switch]$AddCrl,
+    [Switch]$Remove
 )
 
 Begin
@@ -294,17 +297,16 @@ Begin
                         $_ -match "CRL Hash\(sha1\): (.*)"
                     } | ForEach-Object { "$($Matches[1])" }
 
-                    <#
                     # Add crl hash to array
                     $CAFileCrlHashArray += $CAFileCrlHash
-                    #>
 
                     ######
                     # CDP
                     ######
 
                     # Check if crl hash in CDP
-                    if (($CAFileCrlHash -notin $DSCDPHashArray) -and
+                    if ($AddCrl.IsPresent -and
+                        ($CAFileCrlHash -notin $DSCDPHashArray) -and
                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($CAFileCrlHash) to CDP container." @VerboseSplat))
                     {
                         TryCatch { certutil -f -dspublish "`"$($file.FullName)`"" $CAServerName } > $null
@@ -317,50 +319,51 @@ Begin
         # Remove
         #########
 
-        # AIA
-        foreach($AIAHash in $DSAIAHashArray)
+        if ($Remove.IsPresent)
         {
-            if ($AIAHash -notin $CAFileCertificateHashArray -and
-                (ShouldProcess @WhatIfSplat -Message "Remove `"$AIAHash`" from AIA container." @VerboseSplat))
+            # AIA
+            foreach($AIAHash in $DSAIAHashArray)
             {
-                TryCatch { certutil -f -delstore "ldap:///CN=$CACommonName,CN=AIA,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$AIAHash`"" ` } > $null
-            }
-        }
-
-        <#
-        # CDP
-        foreach($CDPHash in $DSCDPHashArray)
-        {
-            if ($CDPHash -notin $CAFileCrlHashArray -and
-                (ShouldProcess @WhatIfSplat -Message "Remove `"$CDPHash`" (CRL) from CDP container." @VerboseSplat))
-            {
-                TryCatch { certutil -f -delstore "ldap:///CN=$CAServerName,CN=CDP,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?*?sub?objectClass=cRLDistributionPoint" "`"$CDPHash`"" } > $null
-            }
-        }
-        #>
-
-        if ($CAType -match 'Root')
-        {
-            # CA
-            foreach($CAHash in $DSCAHashArray)
-            {
-                if ($CAHash -notin $CAFileCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Remove `"$CAHash`" from Certification Authorities container." @VerboseSplat))
+                if ($AIAHash -notin $CAFileCertificateHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Remove `"$AIAHash`" from AIA container." @VerboseSplat))
                 {
-                    TryCatch { certutil -f -delstore "ldap:///CN=$CACommonName,CN=Certification Authorities,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$CAHash`"" } > $null
+                    TryCatch { certutil -f -delstore "ldap:///CN=$CACommonName,CN=AIA,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$AIAHash`"" ` } > $null
                 }
             }
-        }
 
-        if ($CAType -match 'Enterprise')
-        {
-            # NTAuth
-            foreach($NTAuthHash in $DSNTAuthHashArray)
+            # CDP
+            foreach($CDPHash in $DSCDPHashArray)
             {
-                if ($NTAuthHash -notin $CAFileCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Remove `"$NTAuthHash`" from NTAuthCertificates container." @VerboseSplat))
+                if ($CDPHash -notin $CAFileCrlHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Remove `"$CDPHash`" (CRL) from CDP container." @VerboseSplat))
                 {
-                    TryCatch { certutil -f -delstore "ldap:///CN=NTAuthCertificates,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$NTAuthHash`"" } > $null
+                    TryCatch { certutil -f -delstore "ldap:///CN=$CAServerName,CN=CDP,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?*?sub?objectClass=cRLDistributionPoint" "`"$CDPHash`"" } > $null
+                }
+            }
+
+            if ($CAType -match 'Root')
+            {
+                # CA
+                foreach($CAHash in $DSCAHashArray)
+                {
+                    if ($CAHash -notin $CAFileCertificateHashArray -and
+                        (ShouldProcess @WhatIfSplat -Message "Remove `"$CAHash`" from Certification Authorities container." @VerboseSplat))
+                    {
+                        TryCatch { certutil -f -delstore "ldap:///CN=$CACommonName,CN=Certification Authorities,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$CAHash`"" } > $null
+                    }
+                }
+            }
+
+            if ($CAType -match 'Enterprise')
+            {
+                # NTAuth
+                foreach($NTAuthHash in $DSNTAuthHashArray)
+                {
+                    if ($NTAuthHash -notin $CAFileCertificateHashArray -and
+                        (ShouldProcess @WhatIfSplat -Message "Remove `"$NTAuthHash`" from NTAuthCertificates container." @VerboseSplat))
+                    {
+                        TryCatch { certutil -f -delstore "ldap:///CN=NTAuthCertificates,CN=Public Key Services,CN=Services,CN=Configuration,$($BaseDN)?cACertificate?base?objectClass=certificationAuthority" "`"$NTAuthHash`"" } > $null
+                    }
                 }
             }
         }
@@ -606,6 +609,9 @@ Process
             $CACommonName = $Using:CACommonName
             $CAServerName = $Using:CAServerName
             $CAFiles = $Using:CAFiles
+
+            $AddCrl = $Using:AddCrl
+            $Remove = $Using:Remove
         }
 
         # Run main
@@ -644,10 +650,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwL3y0aupsNXqBX3tfdeL37px
-# ZJOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPI6jG925L0KtN1jYetI++FrZ
+# YOGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -728,31 +734,31 @@ End
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmJwfrSe2/IWRQepUlTddbuXR7qMwDQYJ
-# KoZIhvcNAQEBBQAEggIAeiqj4Eaa4ObPwli6A9v0Rpwg8m2OK86tYk47FALP/Lwn
-# x0G4GMMfL6wejry0r/nTZ4ZuUi/PVK77mrJpGb+AriUmyCMdCKqEaO7AtRuM/O7S
-# uS91/vyRiR/roMYPUd7Fs4EnXbHDhobVfsgZ4fJEpxiGZY7QW3t87hiiioBQCDj4
-# Wjv+j3SdZGqzcTfvbvAcw1Xr3s9UuGsSpUN63CwZwi39mmnLhnuCT0iKMwerQ8lU
-# 96XHB+Ru/uE5NgZmobjc1FuMo3YenDpjSwmN9KHNZdW2CTbLLeA5QjGhgl7AJUUx
-# yNl0E1I5iGwxd8Gl4KMa27/oqFt/7fmHOOWAJawmNHjqWWQujxEV7GpSMnWBysh/
-# mKi+gacJ1kXsRaQ3fskjPtmdPssOobnB3MP0UBK81sRjwxYBcx3KQR4NSbvs5tCx
-# LTZMH71Z0h8uW4r8Oq6R8p65SHHiMFbBWimhx3d86JoQ9DO+halBSJQpVu13pObL
-# 0kvF3wjNgEAtQxYsYE5xsbhWuzsNg8plXOskccErj9c25ly6iomp0Y7u4AIBpX3J
-# J0ojIY8MG1ox7YWb5RTSpUIlbVSwGYbQiSzwbLUUZslGhzpZO6gW17VO8gDlfZeV
-# M0VPAC952rDxNFFqqga1bwb5UniNRZUGaoNwehK2aPrAbMfwRz39f31tbxhnIEWh
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQY3ev2Z7w3L9eaHMEI7HJ+Q8Ej4wDQYJ
+# KoZIhvcNAQEBBQAEggIAeavvO2MfEaV5tjqegtngU6U5EyLqjYr0h/ThycHoTEJw
+# PCwnPaWhEw3zSO5TCPO+aW1m0TOC0eP140dVyczNCL8dNU792WlDW/ATweVzsUub
+# OwAn3VAR6NlphrVppzNhD3Q4PIfVtj1GpJ8gDcFb/yMBaJbHa+hc7I0pzFO0/as6
+# 70Dd7eadzDkfpFVtouRZcHsuijgaMVMhFHmtkppR+Vd1/AA35hYgDgl+eHcRRoSP
+# du58k7uOgES4faubDWfL6ZyBkPd4C6p1zHyHy4VBj3g+taB6FX0ckt23jFbVTaF6
+# ZsfD3f9Y6RfvbuSIaK2plNKQWGos5BLZt3hS4psojnJsIjfbz3zZu//mtvdL6hry
+# S5dcIbnRsoHf0txt0Da7RoGymhYS6Bmb2WjlNJ7/DzfN1udKkTkBPnig98R15krL
+# ZOQj4+laLG2tpU90JIPmQWwZqW+KjlovJ16T50BYTkGSQEqNUfB68uKM6/DNsvDS
+# MSxzaori38wNDQeLzwI9qQu3z+ENa+5DbDewF0PHz8t9vHcr2PuyO2T4tED8FMRr
+# UzS2S1ageGsoPIfAZwIYGNALXAQ48wvoCgigDHPyNnmDf4bCPLljU/0hLFK1jAml
+# fisFKuBK0cHSVRZGeDqINQvuvzDDq2dLXHPxmJpQ7hTVMS7TcMi/O3KrckQjABOh
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjEyMDEwMDA0WjAjBgkq
-# hkiG9w0BCQQxFgQUsMuF92u5DT2CxJZXmoMYMn3d5BIwDQYJKoZIhvcNAQEBBQAE
-# ggEAIRzQDoZKOdGie+ay7K9rmQKqnWIwR0OhpSxdIlLeMoEhULT/ft6eytZkQvj+
-# TQFdXuVi/OgNJdJhzz/ZHvyl3G2dW+gZISxyTYvJQ8l4yS+teiPIpuzbCI9f8/9q
-# D/IVthvfjE4zLqzwbVu0a0JZscbWzqfW1JZeaxLXriNdgf5efqNQXI/CcmjQE9WW
-# kAMzLoT/ljQTM5mFM1uEO6beXodohXfoYhSFFO4kVuBDUEE+AcJnMixcELuh1bKc
-# JBz6acyNAJNsB2AGbtiEk1d0gjNSJPQrbF/p7b9qNGd7fCB9i6kSJhQcP7CNYqar
-# zmqe/HzU6V6XqzLEWWsuKEqAPw==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIPXMbLPQZOBIzCfSxBi/lwvTIBEoSFXE1/VgdOfCrFII
+# MA0GCSqGSIb3DQEBAQUABIIBAAkvHthVanzrXhXptFtFFXn0ReQoRgCCmEXfU+UU
+# 9i/BaFgNTFfZLVljraKtw4zKGrj18javvvOLlKRWSgdKDfVYEbxb/r1rTWVyctWM
+# rBLEXcsYDYeoqOi9joJ9QhZmpPp/qpSdlJboX/DH6H0SNxTSGczPGkL8YTbtVDsI
+# SDW/nfSr9LNYunnxXXmbOuC3WudJg+JJqJ/v3axzI1IW+R58/ucUbbUDKOqIUKFp
+# bZvcjvMI1RjrhZeWQBm9KtHTTXDXd/VOY3Y6QgspLdBmOIh8XV7zef0H/+KDvzg8
+# JiVoNG6wAL5IRPoa1DgwuMTYivXSvVkycr3J9HBt0wBDgRo=
 # SIG # End signature block

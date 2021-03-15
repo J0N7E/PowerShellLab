@@ -367,34 +367,35 @@ Begin
         # Itterate all file
         foreach($file in $CAFiles.GetEnumerator())
         {
+            $FullName = "$env:TEMP\$CACommonName\$($file.Key.Name)"
+
             # Save file to temp
-            Set-Content -Path "$env:TEMP\$CACommonName\$($file.Key.Name)" -Value $file.Value -Force
+            Set-Content -Path $FullName -Value $file.Value -Force
 
             # Set original timestamps
-            Set-ItemProperty -Path "$env:TEMP\$CACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-            Set-ItemProperty -Path "$env:TEMP\$CACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-            Set-ItemProperty -Path "$env:TEMP\$CACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+            Set-ItemProperty -Path $FullName -Name CreationTime -Value $file.Key.CreationTime
+            Set-ItemProperty -Path $FullName -Name LastWriteTime -Value $file.Key.LastWriteTime
+            Set-ItemProperty -Path $FullName -Name LastAccessTime -Value $file.Key.LastAccessTime
 
             # Copy
-            Copy-DifferentItem -SourcePath "$env:TEMP\$CACommonName\$($file.Key.Name)" -TargetPath "C:\inetpub\wwwroot\$($file.Key.Name)" @VerboseSplat
+            Copy-DifferentItem -SourcePath $FullName -TargetPath "C:\inetpub\wwwroot\$($file.Key.Name)" @VerboseSplat
 
-            if (-not $Domain -and $file.Key.Extension -eq '.crt')
+            if (-not $DomainName -and $file.Key.Extension -eq '.crt')
             {
-
-
+                Write-Host $file.Key.FullName
 
                 if ($file.Key.Name -match 'Root' -and
                     -not (TryCatch { certutil -store root "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to trusted root store." @VerboseSplat))
                 {
-                    TryCatch { certutil -addstore root "$($file.Key.FullName)" } > $null
+                    TryCatch { certutil -addstore root "`"$FullName`"" } > $null
                 }
 
                 if (($file.Key.Name -match 'Sub' -or $file.Key.Name -match 'Issuing') -and
                     -not (TryCatch { certutil -store ca "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to intermediate ca store." @VerboseSplat))
                 {
-                    TryCatch { certutil -addstore ca "$($file.Key.FullName)" } > $null
+                    TryCatch { certutil -addstore ca "`"$FullName`"" } > $null
                 }
             }
         }
@@ -937,8 +938,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHa8267B923ruf3tW0XOHXDwK
-# 6+yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGpoL/kTgamw6M9b7uUA5pwtu
+# 4iaggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1022,28 +1023,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrDQQ5EXLcNH4WYmy1g/D3wM44oswDQYJ
-# KoZIhvcNAQEBBQAEggIAZdWO2aEfWiR8shZxCKsI7nUCI4oGSezeaxbZPCTNI+PU
-# 0EBvCOXI+UX6ApKL2wdZ0F1CAW3yycftCZewoctzZvK2RDSIl+ijK07rIPZp8+dG
-# 26miwMEBGf8iJvXFRiImp6a+HTeWJZb+2nNLmvcaGaN9m4QEQKVDcr98abtfpGon
-# dYwKGrrxtf3OcRYrnzPpDCn64XXs70SC+WKQUQrhnDlP5C0LTUS+3Rkqcuz/zR3a
-# 86WJiwHMoSL25an1UrIX0tb83KUMd/yslyNS8KQI+AJ5NZDx4YcYDtLYsgOxStTI
-# h2dikIGBZMRTq/HjWJjKBcNTMaamXq5q5grbqxRMhybCZEBcvrKnl2FIsCbU/et6
-# 0rzs3K90JAAy8UzXk5UaZtcz7UP/EDWnMpvsCJayWxxgd8E4O/Hzkph14Sa60cJa
-# qvbl1F2hjAZ80tVHmh9FVz0Q8mRWLQdoxWnhzWw2MmY0uq5eJ8ANpPdSsAQ46KXb
-# 6AwEXy8ib+f4V5imbQZrCo4mbUL00WQG9Ult3K/mLvDjA9hjryUHDAp6zhifc1bE
-# PFve5F4wj9Gy15r6dvSa0/N7TNvqIiDgTyTw54lt63Mct40Zy1I2R/O45E9yfLzP
-# N2zRPHpTCa8KGz4GrJdHuNzaUCRoVE9dmGGWJvb3UKCogbQ3LUU8H8x9m0VpfCeh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoRARC1xDEGGFzmq9zYsj3DKS+h0wDQYJ
+# KoZIhvcNAQEBBQAEggIAcsvoT51YEPoozogyQ6ACNEKeC6wXYYHggQE1GXqQrHqi
+# 5YthKr4LMp4KRTuOL5XzRkSkbazeMdFdDt7PJdBSenaWNFhf2XvLaS4RKbDeIZiI
+# fvuAXEcrAahj1yej9Hts3TQLV0TU4SbGQaTXkrzw4RnGd4RnStB1Uy+SrL2w2HX/
+# y5cM21V3DOjdZQLYIUyhDEzwEMwREtg3k/rTLPJ717BrptW3BhOGOSIZjIn3ooKv
+# TviYUExvYFuz2GKsM1oyAMn5jnlZs5c3J0Bj4XK+cUQNHGH79zu8RKDEGjEU6yLX
+# 7QUBEWbxC8LlD+Wnj9p46L5k1VVg+bLftcpxpyXS0TM1bqXfrtiHf4XLMY4MFVe5
+# yNWJ8jnag6udcEobO+UiPb9MhuvsCY0EVWJegk0CquGItjgJprpC4QP9u4B1xIw8
+# +XSB4z9F67R072zinlONGGX8UEndK7Ox2VRhDTHWW7mR+FQca628iUokRdswaMKt
+# EIPTeTyuBHDeFyxSZ+MK13LgU7eRJ0eNfig18EhHDAJB/STh+Lu123I53ZjBH4/h
+# bzFoPchhtMO4NGDgTmbdHljKhiPvyVJ0jBc9dmx9BRJOJ9H+o8V+KJFy5L/SgwJR
+# FaCtTuqZj114pY8AxSOQ4XgbkImDt5qzqHxloFM8433pT9OOAyImjHZo433hLzGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxMzE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIHcrHDVbA8LG+bD1wCbuJQVy3eOMQK/93Y7CnXIyi+Sa
-# MA0GCSqGSIb3DQEBAQUABIIBAEdq2//kSIUeTOQ1syyJ6QJFcyBMYtCTk/YPhmxt
-# k75lHOX5EXoWt+1dDFYJTMzQoq4atIQm3zG0a9Z/tBwmp6OOauPlwRjK0znqovuz
-# iCX4//M3C58JkzwFCodd6m6HLCykViDAepBgt7KIYscn4KAeXg8iDxOwx7KlBNW0
-# Tr8hdPsRyh4sdr9qqMgD6osLNyy6Y2vFPVFsPHkhB8yoNoDxntljRPgWrcImf5b8
-# WfGPL/kZb+sdCK+9xkQ+2PUtO5JKifIUfDzxzD89Zj+IYw+5hcMlwDtH+Wt+sCqt
-# xvrCSPN6Mb7Q4/10GMFk7/bpAchd3uI/F9lrz283T1WrNuU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTExMDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIHhu/chI9s8jJrHWMMn2+m8odbW6huZIkw6QYBUO+yzM
+# MA0GCSqGSIb3DQEBAQUABIIBAA3bMK6xtWoia3+06sCNtzgf5TY8nYrMKv5PT5dB
+# X3uwJ6k2YzuBw3B47qJ2877eSdcPFAuy4dEjyr88WSksVniIYlAFHByQ02Ru6TxV
+# IJDC3o0P8rrnki7FPHUB1jqhbOPsHuBWechDAAPAfaJBhSZiaaDISG1jIssOSZys
+# +soqX/32xzwylVjymxDIE/7MvPe4TdKslR6fV4yX11/nKtM563+tYStp/QRS8XUo
+# MtHNrLHTN9vXSFDx+RwghWQtPkpfobVD6G/fMU79efpZb5FfpLgI/ckcpTDNndrg
+# JAaVjCPlqdoBLFCvhXPOCyB3i6oQ8Q4UlWSqlLxCgK0fznE=
 # SIG # End signature block
