@@ -86,7 +86,14 @@ Param
     [Switch]$OCSPAddNounce,
 
     # OCSP refresh timeout
-    [Int]$OCSPRefreshTimeout
+    [Int]$OCSPRefreshTimeout,
+
+    #######
+    # NDES
+    #######
+
+    [Switch]$DeviceEnrollment
+
 )
 
 Begin
@@ -593,6 +600,7 @@ Begin
 
 # FIX
 # test KSP provider with SHA256
+
 $RequestInf =
 @"
 [NewRequest]
@@ -685,118 +693,181 @@ OID="1.3.6.1.5.5.7.3.9"
 
             # Set configuration
             $OcspAdmin.SetConfiguration($ComputerName, $true)
+
+            #########
+            # Accept
+            #########
+
+            # Check if OCSP signing certificate request exist
+            if (Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing.req")
+            {
+                # Check if file exist
+                $CAResponseFileExist = Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
+
+                # Check if response file exist
+                if (($CAResponseFile -or $CAResponseFileExist) -and
+                    (ShouldProcess @WhatIfSplat -Message "Installing OCSP signing certificate..." @VerboseSplat))
+                {
+                    if (-not $CAResponseFileExist)
+                    {
+                        Set-Content -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt" -Value $CAResponseFile
+                    }
+
+                    # Try installing certificate
+                    TryCatch { certreq -q -accept "`"$env:TEMP\$CACommonName OSCP Signing-Response.crt`"" } -ErrorAction Stop > $null
+
+                    #############################
+                    # Set privat key permissions
+                    #############################
+
+                    # Get signing certificate
+                    $SigningCertificate = Get-Item -Path Cert:\LocalMachine\My\* | Where-Object { $_.Subject -match "$CACommonName OCSP Signing" -and $_.Extensions['2.5.29.37'] -and $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('OCSP Signing') }
+
+                    # Set key container path
+                    $SigningCertificateKeyContainerPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$($SigningCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName)"
+
+                    if (Test-Path -Path $SigningCertificateKeyContainerPath)
+                    {
+                        # Get NTFS acl
+                        $Acl = Get-Acl -Path $SigningCertificateKeyContainerPath
+
+                        # Add system full control
+                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                        @(
+                            <#IdentityReference#> [System.Security.Principal.NTAccount] "NT AUTHORITY\SYSTEM",
+                            [System.Security.AccessControl.FileSystemRights] "FullControl",
+                            [System.Security.AccessControl.InheritanceFlags] "None"
+                            [System.Security.AccessControl.PropagationFlags] "None",
+                            [System.Security.AccessControl.AccessControlType] "Allow"
+                        )
+                        $Acl.AddAccessRule($Ace)
+
+                        # Add administrators full control
+                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                        @(
+                            <#IdentityReference#> [System.Security.Principal.NTAccount] "BUILTIN\Administrators",
+                            [System.Security.AccessControl.FileSystemRights] "FullControl",
+                            [System.Security.AccessControl.InheritanceFlags] "None"
+                            [System.Security.AccessControl.PropagationFlags] "None",
+                            [System.Security.AccessControl.AccessControlType] "Allow"
+                        )
+                        $Acl.AddAccessRule($Ace)
+
+                        # Add network service full control
+                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                        @(
+                            <#IdentityReference#> [System.Security.Principal.NTAccount] "NETWORK SERVICE",
+                            [System.Security.AccessControl.FileSystemRights] "Read",
+                            [System.Security.AccessControl.InheritanceFlags] "None"
+                            [System.Security.AccessControl.PropagationFlags] "None",
+                            [System.Security.AccessControl.AccessControlType] "Allow"
+                        )
+                        $Acl.AddAccessRule($Ace)
+
+                        # Set NTFS acl
+                        Set-Acl -AclObject $Acl -Path $SigningCertificateKeyContainerPath
+                    }
+
+                    ############
+                    # Configure
+                    ############
+
+                    # Get OCSP admin
+                    $OcspAdmin = New-Object -Com "CertAdm.OCSPAdmin"
+                    $OcspAdmin.GetConfiguration($ComputerName, $true)
+
+                    # Get OCSP configuration
+                    $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection | Where-Object { $_.Identifier -eq $CACommonName }
+
+                    # Set signing certificate
+                    $OcspConfig.SigningCertificate = $SigningCertificate.RawData
+
+                    # Commit Revocation Configuration
+                    $OcspAdmin.SetConfiguration($ComputerName, $true)
+
+                    ##########
+                    # Cleanup
+                    ##########
+
+                    # Remove request file
+                    Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.req"
+
+                    # Remove response file
+                    Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
+                }
+                else
+                {
+                    if ($DomainName)
+                    {
+                        # Update group policy
+                        Start-Process cmd -ArgumentList "/c gpupdate"
+                    }
+
+                    # Output requestfile
+                    Write-Request -Path "$env:TEMP"
+                }
+            }
         }
 
-        # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
-        # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
-        # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
-        # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
-        # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
-        # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
+        #  ███╗   ██╗██████╗ ███████╗███████╗
+        #  ████╗  ██║██╔══██╗██╔════╝██╔════╝
+        #  ██╔██╗ ██║██║  ██║█████╗  ███████╗
+        #  ██║╚██╗██║██║  ██║██╔══╝  ╚════██║
+        #  ██║ ╚████║██████╔╝███████╗███████║
+        #  ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚══════╝
 
-        # Check if OCSP signing certificate request exist
-        if (Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing.req")
+        if ($DeviceEnrollment.IsPresent)
         {
-            # Check if file exist
-            $CAResponseFileExist = Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
-
-            # Check if response file exist
-            if (($CAResponseFile -or $CAResponseFileExist) -and
-                (ShouldProcess @WhatIfSplat -Message "Installing OCSP signing certificate..." @VerboseSplat))
+            # Check if windows feature is installed
+            if ((Get-WindowsFeature -Name ADCS-Device-Enrollment).InstallState -notmatch 'Install' -and
+                (ShouldProcess @WhatIfSplat -Message "Installing Device Enrollment windows feature." @VerboseSplat))
             {
-                if (-not $CAResponseFileExist)
-                {
-                    Set-Content -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt" -Value $CAResponseFile
-                }
-
-                # Try installing certificate
-                TryCatch { certreq -q -accept "`"$env:TEMP\$CACommonName OSCP Signing-Response.crt`"" } -ErrorAction Stop > $null
-
-                ############
-                # Configure
-                ############
-
-                # Get signing certificate
-                $SigningCertificate = Get-Item -Path Cert:\LocalMachine\My\* | Where-Object { $_.Subject -match "$CACommonName OCSP Signing" -and $_.Extensions['2.5.29.37'] -and $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('OCSP Signing') }
-
-                # Set key container path
-                $SigningCertificateKeyContainerPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$($SigningCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName)"
-
-                if (Test-Path -Path $SigningCertificateKeyContainerPath)
-                {
-                    # Get NTFS acl
-                    $Acl = Get-Acl -Path $SigningCertificateKeyContainerPath
-
-                    # Add system full control
-                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                    @(
-                        <#IdentityReference#> [System.Security.Principal.NTAccount] "NT AUTHORITY\SYSTEM",
-                        [System.Security.AccessControl.FileSystemRights] "FullControl",
-                        [System.Security.AccessControl.InheritanceFlags] "None"
-                        [System.Security.AccessControl.PropagationFlags] "None",
-                        [System.Security.AccessControl.AccessControlType] "Allow"
-                    )
-                    $Acl.AddAccessRule($Ace)
-
-                    # Add administrators full control
-                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                    @(
-                        <#IdentityReference#> [System.Security.Principal.NTAccount] "BUILTIN\Administrators",
-                        [System.Security.AccessControl.FileSystemRights] "FullControl",
-                        [System.Security.AccessControl.InheritanceFlags] "None"
-                        [System.Security.AccessControl.PropagationFlags] "None",
-                        [System.Security.AccessControl.AccessControlType] "Allow"
-                    )
-                    $Acl.AddAccessRule($Ace)
-
-                    # Add administrators full control
-                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                    @(
-                        <#IdentityReference#> [System.Security.Principal.NTAccount] "NETWORK SERVICE",
-                        [System.Security.AccessControl.FileSystemRights] "Read",
-                        [System.Security.AccessControl.InheritanceFlags] "None"
-                        [System.Security.AccessControl.PropagationFlags] "None",
-                        [System.Security.AccessControl.AccessControlType] "Allow"
-                    )
-                    $Acl.AddAccessRule($Ace)
-
-                    # Set NTFS acl
-                    Set-Acl -AclObject $Acl -Path $SigningCertificateKeyContainerPath
-                }
-
-                # Get OCSP admin
-                $OcspAdmin = New-Object -Com "CertAdm.OCSPAdmin"
-                $OcspAdmin.GetConfiguration($ComputerName, $true)
-
-                # Get OCSP configuration
-                $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection | Where-Object { $_.Identifier -eq $CACommonName }
-
-                # Set signing certificate
-                $OcspConfig.SigningCertificate = $SigningCertificate.RawData
-
-                # Commit Revocation Configuration
-                $OcspAdmin.SetConfiguration($ComputerName, $true)
-
-                ##########
-                # Cleanup
-                ##########
-
-                # Remove request file
-                Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.req"
-
-                # Remove response file
-                Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
+                Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
             }
-            else
-            {
-                if ($DomainName)
-                {
-                    # Update group policy
-                    Start-Process cmd -ArgumentList "/c gpupdate"
-                }
 
-                # Output requestfile
-                Write-Request -Path "$env:TEMP"
+            # Initialize
+            $NdesConfigured = $false
+
+            #Check if CA is configured
+            try
+            {
+                # Throws if configured
+                Install-AdcsNetworkDeviceEnrollmentService -WhatIf > $null
+            }
+            catch
+            {
+                # CA is configured
+                $NdesConfigured = $true
+            }
+
+# Service account permissions:
+# - Allow log on locally
+# - Log on as a service
+
+            # Initialize
+            $NdesParams =
+            @{
+                RAName = "$CACommonName NDES"
+                RACountry = 'SE'
+                ApplicationPoolIdentity = $true
+                CAConfig = $OCSPCAConfig
+                SigningProviderName = 'Microsoft Software Key Storage Provider'
+                SigningKeyLength = 2048
+                EncryptionProviderName = 'Microsoft Software Key Storage Provider'
+                EncryptionKeyLength = 2048
+            }
+
+            try
+            {
+                if (-not $NdesConfigured -and
+                    (ShouldProcess @WhatIfSplat -Message "Configuring Device Enrollment." @VerboseSplat))
+                {
+                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
+                }
+            }
+            catch [Exception]
+            {
+                throw $_.Exception
             }
         }
     }
@@ -858,6 +929,8 @@ Process
             $OCSPRefreshTimeout = $Using:OCSPRefreshTimeout
             $OCSPAddNounce = $Using:OCSPAddNounce
             $OCSPHashAlgorithm = $Using:OCSPHashAlgorithm
+
+            $DeviceEnrollment = $Using:DeviceEnrollment
 
             # Files
             $CAFiles = $Using:CAFiles
@@ -938,8 +1011,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGpoL/kTgamw6M9b7uUA5pwtu
-# 4iaggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpmwU4BbN771eosM1sCWgy9+Q
+# Hxqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1023,28 +1096,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoRARC1xDEGGFzmq9zYsj3DKS+h0wDQYJ
-# KoZIhvcNAQEBBQAEggIAcsvoT51YEPoozogyQ6ACNEKeC6wXYYHggQE1GXqQrHqi
-# 5YthKr4LMp4KRTuOL5XzRkSkbazeMdFdDt7PJdBSenaWNFhf2XvLaS4RKbDeIZiI
-# fvuAXEcrAahj1yej9Hts3TQLV0TU4SbGQaTXkrzw4RnGd4RnStB1Uy+SrL2w2HX/
-# y5cM21V3DOjdZQLYIUyhDEzwEMwREtg3k/rTLPJ717BrptW3BhOGOSIZjIn3ooKv
-# TviYUExvYFuz2GKsM1oyAMn5jnlZs5c3J0Bj4XK+cUQNHGH79zu8RKDEGjEU6yLX
-# 7QUBEWbxC8LlD+Wnj9p46L5k1VVg+bLftcpxpyXS0TM1bqXfrtiHf4XLMY4MFVe5
-# yNWJ8jnag6udcEobO+UiPb9MhuvsCY0EVWJegk0CquGItjgJprpC4QP9u4B1xIw8
-# +XSB4z9F67R072zinlONGGX8UEndK7Ox2VRhDTHWW7mR+FQca628iUokRdswaMKt
-# EIPTeTyuBHDeFyxSZ+MK13LgU7eRJ0eNfig18EhHDAJB/STh+Lu123I53ZjBH4/h
-# bzFoPchhtMO4NGDgTmbdHljKhiPvyVJ0jBc9dmx9BRJOJ9H+o8V+KJFy5L/SgwJR
-# FaCtTuqZj114pY8AxSOQ4XgbkImDt5qzqHxloFM8433pT9OOAyImjHZo433hLzGh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUc5rWSNux90JhM2aoi2oCGX+sdZowDQYJ
+# KoZIhvcNAQEBBQAEggIAlak99W2pJAK4GtYEUn14QQ9F0qLXkUdiHageIxmGLYVo
+# QSbttsQGtX9LUqeOuf7lj6/BkC7rOZ029mtslq0hvs95xnXWOPv+NByjpdGnPZWC
+# qBb+pKyF0BrzAzmF5w5i0F+mIYDnlrAjTi41q2z3FrvDMWUGt7mgYZWRXejGz0/7
+# OgIjqrn8wA0opYqIy++huTHIbN8DAaFKZVz47zDLwEa9rpoABOUu7rQeYTbTb5kj
+# zHvzg/tJATEGiTUYSUN/mNKFQCaDxB39BS+sJYh+1z8hdYp/RbTF+mvtJxHn142T
+# Q0yAPlHbXYjYC+Se2F9FHJgVgHnRzQDwN0y0qYZ1U8IvBaG9Lqy119a1wdmbjFzB
+# NtXAC/C1vdF1cdYkJeylBNnOThyG1IfYcqiruU0RPVI4juGO7tfyim94ns0+pEUg
+# ETc74SfkHCypFk6HiKNAaNQBRMAmCe/T3n91VAYOpfDHOFKAroUUeccrmEHEro3H
+# nnvE9nHE/TSWSzTAaBc80eGQFCA7mUq9pw1EJ8xly+6rSW8uL54Gh1gATZZxLmrU
+# kV6azU6EuRFlQYLDMl7DvZIETOEkIi2J4HxspMKeP0QplrwIbVcDeMKNdq4T0BrA
+# Jo5YgaVhpKLwtdcMfGinbLwXBHsYARWWX0N20ZPqW7trRqdFNkKqxyzcqEpFpjWh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTExMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIHhu/chI9s8jJrHWMMn2+m8odbW6huZIkw6QYBUO+yzM
-# MA0GCSqGSIb3DQEBAQUABIIBAA3bMK6xtWoia3+06sCNtzgf5TY8nYrMKv5PT5dB
-# X3uwJ6k2YzuBw3B47qJ2877eSdcPFAuy4dEjyr88WSksVniIYlAFHByQ02Ru6TxV
-# IJDC3o0P8rrnki7FPHUB1jqhbOPsHuBWechDAAPAfaJBhSZiaaDISG1jIssOSZys
-# +soqX/32xzwylVjymxDIE/7MvPe4TdKslR6fV4yX11/nKtM563+tYStp/QRS8XUo
-# MtHNrLHTN9vXSFDx+RwghWQtPkpfobVD6G/fMU79efpZb5FfpLgI/ckcpTDNndrg
-# JAaVjCPlqdoBLFCvhXPOCyB3i6oQ8Q4UlWSqlLxCgK0fznE=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIJ3YSwnX27756tjSQVndj0v8hFidzxdmhme8mbH22Ahh
+# MA0GCSqGSIb3DQEBAQUABIIBAB6D8GSI/nUn1WyA22e7wK7meFmwFWhD+4PPD/Ic
+# NayJ4XwIcemMDRj0gjoJwyenG0EY9qkeRRpn16dqp/1EieKDeZ9Fwd+MtChtB0AB
+# KibvRD9xYo4dE53W55XNGsPhTphjar4CAlzPmL+8b13PcIrs+a3f+1mntQZIHR/8
+# nqLfHXeLxZ2sr3Hc+qwC0uhk4hqv9TT9uKNVPKRW7d+b4lgCZ7yIZOY6QZGBoJ7+
+# TE+i5okaHe95DZXc54sRS1Ex9O/pvtKkd9KH9Kzx1cT9AURDJHdXOv7jGwOg1WB6
+# metIeQB3dOUypf+9vl9TH/OX50UNIWNMi/k5KJMMlEAInF4=
 # SIG # End signature block
