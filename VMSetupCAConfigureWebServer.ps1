@@ -825,6 +825,7 @@ OID="1.3.6.1.5.5.7.3.9"
                 Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
             }
 
+            <#
             # Initialize
             $NdesConfigured = $false
 
@@ -840,9 +841,9 @@ OID="1.3.6.1.5.5.7.3.9"
                 $NdesConfigured = $true
             }
 
-# Service account permissions:
-# - Allow log on locally
-# - Log on as a service
+            # Service account permissions:
+            # Allow log on locally
+            # Log on as a service
 
             # Initialize
             $NdesParams =
@@ -850,10 +851,6 @@ OID="1.3.6.1.5.5.7.3.9"
                 RAName = "$CACommonName NDES"
                 RACountry = 'SE'
                 CAConfig = $OCSPCAConfig
-                SigningProviderName = 'Microsoft Software Key Storage Provider'
-                SigningKeyLength = 2048
-                EncryptionProviderName = 'Microsoft Software Key Storage Provider'
-                EncryptionKeyLength = 2048
                 ServiceAccountName = 'home\AzADDSConnector'
                 ServiceAccountPassword = (ConvertTo-SecureString -String "PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p" -AsPlainText -Force)
             }
@@ -870,6 +867,7 @@ OID="1.3.6.1.5.5.7.3.9"
             {
                 throw $_.Exception
             }
+            #>
         }
     }
 }
@@ -1012,8 +1010,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUO3I4Q7S+xSRlo/1jZFSMDoPm
-# 8L2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEJ+qzOy+4xb+c9lxBePDG3Bh
+# jzmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1097,28 +1095,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU52B3RgzvIK8AYU52JBUtxLOwIq0wDQYJ
-# KoZIhvcNAQEBBQAEggIApn4VTn993UwfGouUzjITCqZ8dtAc7Oxm2IFZrsCW0w1r
-# vohnaKKGyuBtFVLiV4rzt2iUBMjTpCOn2nHmlMcU6yevoWxjpoUuWHVd9mSXDHfr
-# 9Y8PW5dRV3yiJVJfK+vRhQYVziHsTL0IbXgmbMEtaCkSIhxZDZVHcXEg8ERQJpCX
-# E/TIgJwLAO1eMuXCPn/AnMr+es5fSGqj5/rs3/XgBsgKc5SiVTGfXRex1fp0GZpW
-# hNv638cH8kgQ/EOQ2nZVhVDfZfwr1SYOnXcgd6E3BQ9uEGmd/d5equFT0E+S14An
-# Esf1nV0G+cng0zSEl1TtNqlccpw+oW0owU0p0zL9dZAfSL404/YmRLiKPW6jgq6U
-# jtjMJ/QJatyk8JLhNY1B07kQJOB4MIA1JdHkOKerYscgeSaDB12Jqm/Eb7O1MOFr
-# 8uQRWtU/JufdTzLl2rcwE8JOStLF9PzI4F5CUewBfW6Xw6isLqKXo5vaJsYveeYj
-# jEh5QT0Gxh8v+KtKZ/Ul0ErFw++ULhvcIpiGqOqCF8IW7s3zPABJOdfj71VAeWJl
-# CGPS8FLbSK+v4Rp4/fDeBSmmvWGCTx98o9eaznuobRgu4AHJ7wxniTUid66+k6xY
-# kWNHtkuads0UnRJZUQc5T3yrIHEjb8irM46Vr+3hAE1hhJDT7/7+HN49jIm8+6uh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkpm3HdGTzR1x6V/Wu/oeVu9pB9QwDQYJ
+# KoZIhvcNAQEBBQAEggIAPIi5qP3fpTawtaq/NbYplv8BoHcbuLSGFkWh3FsyfEAq
+# eADyBzSiqc4hUfEK0SLZJoxdlQbfaxegT+1PzCdbWRA/KvbgWR6Wiu8el8t6se3h
+# 6ldVVYhjQhIfiWxzeNtI17gN8SKUOMJWrGLYTbdfhgwTq++Mhm7sLhLofJpo69zA
+# dwawwmTxphDRwpVTHL6/BQZy9E5aFwKGogA2mn9HPP3Txw99asGdvyjHg1Cd94Af
+# E81JohqxQy3XbhlE084lyRGuceEf/At6HwP16+Kyv21GMTVWKNw8iQ0cx8wa8Ffu
+# 52qBApkjGvznUWtvepe5sTZqfUxgBiDNg5zfF0eAVtxfWAIzGU7Nu9klZYm8q2O7
+# 2ymrvIvsU/+m7EuNgFz+xm8grrSGXnstagtKrWPZzAWlnhT2GdWkh46+Yd9ApZ4y
+# IoqhF1R5j6Fc8m8FSvk+8PsPdHIf7XMcmPuZoD/dhDuIG70Bo8ABk38j4jJm9MsR
+# oQVoep7PNH9xecN6gvDHC1N8Csp+3gxCEx5rvCg/UrIg0mWK8b33GRoqEkVtt1HF
+# JXAUuavY8iFFI6uBaSQr2DyG/uey/0eDcZGvLAjo7OivuGpnaHiEHrGuFIixHru6
+# YAxmymRf03wBKshQvnO59GMG+PaA2Kj5QBes/0IjudQSrbnvlYYwDyJ/nJ3H7Ouh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIBgtgo/xNE+/o3DkA6Wb69huZTZJzcZuey6PRr4Aeiei
-# MA0GCSqGSIb3DQEBAQUABIIBADr/MdNjaJrerO9ngSPWiJ+XcYGEkwxzYOgF/PhK
-# ihaHH6Udlv3FRJz7NfPm+PimmEt/zweibw8tjmUw9axBNdPiYnO/pii4/+UrDv0F
-# A/UqiXBB6pCL0D6i4dvlauXFyru82PECDL2FA1N9ax2wTpTjHoSVd/qqrvi1aZQa
-# Z2U0qfswWhs9L+q3r27p2TBKE9JnEteZLrHV7d7IlQRsZDT7vd8QjZfLV/YcGf8F
-# AcvlabU7juDjJ4PxBgfveVqtgTMEqCgx9Dv1SyMDYNG5JaVa7UxtIZRd9/fGp0zu
-# nHeRBwOj7JbS+ma/WQU1w1dj9M04cOk6ympCQK8k+F5YSzQ=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIA/1vzzNVlSmBQ2iwwxSz7F1T7Cz+X+SThNKApY2DAuD
+# MA0GCSqGSIb3DQEBAQUABIIBAIoYrsZH3/UqUj7DXfeSowkWbf8d07TGi0Hzsv4m
+# MDmzUghMsHXfPFGORQhZ8nfcughsLHqRqk+xK1YI/pXKQU8yqeKHn2Z4Wcg9OOtp
+# 8/2F5YTTDi5hT3ts/Z7FTybAbjAgxJ2GkNjmsqP5jqjPNcRmmyDf61iOxHMbRxrx
+# mWpQwi8X9Ghf9bENplIpgChjx1BEqldR7ErLqcUo32lvlFgR/9eohXN9AUJ7qKTy
+# AV2qmET65Gv3H/JYy/blWTWpAEe9M8toqcz707KHIJbIChWsGy2F0eMd3IUN2wZU
+# zzz2a0IbmHWuHjl7YYRDOxIA/byEh143J2h7xaY0xMKYl/o=
 # SIG # End signature block
