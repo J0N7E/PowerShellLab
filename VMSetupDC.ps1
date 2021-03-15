@@ -975,11 +975,11 @@ Begin
                 }
 
                 @{
-                    Name        = 'Template ADFS Service Communication'
+                    Name        = 'Template Server'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -991,11 +991,19 @@ Begin
                 }
 
                 @{
-                    Name        = 'Template Server'
+                    Name        = 'Template IPSec (Offline Request)'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
+                    Filter      = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Template ADFS Service Communication'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -1684,8 +1692,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6uOcQ/WcwmHM3MSQ2XNgVAtk
-# 8rOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe5KtNLTCScn2ydKRSULP5ILG
+# INyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1769,28 +1777,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUm4n0LiLgTf1APDnE3V+apA6FrYwDQYJ
-# KoZIhvcNAQEBBQAEggIAMQs5OBfH7A/mKPiFAXhIAwxIqLvwoKGJIL2UIAm1b/2Z
-# qgA8HoDW0rLYFTbveItDnqGNLxDJ+5fV9eJZkDppzyfkvs2ULOkk/y6P7N+O5qVN
-# 5ij9mlVpZiwZRWtiXYhpQa+NTUsMkwuwKK25s+UwE7+nmA4gzw/a9x1LoAT7eH1O
-# n3RXjC0syneyz+dtuAfWzOEDIKnTW7Jv6P2uxXPaMQRVaVUDX0FMqyH9UajcCKnS
-# bOVzEK6pGBt6/7KLXQrAit7WNR4F8XvxUQEChiQNqfTuoSm2U7A/Z/4bQly1TD9M
-# HqnsmtMPy/6waYkLas05MA0JH6wqNw5bFQwbDgH1UKQtNqGWch/KtPZQUD7kRR2M
-# i/WbvnAzrh/Hqap0R6+onbRAm1W/8MjOTdnDXytF5bqsQDYBHxz3joL1RW7i20Kh
-# ZbTjyrEA238LBVCHKlnKjWW1F2i6ZpCJy01ebY0XAM+dgsUh8V7nFNaF3yyrSHNG
-# 45NS/CWMI3SwLIBjJOVOCcVefb/hKNf36AxiPKsxYL9pSyNws1rpPaGyRw0nAOZ1
-# RmRf795DP+xd1+9dXRIHQy4CBn8UMsYuKxSXdkdkORnXpZx+E/9akzuMqy1QpCbD
-# OMiwpsStGnRCXY2JLNyx09mJr0NVjWKZ/JCuZyuACwGHNQKJOEqankXG+W3xuPmh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhLTGeHb5o2LQY1RC4mRT9Po3Ib8wDQYJ
+# KoZIhvcNAQEBBQAEggIABC9RW6v0H36zmMd4yLiDXu7ukcnH+VXn2lGNbZDCKv4S
+# ePylJrJz5am5ihJTrnU/xGk2jUK+50T/0+qph0vCC5vIZpNsr3ul3JwjSXZmU+/x
+# /s16S5uXS0IU2BK2YuTUZ73GPZY5X1H5NUDLxpGyJ6lCiS0CPlBvKIPA9gOEjMh0
+# 1+dRI5PFGdMqS8p35N9vO/ViS/3f/+pB2sLLjI0E4IioHLwzGje6JbEWWf94j4gj
+# xkc87/n0bPhIS+UMIwkJD6lxKScffBhX1SK1HxRwhjXSv0Ky6IhyJfeoyBg+S1/T
+# rWESOk3yaFvZY9w31ybuhuxQBHH/UtXTizqwYjvlAkk1DP/E6rp3fLoipXvHOy4d
+# GBga5QUk1SjzRnF3DOCX1HGwHACrLkc4BJW+sgonVLsWyr0flIpROZRchvd6n1uW
+# SaVyUmsuGb+EDRnlKJqUDgQGMvqIeGj+xWiPU0O7owJeddz/dKA96+UAE2MnySzG
+# Ucf4DLizeU8s6IB+M9kDmk5mTNZLJ32EiSrnupOkFwPz+QI5Ka7qjkDNF2zTwe34
+# 9WCoIqqw2y1zLTakIEDJIrV7M9t9ZIAeuQssOq3ys8MQ9bcVWLH+ynEe0wrW/UP1
+# 8brijEeaWPJsGOiXmhQqnXIs0ZkT8SwM5l5dhxy4enh78ls7RCZIiKAVB7mscquh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIGSZDHH+pRonmFwIXuR7S9HChV1cdTfSts9ErfMAXlAO
-# MA0GCSqGSIb3DQEBAQUABIIBAG0SDDK8YBbOsSiHG9msr6AzyItsi1OESI8a0OPq
-# f+/agIOGiLQVbOHjNEiOEDFIYQrr43yURq2orKSWiMdfso0/LPdEfnLzacuuddjw
-# 2g+P9KbhldWRXkHcV1Y/OeMW+PIbytm6pP3Yfyau7KkxbDRZwv5r7n6Z/5hkVQLX
-# kWsTZnOwBJM++KxWkir11WuC9DjnwBKX//vSqLF42+qRAFIl3bD/wCSo5A98vfhR
-# cM2/4pqe6V7DwfTHeod+B5r7HxCbZzpHNPjx4bwvxBgrbf3YXbqYg/TneCDUUmmc
-# B1uiYUKBD5z4vPkMr1vmsbdryfD3bwXJr/L4m1wjd2SVfts=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIKrVkzld8n+swkKUNL51+42h+EkgFM+gYEIIy9p10Zno
+# MA0GCSqGSIb3DQEBAQUABIIBAHLOF8nlmTvx/eKM/5UXX78+mboUUHNCh0N/XoFu
+# ems1mmu8T4WB7xNOiQGeYw4Sv0pH9CKnQuugXvuReLacUr/R91MNGF27EMFNuq/D
+# VIrtoscMxhkFniVjIajl2pMSjov9284RC11laDVf7lpNVadZ1FVFyHAybKDTJrpu
+# OpHH8rzvyDiTtuAUV/jITgyJo8MxSaqHfx4Ue5mv/hlHxMsbgpblAfpoSQtVYErl
+# T+xXHo8ljS3uOy4z+umG65P2w7Ckp8vovROYRr30z4fFpPGBEgNOcsbzk+RdIxES
+# nrETjc5whwPLCckBouhRxU1v+Cz7dplGJ0swoXTumISR/oU=
 # SIG # End signature block
