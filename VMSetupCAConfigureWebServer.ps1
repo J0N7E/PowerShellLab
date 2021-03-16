@@ -472,7 +472,7 @@ Begin
             }
 
             # Get OCSP admin
-            $OcspAdmin = New-Object -Com "CertAdm.OCSPAdmin"
+            $OcspAdmin = New-Object -ComObject "CertAdm.OCSPAdmin"
             $OcspAdmin.GetConfiguration($ComputerName, $true)
 
             # Get OCSP configuration
@@ -488,7 +488,7 @@ Begin
             # Properties
             #############
 
-            $OcspProperties = New-Object -Com "CertAdm.OCSPPropertyCollection"
+            $OcspProperties = New-Object -ComObject "CertAdm.OCSPPropertyCollection"
             $OcspProperties.InitializeFromProperties($OcspConfig.ProviderProperties)
 
             #######
@@ -773,7 +773,7 @@ OID="1.3.6.1.5.5.7.3.9"
                     ############
 
                     # Get OCSP admin
-                    $OcspAdmin = New-Object -Com "CertAdm.OCSPAdmin"
+                    $OcspAdmin = New-Object -ComObject "CertAdm.OCSPAdmin"
                     $OcspAdmin.GetConfiguration($ComputerName, $true)
 
                     # Get OCSP configuration
@@ -1010,8 +1010,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEJ+qzOy+4xb+c9lxBePDG3Bh
-# jzmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9g/xAGhsHLb38XG03BF1+D43
+# a6Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1095,28 +1095,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkpm3HdGTzR1x6V/Wu/oeVu9pB9QwDQYJ
-# KoZIhvcNAQEBBQAEggIAPIi5qP3fpTawtaq/NbYplv8BoHcbuLSGFkWh3FsyfEAq
-# eADyBzSiqc4hUfEK0SLZJoxdlQbfaxegT+1PzCdbWRA/KvbgWR6Wiu8el8t6se3h
-# 6ldVVYhjQhIfiWxzeNtI17gN8SKUOMJWrGLYTbdfhgwTq++Mhm7sLhLofJpo69zA
-# dwawwmTxphDRwpVTHL6/BQZy9E5aFwKGogA2mn9HPP3Txw99asGdvyjHg1Cd94Af
-# E81JohqxQy3XbhlE084lyRGuceEf/At6HwP16+Kyv21GMTVWKNw8iQ0cx8wa8Ffu
-# 52qBApkjGvznUWtvepe5sTZqfUxgBiDNg5zfF0eAVtxfWAIzGU7Nu9klZYm8q2O7
-# 2ymrvIvsU/+m7EuNgFz+xm8grrSGXnstagtKrWPZzAWlnhT2GdWkh46+Yd9ApZ4y
-# IoqhF1R5j6Fc8m8FSvk+8PsPdHIf7XMcmPuZoD/dhDuIG70Bo8ABk38j4jJm9MsR
-# oQVoep7PNH9xecN6gvDHC1N8Csp+3gxCEx5rvCg/UrIg0mWK8b33GRoqEkVtt1HF
-# JXAUuavY8iFFI6uBaSQr2DyG/uey/0eDcZGvLAjo7OivuGpnaHiEHrGuFIixHru6
-# YAxmymRf03wBKshQvnO59GMG+PaA2Kj5QBes/0IjudQSrbnvlYYwDyJ/nJ3H7Ouh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoZZNOwUJ0ysurj1ddaHDl+TQwG8wDQYJ
+# KoZIhvcNAQEBBQAEggIAktihrDHLZB46VGhNe7zSmoQca4WyVCEVEkCdWG+z+yW/
+# iz/8l544iCyjLTD2mzXp1nCmSqh7NR8cTuY2qspQBsXpnERrxGzQ6OOt3uaA+VgT
+# pUxeeGnLTfcatXK+XUmzV/3TMtCDJEfpWmkn4BiQDQcTFK3jhFJDbG6D0hLQkC1e
+# LtLOfLt1PY++2P7e4IbuUYAF6QEXPCxmbwN2SavNrqKUxChjXQVE8UTbpVEcBObA
+# E1K5IIhUV3wYgfY0cWWbHNSBm/aN6l+T0+VmQzLdcxSt8yCmTFMUPQyYX/tdzYfD
+# 4sm2Ady1VkHS9l+Xm3TL5SKzNpeJ2EIVs8E0eJT465kNAdNekoJ4NSIjghnFqCI6
+# JqJD4Nev0okEcBhL65A1ead3E4ZLvVdzs4REkHbDopexXW842IPMqGOFVAFfpwkq
+# o6OeS30ASDEWwCj4Xn/fcYZxtovGRr6wrRhieid7dET5ZykTtG/FueOeBDTtuq9u
+# hHaQu3G3pZYwsRsGaaOgRxPbM9/8sk9GK9QEZKTFQKFhwb2frSkCPYivFy8vkp4x
+# SSeU7xpLb4sQTEcwlDkzZ8VN+tCcgkqHz8EX1/HM1Tgv3SH5ih3kTo48pC/lMgdB
+# crtx75S+XSU68RL2UGEJYU6355NwVsPcTN5nlTVa4f8FoopDuwiAHzQXIHz/sT6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIA/1vzzNVlSmBQ2iwwxSz7F1T7Cz+X+SThNKApY2DAuD
-# MA0GCSqGSIb3DQEBAQUABIIBAIoYrsZH3/UqUj7DXfeSowkWbf8d07TGi0Hzsv4m
-# MDmzUghMsHXfPFGORQhZ8nfcughsLHqRqk+xK1YI/pXKQU8yqeKHn2Z4Wcg9OOtp
-# 8/2F5YTTDi5hT3ts/Z7FTybAbjAgxJ2GkNjmsqP5jqjPNcRmmyDf61iOxHMbRxrx
-# mWpQwi8X9Ghf9bENplIpgChjx1BEqldR7ErLqcUo32lvlFgR/9eohXN9AUJ7qKTy
-# AV2qmET65Gv3H/JYy/blWTWpAEe9M8toqcz707KHIJbIChWsGy2F0eMd3IUN2wZU
-# zzz2a0IbmHWuHjl7YYRDOxIA/byEh143J2h7xaY0xMKYl/o=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNjIzMDAwNlow
+# LwYJKoZIhvcNAQkEMSIEIMRtqYK+o7DKSqYJHgSTPorhXeigKc9S4DuFrDX2OY2O
+# MA0GCSqGSIb3DQEBAQUABIIBAGTh886atcK3a9kZWHQivPt5wagYJmTZOd4bBbtI
+# H4MWl8Oni1zkrTjMFOQGvfQ1cViOuXg1arsXvTTHoumPHCVVkQ7PI2KM00vnGSTy
+# vvo4Nk+bBe9TrBL5y+tf8T4PpXweXjxuw18wMFU36ihkkQsH8nQLq0Vxl8CzU9Nw
+# rXz41Ou56Ml6wzIw0hMSJZI2CwLmujNRlnYA/Liq7mGAzik452498ZjgYOSApLiv
+# T3UiJc/FtLNe9eGFhzgg1L/bkJ1GzAipwgMZg+xfq/ku10Nhd93GMemz1QOyC4ma
+# vZ8tjZ31rapDp+1+VKW8bs1N7h3R1onwX/wKpyoIR7GnZfY=
 # SIG # End signature block
