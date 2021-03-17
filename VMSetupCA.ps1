@@ -311,7 +311,8 @@ Param
     [Switch]$PublishTemplates,
 
     [Switch]$PublishCRL,
-    [Switch]$ExportCertificate
+    [Switch]$ExportCertificate,
+    [Switch]$Force
 )
 
 Begin
@@ -413,20 +414,6 @@ Begin
     if ($CertKeyContainerName -and -not $CACommonName)
     {
         $CACommonName = $CertKeyContainerName
-    }
-
-    ############################
-    # CADistinguishedNameSuffix
-    ############################
-
-    if (-not $CADistinguishedNameSuffix)
-    {
-        Write-Warning -Message "CADistinguishedNameSuffix missing."
-
-        if ((Read-Host "Continue? [y/n]") -ne 'y')
-        {
-            break
-        }
     }
 
     ######################
@@ -1038,6 +1025,12 @@ _continue_ = "Email = @$DomainName&"
                         'CADistinguishedNameSuffix' = $CADistinguishedNameSuffix
                     }
                 }
+                else
+                {
+                    # FIX
+                    # check default Suffix to propose in message
+                    Check-Continue -Message "-CADistinguishedNameSuffix parameter missing."
+                }
 
                 if ($CAType -match 'Root')
                 {
@@ -1230,12 +1223,7 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
-                    Write-Warning -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CRLPublication."
-
-                    if ((Read-Host "Continue? [y/n]") -ne 'y')
-                    {
-                        break
-                    }
+                    Check-Continue -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CRLPublication."
 
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
@@ -1264,12 +1252,7 @@ _continue_ = "Email = @$DomainName&"
                 }
                 elseif ($CAType -match 'Subordinate')
                 {
-                    Write-Warning -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`"."
-
-                    if ((Read-Host "Continue? [y/n]") -ne 'y')
-                    {
-                        break
-                    }
+                    Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
 
                     # Add default OCSP url
                     $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
@@ -1283,12 +1266,7 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
-                    Write-Warning -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CACertPublication."
-
-                    if ((Read-Host "Continue? [y/n]") -ne 'y')
-                    {
-                        break
-                    }
+                    Check-Continue -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CACertPublication."
 
                     # Add default AIA url
                     $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
@@ -1481,6 +1459,7 @@ Process
         {
             . $PSScriptRoot\f_TryCatch.ps1
             # f_ShouldProcess.ps1 loaded in Begin
+            . $PSScriptRoot\f_CheckContinue.ps1
             . $PSScriptRoot\f_CopyDifferentItem.ps1
         }
         catch [Exception]
@@ -1496,6 +1475,7 @@ Process
         # Load functions
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_GetBaseDN.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetCASetting.ps1
@@ -1598,6 +1578,7 @@ Process
             $PublishTemplates = $Using:PublishTemplates
             $PublishCRL = $Using:PublishCRL
             $ExportCertificate = $Using:ExportCertificate
+            $Force = $Using:Force
         }
 
         # Run main
@@ -1605,10 +1586,7 @@ Process
     }
     else # Locally
     {
-        if ((Read-Host "Invoke locally? [y/n]") -ne 'y')
-        {
-            break
-        }
+        Check-Continue -Message "Invoke locally?"
 
         # Load functions
         Invoke-Command -ScriptBlock `
@@ -1681,8 +1659,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiwtC9bxS5rB1bS0uh5rGaJHv
-# 1Baggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrvO45dTlNw2F14aekFuR0Ga7
+# q0eggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1766,28 +1744,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnyoFWQ2WfI5MZ2WE/Jo35UWvALgwDQYJ
-# KoZIhvcNAQEBBQAEggIAltWDCdlmc1vAT/9Zn3HiXEOCqbH1XfBuo9VijyA4kH2d
-# cvkr+NuwpB0Zo4U61RFNA85iboOb25YWWXU8vzxyG5Ia+bwThY9Az4EmKWF9breG
-# vduy1l8t2ypxrB/YKE+ztbYygyGXyweOcCj88rvpGTxU1Oa0nXsKvesiG8tOVGcb
-# dWoAlzGv5dp8PYipRtxQriWvwh7xuH1w/klYr32e+nwtF3/Cei7dgiS2mPQgBvLz
-# ESWvWPTa4gSgsS0iB0SDSmg1ZEaanfjF7NnAqvBIAyLGd7IHkFgNXiAEk56PxWSW
-# rBet/6VxBXaVkXrJEiwN0pdmXOe4ZixIwIk4gSdRZSa+dQ6hSNKm/DfI0sEnPFqb
-# WYU6GONz3SstwWkh8Rpn5e81Nny5RVNEYRjLdHDGyYhcJT9WWMP6YHnpOa1Mcrjj
-# 5dMSOSSKZn13M3NSWNysh7/M4C7mNfypDu5HZIEGWvIgC80dyp2AyxoYabZMmk36
-# TlIekf3T/nGBCi5PnXiIkR4ULfL6IB5kTjKceQ0jAnQ7QBLRLyb6ctWbPKZ7FceX
-# Pm8gxM+TO9Im+mMls5vdbx5I6W0/k0tqh/1ePj7xFiBvJa5jHX7LC45VtojEgnEk
-# DlahG/1JNfC9vodya7yz1MV0ZDjhvfHngcbNAYgLyisakoYTaxOpTl8oyfFUj+yh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUU+fpFOjjtixAAOI4MzEWBeVCkf8wDQYJ
+# KoZIhvcNAQEBBQAEggIAetuR6Tu0AzBvqdfkkcWoimWBLYzn4TFSKBBTX0sIpmlk
+# Kx9s2fQ+1c+XkeXZJTZSYiAhbCJ589Y/zBS1ui8fE/hik5vfFGyH5y0lQ6muMuGS
+# r03Fo58hgN7wHrwWyeMwl9U5q37VoaDWOUzmrQPPK8xrOPitu4OCFImhLaqIeauS
+# YP4nC3jKhdzM1MfH1tc/miWop/HhQw4KA+bQtsx9DQIYkDukSKojS+0Iioq8dwpI
+# xGbHMctDn46WDWr9B2Kb2rnhC1KIAYRqVpASY8sSRD5fclD38xpZVZWyvB5JVDC7
+# 5wbzZRq0ixorK9eiGz7mrlxKXFwb3wzpfRXP+LDHJj0K139z5yOY1G2PgBuoZZ8N
+# 94G7KnymPPTvaDaoJUV5WvV2wdxF2nsvyipYX49pnOSwMxLJfkKhzwv17RuNTRiX
+# xPBPuLBfxXYPg2NqaEbt75+SCfaL9sqqgjryBpHA82ZoiXDTPf638fGYrhpYuQEd
+# 8wghJ70nuzEg7/SsQwH5rOczmecq8MJt6R7o5kMdPg4+5pYXm7158yfAuaX3A3t8
+# XJ1vlYvsJAXrwV4rGOIIDpK6qnp4mRaUPor0SEryUPJ7OmfUUQ0w23tVmFpOqdUC
+# SO89GW6REkwVa4egotiXQyADpPjedw/3eGmul0NyDEpOR8V0N/xJyn1VVfKU1zyh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNzE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIM1BxSxramvUqVJR49WgRlDHqXc5MRBI4aCokwcwgjF1
-# MA0GCSqGSIb3DQEBAQUABIIBAHCUTA4VX73MNx43FAXb8lIEsXhYcLGUxZTgLpVM
-# 64zVmBPjmoUlU3jijPf/JzoOpDIOYUKxJqLyLaBTuDFhF4a7HIwVxh0M887MKzj+
-# WbCsfuN4KA7jutsPLtUVJORgqeymuJopAOpn7f0Pi5zFMuVhKuPeFH077JmqQ2Ze
-# xeSDtOKqpZSUriRoYVvUhcbcDGktVw/0Ut8EsDMvfRVck9PUJ/3kExDrsndb/G2v
-# jnOezhpZo/lzABwfvGzz05My0VpwgPVUveFH8eUZpTIqJr/1/4I7NSW+0XSiAfh9
-# IMd6IlNmxqBv+WlykgEEbvKeG4J33uzyLgY3HyEK6lzyBYI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNzIwMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIP3ZKssBKdjtvl9wm5iaeHvGdxbcFZTs4cpboJEePEw1
+# MA0GCSqGSIb3DQEBAQUABIIBALMAU0+WVqsE93v6gx057IYwcpMa3N5dUI4+y/sg
+# 9agFASTtNPP//83ssDQ88i1QK50YqbTq6TVZBoHW7BZMYL2e1FXMtGZ9km/8GEJi
+# qGZQ6Sq9/vg2WiiA2bVOo1jC/EiVyMMEEw/1HAK+c7miFTnsm1VXadm9I/Hgh87Y
+# vXFyO8RGifrU0sSkPiPMEKZFdSeIi2m6y7L3OmPXQO18m9qKVT0Wv2ARdGhRnxf0
+# bgBRhZz9oaxsKNSIg+PFphkvg5fZremNC6k+i7WHNR9FNiCYNuyyR161zVd+9A6c
+# Og9sSvAOfVmxjg74KMsk7qOpDp1CbmE8lQNEXpSPAyNaHqA=
 # SIG # End signature block
