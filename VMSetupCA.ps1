@@ -415,6 +415,20 @@ Begin
         $CACommonName = $CertKeyContainerName
     }
 
+    ############################
+    # CADistinguishedNameSuffix
+    ############################
+
+    if (-not $CADistinguishedNameSuffix)
+    {
+        Write-Warning -Message "CADistinguishedNameSuffix missing."
+
+        if ((Read-Host "Continue? [y/n]") -ne 'y')
+        {
+            break
+        }
+    }
+
     ######################
     # Get parent ca files
     ######################
@@ -1216,6 +1230,13 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
+                    Write-Warning -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CRLPublication."
+
+                    if ((Read-Host "Continue? [y/n]") -ne 'y')
+                    {
+                        break
+                    }
+
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
                 }
@@ -1243,6 +1264,13 @@ _continue_ = "Email = @$DomainName&"
                 }
                 elseif ($CAType -match 'Subordinate')
                 {
+                    Write-Warning -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`"."
+
+                    if ((Read-Host "Continue? [y/n]") -ne 'y')
+                    {
+                        break
+                    }
+
                     # Add default OCSP url
                     $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
                 }
@@ -1255,6 +1283,13 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
+                    Write-Warning -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CACertPublication."
+
+                    if ((Read-Host "Continue? [y/n]") -ne 'y')
+                    {
+                        break
+                    }
+
                     # Add default AIA url
                     $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
                 }
@@ -1646,8 +1681,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEfjEg5E0DJC1X17iNsOAeADO
-# YfWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiwtC9bxS5rB1bS0uh5rGaJHv
+# 1Baggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1731,28 +1766,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+6gzhzCr1O1NpFAe8IH+oftHrxYwDQYJ
-# KoZIhvcNAQEBBQAEggIAD6e1V21zFq8iR5/z/0gHbN9P71NgH1dXUl7ejDAjWdMZ
-# pAfSQ0Roaw1mb3oKrLJ77CkUaN4AxtyeYEbT1e1sJzRSXDNr7qnrTm1oHamACWQD
-# RnzHynIlczwzBfDcdR2uCPJC1whYoAWDOnTXPtRSUViiX+Zg8vduRV+4UWUl9O1Y
-# RG8XATot4XdvzA3P75xUripMkgNdji5wWbxaqxZi5HOdER+sTNyw0rxue48d6OaS
-# /bLwyXuM/nT9alolqjoYCIM1czavwgG0Q7cY9eB9DfuiwVkBZG7CnWvs2kgk0ECN
-# OmZ770w72tlBsapoLNenIzRJo9NGCke2vB6Ed0hdk+MA2rWOC7TykUeNQ2+Y6ryS
-# GTsSo67HbikZIZ9qAAtAzBxxzlUU059vq46zp+8+YHi5ykdRAKM6anZ/RDi/zrfn
-# pxBjoq26zUtzujTtER9X6lf3Sw8CIex1GE/7bKa32CiP24+vPCTYb3AKqFTH7mqq
-# xHDmtqinMDjMOweQNGZrZ89Fg6cEJLNRsIzHlQhQKDrwEBljkJ7ZXe6KjjSPx0LZ
-# JkTw2+RPdsPg+GrN7/JO9fDR/F51Sjzruspg+Hbu7aY/Iw+la0uh7iGHuM24VHQD
-# ka5OzoryKb0RFyGCzVbUcuGf2LdpKDz5tP4YhusXsS9An8gYLXyCyg1Qtl2JywOh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnyoFWQ2WfI5MZ2WE/Jo35UWvALgwDQYJ
+# KoZIhvcNAQEBBQAEggIAltWDCdlmc1vAT/9Zn3HiXEOCqbH1XfBuo9VijyA4kH2d
+# cvkr+NuwpB0Zo4U61RFNA85iboOb25YWWXU8vzxyG5Ia+bwThY9Az4EmKWF9breG
+# vduy1l8t2ypxrB/YKE+ztbYygyGXyweOcCj88rvpGTxU1Oa0nXsKvesiG8tOVGcb
+# dWoAlzGv5dp8PYipRtxQriWvwh7xuH1w/klYr32e+nwtF3/Cei7dgiS2mPQgBvLz
+# ESWvWPTa4gSgsS0iB0SDSmg1ZEaanfjF7NnAqvBIAyLGd7IHkFgNXiAEk56PxWSW
+# rBet/6VxBXaVkXrJEiwN0pdmXOe4ZixIwIk4gSdRZSa+dQ6hSNKm/DfI0sEnPFqb
+# WYU6GONz3SstwWkh8Rpn5e81Nny5RVNEYRjLdHDGyYhcJT9WWMP6YHnpOa1Mcrjj
+# 5dMSOSSKZn13M3NSWNysh7/M4C7mNfypDu5HZIEGWvIgC80dyp2AyxoYabZMmk36
+# TlIekf3T/nGBCi5PnXiIkR4ULfL6IB5kTjKceQ0jAnQ7QBLRLyb6ctWbPKZ7FceX
+# Pm8gxM+TO9Im+mMls5vdbx5I6W0/k0tqh/1ePj7xFiBvJa5jHX7LC45VtojEgnEk
+# DlahG/1JNfC9vodya7yz1MV0ZDjhvfHngcbNAYgLyisakoYTaxOpTl8oyfFUj+yh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNTE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIPp4CHqblQZiX/ajKq4cSQMdyUIVDc3Am6NB/bg+xlBZ
-# MA0GCSqGSIb3DQEBAQUABIIBACwtM2r92EVcwoqCgtzpLQDR42tWjXoK42n8BGyG
-# iJnC/b4W7XtMjPHIisJKoCDcFVM6XQN8rcPezTazFiwc6tY/4CcRQtHNLJ1E3T2P
-# cBi74L/7WC6yaJmYE3TMaVbuYgKOQ1o+JdWkgtdhBMrX17FC3kWenDt21g27NIyG
-# C4Bz65+nszSjIh2pPjuMANdZFlc8V91YKZwyhi+cLGucGRwxUoXgc5SdVggow3l1
-# b17qbw75oFeYlYPnytKh/baNJrwFPnqL//QoVN3unBT6Ll/BpKLoQ1NaqLh2ElAD
-# 6venicasF4XrCdCzg3hgsqAqKzUtzpLT+5UGBjnhXTJw7e8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNzE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIM1BxSxramvUqVJR49WgRlDHqXc5MRBI4aCokwcwgjF1
+# MA0GCSqGSIb3DQEBAQUABIIBAHCUTA4VX73MNx43FAXb8lIEsXhYcLGUxZTgLpVM
+# 64zVmBPjmoUlU3jijPf/JzoOpDIOYUKxJqLyLaBTuDFhF4a7HIwVxh0M887MKzj+
+# WbCsfuN4KA7jutsPLtUVJORgqeymuJopAOpn7f0Pi5zFMuVhKuPeFH077JmqQ2Ze
+# xeSDtOKqpZSUriRoYVvUhcbcDGktVw/0Ut8EsDMvfRVck9PUJ/3kExDrsndb/G2v
+# jnOezhpZo/lzABwfvGzz05My0VpwgPVUveFH8eUZpTIqJr/1/4I7NSW+0XSiAfh9
+# IMd6IlNmxqBv+WlykgEEbvKeG4J33uzyLgY3HyEK6lzyBYI=
 # SIG # End signature block
