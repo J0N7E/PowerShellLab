@@ -274,7 +274,7 @@ Param
     [String]$AuditFilter = 127,
 
     # Set uri for publication
-    [String]$PublicationURI,
+    [String]$PublicationHostName,
 
     ###############################
     # Crl Distribution Point (CDP)
@@ -1216,14 +1216,14 @@ _continue_ = "Email = @$DomainName&"
                 }
 
                 # Check if exist
-                if ($PublicationURI)
+                if ($PublicationHostName)
                 {
                     # Add CDP url
-                    $CRLPublicationURLs += "\n$($AddTo):http://$PublicationURI/%3%8%9.crl"
+                    $CRLPublicationURLs += "\n$($AddTo):http://$PublicationHostName/%3%8%9.crl"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CRLPublication."
+                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CRLPublication."
 
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
@@ -1259,14 +1259,14 @@ _continue_ = "Email = @$DomainName&"
                 }
 
                 # Check if exist
-                if ($PublicationURI)
+                if ($PublicationHostName)
                 {
                     # Add AIA url
-                    $CACertPublicationURLs += "\n2:http://$PublicationURI/%3%4.crt"
+                    $CACertPublicationURLs += "\n2:http://$PublicationHostName/%3%4.crt"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationURI parameter not specified, using `"pki.$DomainName`" for CACertPublication."
+                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CACertPublication."
 
                     # Add default AIA url
                     $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
@@ -1548,7 +1548,7 @@ Process
             $AuditFilter = $Using:AuditFilter
 
             # Set uri for publication
-            $PublicationURI = $Using:PublicationURI
+            $PublicationHostName = $Using:PublicationHostName
 
             ###############################
             # Crl Distribution Point (CDP)
@@ -1659,8 +1659,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrvO45dTlNw2F14aekFuR0Ga7
-# q0eggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTZbHtL0fCTF71j2xkPPtOYc/
+# sbiggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1744,28 +1744,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUU+fpFOjjtixAAOI4MzEWBeVCkf8wDQYJ
-# KoZIhvcNAQEBBQAEggIAetuR6Tu0AzBvqdfkkcWoimWBLYzn4TFSKBBTX0sIpmlk
-# Kx9s2fQ+1c+XkeXZJTZSYiAhbCJ589Y/zBS1ui8fE/hik5vfFGyH5y0lQ6muMuGS
-# r03Fo58hgN7wHrwWyeMwl9U5q37VoaDWOUzmrQPPK8xrOPitu4OCFImhLaqIeauS
-# YP4nC3jKhdzM1MfH1tc/miWop/HhQw4KA+bQtsx9DQIYkDukSKojS+0Iioq8dwpI
-# xGbHMctDn46WDWr9B2Kb2rnhC1KIAYRqVpASY8sSRD5fclD38xpZVZWyvB5JVDC7
-# 5wbzZRq0ixorK9eiGz7mrlxKXFwb3wzpfRXP+LDHJj0K139z5yOY1G2PgBuoZZ8N
-# 94G7KnymPPTvaDaoJUV5WvV2wdxF2nsvyipYX49pnOSwMxLJfkKhzwv17RuNTRiX
-# xPBPuLBfxXYPg2NqaEbt75+SCfaL9sqqgjryBpHA82ZoiXDTPf638fGYrhpYuQEd
-# 8wghJ70nuzEg7/SsQwH5rOczmecq8MJt6R7o5kMdPg4+5pYXm7158yfAuaX3A3t8
-# XJ1vlYvsJAXrwV4rGOIIDpK6qnp4mRaUPor0SEryUPJ7OmfUUQ0w23tVmFpOqdUC
-# SO89GW6REkwVa4egotiXQyADpPjedw/3eGmul0NyDEpOR8V0N/xJyn1VVfKU1zyh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUbjWK/zSIOhJpxW0CeOI+2vg5sgQwDQYJ
+# KoZIhvcNAQEBBQAEggIApCKSlReVrNPaoKi1l/1W7yqHNOOX38pmxXJU4dAu5LdT
+# Sy5Bu6qKA7xxqNJJooa8vv4iXvZKVt4jM0bC/0qSlK3KbP/wiGh6ebHKq16sQ01g
+# uHFhWycagJNN2DG8Q2TO7PggpIDoCL8d5gY7S1PM3lXvBpNTCqqtDE9bWLKPf71F
+# 8wlMz3wmKuavqR8QPsgq7BWB/uAiHKFIBAahxs4QrrnfTA6FMZ8rets5KWf03TfO
+# fQM8fun5jJ7AmghfvsznUXgf5aA7zahdG+28cr+z0KlZhLBoi5NGXp242bKMwba6
+# pTO1j89zl/mzwsp9SqRB364+KRW2VTCLiqZR9RZ2yxo80YVHH5ke3IH5JPJf9MzT
+# 2bpRPPjJxR6AnGq4QScAo/uYq2uMJ2vp2Znw1FQm9d5ZmuZfl2OlSuStz6+4SZtZ
+# DNbz2fkIXxcXGOQztJMgAjXb39u9UoxGjugcaGQvy+HBbn6qztI/QIYh326XNJnG
+# hCqkVvcJH/4tHDUcCHKQHdFcvC785FPRJ5zp6sLgS/EhxrFdvUyLJySvQVH6s1Og
+# YM6HTa+9Wmrg4bI3hOa67c7umhpjlYGrAKhR8R8EJ7EjqeumALmWiN2KwhzzQiJ6
+# X/PHpaSVfegLRK6c/jnJyGDB9YGDXIjKnKxoe+MiAE0Aek5rJx0U8zVFb3AdaLih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNzIwMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIP3ZKssBKdjtvl9wm5iaeHvGdxbcFZTs4cpboJEePEw1
-# MA0GCSqGSIb3DQEBAQUABIIBALMAU0+WVqsE93v6gx057IYwcpMa3N5dUI4+y/sg
-# 9agFASTtNPP//83ssDQ88i1QK50YqbTq6TVZBoHW7BZMYL2e1FXMtGZ9km/8GEJi
-# qGZQ6Sq9/vg2WiiA2bVOo1jC/EiVyMMEEw/1HAK+c7miFTnsm1VXadm9I/Hgh87Y
-# vXFyO8RGifrU0sSkPiPMEKZFdSeIi2m6y7L3OmPXQO18m9qKVT0Wv2ARdGhRnxf0
-# bgBRhZz9oaxsKNSIg+PFphkvg5fZremNC6k+i7WHNR9FNiCYNuyyR161zVd+9A6c
-# Og9sSvAOfVmxjg74KMsk7qOpDp1CbmE8lQNEXpSPAyNaHqA=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODExMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIAH1xrePZYd7N7A8GTapAcXWJ/wT7DJsi7Csh7MYI90B
+# MA0GCSqGSIb3DQEBAQUABIIBAE8dpQ+RvxZ+c1FsG9gYkZyMbGFyr92YKxQC2sJx
+# fBSMg48+2w2GT/8v3+LCYLUY67JDoC8f9GoqTK2rvAqNWMYM99UkhGAHEiL+b1lH
+# +GNTJ+aTsa5YIyvmQHyh2mtUu6FiAt0+0v6dVKxMVQVhJzF9VKmWL+gA31gg1z8I
+# 1290KTgmEPCtFo3r1/YWbOxyw004zGYnpFabdE8VwASzLsUu6qu1hpVqa6lfEZzA
+# TneNi6k5F17HKAfnLS+tUgd7sB2jStjMHKj9mkbWReVZO5S+2idWXnOi2JmG8gFW
+# w9127Y+OZqtX6y3nNyb/N7eWwhy1YsQKNgTI/3ztUyeiPFc=
 # SIG # End signature block
