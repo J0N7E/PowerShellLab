@@ -389,8 +389,6 @@ Begin
 
             if (-not $DomainName -and $file.Key.Extension -eq '.crt')
             {
-                Write-Host $file.Key.FullName
-
                 if ($file.Key.Name -match 'Root' -and
                     -not (TryCatch { certutil -store root "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to trusted root store." @VerboseSplat))
@@ -473,7 +471,7 @@ Begin
 
             # Get OCSP admin
             $OcspAdmin = New-Object -ComObject "CertAdm.OCSPAdmin"
-            $OcspAdmin.GetConfiguration($ComputerName, $true)
+            $OcspAdmin.GetConfiguration($ENV:ComputerName, $true)
 
             # Get OCSP configuration
             $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection | Where-Object { $_.Identifier -eq $CACommonName }
@@ -692,7 +690,7 @@ OID="1.3.6.1.5.5.7.3.9"
             # refresh responder
 
             # Set configuration
-            $OcspAdmin.SetConfiguration($ComputerName, $true)
+            $OcspAdmin.SetConfiguration($ENV:ComputerName, $true)
 
             #########
             # Accept
@@ -774,7 +772,7 @@ OID="1.3.6.1.5.5.7.3.9"
 
                     # Get OCSP admin
                     $OcspAdmin = New-Object -ComObject "CertAdm.OCSPAdmin"
-                    $OcspAdmin.GetConfiguration($ComputerName, $true)
+                    $OcspAdmin.GetConfiguration($ENV:ComputerName, $true)
 
                     # Get OCSP configuration
                     $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection | Where-Object { $_.Identifier -eq $CACommonName }
@@ -783,7 +781,7 @@ OID="1.3.6.1.5.5.7.3.9"
                     $OcspConfig.SigningCertificate = $SigningCertificate.RawData
 
                     # Commit Revocation Configuration
-                    $OcspAdmin.SetConfiguration($ComputerName, $true)
+                    $OcspAdmin.SetConfiguration($ENV:ComputerName, $true)
 
                     ##########
                     # Cleanup
@@ -887,6 +885,7 @@ Process
         try
         {
             # f_ShouldProcess.ps1 loaded in Begin
+            . $PSScriptRoot\f_CheckContinue.ps1
             . $PSScriptRoot\f_CopyDifferentItem.ps1
         }
         catch [Exception]
@@ -902,6 +901,7 @@ Process
         # Load functions
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_GetBaseDN.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_WriteRequest.ps1
@@ -912,7 +912,6 @@ Process
             # Splat
             $VerboseSplat = $Using:VerboseSplat
             $WhatIfSplat  = $Using:WhatIfSplat
-            $ComputerName = $Using:ComputerName
 
             $CACommonName = $Using:CACommonName
 
@@ -941,10 +940,7 @@ Process
     }
     else # Locally
     {
-        if ((Read-Host "Invoke locally? [y/n]") -ne 'y')
-        {
-            break
-        }
+        Check-Continue -Message "Invoke locally?"
 
         # Load functions
         Invoke-Command -ScriptBlock `
@@ -1010,8 +1006,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9g/xAGhsHLb38XG03BF1+D43
-# a6Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVDPenAkB+CaZ5IH1Za8rwgD9
+# wnSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1095,28 +1091,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoZZNOwUJ0ysurj1ddaHDl+TQwG8wDQYJ
-# KoZIhvcNAQEBBQAEggIAktihrDHLZB46VGhNe7zSmoQca4WyVCEVEkCdWG+z+yW/
-# iz/8l544iCyjLTD2mzXp1nCmSqh7NR8cTuY2qspQBsXpnERrxGzQ6OOt3uaA+VgT
-# pUxeeGnLTfcatXK+XUmzV/3TMtCDJEfpWmkn4BiQDQcTFK3jhFJDbG6D0hLQkC1e
-# LtLOfLt1PY++2P7e4IbuUYAF6QEXPCxmbwN2SavNrqKUxChjXQVE8UTbpVEcBObA
-# E1K5IIhUV3wYgfY0cWWbHNSBm/aN6l+T0+VmQzLdcxSt8yCmTFMUPQyYX/tdzYfD
-# 4sm2Ady1VkHS9l+Xm3TL5SKzNpeJ2EIVs8E0eJT465kNAdNekoJ4NSIjghnFqCI6
-# JqJD4Nev0okEcBhL65A1ead3E4ZLvVdzs4REkHbDopexXW842IPMqGOFVAFfpwkq
-# o6OeS30ASDEWwCj4Xn/fcYZxtovGRr6wrRhieid7dET5ZykTtG/FueOeBDTtuq9u
-# hHaQu3G3pZYwsRsGaaOgRxPbM9/8sk9GK9QEZKTFQKFhwb2frSkCPYivFy8vkp4x
-# SSeU7xpLb4sQTEcwlDkzZ8VN+tCcgkqHz8EX1/HM1Tgv3SH5ih3kTo48pC/lMgdB
-# crtx75S+XSU68RL2UGEJYU6355NwVsPcTN5nlTVa4f8FoopDuwiAHzQXIHz/sT6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUB4dOs6t6mfXmr/xDDR5trGOdi84wDQYJ
+# KoZIhvcNAQEBBQAEggIAYwldmYQ4qC5NplHeIqwYELzdZmRP/q2l7gHc64abg81P
+# c3gpgbd2HQQWwsbqHQnbkbb8k3Zy1ihCPSz2DtIYMucqBCws5yF/IRIM0OKin3T1
+# KHI4AefWKV6t7ln5ggqsTbhmk7QdTAit1fC6amDgeMhPwj98Nj/Gkuc3dKuhRkV3
+# /ouw9tQWtkBfVupRQIBBdPD/sampbitRuuMcMHUr7bSWqhY8sgJ3d74eiC16sjCB
+# eRglpMLPqb9/Gd5ET/tepyxwwPeJW8rK+sBX0tZvNqCl3L3blVUbBTayvXdxjrzS
+# aGOOYgXd+w3qFUkpA0Xuy+JToTMZbfHm9r3A9O7T2orDDvw68agM26ukN4/6ReN5
+# wL43BkGx6mN/AWIHCfPUQtBTzJa8Vey9Z/GPedDhkVfweSYd7C7KyAlzZ856Ppn7
+# hgkHHTjl49UMQdUoJuOWaJ0n8aIBf/kwbzPQMVkwYVyAjrGG/YlZ4VqG/0OG6uif
+# FF8ZQhwckI9KsdB/wM/tMJ4HAEAjG42hC0nj3jxg/nd6WYVM5E77SHeF7N6vxepS
+# Jajgxgpnn7CMoINN4GY8OZafVmu22eFNKprCInQbM7c1SdVrr++you+N71u9AMix
+# Cwgj19gjfjWf/QZDlXW7wUX2CQjPuJZKK+ThbAKMh1eXgK32SVFy8uxmDrUSCqKh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxNjIzMDAwNlow
-# LwYJKoZIhvcNAQkEMSIEIMRtqYK+o7DKSqYJHgSTPorhXeigKc9S4DuFrDX2OY2O
-# MA0GCSqGSIb3DQEBAQUABIIBAGTh886atcK3a9kZWHQivPt5wagYJmTZOd4bBbtI
-# H4MWl8Oni1zkrTjMFOQGvfQ1cViOuXg1arsXvTTHoumPHCVVkQ7PI2KM00vnGSTy
-# vvo4Nk+bBe9TrBL5y+tf8T4PpXweXjxuw18wMFU36ihkkQsH8nQLq0Vxl8CzU9Nw
-# rXz41Ou56Ml6wzIw0hMSJZI2CwLmujNRlnYA/Liq7mGAzik452498ZjgYOSApLiv
-# T3UiJc/FtLNe9eGFhzgg1L/bkJ1GzAipwgMZg+xfq/ku10Nhd93GMemz1QOyC4ma
-# vZ8tjZ31rapDp+1+VKW8bs1N7h3R1onwX/wKpyoIR7GnZfY=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIBLD5lbHiLm4tqTWTQUBxNpRmCjAeeaRj/rDX8NX0B5w
+# MA0GCSqGSIb3DQEBAQUABIIBAEZrWsLltaHkBzyW5icNj4zRbbdRbJWLvjuiJb7C
+# 8yaHogvEU5Gbyr7ApiSWFNAv9oWvuTsXsgalFp7byXqyM+dDqqnpAp1qMyXobE++
+# pAl8IOdTevN6Fz19HZQxPq9sTebOplh2BLkwfIyIXlskwcgVZaTYSTr+LXXvZ+aN
+# Qe1dlMtdLnIzQk7hlQiQbG3njFnhW9wNmjJErC75ax/+2SgltBdGPRkAlhCnM7HT
+# LXZbaYNDwKzFhF6t7VthgTWvEg8MAyEjSBVqPTNcOF04jUhoWwiK7YRthYfR8upl
+# /UvyOvMzDeusHePlfnygCNwZ5/e0Jg9QpiLUunkDo4bnRpI=
 # SIG # End signature block
