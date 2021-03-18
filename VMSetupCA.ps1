@@ -15,6 +15,8 @@ Param
     [String]$VMName,
     # Computer name
     [String]$ComputerName,
+    # Force
+    [Switch]$Force,
 
     # Serializable parameters
     $Session,
@@ -311,8 +313,7 @@ Param
     [Switch]$PublishTemplates,
 
     [Switch]$PublishCRL,
-    [Switch]$ExportCertificate,
-    [Switch]$Force
+    [Switch]$ExportCertificate
 )
 
 Begin
@@ -1145,27 +1146,6 @@ _continue_ = "Email = @$DomainName&"
             # Define restart of service
             $Restart = $false
 
-            ####################
-            # Registry settings
-            ####################
-
-            # Set CertEnrollDirectory
-            if ($Configuration.GetValue('CertEnrollDirectory') -ne $CertEnrollDirectory -and
-                (ShouldProcess @WhatIfSplat -Message "Setting CertEnrollDirectory `"$CertEnrollDirectory`"" @VerboseSplat))
-            {
-                Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -Name CertEnrollDirectory -Value $CertEnrollDirectory
-            }
-
-            $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
-
             ######
             # CDP
             # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-cdp-extension
@@ -1208,9 +1188,7 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, using `"\\pki.$DomainName\cdist$`" for CRLPublishing."
-
-                    $CRLPublicationURLs += "\n$($PublishToServer):\\pki.$DomainName\cdist$\%3%8%9.crl"
+                    Check-Continue -Message "-PublishingPaths parameter not specified."
                 }
 
                 ##################
@@ -1243,9 +1221,6 @@ _continue_ = "Email = @$DomainName&"
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
                 }
             }
-
-            # Set Crl Distribution Point (CDP)
-            $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
 
             ######
             # AIA
@@ -1287,8 +1262,33 @@ _continue_ = "Email = @$DomainName&"
                 }
             }
 
+            ####################
+            # Registry settings
+            ####################
+
+            # Set Crl Distribution Point (CDP)
+            $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
+
             # Set Authority Information Access (AIA)
             $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
+
+            # Set CertEnrollDirectory
+            if ($Configuration.GetValue('CertEnrollDirectory') -ne $CertEnrollDirectory -and
+                (ShouldProcess @WhatIfSplat -Message "Setting CertEnrollDirectory `"$CertEnrollDirectory`"" @VerboseSplat))
+            {
+                Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration' -Name CertEnrollDirectory -Value $CertEnrollDirectory
+                $Restart = $true
+            }
+
+            $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
 
             #############
             # Standalone
@@ -1672,8 +1672,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQi1ppoJHzrbyFZvEGuq0t2eE
-# Qe+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWjy34bFtIBd5xf5dYfJQiHg7
+# Rl+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1757,28 +1757,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULXSiifLwrQgdAuoIFy8la/HHZ/QwDQYJ
-# KoZIhvcNAQEBBQAEggIAI1o2Gl53ev3O1pO4n5GuSxnjtQ815T2vq6zo3WdL7bc4
-# XLW2f4Gg+11d+K6IJa3CpCgbXeQ9nkfUOf5Ap15Rk1ZdPI/fd7+13V/L5pJgj42Z
-# VnOUAZnneo/znE/D/BYtYy1056T4sIjbaghjyJiCBoqVE2c3ZSkR2x2L55gNNnpb
-# SDgDSlSVklSg8V8y3Iz6YvngYGnFgkryVrbsx2Fs4qBmL0mqMO8svP3JRjKP2sWi
-# qf0ln5TrHHhhtCRQzcmxe1Rdm8wBsSmAwaCgx7vO8AP1307zCayw0UfUuyUAbqCT
-# xMagZYDcq9FTiTUfGbqu2zPdqKHAdQnzCW5UQYGOhGpblsGqvD/LrGZjHbg+pACo
-# d8IN8HisvBcK5re0k9t6tLOb/DnIZmMngloxtgmxAMjcptOfWLZo9X59/K9u7Pbz
-# IrwrwB4j8Ve76jk4hZ3pQVkgTxtxZKkyTYraJyA8R/vmu42SYx96TesB4xa8yQa6
-# qFHz5XdKUy6VyuYyJxxe5y1tykGJ41y/yiHclt64ilFW2fVqn3latS5F46JX9OX5
-# RX9VRtRaKPOXQ6qWPbymB+7dIsEEzL5WsfAIsDhzK9iSSI/cIb7uspkMhMic8w8R
-# 0vZEl6RvlqPuXcbWgiSudPAQpgOSpbqJXOop4QOYTPm8U56KXVk71ecu1oy/JUCh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSs6zsy+gUHg8eFRm3940cIdj4FMwDQYJ
+# KoZIhvcNAQEBBQAEggIARC4Isx70sXCE9ffpmIpVaDlKeiSafG7O/+tKLOrJyex2
+# 8YfzBfkBE9beYTnc1T2lFrFZsT49Q4sm0+AsPxEUCADMluqkwZU7/cr+5lRtMiMt
+# kFLYhTLeibKbtnfIeUpu6V0h9vgzLGluF75LxEkqxOaQV4qER4iLbsVrQFDW17tN
+# 0X2w7LTTXv/wdr1RVIM53AxfWbiSb0ZoWyNlHxnwTqnKt5xJUh40YvHsO2BmP06U
+# hiYgc1bD4tVvzXu5kU9stSAVtRGe8J45ih8hutm5SLVCrO4VSSwDdlEsgqKV34rW
+# NVJmj71aXzDQMgQdClFaQ0A43GK+m4qSLstiTUiVzOnMwe4rlxpcXXujztNqQnDm
+# +ZaKlnkqc2IUhISF4Msez+qMeUcgd0v8l73nJWFxCG3VXcWmek2NChrJTTRYKFpB
+# FJ3ll4oIhNe/rSkehUrn7qM5RKGsge2HS7ZB86ghMCz0lBzP7LDKF6+A+h9snJJe
+# b8ux7j01DZ/f9fDMzUHbPg0/KWfjwZLcdzupav8RnrBOcO/KAAKRzt5SKwwMOSZw
+# h+fd6I4dFhdc9TRJR3dNutQyhsYa4ueAL4O1gs0TwTTi1a9K87/RNWO6hWMzDO4h
+# 81wd5ed2xaSibPoL+1rp70RNDaz3nEj/JzJrFewTEkqrJQvvqLdJZ9V7I39E7pOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEICIaBHC2tw1h9Kx/Vb9TRBvQCGo8uI4o2ieG5f0B0AY8
-# MA0GCSqGSIb3DQEBAQUABIIBAJL/halXkL+/97ntWe1BFwiMfIWL0sdc+FUPja9Y
-# nGwQmB2grg8KL1mx7YwSxvhhdj2V4ayJ9QGjp8DyNgp7o6ptDlcBuLOXEVGlt7ZX
-# BT/MfwAkd+PszGi0AN/UlQdYZBMBcDyS9+BsXPWjpeLMOu9gLah0EBim6aupb0nW
-# yuTNe99XCmcR1YTmVbHZ6nvTs8sz6D6FLOYvoydBSQf2R+ZzsGCnbn3ZaRKNtxL4
-# l/tKOw/jCIUW7AE7Lz9nkU0mD1xLpWy7iw3HDeHbs8gljVHUzXVxZ6Fg5iWJ8QBp
-# jL+KzF2/favk3zai26YshOtWkcoAkZZO6CMpavrKR2LJqyM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIB1GWzCFStc0Xi0kKlUrY9S747xvyshlHIafMqRf5lin
+# MA0GCSqGSIb3DQEBAQUABIIBACHjIDXHzC6HnIiQEEDR22CtGD41Z3/H217y0Jyf
+# 2BCJwbR/Z8tXIv/FJ48FnN2DB8rrCSppr9eFAWaRK6pdYdEW4eOZyNucplgPzeeZ
+# fElT+KGnnAMtHhHgen4XaGnQ5rTk2ahpb/sAAxOl/GTOYCkhQVHAlroPCYpW9PfY
+# 85Go6YmV0DCbBKz0wH5rF/gmvKWNn6NkjsPHEY3U4zzL/Ox1O5Pe0lOaJnqNtTUe
+# VGiQNwnEirpmLZmErFlSpZcEjnjZ/7RXr78EGRlvv8x3L1u0x+SsjN2oiozY0Ejh
+# /Zr3K6fdqSlBltdep8iuejzBatclC7Fc3cspU5RFHqKnoB4=
 # SIG # End signature block
