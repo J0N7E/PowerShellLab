@@ -15,6 +15,8 @@ Param
     [String]$VMName,
     # Computer name
     [String]$ComputerName,
+    # Force
+    [Switch]$Force,
 
     # Serializable parameters
     $Session,
@@ -1609,21 +1611,37 @@ Process
     # ██║     ██║  ██║╚██████╔╝╚██████╗███████╗███████║███████║
     # ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚══════╝
 
+    # Load functions
+    Invoke-Command -ScriptBlock `
+    {
+        try
+        {
+            . $PSScriptRoot\f_CheckContinue.ps1
+        }
+        catch [Exception]
+        {
+            throw $_
+        }
+
+    } -NoNewScope
+
     # Remote
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_GetBaseDN.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetAce.ps1
 
         # Get parameters
         Invoke-Command -Session $Session -ScriptBlock `
         {
-            # Splat
+            # Common
             $VerboseSplat = $Using:VerboseSplat
             $WhatIfSplat  = $Using:WhatIfSplat
+            $Force        = $Using:Force
 
             # Mandatory parameters
             $DomainName = $Using:DomainName
@@ -1657,10 +1675,7 @@ Process
     }
     else # Locally
     {
-        if ((Read-Host "Invoke locally? [y/n]") -ne 'y')
-        {
-            break
-        }
+        Check-Continue -Message "Invoke locally?"
 
         # Load functions
         Invoke-Command -ScriptBlock `
@@ -1691,8 +1706,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURpG3EiPW3DfJC872YEVCwD8j
-# PQyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpTXR2SwgN6VmnqCMDuTATYiV
+# 0KCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1776,28 +1791,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhVC/t6jM7FmsRwPLkbYaNILYAXEwDQYJ
-# KoZIhvcNAQEBBQAEggIAkpbGbgAHEYZ4jgU/6z6haj+bcoPGPfEayrEp5yX1dk/m
-# gAIFIQT59d8qSZqgukNc+pUJkf++IWyAF0d002sTjpjj3AwSkzCiSLAkzOfgKetq
-# /Q5i4Gw8XhL6jzkVSb7b2ZFyvGcmCyHxUNHk4S5S5ongB/d5r2BJF1r3QU5YvxsS
-# bl8vi8xlk74Kgz+G2vop2ipL4efvOo4ZshWJzuBnhXpY1yCWsVA8k3n/2a+tOzz7
-# uTtLb5AYq//hawcnVFn2LhuVTod4xQBxRRyiUJJDBGpuGHNYjG5q7eC/szQlYJIi
-# kN2DH3f3Tv6INqKYqAPAKz/OMPhhgtlqsEy87GqJMCv720WzfXq4F0q4GGBXoR0i
-# EfD/geHEJlqt5RH7CynyTwGeb65qXWTXKAmRHz1j1vne+39KlIJfXB5fs6NRBskZ
-# EOqrKvO8tI6FjAjE8tsdXco1aekE+Yam3zaqD/ui21BO4r5qn7sgdI4UqB5n1rCF
-# NWFOTgekuCo223jyMF0qW631OiEWy6brprtquDothMFGrJYAsQe6Aac/KWxkT2Lt
-# iOGYeGmm1Nnt3MWQBksfyETA9+qoPjpqd79K+B7DR8scT9/q2+L8Dq+J9be2YWcT
-# rvInMIVORipRbXRU5iFFAK4oGVe+vwXLq/aiTM9d7kOlgoeSigjJ3MAZtaSLRPmh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHoh0JlTX8axzFtWOPdydA3n6mJcwDQYJ
+# KoZIhvcNAQEBBQAEggIAXcqdK/+K4aU9tl5SuE5XskZi4cdKKG9wER7TlM+L6+Jy
+# IIoWgA06N+2jOodkuaD3FN1+aNC6LiaJBMmPIRbg8X7T16LR/ww6+YcvxcuE/eAe
+# 02IKDzsHyUSkvpOb8f1wi28AgLBgZbI0QhXUqnTSmHtRhRiTxsF9eXT2Npww/8vD
+# yjty90aiEgW9wBPEcyS1xz5cXj1/AwY4ceWQHIu7+0HrHowglIGR0SylPvSvf6lm
+# ho6uCmBX3u0YTL1jqRTvr5AuL1ezxCRUzGb5Kx+nrx2kyjrEhTW4Q2mlQPg9Z2m+
+# FSIXTfhozCzX0/GBaOeiwHq/5sj6yvYH1rBzQz/Vq1ZhB9R8rUCv2Fl+L6judLlc
+# hm1jgMfQtWz5A/btMXntbAqfFcE4HB5/eQRdygfof8dMqBwoJwJYlYrEsFoifsnL
+# EA50tb8/jY6RE94troNfBV9H39UIyzNihJNfyfatamhkN0/8M+/a+1VVh1stNqVr
+# GCkP06XH1HfB225S/u6lI4VRN5AX4pScQLcq5i4C8KiEDZCqu9H53Bdk/gM2Vf69
+# +t6l2FEqe6a6p+nAIjMSUWMo6MM3w7FCk3Ix/PUhRau3IWHf/N8Wsux7bVjS36RG
+# dKgbhm8y+N+/b9EsRuIISmxp37g8QF4BehaLdRWXNJ0ztixf9PXhko8yivLt2yuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODE0MDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIMgiRbY8JVaeI7qmCKGgimtXILrCLhSCBRiI7+2mc3R8
-# MA0GCSqGSIb3DQEBAQUABIIBADN7Ci5ICHiMbGvXwl2CR2E9/EWTcUqWMXLiLc9x
-# qLNbi0lAFcQaMdOKxeQGMbyqxwbLkI+AZemK0SEo9Nb5fG7EMjNObL51yAxUQ9wk
-# OA3mrLE6cr8qzck+2bxxpD6UtY9It+IDzYKBIOPDQpAZpHS20wGofczfdcJxufTO
-# 6yizC9VPYET+BW0b5nFzfFuvnDKOpM4m4iRbir3ZU/bcWGg2jby3QW4/C3CtR1BS
-# 0p3UeuXEkPpeAu7RQ9gEWsf7k635SriB8rX/Z9RXSYrZ9ozGiA5LuLLjSctam2wo
-# tHiH/JhhnAFqLUOX7H/iiT+DcO6yOYL2r/wAqMRr6RwYD/o=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODIzMDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIJnuM7kKL8cKt258GMKK9vz/EPx+WATwR/6oMTRwxInk
+# MA0GCSqGSIb3DQEBAQUABIIBAGph0CQOyUd4zKsqSfDU7XqFxNcVkTAGEkGy+i09
+# 7MaxX273dOyj2DYljqCaLv4fdVb662k2agebPzeeHVfvycwnWW4QhUV+mmKCHZ/E
+# KvRdPkmDxo7bejXM/UDhYD32NUiaxVFmlnXbXfjhgPrrzZlC/1m1yVY0VOz0vfMG
+# C7V5Duvr2kgDs8/paJR4O7H6TIygop7wxnp2eTgeT8r4UCvsX/4BLC7XmpoezrOQ
+# aulRYC5G6oIhY1Akm4IvVPt/jS3XIzh4dKmZRaaf8OnoQSM0Ie9a7KTepFp0nIuR
+# 43dbecsEyImAsCTqkCQb9jdB/2UiyjMfYxTL9hZjcSABWlI=
 # SIG # End signature block
