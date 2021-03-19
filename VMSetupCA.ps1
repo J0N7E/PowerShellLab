@@ -579,10 +579,13 @@ Begin
         {
             throw "Must be domain joined to setup Enterprise Subordinate CA."
         }
+        elseif ($AddDomainConfig)
+        {
+            $DomainName = $AddDomainConfig
+        }
 
         if ($DomainName)
         {
-            # Get base dn
             $BaseDn = Get-BaseDn -DomainName $DomainName
         }
 
@@ -771,8 +774,10 @@ _continue_ = "SubTree=Include&"
 _continue_ = "DNS = $DomainName&"
 _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
+_continue_ = "DirectoryName = $BaseDn&"
 "@
 }
+
         # Save CA policy to temp
         Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
 
@@ -1217,7 +1222,7 @@ _continue_ = "Email = @$DomainName&"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL must be copied manually."
+                    Check-Continue -Message "-PublishingPaths parameter not specified, using $CertEnrollDirectory"
                 }
 
                 ##################
@@ -1292,11 +1297,9 @@ _continue_ = "Email = @$DomainName&"
                 # Check if DSConfigDN should be set
                 if ($AddDomainConfig)
                 {
-                    $AddDomainConfig = Get-BaseDn -DomainName $AddDomainConfig
-
                     # Add domain configuration for standalone ca
-                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $AddDomainConfig -InputFlag $Restart
-                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$AddDomainConfig" -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
 
                 if ($CAType -match 'Subordinate' -or $OCSPHostName)
@@ -1664,8 +1667,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp9nCu3KGcEEpnu+CloLRTFyy
-# fHSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2JgYd92hgM7blMCrN5EH1QUG
+# 18Wggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1749,28 +1752,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKjqj1fA6gpoe/5iXTEXFQbnwRP4wDQYJ
-# KoZIhvcNAQEBBQAEggIAXoh8eTEyDEzyA7hT4M5wOyBTOPUUpxtFvuUoWHCDUTGV
-# ObhdTJBzHeolJXm47Q59AgH/7huftEwgPEWkJnouAeFr9EA4C2m0rWX6V4eWtMiy
-# mMqMpilF5x9m30+9MzV0s2JOhpgoHhfnu1XYYSe4Blh/OjuJ1ddKdhZgj/pauddy
-# sTF2+aIrC6xCam+atRXm03ckDd1kYF1eeGbZvKz4wHMSesM0aoSwuJWQK4B7E/k8
-# HatfeSxdqoyca5j7lnhW/+4umYV/O79anNqX80Bt0Kz4w3fS+sYdbrIXyx2+xbvQ
-# wX0Wns4GqPlJ3HoHW+CK/TcNJfax1+21Pr+BO2wBMP/4JoL7LaAmC6lP14A7TboE
-# DFH6fP8LgTEvYK7lGFQ5skHus8HAQqV3L6N/U5gevb02zRc7K2rPP3STjWGbq6wx
-# cUWguqzQ6QZ88e7MRV3neewB0/hPscj/5qbJWxIJ3dz5aDsuamTftpEO4nhu+wLC
-# x5ffEufExeqOu0MCgNqNS2B+UaeS59pgQhv4MbEegPa0njDFczXzW3mAc/LWUTso
-# 7CfYp9icfs1FNE/5z+MjqEDEMGDwrgH0bgVcMBaYh4ft58H1YNb1IRdACdOvgxrI
-# 9htvDp6pTtsm9rGCeqJ2X6YaiGvcPUMVh/Rr+sbPbPysk/jDTAfzpti3dzJwp/Sh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUV/D1OfQnFQNLPgTYWm/Sdv6vER8wDQYJ
+# KoZIhvcNAQEBBQAEggIAC/dGauC0EzrM7ESgGAkyvaJ4MbK98ZrupO4HY7VHGPhx
+# FzXw6ZQiZ/ayS/okZovSpWlZgEWj0HHhDp/jZOrTcj4EQJiUNZdz+2ifKarv9X7h
+# hmymZYfaaNy/EStjnrdgtVBf4JfIbVBhI090kKk/r0WfSGBzGwizFgS4O4GBZwXx
+# WaYpeyD+jfQxVOZn2hpyEm/LPN0H12UgIE2K0tQjhOrTON4+3nYOLLEvAHoskK2f
+# kx9Ut85VnFTPG5PlA1OikLaBSid6okCFjJzDB782z8QWypEjVinApDCybX1r3Flx
+# GsXnFLp01m5bT/O/HV0cXWrJp9bHxGODE5bb1pqlRE338wYYrY2YZugwm9bGvLxR
+# fGD8/5oeIW3F0mSRuSQeQQkWjXG5a0pMPF/KUtsDz2NLsYORsAZpl7r/0ZdBu2Sf
+# lpfDP6E0cYkH0RtR5BZUeeJAFvyHjOKgmovo/FDQhebIW+gYxybRGFUpQlfH4vMj
+# gJ4cgycWMV8At618BMOQ6J69jqbuK0dSBvXCvnnOBg1+nyJJB+Fe7VIlCFPxZKNP
+# jhuw8PUUry/IoDJY9N61eFhYWMWJkGcei2BOWIW8ArpiNZMGf7WdOylJeOh9BCOq
+# F90PXNZR0QU9k8KTMMHu/yI3p7mnJUmm8JQnrs+gIm5HRukZVf/8bVueyFvYJwah
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxOTExMDAwNVow
-# LwYJKoZIhvcNAQkEMSIEIDOZFHZlhC7BJEcXQXR5NQ/71BOetZNFdhpPwO26NEGM
-# MA0GCSqGSIb3DQEBAQUABIIBAKlFJQDqii4BEsAJppjSqOjRSZ4ta7uvA/kO/6xy
-# LKqy1J/kRlcjtAubC4NLKspEdhfGhNMg3EUQp90j+C9+g0Mqod73d/mcigkz2r20
-# i6Q3GyT90hvy0ke8frDSdK+OcFEFXJQpx2l2PwcOFbSv+lfZwqDr2zwvtrjbJqLx
-# EXIlQcpHK0kzNrthcF/QWA8BYKVEdyYpA+6ySJD0VceT50bT/PMRcibUuFykUUvc
-# FbZjrmXcVLI9uUSEjS9/eSPUdMvATWEMjqcnwNf5FBbl3iTsobVB0DFYWMbdfmON
-# FsZNOmMkTpliZa8kFHSziPuMI8BGym3wdVvJvPFp5qroT/U=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxOTIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEILtrtb+bkhWdnozLyguWskhgItTWGGzDYMJxwk7Rfp4T
+# MA0GCSqGSIb3DQEBAQUABIIBAHSD7n2A9XPUQuYGnucf+3Ke30EmKwsBZvjpu7o2
+# vARN8NFYsqsCcJjLR62l3xBO2NvhKPtuvGLx5j7pDKKmRy2zUPrvBcYNgPLxhX/z
+# S35V+IQm4fD0qkN6/S4g1/qYdYA2aYijr4G/nzS84eSfMiQGs5aN5R2UPGMYBeRX
+# EQKvCe5IEr48g4m54oRnvTYzMzK0v59CtLPrKSBvzB+Vzs97F1Qqch0jNxUo5DWu
+# Wj/YLnZktG7UYtFCtGzw7/mUbrWV86yeZn9GQLw7RLF94uKFhlc7mWbbAAuOrAk8
+# L4GqZFT7ojoOBXkOW3p2XibfTTajUEiH2Mb8bcBg5Xov8P8=
 # SIG # End signature block
