@@ -1147,6 +1147,46 @@ _continue_ = "Email = @$DomainName&"
             $Restart = $false
 
             ######
+            # AIA
+            # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
+            ######
+
+            # Check if exist
+            if (-not $CACertPublicationURLs)
+            {
+                # Set default AIA
+                $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
+
+                # Check if exist
+                if ($OCSPHostName)
+                {
+                    # Add OCSP url
+                    $CACertPublicationURLs += "\n32:http://$OCSPHostName/ocsp"
+                }
+                elseif ($CAType -match 'Subordinate')
+                {
+                    Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
+
+                    # Add default OCSP url
+                    $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
+                }
+
+                # Check if exist
+                if ($PublicationHostName)
+                {
+                    # Add AIA url
+                    $CACertPublicationURLs += "\n2:http://$PublicationHostName/%3%4.crt"
+                }
+                else
+                {
+                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CACertPublication."
+
+                    # Add default AIA url
+                    $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
+                }
+            }
+
+            ######
             # CDP
             # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-cdp-extension
             ######
@@ -1219,46 +1259,6 @@ _continue_ = "Email = @$DomainName&"
 
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
-                }
-            }
-
-            ######
-            # AIA
-            # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
-            ######
-
-            # Check if exist
-            if (-not $CACertPublicationURLs)
-            {
-                # Set default AIA
-                $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
-
-                # Check if exist
-                if ($OCSPHostName)
-                {
-                    # Add OCSP url
-                    $CACertPublicationURLs += "\n32:http://$OCSPHostName/ocsp"
-                }
-                elseif ($CAType -match 'Subordinate')
-                {
-                    Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
-
-                    # Add default OCSP url
-                    $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
-                }
-
-                # Check if exist
-                if ($PublicationHostName)
-                {
-                    # Add AIA url
-                    $CACertPublicationURLs += "\n2:http://$PublicationHostName/%3%4.crt"
-                }
-                else
-                {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CACertPublication."
-
-                    # Add default AIA url
-                    $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
                 }
             }
 
@@ -1672,8 +1672,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfA4AEMwzGBTZ8MAlnW0hkq55
-# +dmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhEoRHs6upg/pI2u2mzbjMahB
+# y4eggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1757,28 +1757,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIMz+e9mHVNxvmyNtzN1yNeLkeogwDQYJ
-# KoZIhvcNAQEBBQAEggIAa7D5PDImXjIKxz9pheZhVeCdE9vw4mK0XeYlXxhlb7nB
-# DwY13bH8AgCy+HfULjLeyirvbnM8fzKA2YJ4+RP4Sk5W253+/93EH9k4H5trr7iC
-# /xdxqHdb4AHuzDlOtgI6BPQHCw5AQMIrNIEK2N/32+gSXvZnp+sKd6ibkqfRaTUs
-# 6T0rtl7vSBpnVT9iFX3dDHovQH8mnDPyovwJtOXm5HQSA0pxGXeIaZI4HZ3guDGY
-# paqvJcJTautYd/I7Sg7HJk5N9n6TaHuwEZ8qGCg/IqbQllO8VnCam2FYY8EQSLs9
-# ZEUEBzE5OCwsWpgFoROWAWu9WeuhT6YK2xyLr774jBR1OJOQbGPaZJrZt49Ac/tw
-# heSZsQ9bxDXU75coWYKboMv0UhhkCGf2j43xA7DyXu+/BqO08sa8F3bP36M68gQn
-# HkRrw6+11btIkmmKdGIaBqwAbhdMjvRJN+D/S4SCRlcFpCYeGaStW7FCA8QFQ6bL
-# f4cietfPvxVzzofImGBmkAYufuI6r8HxWJlvShpIZRL5Ig5KKNP2Wwkdv6CsCj+K
-# prwf50/6Efj/QssmSTbtxhk9VuWsAPYdtIeBnCipfpoDBQetiD2DEJNIchbHKeJL
-# kEkhDDCAhqZ+FErDTtlwZaJPB3Zlsv82Fdoa1y+GodGvihi6dTexg53qyxu/3RSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDEFRCMUqq9Y0a0qoSTmDmB2UPR4wDQYJ
+# KoZIhvcNAQEBBQAEggIAUHRySl9uySfD2Q6DYLtphw5eEA6po/FlY3ZLR3P2Nf+4
+# S5u/huVvQ1Kf8uSmoFn9D97TI8h8h2uHke2lzJds9KtqN49rNoYYQiYbAAkRQmSL
+# bB8WK8ARDNR5m2C1gpOTpXlQexzGXpcI5nfZdCFt3iDM35Y5ES7yeZgEWUtJOEYB
+# lcb1vCP142Uj1tDABSz357mGsZthMLvJbt/BdhmUInuSTMVBKPvBm6+6oX5rbFwJ
+# IJ6cENd+isz5zWkgy1JBudgUumLMJFoa66uvDjKAT0PgeqpalTGt/pp5pp3sJCFc
+# ZjQRtNojOZBai186ODHB1nSVK/tfl/APgB/TfMgeMBBNaDnEIlTOauGywzlJ50zx
+# nobfOsTvbTWOuYgO2oelx8eF882GXjLLth7dI6D7oUsawEHAQGeF4JsKH4LLvVfX
+# 8v/eZrCsu0KBNqp7kCQgjY3NR4yvV6GgqZZB6RWq0QKgDkk0pNZdGyESiMwsNwKo
+# cp9CLMAGYYSngEzWLBSjLXCWHi0bT4h5RBBrVcsR3DgDMc58l1eE37PaXO63TxBa
+# H+/B/JCeyskYhHLJ3weGxv3K3ehQ7MWUZwcsZftQLCVUnfYh8Y5fcpgMYlWPdEMz
+# 2Zd7drUxrwP1Bq2eix1HB52lISYF1f9xA70Ac2AxIeDBNXdWVERNV9YA/xMaxZKh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODIzMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIJ8z0IVJSkrHyAL1CJN35X6TldSHDMis6ULI2aQ7JuLP
-# MA0GCSqGSIb3DQEBAQUABIIBABNE4Hi0eGv7W3NXbvdzxzyrndSWWcejsmAL4bgU
-# 9PSpizxHHxVuoknmIo4GI02TDXgAhqWS+cW1BkaEdEKa/Aax9AL4KkuXyp9prWjt
-# O3vy/IBz0tHGh5wJ9Y4/VyuSnVo95aGFCKQKEdwfkb48qyW4nUc5XawLzZSHMxNh
-# EdtQoAurixPFBm5Ckn0s2x2cQ4IRCLets8fYETVuXMiTr5reLqSSNdH0uMtuDe21
-# B+hLpjUvGzOL16gyu9qZ9WHt+vcIzVCf+5pjoH9epS1xghR4DyTcgW/q9DtEGvRJ
-# kqFEFWEjYTYLSyTcNXmK6vUmi2ZoS6OBck0yhIQ0I0is3UM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxOTA4MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIKlOQ3orD+NI2RjucVkpA7zmCMN2ObsOIRWQzgrR7ngS
+# MA0GCSqGSIb3DQEBAQUABIIBAEqvbCvvfi5BQ2G40u1b9nj248oNO7jkgie9Sz57
+# tRnWBSGuiGqQl5vemTuwcAlrQGcS5b+3dMPXg5IlUHRsiEwqn/43IkoPJB9hl8MI
+# eiidUmX2WYxBujdIvfMuaspsmgiFe6X/JjYa8WYcsM1cuWGzRre5qD8Yn+yLmygS
+# tuJyEyi2Zf8Nm4sWldczOImSh2oUvCEpb1yEola2u61uAGBd8ilH/Vygpjw4I9vS
+# ckP1A4e1rgmH6o+VKm8XBrjD2CGInjG8AFkZnRksbABDIji+n944x9fsmxVc/K19
+# IqczgbzJeiv9/my85bPbRTLTnaKq+k55QaXQ1LFw6Mo+whU=
 # SIG # End signature block
