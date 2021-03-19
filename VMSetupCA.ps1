@@ -74,15 +74,6 @@ Param
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
 
-    # Domain name
-    [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
-    [String]$DomainName,
-
     # DSConfigDN / DSDomainDN
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -90,7 +81,7 @@ Param
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [Switch]$AddDomainConfig,
+    [String]$AddDomainConfig,
 
     # Root CA certificate lifespan
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
@@ -325,28 +316,6 @@ Begin
     # ██████╔╝███████╗╚██████╔╝██║██║ ╚████║
     # ╚═════╝ ╚══════╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝
 
-    ######################
-    # Validate parameters
-    ######################
-
-    # Get valid key lenghts from argumentcompleter scriptblock
-    $ValidKeyLengths = Invoke-Command -ScriptBlock $MyInvocation.MyCommand.Parameters.Item("KeyLength").Attributes.ScriptBlock -ArgumentList @($null, $null, $null, $null, @{ HashAlgorithmName = $HashAlgorithmName })
-
-    # Check if valid key length
-    if ($KeyLength -notin $ValidKeyLengths)
-    {
-        throw "Invalid KeyLength $KeyLength, valid key lengths for $HashAlgorithmName is $ValidKeyLengths"
-    }
-
-    # Get valid crypto providers from argumentcompleter scriptblock
-    $ValidCryptoProviderNames = Invoke-Command -ScriptBlock $MyInvocation.MyCommand.Parameters.Item("CryptoProviderName").Attributes.ScriptBlock -ArgumentList @($null, $null, $null, $null, @{ HashAlgorithmName = $HashAlgorithmName; KeyLength = $KeyLength })
-
-    # Check if valid crypto provider
-    if ("'$CryptoProviderName'" -notin $ValidCryptoProviderNames)
-    {
-        throw "Invalid CryptoProviderName `"$CryptoProviderName`", valid providers for $HashAlgorithmName/$KeyLength is $ValidCryptoProviderNames"
-    }
-
     ##############
     # Deserialize
     ##############
@@ -369,6 +338,7 @@ Begin
         {
             . $PSScriptRoot\s_Begin.ps1
             . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CheckContinue.ps1
         }
         catch [Exception]
         {
@@ -376,6 +346,28 @@ Begin
         }
 
     } -NoNewScope
+
+    ######################
+    # Validate parameters
+    ######################
+
+    # Get valid key lenghts from argumentcompleter scriptblock
+    $ValidKeyLengths = Invoke-Command -ScriptBlock $MyInvocation.MyCommand.Parameters.Item("KeyLength").Attributes.ScriptBlock -ArgumentList @($null, $null, $null, $null, @{ HashAlgorithmName = $HashAlgorithmName })
+
+    # Check if valid key length
+    if ($KeyLength -notin $ValidKeyLengths)
+    {
+        throw "Invalid KeyLength $KeyLength, valid key lengths for $HashAlgorithmName is $ValidKeyLengths"
+    }
+
+    # Get valid crypto providers from argumentcompleter scriptblock
+    $ValidCryptoProviderNames = Invoke-Command -ScriptBlock $MyInvocation.MyCommand.Parameters.Item("CryptoProviderName").Attributes.ScriptBlock -ArgumentList @($null, $null, $null, $null, @{ HashAlgorithmName = $HashAlgorithmName; KeyLength = $KeyLength })
+
+    # Check if valid crypto provider
+    if ("'$CryptoProviderName'" -notin $ValidCryptoProviderNames)
+    {
+        throw "Invalid CryptoProviderName `"$CryptoProviderName`", valid providers for $HashAlgorithmName/$KeyLength is $ValidCryptoProviderNames"
+    }
 
     ##############
     # Set CA Type
@@ -588,8 +580,11 @@ Begin
             throw "Must be domain joined to setup Enterprise Subordinate CA."
         }
 
-        # Get base dn
-        $BaseDn = Get-BaseDn -DomainName $DomainName
+        if ($DomainName)
+        {
+            # Get base dn
+            $BaseDn = Get-BaseDn -DomainName $DomainName
+        }
 
         #####################
         # Create directories
@@ -635,23 +630,6 @@ CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
 CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
 "@
-
-if ($UsePolicyNameConstraints.IsPresent)
-{
-$CAPolicy_StandaloneRootCA += @"
-[Strings]
-szOID_NAME_CONSTRAINTS = "2.5.29.30"
-
-[Extensions]
-Critical = %szOID_NAME_CONSTRAINTS%
-%szOID_NAME_CONSTRAINTS% = "{text}"
-
-_continue_ = "SubTree=Include&"
-_continue_ = "DNS = $DomainName&"
-_continue_ = "UPN = @$DomainName&"
-_continue_ = "Email = @$DomainName&"
-"@
-}
 
 #########################
 # Enterprise Subordinate
@@ -1030,7 +1008,7 @@ _continue_ = "Email = @$DomainName&"
                 {
                     # FIX
                     # check default Suffix to propose in message
-                    Check-Continue -Message "-CADistinguishedNameSuffix parameter missing."
+                    Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, using default suffix."
                 }
 
                 if ($CAType -match 'Root')
@@ -1165,10 +1143,17 @@ _continue_ = "Email = @$DomainName&"
                 }
                 elseif ($CAType -match 'Subordinate')
                 {
-                    Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
+                    if ($DomainName)
+                    {
+                        Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
 
-                    # Add default OCSP url
-                    $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
+                        # Add default OCSP url
+                        $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
+                    }
+                    else
+                    {
+                        Check-Continue -Message "-OCSPHostName parameter not specified, no OCSP will be used."
+                    }
                 }
 
                 # Check if exist
@@ -1177,12 +1162,16 @@ _continue_ = "Email = @$DomainName&"
                     # Add AIA url
                     $CACertPublicationURLs += "\n2:http://$PublicationHostName/%3%4.crt"
                 }
-                else
+                elseif ($DomainName)
                 {
                     Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CACertPublication."
 
                     # Add default AIA url
                     $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
+                }
+                else
+                {
+                    Check-Continue -Message "-PublicationHostName parameter not specified, no AIA will be used."
                 }
             }
 
@@ -1222,13 +1211,13 @@ _continue_ = "Email = @$DomainName&"
                 {
                     foreach ($Item in $PublishingPaths)
                     {
-                        # Add unc
+                        # Add publishing paths
                         $CRLPublicationURLs += "\n$($PublishToServer):$Item\\%3%8%9.crl"
                     }
                 }
                 else
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified."
+                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL must be copied manually."
                 }
 
                 ##################
@@ -1253,12 +1242,16 @@ _continue_ = "Email = @$DomainName&"
                     # Add CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://$PublicationHostName/%3%8%9.crl"
                 }
-                else
+                elseif ($DomainName)
                 {
                     Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CRLPublication."
 
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
+                }
+                else
+                {
+                    Check-Continue -Message "-PublicationHostName parameter not specified, no CDP will be used."
                 }
             }
 
@@ -1297,14 +1290,16 @@ _continue_ = "Email = @$DomainName&"
             if ($CAType -match 'Standalone')
             {
                 # Check if DSConfigDN should be set
-                if ($AddDomainConfig.IsPresent)
+                if ($AddDomainConfig)
                 {
+                    $AddDomainConfig = Get-BaseDn -DomainName $AddDomainConfig
+
                     # Add domain configuration for standalone ca
-                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
-                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $AddDomainConfig -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$AddDomainConfig" -InputFlag $Restart
                 }
 
-                if ($OCSPHostName -or $CAType -match 'Subordinate')
+                if ($CAType -match 'Subordinate' -or $OCSPHostName)
                 {
                     # Enable ocsp extension requests
                     $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
@@ -1474,7 +1469,7 @@ Process
             . $PSScriptRoot\f_TryCatch.ps1
             # f_ShouldProcess.ps1 loaded in Begin
             . $PSScriptRoot\f_CopyDifferentItem.ps1
-            . $PSScriptRoot\f_CheckContinue.ps1
+            # f_CheckContinue.ps1 loaded in begin
         }
         catch [Exception]
         {
@@ -1516,9 +1511,6 @@ Process
 
             # Certificate Authority common name
             $CACommonName = $Using:CACommonName
-
-            # Domain name
-            $DomainName = $Using:DomainName
 
             # Domain config
             $AddDomainConfig = $Using:AddDomainConfig
@@ -1672,8 +1664,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhEoRHs6upg/pI2u2mzbjMahB
-# y4eggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp9nCu3KGcEEpnu+CloLRTFyy
+# fHSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1757,28 +1749,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDEFRCMUqq9Y0a0qoSTmDmB2UPR4wDQYJ
-# KoZIhvcNAQEBBQAEggIAUHRySl9uySfD2Q6DYLtphw5eEA6po/FlY3ZLR3P2Nf+4
-# S5u/huVvQ1Kf8uSmoFn9D97TI8h8h2uHke2lzJds9KtqN49rNoYYQiYbAAkRQmSL
-# bB8WK8ARDNR5m2C1gpOTpXlQexzGXpcI5nfZdCFt3iDM35Y5ES7yeZgEWUtJOEYB
-# lcb1vCP142Uj1tDABSz357mGsZthMLvJbt/BdhmUInuSTMVBKPvBm6+6oX5rbFwJ
-# IJ6cENd+isz5zWkgy1JBudgUumLMJFoa66uvDjKAT0PgeqpalTGt/pp5pp3sJCFc
-# ZjQRtNojOZBai186ODHB1nSVK/tfl/APgB/TfMgeMBBNaDnEIlTOauGywzlJ50zx
-# nobfOsTvbTWOuYgO2oelx8eF882GXjLLth7dI6D7oUsawEHAQGeF4JsKH4LLvVfX
-# 8v/eZrCsu0KBNqp7kCQgjY3NR4yvV6GgqZZB6RWq0QKgDkk0pNZdGyESiMwsNwKo
-# cp9CLMAGYYSngEzWLBSjLXCWHi0bT4h5RBBrVcsR3DgDMc58l1eE37PaXO63TxBa
-# H+/B/JCeyskYhHLJ3weGxv3K3ehQ7MWUZwcsZftQLCVUnfYh8Y5fcpgMYlWPdEMz
-# 2Zd7drUxrwP1Bq2eix1HB52lISYF1f9xA70Ac2AxIeDBNXdWVERNV9YA/xMaxZKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKjqj1fA6gpoe/5iXTEXFQbnwRP4wDQYJ
+# KoZIhvcNAQEBBQAEggIAXoh8eTEyDEzyA7hT4M5wOyBTOPUUpxtFvuUoWHCDUTGV
+# ObhdTJBzHeolJXm47Q59AgH/7huftEwgPEWkJnouAeFr9EA4C2m0rWX6V4eWtMiy
+# mMqMpilF5x9m30+9MzV0s2JOhpgoHhfnu1XYYSe4Blh/OjuJ1ddKdhZgj/pauddy
+# sTF2+aIrC6xCam+atRXm03ckDd1kYF1eeGbZvKz4wHMSesM0aoSwuJWQK4B7E/k8
+# HatfeSxdqoyca5j7lnhW/+4umYV/O79anNqX80Bt0Kz4w3fS+sYdbrIXyx2+xbvQ
+# wX0Wns4GqPlJ3HoHW+CK/TcNJfax1+21Pr+BO2wBMP/4JoL7LaAmC6lP14A7TboE
+# DFH6fP8LgTEvYK7lGFQ5skHus8HAQqV3L6N/U5gevb02zRc7K2rPP3STjWGbq6wx
+# cUWguqzQ6QZ88e7MRV3neewB0/hPscj/5qbJWxIJ3dz5aDsuamTftpEO4nhu+wLC
+# x5ffEufExeqOu0MCgNqNS2B+UaeS59pgQhv4MbEegPa0njDFczXzW3mAc/LWUTso
+# 7CfYp9icfs1FNE/5z+MjqEDEMGDwrgH0bgVcMBaYh4ft58H1YNb1IRdACdOvgxrI
+# 9htvDp6pTtsm9rGCeqJ2X6YaiGvcPUMVh/Rr+sbPbPysk/jDTAfzpti3dzJwp/Sh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxOTA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIKlOQ3orD+NI2RjucVkpA7zmCMN2ObsOIRWQzgrR7ngS
-# MA0GCSqGSIb3DQEBAQUABIIBAEqvbCvvfi5BQ2G40u1b9nj248oNO7jkgie9Sz57
-# tRnWBSGuiGqQl5vemTuwcAlrQGcS5b+3dMPXg5IlUHRsiEwqn/43IkoPJB9hl8MI
-# eiidUmX2WYxBujdIvfMuaspsmgiFe6X/JjYa8WYcsM1cuWGzRre5qD8Yn+yLmygS
-# tuJyEyi2Zf8Nm4sWldczOImSh2oUvCEpb1yEola2u61uAGBd8ilH/Vygpjw4I9vS
-# ckP1A4e1rgmH6o+VKm8XBrjD2CGInjG8AFkZnRksbABDIji+n944x9fsmxVc/K19
-# IqczgbzJeiv9/my85bPbRTLTnaKq+k55QaXQ1LFw6Mo+whU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxOTExMDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIDOZFHZlhC7BJEcXQXR5NQ/71BOetZNFdhpPwO26NEGM
+# MA0GCSqGSIb3DQEBAQUABIIBAKlFJQDqii4BEsAJppjSqOjRSZ4ta7uvA/kO/6xy
+# LKqy1J/kRlcjtAubC4NLKspEdhfGhNMg3EUQp90j+C9+g0Mqod73d/mcigkz2r20
+# i6Q3GyT90hvy0ke8frDSdK+OcFEFXJQpx2l2PwcOFbSv+lfZwqDr2zwvtrjbJqLx
+# EXIlQcpHK0kzNrthcF/QWA8BYKVEdyYpA+6ySJD0VceT50bT/PMRcibUuFykUUvc
+# FbZjrmXcVLI9uUSEjS9/eSPUdMvATWEMjqcnwNf5FBbl3iTsobVB0DFYWMbdfmON
+# FsZNOmMkTpliZa8kFHSziPuMI8BGym3wdVvJvPFp5qroT/U=
 # SIG # End signature block
