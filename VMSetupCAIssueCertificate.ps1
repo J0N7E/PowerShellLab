@@ -75,17 +75,17 @@ Begin
     $CARequestFile = @{}
 
     # Check if certificate request exist
-    if (Test-Path -Path "$PSScriptRoot\*$CommonName*.req")
+    if (Test-Path -Path "$PSScriptRoot\*$CommonName*.csr")
     {
         # Get last request file
-        $RequestFile = Get-Item -Path "$PSScriptRoot\*$CommonName*.req" | Sort-Object | Select-Object -First 1
+        $RequestFile = Get-Item -Path "$PSScriptRoot\*$CommonName*.csr" | Sort-Object | Select-Object -First 1
 
         # Get request content
         $CARequestFile.Add($RequestFile.Name, (Get-Content -Path $RequestFile.FullName -Raw))
     }
     else
     {
-        Write-Warning -Message "Can't find `"$CommonName`" requestfile, aborting..."
+        Write-Warning -Message "Can't find `"$CommonName.csr`", aborting..."
         break
     }
 
@@ -143,30 +143,44 @@ Begin
 
             if (ShouldProcess @WhatIfSplat -Message "Submiting requestfile `"$($file.Key)`"." @VerboseSplat)
             {
-                # Submit and get request id
-                $RequestId = (TryCatch { certreq -f -q -submit "$env:TEMP\$($file.Key)" } -ErrorAction Stop)[0] | Where-Object {
+                $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$($file.Key)" "$env:TEMP\$CommonName-Response.cer" } -ErrorAction SilentlyContinue
+
+                # Get request id
+                $RequestId = $Response[0] | Where-Object {
                     $_ -match "RequestId: (\d*)"
                 } | ForEach-Object { "$($Matches[1])" }
-            }
 
-            #########
-            # Isssue
-            #########
+                if (($Response -join '') -match 'Taken Under Submission')
+                {
+                    #########
+                    # Isssue
+                    #########
 
-            if (ShouldProcess @WhatIfSplat -Message "Issuing request $RequestId." @VerboseSplat)
-            {
-                # Issue certificate
-                TryCatch { certutil -resubmit $RequestId } -ErrorAction Stop > $null
-            }
+                    if (ShouldProcess @WhatIfSplat -Message "Issuing request $RequestId." @VerboseSplat)
+                    {
+                        # Issue certificate
+                        TryCatch { certutil -resubmit $RequestId } -ErrorAction Stop > $null
+                    }
 
-            ##########
-            # Retrive
-            ##########
+                    ##########
+                    # Retrive
+                    ##########
 
-            if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
-            {
-                # Get certificate
-                TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CommonName-Response.crt" } -ErrorAction Stop > $null
+                    if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
+                    {
+                        # Get certificate
+                        TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CommonName-Response.cer" } -ErrorAction Stop > $null
+                    }
+                }
+                elseif ((($Response) -join '') -notmatch 'Certificate retrieved')
+                {
+                    Remove-Item -Path "$env:TEMP\$CommonName-Response.rsp" -Force
+                    throw $Response
+                }
+                else
+                {
+                    Write-Verbose -Message "Issued certificate with RequestId = $RequestId" -Verbose
+                }
             }
 
             ##################
@@ -197,7 +211,7 @@ Begin
             $Result = @{}
 
             # Get response file
-            $ResponseFile = Get-Item -Path "$env:TEMP\$CommonName-Response.crt"
+            $ResponseFile = Get-Item -Path "$env:TEMP\$CommonName-Response.cer"
 
             # Add file to result
             $Result.Add($ResponseFile, (Get-Content -Path $ResponseFile.FullName -Raw))
@@ -315,7 +329,7 @@ Process
             }
 
             # Remove request
-            Remove-Item -Path "$PSScriptRoot\*$CommonName*.req"
+            Remove-Item -Path "$PSScriptRoot\*$CommonName*.csr"
         }
         else
         {
@@ -336,8 +350,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgnOnFtiv/qz5b0aPCoYCzDhG
-# fYKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURKIx3L01DAft1UtS0SZBn+eg
+# LM+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -421,28 +435,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtA9JZoo3Kay22A+QnPTMD0IliL4wDQYJ
-# KoZIhvcNAQEBBQAEggIAdVr7jtoxj2fx7YVU+NPse/eRgjT3CIGduImQpDR95xuA
-# LNwWR6+EZCRMa7xUvbd+s7Z+0qsUZuVGmLK1dx2NQMIa1H4trNyvvmQVahY9Plab
-# drYSmJX1toz4x2C8he23fTwNKQy44fd9QDFKIFFEF/FGZSbds0oRao1EqvMCjwTX
-# Aj36w4DW3nlRIZ5zjddNi+EGX4dvGMPci1fHTtt9XyPPl0LLkkY2GWJYWLmivd4z
-# fWd1s0tP2nU5QC1wg1pOEfsENncLRKw3ox2pds1n4wbvectwm53cwD11cQlmWlpH
-# TiAZJTiLr7+eqaSFqs878dCPUTSiN4+Yav2PvqPv87ZO9oZzMBKclvCLDNJE4biP
-# HKeEmQ5IOY3hip3O0TjRI6zeRY0ISv2lYFDuaPTF2UWR6TUdoZoMxu3lF6xrNhQn
-# 8a1JtE/1UumklD+7FPmXcSBB4wBeHosSkIUyanDSEQjsoLAXYY3/lblqj5BgWJTO
-# my8y5clZbFg7RBxV/erS0SUlfBwL/iGmLqa7E7iiF7lWPkM7XGTD2ozmm75ilhIw
-# LxOeY/Px/+SpjHwaEdVFBUQVLHby8NH4NXANPvzmJ4S5sMTHG2VNkqVRw8KtuAYb
-# 0Wgv1K1CFl4QTm3i021n9T/McTVoEpuwVqxzaFBaMImj6hNk0BBiRTd9URiYEcSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeEbZCDpmlV6Xm/Lh3Kmbo06XuE8wDQYJ
+# KoZIhvcNAQEBBQAEggIAfPbl+G3R0i5nJkcUIfjkEjBtdot/udajm5z2kpckqlkE
+# 1ILgNqe8AYO70P80SW9gchmUOkln7fosJtX8QvCxcO6X5B00qDUup0w8MjDWiTrN
+# j6csj5xpIn7bocKiWbxQceQcF+xtOQO+yWwy2uVs1gQlvYDN2HscFbsrRJ8xiATr
+# D4o32LW1tjWwi7n75NJWriyZVWk3+vw4RdWNXfDncLUofRRqIUDkplt6g9/ry8U0
+# Ir5wpsyGDI8LW4pBvS6zsQVjrw2AcTkTCUYkTlBCvgf5fOH9uIMReLzkVYkVSWKa
+# EZCE6/xYsqPDb3kSFc0E2HrTyFVhFHPBb9hGcsuJM7yNptywuZZ8bGO1VUpzhq0Y
+# s/6XHVP52jxF3qQl0NgbBONGY48Kyd888leB5umV9zIqf2/utiZzEgDhW2MrRMZ6
+# Rjo08CDIWxmk1xOjbvmyssmNwBVcpaxIn134ZSsB0vDUE/Fc4mqeke8Tv0P7UL6L
+# J1KLY7WLvlCDeqSMgkXfVvJsQLNHI7xCNj0migmiitSWdh7g8odAfjHZKZFT3OuV
+# 5+brbgCwyR/YnWEVmiwFmSzWggE47UoBBdj7YyklckeFwpU7arnQlXZF1sDZK6d0
+# Nr3LbRIrXH1ecRPYVouhDSH8JwcV/JZqMMFYpyw3gnXDVqBVfIS19FL9zSL3OFuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODIzMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIF12mjzjvJqtu8fUDwpur333p5aLvm+ZJXGCGvr5L7Wx
-# MA0GCSqGSIb3DQEBAQUABIIBACx2VekinvxyFsbaoW8sGUg5KvQgBnMHpP0msUBM
-# yM1qAUBR/LiCa4ELn05sYWds1EE5hFrkk4oR5OSVcthdcm6KLIfQwzPJbnknglaY
-# svqoe2wZPDKeJUqsU5aC6H+P9i9ekh7ojgpLyvhuYdzFQYKRGVOU7ikip/mmqgel
-# 6z/kHY3WjwsasQFjL0S+tuzFN4mFr3dF3Ktjgykc1ZzQcayyAJJoCY4yhbnCocBg
-# S01i/hTqkNwcf5WLaibDctDa0sXNjwwas7ycOqNlvBcgGALjjNme98yQZx/IuDB9
-# hFu4DTuvX8Ie99Kf4M4sgpKRipidYyuBC8XJkvlZF+7iKq8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMyNTExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIPwa6rCPFzlAXgqkdtZkzcDRDFEih7E01o/cYOKnwEOD
+# MA0GCSqGSIb3DQEBAQUABIIBAINQJuiQ3+7erzmqfAUkBiUdKIYwmIdhyCyfq9lV
+# HKeLUWok50KAMNp0vJYmPb5mBHDwFlT4amISksi+m3ifFzXBiCAipQOSiHo+o0Mw
+# wJnH5yGQExAjGxHMKhPY5Dmds28gGownQ601gJRDYnTLZAufKcFbLEvcMrMRQm2D
+# S3+mSD0/EoXoYRbMxDdqL5cTRvVMU8/Z26uQfTsM4PQIEHkMp+bpp/2NlUvJ7hqI
+# WG6oD0NSslnkDL1tkx0LxiyPnrsjq4hwEUm6ja2fy2rZsMpQKHeZvfTPzvnw0FsW
+# B7oyamVZYzSP1NwysG8WghowysgoWCJwZBD84W19pNJjgWM=
 # SIG # End signature block
