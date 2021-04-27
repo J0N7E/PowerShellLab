@@ -619,7 +619,7 @@ Begin
                             }
 
                             # Check if intranet gpo
-                            if ($GpReportXmlName -match 'Computer - Intranet')
+                            if ($GpReportXmlName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                             {
                                 ((Get-Content -Path $GpReport -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReport
                             }
@@ -652,19 +652,17 @@ Begin
                     "$DomainPrefix - Domain - Force Group Policy+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
                     "$DomainPrefix - Domain - Remote Desktop+"
-                    "$DomainPrefix - Domain - Clear Do not allow drive redirection+"
-                    "$DomainPrefix - Domain - Clear Deny log on through Terminal Services+"
                     'Default Domain Policy'
                 )
 
                 "OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Computer - Intranet+"
                     "$DomainPrefix - Computer - Firewall - Rules+"
                     "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-                    "$DomainPrefix - Computer - Local Groups+"
-                    "$DomainPrefix - Computer - Windows Update+"
+                    "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+                    "$DomainPrefix - Computer - Local Users and Groups+"
                     "$DomainPrefix - Computer - Display Settings+"
+                    "$DomainPrefix - Computer - Windows Update+"
                     "$DomainPrefix - Computer - Enable SMB Encryption+"
                     "$DomainPrefix - Computer - Enable LSA Protection & Audit+"
                     "$DomainPrefix - Computer - Enable Virtualization Based Security+"
@@ -716,7 +714,7 @@ Begin
             {
                 $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                        "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                        "MSFT Windows 10 $Version and Server $Version - Domain Security-"
                         "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                         "MSFT Windows Server $Version - Member Server"
                         "MSFT Internet Explorer 11 - Computer-"
@@ -755,7 +753,7 @@ Begin
 
                 $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                        "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                        "MSFT Windows 10 $Version and Server $Version - Domain Security-"
                         "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                         "MSFT Windows 10 $Version - Computer"
                         "MSFT Windows 10 $Version - User"
@@ -1551,7 +1549,7 @@ Begin
                     $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
 
                     # Check if intranet gpo
-                    if ($Backup.DisplayName -match 'Computer - Intranet')
+                    if ($Backup.DisplayName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                     {
                         # Get backup filepath
                         $GpReport = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
@@ -1708,8 +1706,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUC6Jf2Lywa44ynxJgsAa49gZD
-# G4aggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEVQhVGx54SSM0PW2/FKWyd/O
+# X8qggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1793,28 +1791,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZKVQXjlGIomIiQXqrQlvlIz7zgkwDQYJ
-# KoZIhvcNAQEBBQAEggIADVYK4CmFUNDqnJOyy1LHhMFfXHanB6XsKyLgTky5+oPO
-# UAS653+jpDY6XNbtyCR8W/SdGlFCllP4QHxRZgmSyH6eEMvEkJWmMYjxBCyY/2yd
-# Tsce5gP29EuC5iiEqUu4PjbHEdhaLq2faRKAeKBAsAVl7uUNHWPkNPkBaa+vg2Pe
-# LKFn7RcZs5muO3G66j6pZ8+LOoPKEOOrnVvx5C+zGk+hoEBVNitxHozyxQY6hWEv
-# memltEnoIaOArsSFxWgsSZyKsac+fVdpgJ9nA6WR6WyZxACukH/TCvK6d3znQvrW
-# W+0zyb+rrUUvwR7qVX/byUPSsJmf4D7aRCp765k2w/QqG3DafWzqL5m6XdmSzFGf
-# O0BBm6T/1bDMkqJc6BFwNhq4D+4LaQdu0Dv1MoMN1Gxj+YP76thFqdooK7G9o34t
-# eg06BJRyn7X3kWoxLGvpLBPLG+mC5uTgO4hPpAO6XqpC2JqYhc8yR0TrZQEfsayj
-# E5a8jYmQQEKuz85vsp0SH+5a+NRxlSNZKiHSvcGgoVuSGEDDwuUPDDJ30NGfYVXt
-# E+188Hlg+5DoAPIb/PbmYL8e9CBMGXQPWQx3CasBptTUrvc6deYUcpdw7pMLLlxl
-# QSdFl0d44bh9J+p4b1FN+XnZhmjC6Z+1AI0vajXhljwkPLgI9jdcRrwas/vCm1ah
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWkWqXGJclPicRyBvJhg1/2DLIL0wDQYJ
+# KoZIhvcNAQEBBQAEggIAXbQ+nF5Y+ek57eG0V+9iMgoDZYfE7lAmsoLLM907wUnf
+# g8MYr7/ycUMMH6ZBeyDdcSTVthNm62SxgH35Od/aqHTciuf9sPQlVFmvffj5DjIy
+# Ar5UXJcxv4LHwmSooeYV7WtwoY8HnU5iIIkBxhJ4tvSI8BYnumT6A2GC5Ppw6Dos
+# IPaxZ2a0mUkjhXuleSl31Mt1PNVS9oZQtRp1x+5seME/eim8VGCMQoVD/vRoZ4r6
+# AF5Y2s5LgT7SLl+uSkSE+dHxTh8jo/9F7waazjipJny+a5HKyEUcd9qqxaZJnxId
+# SwFFAjaZqTnlBxg92BauvsVfWrqUIVW9cpWqbcHEnQF37bzZ+CVIU6UC66tl0E2h
+# bCSaSJuztl2znfEAgEoI4pgYmseUAIarEAY245GD31VUtzK9sy2VK7V+hCPFC5/q
+# I2DAUKEigl2FrIQMembTAibjqvjDVZkniunYErJ5aMVtZJQQvOQmXktqt533I1Dd
+# a+5+HWMPH/6ne76yICtsza8frS+B4ys1GqkAyaY/n1dtXOikQ/kY+ZDhk7hTEF/Q
+# FsSXtZnSJxN1PA9UyeSuxsz4zY/xh3HDznZB2SR5i/fyYk+4QuGtG/qd41zrx+Nq
+# 33NtfspxVQ1yvAv8SGnMsEx8x6DQ9dmVA+dPX7Zna6fM0kTZO7JbryULWPV/tCCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDQyMTExMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIFbZjgEw+R31Gxc6DZ5dJt10Z/aD896b39kC9Jhdw52J
-# MA0GCSqGSIb3DQEBAQUABIIBAILvLDhIM/ncVaabXca6ZSxosMqWEKg+EoUlYal0
-# JaMHyNULtT3aFcnmddsVY+NxLvFfB+01A7fG3framHB92jaZL4mY1aI+i4RfKXNU
-# jBAY2gzGO24tIVSmKd/Umz1srOE2a9PIdELKFwPHNfzYwN74VmbaQl4WKUl4y3hf
-# yITNL73ahEeozsPeQ5ztlxmynHxt/GYo6QtfrUFfsnoH6jPJTmI9estDmvRodjEN
-# xFUGlN3+OI2kPCzhTc5zo+BPP0KzMZs7KLZqe0/Qu+LqpHHqiKLOEMl3r5XPi57c
-# WoVZu3+6wdLeHjPY4hylOQQL/Z2mlhYxGho+Q3F7Tu2nbu0=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDQyNzIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIP4L9BXVj/NcnHjM4izKLmRLyBqSXj757D7pzBW4x3yT
+# MA0GCSqGSIb3DQEBAQUABIIBAENPL6xk4IA/qmO1XARXfo6Wgedbc5CPpZeGJtsA
+# Uk4l243OxaRrPNSgO678MK9yioDnPbT9hhWAOz7Dxt1Ofk0vAAEfkXRsDlFqpvQA
+# wOaCoDRYoIazusbKe3G2K4pxrd/DWhscNvP1kqFQCi1LHG0KZ8JXiSFB5y3oU9Le
+# Kfbl/q+/l3LhonPIWKB020VRE9OsiEjAHxui0h9Jl3dPTGPJY6Nxv+YRSgZJOvbB
+# n2kvXjoyppDKoKnInUL+uL5Pe2XdYebWZ0VX5OsIc3VBL79Bt/HX8Q9j6ITdi+dT
+# 9CbWZN8JRqzpEePfXW3cWVbhbGBnXBmM1CVs9kQrXhQ8dtU=
 # SIG # End signature block
