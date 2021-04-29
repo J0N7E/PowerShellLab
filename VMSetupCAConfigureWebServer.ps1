@@ -23,28 +23,14 @@ Param
     $Credential,
 
     # Certificate Authority common name
-    [Parameter(ParameterSetName='Standard')]
-    [Parameter(Mandatory=$true)]
+    [Parameter(ParameterSetName='Standard', Mandatory=$true)]
     [String]$CACommonName,
 
     # Host name
     [String]$HostName,
 
-    # FIX
-    # add wwwroot
-
-    ########
-    # Share
-    ########
-
-    # FIX
-    # remove
-    # Share Name
-    [Parameter(ParameterSetName='Standard')]
-    [Parameter(ParameterSetName='Share')]
-    [Parameter(ParameterSetName='OCSPAuto')]
-    [Parameter(ParameterSetName='OCSPManual')]
-    [String]$ShareName,
+    # Physical Path
+    [String]$PhysicalPath = 'C:\inetpub\wwwroot',
 
     # Share access
     # FIX
@@ -81,8 +67,15 @@ Param
     [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
     [Switch]$OCSPManualRequest,
 
+    ####################
+    # OCSP Array Member
+    ####################
+
+    # FIX
+    # add new parameterset OCSPArrayMember
+
     ########################
-    # Common OCSP paramters
+    # OCSP Common Paramters
     ########################
 
     # OCSP hash algorithm
@@ -294,26 +287,33 @@ Begin
             Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled -Value $true
         }
 
-        # Files to be removed
-        $RemoveFiles = @('iisstart.htm', 'iisstart.png')
+        ##################
+        # Cleanup wwwroot
+        ##################
 
-        # Remove files
-        foreach ($File in $RemoveFiles)
+        if ($PhysicalPath -eq 'C:\inetpub\wwwroot')
         {
-            if ((Test-Path -Path "C:\inetpub\wwwroot\$File") -and
-                (ShouldProcess @WhatIfSplat -Message "Remove $File." @VerboseSplat))
+            # Files to be removed
+            $RemoveFiles = @('iisstart.htm', 'iisstart.png')
+
+            # Remove files
+            foreach ($File in $RemoveFiles)
             {
-                Remove-Item -Path "C:\inetpub\wwwroot\$File" -Force
+                if ((Test-Path -Path "$PhysicalPath\$File") -and
+                    (ShouldProcess @WhatIfSplat -Message "Remove $File." @VerboseSplat))
+                {
+                    Remove-Item -Path "$PhysicalPath\$File" -Force
+                }
             }
-        }
 
-        # Hide other files under wwwroot
-        foreach ($File in (Get-ChildItem -Path "C:\inetpub\wwwroot" -Exclude '*.crt', '*.crl'))
-        {
-            if (-not ($File.Attributes -contains 'Hidden') -and
-                (ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat))
+            # Hide other files
+            foreach ($File in (Get-ChildItem -Path $PhysicalPath -Exclude '*.crt', '*.crl'))
             {
-                $File.Attributes += 'Hidden'
+                if (-not ($File.Attributes -contains 'Hidden') -and
+                    (ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat))
+                {
+                    $File.Attributes += 'Hidden'
+                }
             }
         }
 
@@ -332,27 +332,29 @@ Begin
         # Share
         ########
 
-        if ($ShareName)
+        if ($ShareAccess)
         {
+            $ShareName = Split-Path -Path $PhysicalPath -Leaf
+
             if (-not (Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Creating share." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Creating share `"$ShareName`"" @VerboseSplat))
             {
                 # Add new share
-                New-SmbShare -Name $ShareName -Path "C:\inetpub\wwwroot" -ReadAccess "Authenticated Users" > $null
+                New-SmbShare -Name $ShareName -Path $PhysicalPath -ReadAccess "Authenticated Users" > $null
             }
 
             if (-not (Get-SmbShareAccess -Name $ShareName | Where-Object { $_.AccountName -like "*$ShareAccess*" -and $_.AccessRight -eq 'Change'}) -and
-                (ShouldProcess @WhatIfSplat -Message "Setting share change access for `"$ShareAccess`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" change access for `"$ShareAccess`"." @VerboseSplat))
             {
                 # Grant change access
                 Grant-SmbShareAccess -Name $ShareName -AccountName $ShareAccess -AccessRight Change -Force > $null
             }
 
             # Get NTFS acl
-            $Acl = Get-Acl -Path "C:\inetpub\wwwroot"
+            $Acl = Get-Acl -Path $PhysicalPath
 
             if (-not ($Acl.Access | Where-Object { $_.FileSystemRights -eq 'Modify, Synchronize' -and $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -like "*$ShareAccess*" -and $_.InheritanceFlags -eq 'ContainerInherit, ObjectInherit' -and $_.PropagationFlags -eq 'None' }) -and
-                (ShouldProcess @WhatIfSplat -Message "Setting share NTFS modify rights for `"$ShareAccess`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" NTFS modify rights for `"$ShareAccess`"." @VerboseSplat))
             {
                 # Add CA server modify
                 $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
@@ -366,7 +368,7 @@ Begin
                 $Acl.AddAccessRule($Ace)
 
                 # Set NTFS acl
-                Set-Acl -AclObject $Acl -Path "C:\inetpub\wwwroot"
+                Set-Acl -AclObject $Acl -Path $PhysicalPath
             }
         }
 
@@ -391,7 +393,7 @@ Begin
             Set-ItemProperty -Path $FullName -Name LastAccessTime -Value $file.Key.LastAccessTime
 
             # Copy
-            Copy-DifferentItem -SourcePath $FullName -TargetPath "C:\inetpub\wwwroot\$($file.Key.Name)" @VerboseSplat
+            Copy-DifferentItem -SourcePath $FullName -TargetPath "$PhysicalPath\$($file.Key.Name)" @VerboseSplat
 
             if (-not $DomainName -and $file.Key.Extension -eq '.crt')
             {
@@ -485,7 +487,7 @@ Begin
             if (-not $OcspConfig -and
                (ShouldProcess @WhatIfSplat -Message "Creating OCSP configuration." @VerboseSplat))
             {
-                $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection.CreateCAConfiguration($CACommonName, ([System.Security.Cryptography.X509Certificates.X509Certificate2] "C:\inetpub\wwwroot\$CACommonName.crt").RawData)
+                $OcspConfig = $OcspAdmin.OCSPCAConfigurationCollection.CreateCAConfiguration($CACommonName, ([System.Security.Cryptography.X509Certificates.X509Certificate2] "$PhysicalPath\$CACommonName.crt").RawData)
             }
 
             #############
@@ -503,9 +505,7 @@ Begin
             $DeltaUrls = @()
 
             # Get crl files
-            # FIX
-            # use localhost
-            foreach($file in Get-Item -Path "C:\inetpub\wwwroot\*$CACommonName*.crl")
+            foreach($file in Get-Item -Path "$PhysicalPath\$CACommonName*.crl")
             {
                 if ($file.Name -notmatch '\+')
                 {
@@ -923,7 +923,7 @@ Process
             $CACommonName = $Using:CACommonName
 
             $HostName = $Using:HostName
-            $ShareName = $Using:ShareName
+            $PhysicalPath = $Using:PhysicalPath
             $ShareAccess = $Using:ShareAccess
 
             $OCSPCAConfig = $Using:OCSPCAConfig
@@ -1013,8 +1013,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkVRiFWGWX52tamrAgTNDKvMx
-# 06iggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUD3+ariwkJDcaY4of5dVlEvTD
+# FvGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1098,28 +1098,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUTS4kFTEAlj3tYamuat67kh39Dy8wDQYJ
-# KoZIhvcNAQEBBQAEggIADZKfzWkLK1mZ/+LP1bdfat/XLCn0vS8Gc8SrfG5sEmmy
-# Zp17LUXi/lckDbYo5T4qbzbjyDCXqwLXM3uMMn8gguo7v1sVQEtmpmcCb5tFnXGN
-# pMFsK1nrqpVNLCAi6gSaeIzcZhziQl5jE386fwCnxPits9AugAK2IYS8d4kZjeWk
-# wkZQSx+jFDO/S3cUUH3dUR7Ts4b7LrGE/L0lQ/6cNWhpzActFjpw4ctJs8COC8IP
-# fJB8fBqWvUEFQKceU5avyiRU1uoa9teD3BOr1WSpVY4mQTHJ7YTfCub+GL9iiRit
-# lGj3BJ9U09Lf4W0vMvU+PXvSlFF684rL1FthHraHvSjXpOPbZc5OW+OX3owemzG7
-# r9O2f70zWq88OA57lcEWbFdLJlH0w8V/NUo1C54o3h24wOhyIEOnW6ZMNE0+2PQC
-# MJvXlExvSYHf3wcIHQ5uNSKVgnGfT0zafwChSFqp9l78eH7nYiCCLxUHpqd07Qg4
-# 4PkJT4FSo0V8xOcO+Lz7hkOgPAC4tn7h9rWe9N46wJ5cd/3dOdTSwwYjiHr+ybNi
-# wZMF16OZ0BbwdLadfnx26XdfikibJIKPywmN4FE+sVdYzhD55G0Fu0nSsmwRcUQf
-# i7yP3Pc4uvNcvJELsqFchSsUYbxqXKbqln4Tp2zMpSxkbm9JVru+ZXg9KIEMrZKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUez9aa0ZnW1ImHVw1e35Wrm0fzh0wDQYJ
+# KoZIhvcNAQEBBQAEggIAdxQbAyRyiEwN+kNO0yFN3U2emBwLaSunQB18L+xexCi8
+# /GASg9D7IPbctSF5RslGKecF2zWgpe11znOVp1O6oUNjvYj4BwX5+K3i3S1uzSjn
+# VhAOvovydQSqml5pa31QtvuXRH+7857Y+EL4+KqptuY8HL2684POtgNXriNyJQqX
+# 1NCaYyjavs1xFLLUaHAqlZGax6mcxFzR8IquEHhSIqfjzK7Vm9/HD7V8MBh05+yl
+# J4KL5ReUzC1nLA10KM2gJI2rD+Vs3mae9dxh0R3i8Sq3abDHZNoBqrYUIIrc58MB
+# OTFkMnb1flN2TrTqYi0PfFtecdNukAKHClYHe5MZZaVbTUxBxviyLqx8Quz2/njT
+# rIrP7G45rF/TUg9wRChCLgvig3d4LSpGc4j8yj6Q2gsl4zAGeyJyii8yvmye2qD6
+# DRFPnK9s6JJhpuWKob47wT7ejKYhi3bvWhy95U18YxB2ZCJtnJ66TL+ouvKZCUjL
+# TDAexOCn/p9+45BOXdw5+bq1txjenHN+YwxVaO/vLT6aFy9/SM4T28mOjxfd3Qx2
+# 7ocOj0htXlZFq98DIRWuQFg7wM3RUkb5YlVeeJuMofTaiOg0mTu/wDnkyj+vk7T/
+# 3pWTukSeG1ue+2O+cAffbNcC9zCRMWIt9ZUpCfblftILJ0OGHsgxPkh4vBPRYMCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDQyOTE0MDAwNVow
-# LwYJKoZIhvcNAQkEMSIEIPqquR2sHjo9SBZgDrg4YFoIwvu+IbSH+FIGXghTciZA
-# MA0GCSqGSIb3DQEBAQUABIIBALD7YxBiAH5OIX7M9VL8MehkkQH8+KTAyH1IdyMd
-# eTcD+UbwjBCa6fEbpjlrkDORPcyUPXx/ID/MZiMk1ms4zHvuXYWQfKkOcJNfoPAr
-# ZG0hDL0DAtAkH0Fes8yFsU05mwdwgGc+T0GiX7cWYjFVbxATjjZPp78iwxLaYnXt
-# E3cE0OHp/6s/qLgJbnJSCvKvR2ZXKzrZh+TbuAQJh3dvf48o/4ax1oNSarHLIanU
-# IbHIoofTHrWRbH/QjVViwi5WP72x3YoA4KABiuIEKMSplLsnyhVevNQrPSHpwEqG
-# JLLGVGvrihMzQN0YS/uZPiZZqxZjjQtziVsp73CfG1MUqFs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDQyOTIwMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIE8/WpPk2hgatc5QA2GP5iEkaHHOwwIRPO35jEKFtEEv
+# MA0GCSqGSIb3DQEBAQUABIIBACexVVhPiGOR1VktM/xYj24vgockMmQVhCdbgosN
+# DzDg0oRewYMjcoaC7fAoTvY0jetZRoSNtvCSde3A2W6Bfs93pzqkunVOUS2v1sxr
+# elFth7mSGPKbLa5aQxkGc+QSUSmpWbYah0HIvdEoO3LdtSJCg6frdQEv9jhTllR3
+# TopRfBd5bPU1d3TvA7XUXigXqSdw98Y+bRUTRINtdrZdesn4yrrgIuAUI5qGwNVn
+# 8CbuzHMqlN64CDCXi0Ke9ZzPlZ2nGlbvk8KB/8WMksCCCKNekUeBUMZC6cs4f+iU
+# +8LHIwssGE3z2CrjKckDJi7V0TUqiz6w1GLgZ6CpW8QpxF4=
 # SIG # End signature block
