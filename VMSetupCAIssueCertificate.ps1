@@ -24,7 +24,7 @@ Param
 
     # Certificate common name
     [Parameter(Mandatory=$true)]
-    [String]$CommonName,
+    [String]$CsrFilePath,
 
     [String]$ValidityPeriodUnits,
     [ValidateSet('Years', 'Weeks', 'Days', 'Hours', 'Minutes')]
@@ -71,21 +71,16 @@ Begin
     # Get files
     ############
 
-    # Initialize
-    $CARequestFile = @{}
-
     # Check if certificate request exist
-    if (Test-Path -Path "$PSScriptRoot\*$CommonName*.csr")
+    if (Test-Path -Path $CsrFilePath)
     {
-        # Get last request file
-        $RequestFile = Get-Item -Path "$PSScriptRoot\*$CommonName*.csr" | Sort-Object | Select-Object -First 1
-
-        # Get request content
-        $CARequestFile.Add($RequestFile.Name, (Get-Content -Path $RequestFile.FullName -Raw))
+        $CsrFile = Get-Item -Path $CsrFilePath
+        $CsrFileBaseName = $CsrFile.BaseName
+        $CsrFileContent = Get-Content -Path $CsrFile.FullName -Raw
     }
     else
     {
-        Write-Warning -Message "Can't find `"$CommonName.csr`", aborting..."
+        Write-Warning -Message "Can't find `"$CsrFilePath`", aborting..."
         break
     }
 
@@ -98,130 +93,129 @@ Begin
 
     $MainScriptBlock =
     {
-        # Itterate request file
-        foreach($file in $CARequestFile.GetEnumerator())
+        ##################
+        # Validity period
+        ##################
+
+        # Define restart of service
+        $Restart = $false
+
+        if ($ValidityPeriodUnits)
         {
-            ##################
-            # Validity period
-            ##################
+            # Get current value
+            $CAValidityPeriodUnits = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriodUnits')
 
-            # Define restart of service
-            $Restart = $false
+            # Set new value
+            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+        }
 
-            if ($ValidityPeriodUnits)
+        if ($ValidityPeriod)
+        {
+            # Get current value
+            $CAValidityPeriod = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriod')
+
+            # Set new value
+            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+        }
+
+        if ($Restart)
+        {
+            Restart-CertSvc
+        }
+
+        #######
+        # Save
+        #######
+
+        Set-Content -Path "$env:TEMP\$CsrFileBaseName.csr" -Value $CsrFileContent -Force
+
+        #########
+        # Submit
+        #########
+
+        if (ShouldProcess @WhatIfSplat -Message "Submiting requestfile `"$CsrFileBaseName.csr`"." @VerboseSplat)
+        {
+            $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$CsrFileBaseName.csr" "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction SilentlyContinue
+
+            # Get request id
+            $RequestId = $Response[0] | Where-Object {
+                $_ -match "RequestId: (\d*)"
+            } | ForEach-Object { "$($Matches[1])" }
+
+            if (($Response -join '') -match 'Taken Under Submission')
             {
-                # Get current value
-                $CAValidityPeriodUnits = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriodUnits')
+                #########
+                # Isssue
+                #########
 
-                # Set new value
-                $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
-            }
-
-            if ($ValidityPeriod)
-            {
-                # Get current value
-                $CAValidityPeriod = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriod')
-
-                # Set new value
-                $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
-            }
-
-            if ($Restart)
-            {
-                Restart-CertSvc
-            }
-
-            ######
-            # Save
-            #######
-
-            Set-Content -Path "$env:TEMP\$($file.Key)" -Value $file.Value -Force
-
-            #########
-            # Submit
-            #########
-
-            if (ShouldProcess @WhatIfSplat -Message "Submiting requestfile `"$($file.Key)`"." @VerboseSplat)
-            {
-                $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$($file.Key)" "$env:TEMP\$CommonName-Response.cer" } -ErrorAction SilentlyContinue
-
-                # Get request id
-                $RequestId = $Response[0] | Where-Object {
-                    $_ -match "RequestId: (\d*)"
-                } | ForEach-Object { "$($Matches[1])" }
-
-                if (($Response -join '') -match 'Taken Under Submission')
+                if (ShouldProcess @WhatIfSplat -Message "Issuing request $RequestId." @VerboseSplat)
                 {
-                    #########
-                    # Isssue
-                    #########
-
-                    if (ShouldProcess @WhatIfSplat -Message "Issuing request $RequestId." @VerboseSplat)
-                    {
-                        # Issue certificate
-                        TryCatch { certutil -resubmit $RequestId } -ErrorAction Stop > $null
-                    }
-
-                    ##########
-                    # Retrive
-                    ##########
-
-                    if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
-                    {
-                        # Get certificate
-                        TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CommonName-Response.cer" } -ErrorAction Stop > $null
-                    }
-                }
-                elseif ((($Response) -join '') -notmatch 'Certificate retrieved')
-                {
-                    Remove-Item -Path "$env:TEMP\$CommonName-Response.rsp" -Force
-                    throw $Response
-                }
-                else
-                {
-                    Write-Verbose -Message "Issued certificate with RequestId = $RequestId" -Verbose
-                }
-            }
-
-            ##################
-            # Validity period
-            ##################
-
-            if ($Restart)
-            {
-                # Restore previous settings
-                if ($CAValidityPeriodUnits)
-                {
-                    Set-CASetting -Key 'ValidityPeriodUnits' -Value $CAValidityPeriodUnits
+                    # Issue certificate
+                    TryCatch { certutil -resubmit $RequestId } -ErrorAction Stop > $null
                 }
 
-                if ($CAValidityPeriod)
-                {
-                    Set-CASetting -Key 'ValidityPeriod' -Value $CAValidityPeriod
-                }
+                ##########
+                # Retrive
+                ##########
 
-                Restart-CertSvc
+                if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
+                {
+                    # Get certificate
+                    TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction Stop > $null
+                }
+            }
+            elseif ((($Response) -join '') -notmatch 'Certificate retrieved')
+            {
+                Remove-Item -Path "$env:TEMP\$CsrFileBaseName-Response.rsp" -Force
+                throw $Response
+            }
+            else
+            {
+                Write-Verbose -Message "Issued certificate with RequestId = $RequestId" -Verbose
+            }
+        }
+
+        ##################
+        # Validity period
+        ##################
+
+        if ($Restart)
+        {
+            # Restore previous settings
+            if ($CAValidityPeriodUnits)
+            {
+                Set-CASetting -Key 'ValidityPeriodUnits' -Value $CAValidityPeriodUnits
             }
 
-            #########
-            # Return
-            #########
+            if ($CAValidityPeriod)
+            {
+                Set-CASetting -Key 'ValidityPeriod' -Value $CAValidityPeriod
+            }
 
-            # Initialize result
-            $Result = @{}
+            Restart-CertSvc
+        }
 
-            # Get response file
-            $ResponseFile = Get-Item -Path "$env:TEMP\$CommonName-Response.cer"
+        #########
+        # Return
+        #########
 
+        # Initialize result
+        $Result = @{}
+
+        # Get response file
+        $ResponseFile = Get-Item -Path "$env:TEMP\$CsrFileBaseName-Response.cer" -ErrorAction SilentlyContinue
+
+        if ($ResponseFile)
+        {
             # Add file to result
             $Result.Add($ResponseFile, (Get-Content -Path $ResponseFile.FullName -Raw))
 
             # Return
             Write-Output -InputObject $Result
-
-            # Clear temp
-            Remove-Item -Path "$env:TEMP\*$CommonName*" -Force
         }
+
+        # Clear temp
+        Remove-Item -Path "$env:TEMP\$CsrFileBaseName*" -Force
     }
 }
 
@@ -269,8 +263,8 @@ Process
             $Force        = $Using:Force
 
             # Mandatory parameters
-            $CommonName = $Using:CommonName
-            $CARequestFile = $Using:CARequestFile
+            $CsrFileBaseName = $Using:CsrFileBaseName
+            $CsrFileContent = $Using:CsrFileContent
 
             $ValidityPeriodUnits = $Using:ValidityPeriodUnits
             $ValidityPeriod = $Using:ValidityPeriod
@@ -327,9 +321,6 @@ Process
                 # Move to script root if different
                 Copy-DifferentItem -SourcePath "$env:TEMP\$($file.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($file.Key.Name)" @VerboseSplat
             }
-
-            # Remove request
-            Remove-Item -Path "$PSScriptRoot\*$CommonName*.csr"
         }
         else
         {
@@ -350,8 +341,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURKIx3L01DAft1UtS0SZBn+eg
-# LM+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNc84JvKHxFdTo8W/0CznV1Me
+# rjSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -435,28 +426,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeEbZCDpmlV6Xm/Lh3Kmbo06XuE8wDQYJ
-# KoZIhvcNAQEBBQAEggIAfPbl+G3R0i5nJkcUIfjkEjBtdot/udajm5z2kpckqlkE
-# 1ILgNqe8AYO70P80SW9gchmUOkln7fosJtX8QvCxcO6X5B00qDUup0w8MjDWiTrN
-# j6csj5xpIn7bocKiWbxQceQcF+xtOQO+yWwy2uVs1gQlvYDN2HscFbsrRJ8xiATr
-# D4o32LW1tjWwi7n75NJWriyZVWk3+vw4RdWNXfDncLUofRRqIUDkplt6g9/ry8U0
-# Ir5wpsyGDI8LW4pBvS6zsQVjrw2AcTkTCUYkTlBCvgf5fOH9uIMReLzkVYkVSWKa
-# EZCE6/xYsqPDb3kSFc0E2HrTyFVhFHPBb9hGcsuJM7yNptywuZZ8bGO1VUpzhq0Y
-# s/6XHVP52jxF3qQl0NgbBONGY48Kyd888leB5umV9zIqf2/utiZzEgDhW2MrRMZ6
-# Rjo08CDIWxmk1xOjbvmyssmNwBVcpaxIn134ZSsB0vDUE/Fc4mqeke8Tv0P7UL6L
-# J1KLY7WLvlCDeqSMgkXfVvJsQLNHI7xCNj0migmiitSWdh7g8odAfjHZKZFT3OuV
-# 5+brbgCwyR/YnWEVmiwFmSzWggE47UoBBdj7YyklckeFwpU7arnQlXZF1sDZK6d0
-# Nr3LbRIrXH1ecRPYVouhDSH8JwcV/JZqMMFYpyw3gnXDVqBVfIS19FL9zSL3OFuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUa28N6Ch9WZwHX9sZrvhiASI1tJ4wDQYJ
+# KoZIhvcNAQEBBQAEggIASFCtaLfoHSC/EkUQ2Cnns3C6jKkCy/M0mYF92dv+i4/4
+# AClykgzmKFttrEcvVX2yPVjfuTBj7u3e63PPNTzDk8J8TZy9Q2T5dNbLwwjbvh/U
+# Wwaw+xZAP4qeGHQqfmL6DrMranFL6IntGATgcC+xYfXRPdouD/mWqBsUQ+TDMeYF
+# kyWdO7f14Qj52eyq6VheUfKWJKARxAEu6rnq4ZC466L6M9XjWFOU5O4PYQ3N1WMW
+# LE85AvWkxCnd2S0HfG5YkTTPYxNmdxqIwkcRAPaOdzSpWOZH/fXExGWOiuwCRqMR
+# S9NibuPBmkzNrz2hxBRCBO72OzPT6VYk1WQqQDT4ydNboacMXunCFckrwJoePPMP
+# IElSAHbV/JDLAryUik759ugzgoDwt3qx7tlBWs6DhYVeHFSGag29gcRrqdheDnMH
+# 5RGQRsgApoBewIxPhoIzaspSrA2GL3rIhldmu8q2ttNjxfKdVeWwPPCq9KP5fr3s
+# Lh1Jb+Hvg3W7++2gTAfAzIFmH4W/Y57OcGwxD+EgqrhLR/Xy42aKb2uiCkqN6B04
+# wL7HogyS7OIU2xzldUGyWzPxiOszz4pnuAkJOJgRJEaAra9yrmDiRiIk+oE3p2tP
+# 6ABm87R6f2Qrh1Xjg1wJZ2nGvd376zbxTDCyUyloftaT0yP57ov0yLG81j+uxhOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMyNTExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIPwa6rCPFzlAXgqkdtZkzcDRDFEih7E01o/cYOKnwEOD
-# MA0GCSqGSIb3DQEBAQUABIIBAINQJuiQ3+7erzmqfAUkBiUdKIYwmIdhyCyfq9lV
-# HKeLUWok50KAMNp0vJYmPb5mBHDwFlT4amISksi+m3ifFzXBiCAipQOSiHo+o0Mw
-# wJnH5yGQExAjGxHMKhPY5Dmds28gGownQ601gJRDYnTLZAufKcFbLEvcMrMRQm2D
-# S3+mSD0/EoXoYRbMxDdqL5cTRvVMU8/Z26uQfTsM4PQIEHkMp+bpp/2NlUvJ7hqI
-# WG6oD0NSslnkDL1tkx0LxiyPnrsjq4hwEUm6ja2fy2rZsMpQKHeZvfTPzvnw0FsW
-# B7oyamVZYzSP1NwysG8WghowysgoWCJwZBD84W19pNJjgWM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUxMzIwMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIBWPO1vy+OGsq+kA/q9uLFiFm1nyCiRwGxNbTehRxVwS
+# MA0GCSqGSIb3DQEBAQUABIIBAINJympq8+YK+hinbcIlmXameQ2XUp/XPncGWv9K
+# MExVikK1INZyajT1PsZQ500SCPLCMVwmsBEk1fAXMIch8ThjgB2cKF0usZG0hZtJ
+# Y2OP5deSAtsKqdV5mlD+fQTsi5j9c1JBwK7F8+t2VnJP3n7HciMAE6cKkwvxNbc7
+# b1InvsMUYdhKA08d4+3Dpnqyzf0BRCFkQMj9ylRIb+8k3MuGqbi3UE2hLwgmehez
+# 0lNPlmB13Mb8OfRWJXrnvyJkwmwSVBeqboEeMuQKaNrqIDra4F7iT8u0CAZcairV
+# SDYjVrD3J+utZgEiGI6U5ANS3Cm8iILb9+JmIJu23/SVU1s=
 # SIG # End signature block
