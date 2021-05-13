@@ -390,25 +390,6 @@ Begin
         $CAType = 'StandaloneSubordinateCA'
     }
 
-    ###########
-    # CertFile
-    ###########
-
-    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
-    {
-        $CACommonName = $CertFile.BaseName
-        $CertFile = Get-Content -Path $CertFile -Raw
-    }
-
-    #######################
-    # CertKeyContainerName
-    #######################
-
-    if ($CertKeyContainerName -and -not $CACommonName)
-    {
-        $CACommonName = $CertKeyContainerName
-    }
-
     ######################
     # Get parent ca files
     ######################
@@ -417,12 +398,13 @@ Begin
     $ParentCAFiles = @{}
     $ParentCAResponseFile = $null
 
-    if ($CAType -match 'Subordinate')
+    if ($PsCmdlet.ParameterSetName -match 'NewKey.*Subordinate')
     {
         # Itterate all parent ca files
         foreach($file in (Get-Item -Path "$PSScriptRoot\$ParentCACommonName*"))
         {
             if ($file.Name -notmatch 'Response' -and
+                $file.Name -notmatch '.csr' -and
                 $file.Name -notmatch '.req')
             {
                 # Get file content
@@ -431,9 +413,9 @@ Begin
         }
 
         # Check crt
-        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crt'}))
+        if (-not $ParentCAFiles.GetEnumerator().Where({$_.Key.Name -match '.crt' -or $_.Key.Name -match '.cer'}))
         {
-            throw "Can't find `"$ParentCACommonName`" crt, aborting..."
+            throw "Can't find `"$ParentCACommonName`" crt/cer, aborting..."
         }
 
         # Check crl
@@ -443,7 +425,7 @@ Begin
         }
 
         # Check response file
-        $ParentCAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.crt" -ErrorAction SilentlyContinue
+        $ParentCAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.cer" -ErrorAction SilentlyContinue
 
         if ($ParentCAResponse -and
             (ShouldProcess @WhatIfSplat))
@@ -454,6 +436,15 @@ Begin
             # Remove response file
             Remove-Item -Path $ParentCAResponse.FullName
         }
+    }
+
+    ###########
+    # CertFile
+    ###########
+
+    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
+    {
+        $CertFile = Get-Content -Path $CertFile -Raw
     }
 
     #################
@@ -575,7 +566,7 @@ Begin
             $DomainName = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty Domain
             $DomainNetbiosName = Get-CimInstance -ClassName Win32_NTDomain | Select-Object -ExpandProperty DomainName
         }
-        elseif ($CAType -match 'Enterprise')
+        elseif ($ParameterSetName -match 'Enterprise')
         {
             throw "Must be domain joined to setup Enterprise Subordinate CA."
         }
@@ -587,6 +578,17 @@ Begin
         if ($DomainName)
         {
             $BaseDn = Get-BaseDn -DomainName $DomainName
+        }
+
+        ###########
+        # Check CN
+        ###########
+
+        if (-not $CACommonName)
+        {
+            $CACommonName = TryCatch { certutil -getreg CA\CommonName } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "CommonName REG_SZ = (.*)$"
+            } | ForEach-Object { "$($Matches[1])" }
         }
 
         #####################
@@ -773,7 +775,7 @@ AlternateSignatureAlgorithm=0
         # ██║  ██║╚██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗██║  ██║   ██║   ██║██║     ██║╚██████╗██║  ██║   ██║   ███████╗
         # ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
 
-        if ($CAType -match 'Subordinate')
+        if ($ParameterSetName -match 'Subordinate')
         {
             #############
             # Get hashes
@@ -998,7 +1000,7 @@ AlternateSignatureAlgorithm=0
                     Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, using default suffix."
                 }
 
-                if ($CAType -match 'Root')
+                if ($ParameterSetName -match 'Root')
                 {
                     $ADCSCAParams +=
                     @{
@@ -1007,9 +1009,9 @@ AlternateSignatureAlgorithm=0
                     }
                 }
 
-                if ($CAType -match 'Subordinate')
+                if ($ParameterSetName -match 'NewKey.*Subordinate')
                 {
-                    $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName.req")
+                    $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName.csr")
                 }
             }
 
@@ -1030,7 +1032,7 @@ AlternateSignatureAlgorithm=0
                     Install-AdcsCertificationAuthority @ADCSCAParams -Force > $null
                 }
 
-                if ($CAType -match 'Root')
+                if ($ParameterSetName -match 'Root')
                 {
                     # Give CA some time to create certificate and crl
                     Start-Sleep -Seconds 3
@@ -1045,9 +1047,9 @@ AlternateSignatureAlgorithm=0
             }
             finally
             {
-                if (Test-Path -Path "$env:TEMP\$CACommonName.p12")
+                if ($CertFile -and (Test-Path -Path "$env:TEMP\CertFile.p12"))
                 {
-                    Remove-Item -Path "$env:TEMP\$CACommonName.p12"
+                    Remove-Item -Path "$env:TEMP\CertFile.p12"
                 }
             }
         }
@@ -1059,19 +1061,19 @@ AlternateSignatureAlgorithm=0
         #  ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗╚██████╗███████╗██║  ██║   ██║
         #  ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝
 
-        if ($CAType -match 'Subordinate')
+        if ($ParameterSetName -match 'NewKey.*Subordinate')
         {
             # Check if parent CA certificate request exist
-            if (Test-Path -Path "$CertEnrollDirectory\*.req")
+            if (Test-Path -Path "$CertEnrollDirectory\*.csr")
             {
                 # Check if response file exist
                 if ($ParentCAResponseFile -and
                     (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
                 {
-                    Set-Content -Path "$CertEnrollDirectory\$CACommonName-Response.crt" -Value $ParentCAResponseFile
+                    Set-Content -Path "$CertEnrollDirectory\$CACommonName-Response.cer" -Value $ParentCAResponseFile
 
                     # Try installing certificate
-                    TryCatch { certutil -f -installcert "`"$CertEnrollDirectory\$CACommonName-Response.crt`"" } -ErrorAction Stop > $null
+                    TryCatch { certutil -f -installcert "`"$CertEnrollDirectory\$CACommonName-Response.cer`"" } -ErrorAction Stop > $null
 
                     Restart-CertSvc
 
@@ -1079,8 +1081,8 @@ AlternateSignatureAlgorithm=0
                     Start-Sleep -Seconds 3
 
                     # Cleanup
-                    Remove-Item -Path "$CertEnrollDirectory\*.req"
-                    Remove-Item -Path "$CertEnrollDirectory\$CACommonName-Response.crt"
+                    Remove-Item -Path "$CertEnrollDirectory\*.csr"
+                    Remove-Item -Path "$CertEnrollDirectory\$CACommonName-Response.cer"
                 }
                 else
                 {
@@ -1128,7 +1130,7 @@ AlternateSignatureAlgorithm=0
                     # Add OCSP url
                     $CACertPublicationURLs += "\n32:http://$OCSPHostName/ocsp"
                 }
-                elseif ($CAType -match 'Subordinate')
+                elseif ($ParameterSetName -match 'Subordinate')
                 {
                     if ($DomainName)
                     {
@@ -1274,7 +1276,7 @@ AlternateSignatureAlgorithm=0
             # Standalone
             #############
 
-            if ($CAType -match 'Standalone')
+            if ($ParameterSetName -match 'Standalone')
             {
                 # Check if DSConfigDN should be set
                 if ($AddDomainConfig)
@@ -1284,7 +1286,7 @@ AlternateSignatureAlgorithm=0
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
 
-                if ($CAType -match 'Subordinate' -or $OCSPHostName)
+                if ($ParameterSetName -match 'Subordinate' -or $OCSPHostName)
                 {
                     # Enable ocsp extension requests
                     $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
@@ -1298,7 +1300,7 @@ AlternateSignatureAlgorithm=0
             # Enterprise
             #############
 
-            if ($CAType -match 'Enterprise')
+            if ($ParameterSetName -match 'Enterprise')
             {
                 # Add logging for changes to templates
                 $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
@@ -1318,7 +1320,7 @@ AlternateSignatureAlgorithm=0
         # Standalone Auditing
         ######################
 
-        if ($CAType -match 'Standalone')
+        if ($ParameterSetName -match 'Standalone')
         {
             # Check auditing
             if ((((auditpol /get /subcategory:"Certification Services") -join '') -notmatch 'Success and Failure') -and
@@ -1332,7 +1334,7 @@ AlternateSignatureAlgorithm=0
         # Enterprise Templates
         #######################
 
-        if ($CAType -match 'Enterprise' -and $PublishTemplates.IsPresent)
+        if ($ParameterSetName -match 'Enterprise' -and $PublishTemplates.IsPresent)
         {
             # Get AD templates
             $ADTemplates = TryCatch { certutil -ADTemplate } -ErrorAction SilentlyContinue | Where-Object {
@@ -1480,9 +1482,10 @@ Process
         Invoke-Command -Session $Session -ScriptBlock `
         {
             # Common
-            $VerboseSplat = $Using:VerboseSplat
-            $WhatIfSplat  = $Using:WhatIfSplat
-            $Force        = $Using:Force
+            $VerboseSplat     = $Using:VerboseSplat
+            $WhatIfSplat      = $Using:WhatIfSplat
+            $Force            = $Using:Force
+            $ParameterSetName = $Using:PsCmdlet.ParameterSetName
 
             # Standalone/Root/Enterprise/Subordinate
             $CAType = $Using:CAType
@@ -1649,8 +1652,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULmmnvVw5KTvrkrWH4VpF+rrI
-# m5Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbZ6uGJiNg9dAaU/JlMsEaPrc
+# e3uggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1734,28 +1737,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUu7sMGEM0CCtDAj10hXT3mBlUG7cwDQYJ
-# KoZIhvcNAQEBBQAEggIAH+Jdi9GBmSI4VgbEp8XXraYQEoWqzQJOMj7Ny1rYcLrZ
-# h4nFS2WHe5QWYiJgsjWYH0BvEYK49P0g02fH88N+XDbKzmA+KgcRk0tyF7Y07Qhm
-# gNGeqAm8Rev9Qfj1hR3CLonsrL8rQDXFVH0/lxOZFYAa8fHN1Sgk7axkf32/McbX
-# WiN3axVVT/pdKd6G/737bN1j4ZF0CCoUsRI69Hgq5Hu8VOdVWpv8KHDtzLUl8ikW
-# Tc6V+XaGlX2KZXU3U5KVjcNAMr+7dOAc0PSZJSsiMKZzhKEEbrP8aUvYPKjwb9yc
-# TJYq/JKQ8VU3uAwXtygDuRuo3wM91vsw8Nh6TyS1rkc/351LEIjH+gojqgn84sLM
-# bZUHl3Wi3eDE3VHlyt2AmFeDyZ4GJn2k4l8WWeIx12DkhnMhQqxGESQ4aUqLiVm+
-# FoKUxpFMFzoveRhHr4fFwifeC91AcGuTUvOkyTDLELvFEiYUBSGHGSfyB9EW7Vyk
-# /l7vElp/G7vAOvoyOzq72vf8YlH362FUpZ3zaAJP/XMNE1i0ZvIwsjP7pGQfSp0l
-# CXB6Q62W+HoYVF2C2VJjUSNPsdOvJyih8tbK+qNzVEw4RDx/rL7+cmJAoFZNojDZ
-# G4b2FAW3Y44M+emCu85HFp2dJmcW718EkyvSMTsnXjBZWxKaAX7Zv0a94iK/aCSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUEpw1FH5A6S/AEZOk1h7cGK8Z+W4wDQYJ
+# KoZIhvcNAQEBBQAEggIAkNkR3d4VlHdIMjJK/vn+r/CbXgssPp/78Tv9y0eBWMCU
+# 5mL7h+Ij9ntpTqO6VqmDFI0Z22xR3DFJw/o1d6esHVfeafIBdJyL+7urncbj5bQ8
+# byKDQW0VklwTan7XEQZhzrbccKL5X795FmxPYoeY8F90oKQUsWrkGwEQYIB75AOv
+# ZBp1C7XZqn5DXIpxOsEWN5IMjL1qIna9n6lyR3P4TA5DMATqVK4Y28ALIcKSs/m7
+# 9RoJJLq+GY7QasbmeN+mDHUeKmRdLa7kLK6nXtPt7tfJ/i0SVIgkRsIZ4WlBZz48
+# eKx19Zt3x8fU7nKKDukNW6OvboX/+w/nYYussWa9fVCZZKNjtuuOmiUjwhDBe9t8
+# NIDQrTUmrtN8liItWsc1maFyfwoyx8uO0dZ5miDEJcRItrac1tQBCj3Q7nkykVlg
+# /mVvxQYAZIaxDf23M+SSHDNMi1YF39ncISKsKRnh5vhwdXAgEJPSUB0QrRA62eGS
+# iq6kdIZ65ByiKCFHCjzaZ8DfxwDLCep9dtPi8nQ2TrLcg9ouRd6e+11c5/9kjcDa
+# PkVnltizE0e1X868qXFgCYOcro5wyOYMmZKiD0icSJc8FWrc/D8hQQU4vgL6nzv4
+# NMijhLc/iwxCY3fEDFMYe4EER1ZGZm6aq+PNMYKUt48Cvi7n1C6gZ9xzXLE+kqih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMyMDIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIFIJeV873SHgh1+Xlspyg+et7+8opa5rVwvDpCdMDGxX
-# MA0GCSqGSIb3DQEBAQUABIIBADHBSTOx4mJw/PyRyDeXbC4yvyv/mE/PPhq9jdM2
-# VbOLMIZu10tgz6CSWAppN2nvbmaPgeFVf/icwXT20lMC5/V9l3efPNpeZXUUrgaZ
-# 6jKjBEPRXoqfNz/ktts3rcJBwUyJvkZZiY0fPy26GH72FanLfpIjV65F1my2vPy+
-# vRLmmd4vIUF0TzE9ty8c1Ef+LSZcyv0Kvo3ZljxPQBmZDkG8DWLqUgb9RhU0wV4p
-# kjUSZRbvXx6HRIbZPpE/Em6ZNqrHqyr7lG/M91Zsddy9X33w6/zlCcx3G5TjFT7a
-# FHOq7SDfjygnb3XYKXLTQqIBhbXZaOMURQlp26JByS+73bU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUxMzAyMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIOwbvUT6qQ0LVWAXgv9aM16s29LNNqTG8IIImiqJs6CR
+# MA0GCSqGSIb3DQEBAQUABIIBABvvA4d6NiUQywBLbUyVxjKcb98h+hHGvRtPQIoc
+# TF3VDmrr33BbnA/dMXq+vRf3eBSCS6AyWU0VCihgWJiLJ58zveZVSgcDgqWIPaAf
+# NRQwDv7C2clAWRaEF5gSrltkAKmg28cP1Hz8EtETxjzFpieYyphRxUDbIkT6Dh2H
+# uvBeDFKmn41adj3YdizDMCNyzrNKNsUzQOPd+ST3dOpac9YgmmeLp6vkj9rRC+kE
+# 9MCi+DuYdd+MoaHZLsU/epmObyuaP1E75YYt6gSYF2uYyNBNfcPj4yKwDYE9Dm0K
+# WnuH9FV559GLrnwHfoI6ynK3fx0FuOPc3Ae39Jr44Mb73I4=
 # SIG # End signature block

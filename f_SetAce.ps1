@@ -17,45 +17,48 @@ function Set-Ace
         [array]$AceList
     )
 
-    $Acl = Get-Acl -Path "AD:$DistinguishedName"
+    $Acl = Get-Acl -Path "AD:$DistinguishedName" -ErrorAction SilentlyContinue
 
-    foreach($Ace in $AceList)
+    if ($Acl)
     {
-        # Check permission
-        if (-not ($Acl.Access | Where-Object { $_.AccessControlType -eq $Ace.AccessControlType -and
-                                               $_.ActiveDirectoryRights -eq $Ace.ActiveDirectoryRights -and
-                                               $_.InheritanceType -eq $Ace.InheritanceType -and
-                                               $_.IdentityReference -eq $Ace.IdentityReference -and
-                                               $_.ObjectType -eq $Ace.ObjectType -and
-                                               $_.InheritedObjectType -eq $Ace.InheritedObjectType }) -and
-
-            (ShouldProcess @WhatIfSplat -Message "Adding `"$($Ace.ActiveDirectoryRights)`" access to `"$($Ace.IdentityReference)`" for `"$($Acl.PSChildName)`"." @VerboseSplat))
+        foreach($Ace in $AceList)
         {
-            # Create entry
-            $Ace = New-Object -TypeName System.DirectoryServices.ActiveDirectoryAccessRule -ArgumentList `
-            @(
-                [System.Security.Principal.NTAccount] $Ace.IdentityReference,
-                [System.DirectoryServices.ActiveDirectoryRights] $Ace.ActiveDirectoryRights,
-                [System.Security.AccessControl.AccessControlType] $Ace.AccessControlType,
-                <# ObjectType #> $Ace.ObjectType,
-                [System.DirectoryServices.ActiveDirectorySecurityInheritance] $Ace.InheritanceType,
-                <# InheritedObjectType #> $Ace.InheritedObjectType
-            )
+            # Check permission
+            if (-not ($Acl.Access | Where-Object { $_.AccessControlType -eq $Ace.AccessControlType -and
+                                                   $_.ActiveDirectoryRights -eq $Ace.ActiveDirectoryRights -and
+                                                   $_.InheritanceType -eq $Ace.InheritanceType -and
+                                                   $_.IdentityReference -eq $Ace.IdentityReference -and
+                                                   $_.ObjectType -eq $Ace.ObjectType -and
+                                                   $_.InheritedObjectType -eq $Ace.InheritedObjectType }) -and
 
-            # Add entry to list
-            $Acl.AddAccessRule($Ace)
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Ace.ActiveDirectoryRights)`" access to `"$($Ace.IdentityReference)`" for `"$($Acl.PSChildName)`"." @VerboseSplat))
+            {
+                # Create entry
+                $Ace = New-Object -TypeName System.DirectoryServices.ActiveDirectoryAccessRule -ArgumentList `
+                @(
+                    [System.Security.Principal.NTAccount] $Ace.IdentityReference,
+                    [System.DirectoryServices.ActiveDirectoryRights] $Ace.ActiveDirectoryRights,
+                    [System.Security.AccessControl.AccessControlType] $Ace.AccessControlType,
+                    <# ObjectType #> $Ace.ObjectType,
+                    [System.DirectoryServices.ActiveDirectorySecurityInheritance] $Ace.InheritanceType,
+                    <# InheritedObjectType #> $Ace.InheritedObjectType
+                )
 
-            # Set list
-            Set-Acl -AclObject $Acl -Path "AD:$DistinguishedName"
+                # Add entry to list
+                $Acl.AddAccessRule($Ace)
+
+                # Set list
+                Set-Acl -AclObject $Acl -Path "AD:$DistinguishedName"
+            }
         }
     }
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUY486fJZzU+2QYMrERsKcmX9
-# y1yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTcCfvJEkrf4+vELJlVlLzAYL
+# hXOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -136,31 +139,31 @@ function Set-Ace
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURs8xXRs1fK+LAbHUVLGyyQVsYhAwDQYJ
-# KoZIhvcNAQEBBQAEggIAiY3ytuxgbf8TbMJMU1TPsOhRkNgwCJExAh5zpS8xonrB
-# NaDcrfIJtsnJyXqXs+TAx7rUo++xKiuZhwW14/aq5K/VyeffUK2sKcRUnN83iJOW
-# fGifVRdXLGgsGT6mbt0q4o056Wd4gR+CCEplohBknWBdXpZ+BkwKW9RRF2tyuCYX
-# bAU9su5vpdxJJgjWN414bjueD/xAbx9VQvJkZW8Ur/biny8xvEZTiHxkT29gOqsb
-# slsN+ML6Dy/pQtj7rIGdHXV2rFLWCOt3byew6sXBGJfkIyAdL7YBf8LdDU4O75Gn
-# wj8icSGKpTy/Du4SN7UIn/HiylT+5Mtc7yLiByVcP6eFTnkIHhzLGQwjTdNn3xIc
-# FBqqkFFNdM63LlHr7VVSJFB6D2VkWDg78wJ6erYIlmqFrtJocUqY+uMPbLm2gukr
-# 8nOuGZZ2BiKCYX35P5H909vqELub/dHW5Xbe8pyjejNpza7aTQGzCRDGdMZ/KdlL
-# P7t9berq/UVUI77POUc4yzP2ZCAvBxHirIF/zSGp5/3GIbVwIhCmMQskfn2/p9TC
-# M8gCEzALneZekzCYSW8HKq+y+kb7837x3srjhv9t4IXqiqmT5SugRo2tB+UdduS3
-# beRSz3M1jk4I52/kjSxRdt5H6z8f8sPuc2sH5Ka2717yXQ3FCs4CWcDyL4UkjZah
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiiUSLn2u/5GCBA9qKreH+IYUAwkwDQYJ
+# KoZIhvcNAQEBBQAEggIAmwnNwasB1LqEjATchXD0XupyQiK/on2MhCuFeyMZAhLO
+# /D8jL+jY8Uy8B+bbFhIwmxzGOTUUxcEXvmPKNvFSizK81ev+tzBzDLeble6wMg2X
+# 41LCW0y8u05CQO3CVffCuzUflz0uT9kV359CAFN2d5hUSHR045Ds2nXC3s/ZGw5y
+# EoSegaW+zpDeeDQx3KxZ1bbggoRem+b8Uwa/z4Bq0QlWygMiFCNisOcUk72Q4wbt
+# BnZf+XdMb0Cxg84HwsETZkqNQmPKhh/O01mPKUSFu+Z10/IzSQ8iPfyGY8yonG0B
+# CSlpbYaKbpf8Qm+5nvcW6B+6mV1Nj7ifPiJAbw9hPakbBVg6YZxduSKhwc9CGrHa
+# /1BSqZ1OMlt/p9MTj5+ibWyk+Ljx/zOEqlSaP2t8P11XXCpbBHHM1RF+nqqQt9uY
+# ZS/sZiPJiEjLANpp1a+bUY2AuKVe9AKYuhHM9reEGF1o+y6uvj7RHRbRECtyR5/Y
+# znzpEDZHKabpQE/lvd0eqGdCVD3Sll7RrW9icThjhWlRRgtLYtjcjddimN/RSBfa
+# ux5ZLyHydcKb5eiHViAdCQ9dURGYmwH13SLO0P/Pb1qNyud5zGDTLrq7QP5a+SDm
+# iFw7/O3ixALiOyOYENP/uvTX+WACaNw6fjaPwAT/j6Woo11nLa9t5sm2gAkCZb6h
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjA0MjE0NTQyWjAjBgkq
-# hkiG9w0BCQQxFgQUZTeJFTfaAZeKvFqFsxuKq1NHRPQwDQYJKoZIhvcNAQEBBQAE
-# ggEAOrTSG78XuKeXvPBx7blS3o1ivvK2kKgR7y36Nnw11+TdDKq3csejCttl4fj+
-# fwquLPnBXu9JFsRQfjxN370PDqJ/wgfp5/ssd892i6eTQ42J5+pV4LUTkcXZkKtj
-# yu5BnJ80xO7Lx6Y2Vx3UZqubUy/0ac8kEVLSHyD9MvPVOh0W3+O+OMzK/gMBOTPb
-# ZU80Xc7BjSsNyVzMyItWGgly83mkCIOAD6lJGG/3TicNBPiG6K2HO87Lt2D9aryi
-# oBzWNhF07/60X/VyKK/L5ts8bbogBoOkkTxmUDW1nv4lPzei+tZIcqWbbG3DlqTk
-# AhQUELEkYGVwz324rewsy0nb1A==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUxMzAyMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIBhX00x2DwdN/cq73ua2nvhEK0ttKd6uLVD3+VXEFCPK
+# MA0GCSqGSIb3DQEBAQUABIIBAELrcjCmtzx3b/dIO0GqhKagLZjt5r4YgsGd5bFw
+# j1I4MxxWUvb2biVVYNJOKB3NP6Ntg8RC0nqSrY1b2+woCpo41FHOC6HK7RaYxrNI
+# EhLk9r6H8GI4vSLI7sZa9PpeFll1FHKWGpGeBErdxWEDnc5I3/Emp4jJmJNYaTkm
+# 1+ndvScV1ojYf/VS0Q+HP65GQBkQ/Xe7e+Do150JUnJy3cbOfYp4dkJn7ktCWOc/
+# rqRyXaDImCIZu4fDLz6tPr+dy5TWNmFJPNQwScFNifyG3Qc8yxri7FGRnVbeDFyR
+# jfWfg4xkBEDBcDILKVxYVPzgpZl9FJjFaOJ7gI5lZpC7w+c=
 # SIG # End signature block
