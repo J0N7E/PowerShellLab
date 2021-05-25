@@ -1,6 +1,6 @@
 <#
  .DESCRIPTION
-    Issue certificate from CA
+    Enter description
  .NOTES
     AUTHOR Jonas Henriksson
  .LINK
@@ -22,13 +22,9 @@ Param
     $Session,
     $Credential,
 
-    # Certificate signing request
+    # Request Id
     [Parameter(Mandatory=$true)]
-    [String]$CertificateSigningRequest,
-
-    [String]$ValidityPeriodUnits,
-    [ValidateSet('Years', 'Weeks', 'Days', 'Hours', 'Minutes')]
-    [String]$ValidityPeriod
+    [String]$RequestId
 )
 
 Begin
@@ -67,23 +63,6 @@ Begin
 
     } -NoNewScope
 
-    ############
-    # Get files
-    ############
-
-    # Check if certificate request exist
-    if (Test-Path -Path $CertificateSigningRequest)
-    {
-        $CsrFile = Get-Item -Path $CertificateSigningRequest
-        $CsrFileBaseName = $CsrFile.BaseName
-        $CsrFileContent = Get-Content -Path $CsrFile.FullName -Raw
-    }
-    else
-    {
-        Write-Warning -Message "Can't find `"$CertificateSigningRequest`", aborting..."
-        break
-    }
-
     # ███╗   ███╗ █████╗ ██╗███╗   ██╗
     # ████╗ ████║██╔══██╗██║████╗  ██║
     # ██╔████╔██║███████║██║██╔██╗ ██║
@@ -93,129 +72,16 @@ Begin
 
     $MainScriptBlock =
     {
-        ##################
-        # Validity period
-        ##################
-
-        # Define restart of service
-        $Restart = $false
-
-        if ($ValidityPeriodUnits)
+        # RequestId
+        if (TryCatch { certutil -restrict RequestId=$RequestId -view -out RequestId } -ErrorAction SilentlyContinue | Where-Object { $_ -match "Maximum Row Index: 1" })
         {
-            # Get current value
-            $CAValidityPeriodUnits = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriodUnits')
-
-            # Set new value
-            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+            Write-Host "Request exist"
         }
 
-        if ($ValidityPeriod)
-        {
-            # Get current value
-            $CAValidityPeriod = (Get-ChildItem 'HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration').GetValue('ValidityPeriod')
-
-            # Set new value
-            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
-        }
-
-        if ($Restart)
-        {
-            Restart-CertSvc
-        }
-
-        #######
-        # Save
-        #######
-
-        Set-Content -Path "$env:TEMP\$CsrFileBaseName.csr" -Value $CsrFileContent -Force
-
-        #########
-        # Submit
-        #########
-
-        if (ShouldProcess @WhatIfSplat -Message "Submiting requestfile `"$CsrFileBaseName.csr`"." @VerboseSplat)
-        {
-            $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$CsrFileBaseName.csr" "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction SilentlyContinue
-
-            # Get request id
-            $RequestId = $Response[0] | Where-Object {
-                $_ -match "RequestId: (\d*)"
-            } | ForEach-Object { "$($Matches[1])" }
-
-            if (($Response -join '') -match 'Taken Under Submission')
-            {
-                #########
-                # Isssue
-                #########
-
-                if (ShouldProcess @WhatIfSplat -Message "Issuing request $RequestId." @VerboseSplat)
-                {
-                    # Issue certificate
-                    TryCatch { certutil -resubmit $RequestId } -ErrorAction Stop > $null
-                }
-
-                ##########
-                # Retrive
-                ##########
-
-                if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
-                {
-                    # Get certificate
-                    TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction Stop > $null
-                }
-            }
-            elseif ((($Response) -join '') -notmatch 'Certificate retrieved')
-            {
-                Remove-Item -Path "$env:TEMP\$CsrFileBaseName-Response.rsp" -Force
-                throw $Response
-            }
-            else
-            {
-                Write-Verbose -Message "Issued certificate with RequestId = $RequestId" -Verbose
-            }
-        }
-
-        ##################
-        # Validity period
-        ##################
-
-        if ($Restart)
-        {
-            # Restore previous settings
-            if ($CAValidityPeriodUnits)
-            {
-                Set-CASetting -Key 'ValidityPeriodUnits' -Value $CAValidityPeriodUnits
-            }
-
-            if ($CAValidityPeriod)
-            {
-                Set-CASetting -Key 'ValidityPeriod' -Value $CAValidityPeriod
-            }
-
-            Restart-CertSvc
-        }
-
-        #########
-        # Return
-        #########
-
-        # Initialize result
         $Result = @{}
 
-        # Get response file
-        $ResponseFile = Get-Item -Path "$env:TEMP\$CsrFileBaseName-Response.cer" -ErrorAction SilentlyContinue
-
-        if ($ResponseFile)
-        {
-            # Add file to result
-            $Result.Add($ResponseFile, (Get-Content -Path $ResponseFile.FullName -Raw))
-
-            # Return
-            Write-Output -InputObject $Result
-        }
-
-        # Clear temp
-        Remove-Item -Path "$env:TEMP\$CsrFileBaseName*" -Force
+        # Return
+        Write-Output -InputObject $Result
     }
 }
 
@@ -233,8 +99,6 @@ Process
     {
         try
         {
-            . $PSScriptRoot\f_ShouldProcess.ps1
-            . $PSScriptRoot\f_CopyDifferentItem.ps1
             . $PSScriptRoot\f_CheckContinue.ps1
         }
         catch [Exception]
@@ -251,8 +115,6 @@ Process
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetCASetting.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_RestartCertSvc.ps1
 
         # Get parameters
         Invoke-Command -Session $Session -ScriptBlock `
@@ -262,12 +124,7 @@ Process
             $WhatIfSplat  = $Using:WhatIfSplat
             $Force        = $Using:Force
 
-            # Mandatory parameters
-            $CsrFileBaseName = $Using:CsrFileBaseName
-            $CsrFileContent = $Using:CsrFileContent
-
-            $ValidityPeriodUnits = $Using:ValidityPeriodUnits
-            $ValidityPeriod = $Using:ValidityPeriod
+            $RequestId = $Using:RequestId
         }
 
         # Run main
@@ -283,8 +140,7 @@ Process
             try
             {
                 . $PSScriptRoot\f_TryCatch.ps1
-                . $PSScriptRoot\f_SetCASetting.ps1
-                . $PSScriptRoot\f_RestartCertSvc.ps1
+                . $PSScriptRoot\f_ShouldProcess.ps1
             }
             catch [Exception]
             {
@@ -308,18 +164,9 @@ Process
     {
         if ($Result.GetType().Name -eq 'Hashtable')
         {
-            foreach($file in $Result.GetEnumerator())
+            foreach($Row in $Result.GetEnumerator())
             {
-                # Save in temp
-                Set-Content -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value
-
-                # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
-
-                # Move to script root if different
-                Copy-DifferentItem -SourcePath "$env:TEMP\$($file.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($file.Key.Name)" @VerboseSplat
+                Write-Host -Object "$($Row.Key) = $($Row.Value)"
             }
         }
         else
@@ -341,8 +188,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKb68vZ3Ly0kDFRt7L0Wn8cte
-# Iyuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTPEGs0bM6nTRDNrN5VZJRfqJ
+# ljuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -426,28 +273,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFgRheWaruMhxUueUP/q23qY6b4owDQYJ
-# KoZIhvcNAQEBBQAEggIAZj3f8/u5I/H3ZReYA2Jkpq0A5IWCl/eIMPoYWFb5/bdY
-# sgLMhU/BRo/7mCRh9uimgSKIjOSahoFrs3zbTh37EQYnzGw7docRXL0Q6S73YKmV
-# Nsn5UvinSZEVWrcYgUVP8XEpYcSUPjSI/iuyMYBhQzQZRsod1w7I3K8QzP9Y9KFM
-# myELT219NsA7EmVYqnHhM/YE7CuT/LRBGowN+VdY1LUjZL9Rr5AzPED6pNyMhMoW
-# aj1z9gnxVN27q3CjAsxwk6/dZxtKFYOurxubL3uiEcSErlGBnZVbN2b2fkZpX7vI
-# 0gkOcJfGHl9F6HF7D7w5gz3I2UCmcmFMJjw1S3R6irGxRwdtiJflDfVAEkwAWBnk
-# 81qgI37srN2zzWMghViX4pN3o3Yhv4PsFb8eN26dW9G1Nrnej+f7VjSuWSMcDHTF
-# tYx9QPoKjgKwsu07yIK119ECWnT59WCbbnEL7FZ7a9msUX1OTJlkafYFxtEv1X53
-# fyaIQtd+t0oCfLlKPiSSN+oNB1ZZyWgyNJLZJX3TVS1r6w0Y1LmGEEeuWM6bXqbr
-# B4pMZASH5aszD1Bp3OGTivAiJu48IoeEv1Brx4zcFOzxrNjN6ejEVviXoLXZgJ35
-# qfwDPtVYs0oAYnsYYt+AQa0+aAfeWMXM93zjx6nw8G3CILS3WXcOVI+bLldp1syh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUsNKJkSybfgkkHUmiFVs+ffP1yDwwDQYJ
+# KoZIhvcNAQEBBQAEggIAQ7LtHSvsCZlj+AYhugALTdNL9Bm4P176gqZUMqm4aecf
+# Te6Tx+1/mQeNNjxydFrIj6UGP+W0fpBfOVn3J/Qv3tId3SHYixZnUz9Ol7R7AjEf
+# nZDipuffa5beYJgzSlVt8Gwas5uHuhBhTIq/C5bqz0mgDD6Fejmlof58+szWw1es
+# Ff8vSFFCroDJQkIh+ya5hTyraEpnPiHRI3jTP45kI7TgnzfqSU6IEqmEQCL9LyFY
+# ZEcPd5aCewm3Hm6gcZsLid+UMr4qMcz8kHbcp7BbLtXLMuU6hTIYDCk809cbedUG
+# RHA5A3DpK2ixVg2zMBeA6SD9D8MKxf/NrastidrdQ1BE9sWP5QGdM6tdVtzB4z6m
+# dkh56kYO5FiUpQHhUFtGpSCB7BfbOl7kmVVvgyzuuGy9zyGKGYxGvPSJVScVaV/9
+# gAgkX0Leibq+iMil9Ufs35MYI0tAFm4YCTaimczl9VXkhzb2SekTQjvevfNnXiNO
+# lSfgaoRctW3biubht/SL41mQ6kfgMXLIkmSjJovg5QQwhIvNkmbDedZ9teBwo4Ow
+# iVsdIwSkFZkSJzFm6w38cVMQI4fROo1QdBuOZPe7EeYlNUg36+p62cyGWFpbitKH
+# +2Li0H/utRFMcL1JMSHhEDdbMqJeSu83uSy2Eu5GFy8AxJFrDa7pxsUxl+Bc8DCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUyNTIwMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIAI8h1+57wSVNwcEFOH23qBXra4J2B03eBoPTVYCmeEG
-# MA0GCSqGSIb3DQEBAQUABIIBADQu4/WOL08BTrR1cYk9BFkr9aI0wxaHdeQtoOTK
-# gQNdTUK0gfyUjqrWYPRWNFy1XSb4yMJHLzRgQ79oe4lptngHRUEmD7QKFYStZsd7
-# aoa4eHfD+lcC+WtiRKt3zaT7rSwwbkAL2oN5oQNShwVrSBrtGKhx+E3CZgc6f9ZS
-# hx6piRnroERaDEN7mkv0jjNXIhb13QfX535Je3IaBBuiH7QQ138X/gKrf7vZ+4zl
-# Y6mepEtVrcdsw/JNxFTdtbhHvkZP/I4M1NwjFxiLoUwhGZFDtoav1avPHEAsLNm+
-# r99Tu9CQqye9IertGbDv5VSr4FA741607pJsNRfo8YuS9pk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUyNTIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEILlGiwKo6esjButXHAuhh3eEe+0bcNYp+/3fl/HlVGVH
+# MA0GCSqGSIb3DQEBAQUABIIBAEm/keToR0Hx9DaQirg5g4xsvH9l9DqQZjF9kPwP
+# biGmPgmjTGeMrWSQmjPSmitsIhE19cLHX1KVn8NcSODQsERXGEMLyNtHuy13V8rj
+# zMiuisW6zSN3A6zjTyL2zz2fyg+9qswtflbmyzQQ4ywdltQt7aYVQ/8RHwQ+ZX+r
+# 4hjom2TvxvqSWPHzEukRzaxJHY3hylJwpCJW+yZZtFOIqq0Q1PfvHENXOvjIWOTl
+# fUDP/MfCOlv3tvq9HmJ5GQ/PuXfXf4IKtcTsf5cGVkYaAN8wxCeCitO/nxDzsuhl
+# 92nZs3UKMv5GsKWIhpdpxYQhT5em5+RrDV4Jo0nSMdnEY44=
 # SIG # End signature block
