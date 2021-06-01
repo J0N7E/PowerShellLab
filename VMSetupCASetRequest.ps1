@@ -18,6 +18,13 @@ Param
     # Force
     [Switch]$Force,
 
+    # Subject Type
+    [ValidateSet('CA', 'EndEntity')]
+    $SubjectType = $null,
+
+    # Path Length
+    $PathLength = $null,
+
     # Serializable parameters
     $Session,
     $Credential,
@@ -72,10 +79,113 @@ Begin
 
     $MainScriptBlock =
     {
-        # RequestId
+        ########
+        # Enums
+        ########
+
+        enum Type
+        {
+            Empty = 0x0
+            PROPTYPE_LONG = 0x1
+            PROPTYPE_DATE = 0x2
+            PROPTYPE_BINARY = 0x3
+            PROPTYPE_STRING = 0x4
+        }
+        enum Flags
+        {
+            Empty = 0x0
+            EXTENSION_CRITICAL_FLAG = 0x1
+            EXTENSION_DISABLE_FLAG = 0x2
+        }
+
+        ############
+        # Functions
+        ############
+
+        function ConvertTo-DERstring ([byte[]]$Bytes)
+        {
+            if ($Bytes.Length % 2 -eq 1)
+            {
+                $Bytes += 0
+            }
+
+            $String = New-Object System.Text.StringBuilder
+
+            for ($n = 0; $n -lt $Bytes.Count; $n += 2)
+            {
+                [void]$String.Append([char]([int]$Bytes[$n+1] -shl 8 -bor $Bytes[$n]))
+            }
+
+            $String.ToString()
+        }
+
+        # Check RequestId
         if (TryCatch { certutil -restrict RequestId=$RequestId -view -out RequestId } -ErrorAction SilentlyContinue | Where-Object { $_ -match "Maximum Row Index: 1" })
         {
-            Write-Host "Request exist"
+            $Extensions = TryCatch { certutil -restrict ExtensionRequestID=$RequestID -view ext } -ErrorAction SilentlyContinue
+            $SetExtensions = @{}
+
+            ####################
+            # Basic Constraints
+            ####################
+
+            if ($SubjectType -notlike $null -or $PathLength -notlike $null)
+            {
+                if ($SubjectType -like $null)
+                {
+                    $SubjectType = 'EndEntity'
+                }
+
+                if ($PathLength -like $null)
+                {
+                    $PathLength = 0
+                    $PathLengthString = 0
+                }
+                elseif ($PathLength -eq -1)
+                {
+                    $PathLengthString = 'None'
+                }
+                else
+                {
+                    $PathLengthString = $PathLength
+                }
+
+                $ProcessingMessage = ''
+
+                if (-not [Bool] ($Extensions | Where-Object { $_ -match "Subject Type=$SubjectType" }))
+                {
+                    $ProcessingMessage = "Setting Subject Type=$SubjectType"
+                }
+
+                if (-not [Bool] ($Extensions | Where-Object { $_ -match "Path Length Constraint=$PathLengthString" }))
+                {
+                    $ProcessingMessage += " and Path Length Constraint=$PathLengthString"
+                }
+
+                if ($ProcessingMessage -and
+                    (ShouldProcess @WhatIfSplat -Message $ProcessingMessage @VerboseSplat))
+                {
+                    # Create new object
+                    $BasicConstraints = New-Object -ComObject X509Enrollment.CX509ExtensionBasicConstraints
+
+                    # Initialize
+                    $BasicConstraints.InitializeEncode($SubjectType, $PathLength)
+
+                    $SetExtensions.Add('2.5.29.19', $BasicConstraints)
+                }
+            }
+
+            # Check if extension are to be set
+            if ($SetExtensions.Count -gt 0)
+            {
+                $CertAdmin = New-Object -ComObject CertificateAuthority.Admin
+            }
+
+            # Set Extensions
+            foreach($Extension in $SetExtensions.GetEnumerator())
+            {
+                $CertAdmin.SetCertificateExtension('CA01\Root CA01', $RequestID, $Extension.Key, [Type]::PROPTYPE_BINARY, [Flags]::EXTENSION_CRITICAL_FLAG, (ConvertTo-DERstring -Bytes ([Convert]::FromBase64String($Extension.Value.RawData(1)))))
+            }
         }
 
         $Result = @{}
@@ -123,6 +233,9 @@ Process
             $VerboseSplat = $Using:VerboseSplat
             $WhatIfSplat  = $Using:WhatIfSplat
             $Force        = $Using:Force
+
+            $SubjectType = $Using:SubjectType
+            $PathLength = $Using:PathLength
 
             $RequestId = $Using:RequestId
         }
@@ -188,8 +301,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTPEGs0bM6nTRDNrN5VZJRfqJ
-# ljuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCdPEc+Nf0xgTeNQqdlDIf/9z
+# 4SGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -273,28 +386,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUsNKJkSybfgkkHUmiFVs+ffP1yDwwDQYJ
-# KoZIhvcNAQEBBQAEggIAQ7LtHSvsCZlj+AYhugALTdNL9Bm4P176gqZUMqm4aecf
-# Te6Tx+1/mQeNNjxydFrIj6UGP+W0fpBfOVn3J/Qv3tId3SHYixZnUz9Ol7R7AjEf
-# nZDipuffa5beYJgzSlVt8Gwas5uHuhBhTIq/C5bqz0mgDD6Fejmlof58+szWw1es
-# Ff8vSFFCroDJQkIh+ya5hTyraEpnPiHRI3jTP45kI7TgnzfqSU6IEqmEQCL9LyFY
-# ZEcPd5aCewm3Hm6gcZsLid+UMr4qMcz8kHbcp7BbLtXLMuU6hTIYDCk809cbedUG
-# RHA5A3DpK2ixVg2zMBeA6SD9D8MKxf/NrastidrdQ1BE9sWP5QGdM6tdVtzB4z6m
-# dkh56kYO5FiUpQHhUFtGpSCB7BfbOl7kmVVvgyzuuGy9zyGKGYxGvPSJVScVaV/9
-# gAgkX0Leibq+iMil9Ufs35MYI0tAFm4YCTaimczl9VXkhzb2SekTQjvevfNnXiNO
-# lSfgaoRctW3biubht/SL41mQ6kfgMXLIkmSjJovg5QQwhIvNkmbDedZ9teBwo4Ow
-# iVsdIwSkFZkSJzFm6w38cVMQI4fROo1QdBuOZPe7EeYlNUg36+p62cyGWFpbitKH
-# +2Li0H/utRFMcL1JMSHhEDdbMqJeSu83uSy2Eu5GFy8AxJFrDa7pxsUxl+Bc8DCh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUI6OjuNTk/gqkZ+Vev6L+K10xUswwDQYJ
+# KoZIhvcNAQEBBQAEggIAR7wvzJvcfAUVOgiG7v46SRyN/PVjGedsuUM3B500Lc3n
+# xEAiBZ/oP7ucAlB2CF4cjiNMw2Fg8Pb+yVONNTpSNgf4rcritRnrxbqb/6mPC5UO
+# XH0HI8jgbshtc/wu81dWkRqp1SWY43YnXuEFweHTveXJPcrIs6WgbyHRTVlqVPOw
+# niWIs3F23U1+NmnMEgXDa8acRSZEKzW6q+TtfQW9Z0q4YjMZorov9lykSigX3c0C
+# 6PMpxzQ/LJLn8k63ZPwN6wMGicSkv5a9641Z+JyYc6iVklMXv3qID4X/fudC4UXs
+# hUTRJGPb9PISHAblRMFRT6P3MHpzIhERTcbdAKm4NYPSr/iLgHlw1JCkEaVVcqYp
+# yG/r0TknEhAFcIG2bomMQeSq/fsBLrDFm9Jvs2l/oqw0aLtjy7oyBh+lskpU0zlF
+# 9hQc89ZzSrn/FJ+JYKXiH54YPjKVriMyVEheeRr9c8ndiQ7AaY2Q1IrJ/MeFhjkc
+# 5A+fzq8bG6n9x/XYBVAPad2ymZw2jLX0eM/ZHeBBL5Sgv91yFukFptOb/dKZdK9p
+# eVT3DBCpQjyEQp55E1p1vgffBLqBPLR8qkLe+Htj/gjEoxZWiG6WGHJnqMNhIOjd
+# 6PjnKqY3etLzBpK7g5INicOkaTK2Ba/CL5TApgax+cI+g+IXT4oWIQn1sqT6q4Kh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUyNTIwMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEILlGiwKo6esjButXHAuhh3eEe+0bcNYp+/3fl/HlVGVH
-# MA0GCSqGSIb3DQEBAQUABIIBAEm/keToR0Hx9DaQirg5g4xsvH9l9DqQZjF9kPwP
-# biGmPgmjTGeMrWSQmjPSmitsIhE19cLHX1KVn8NcSODQsERXGEMLyNtHuy13V8rj
-# zMiuisW6zSN3A6zjTyL2zz2fyg+9qswtflbmyzQQ4ywdltQt7aYVQ/8RHwQ+ZX+r
-# 4hjom2TvxvqSWPHzEukRzaxJHY3hylJwpCJW+yZZtFOIqq0Q1PfvHENXOvjIWOTl
-# fUDP/MfCOlv3tvq9HmJ5GQ/PuXfXf4IKtcTsf5cGVkYaAN8wxCeCitO/nxDzsuhl
-# 92nZs3UKMv5GsKWIhpdpxYQhT5em5+RrDV4Jo0nSMdnEY44=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwMTE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEINNY6p16HdoJ2xZK2rTYksd186OsAXgyt3ez+p8SNnE8
+# MA0GCSqGSIb3DQEBAQUABIIBAGL6o5BzYqLXXgTe47e596D+BhLhqicKxc6HB0iM
+# t1beFUJ96GUuDLn7imICNLxdyON1faCE8C+IXk0kXXl3fiOVUIllj74MKDSeNE34
+# zwk8DVHpoxYHlGJJUfJwwHFEv/SY80f7BwksU6e0HDgF2B3kLk2i+cLRzK5tOc5E
+# 4wJ4CF8qex8kz5nE5T7UygElH5omYZL2o2uaah214Zsw6+xxsQMRnFhxU4IokLJ0
+# qiRei7vS1xxo0KDGS05JmP0OK3UgyvhlaUL0lerXDuuAHJCs8S5pzKn2dndzecLa
+# 2ZZA2HMqbhkVC2CHYHGLia3ri6dGXwhg11rSEPjy9W59H50=
 # SIG # End signature block
