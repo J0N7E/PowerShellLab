@@ -83,16 +83,24 @@ Begin
     {
         if ($VMName)
         {
-            $MacAddress = Get-VMNetworkAdapter -VMName $VMName | Select-Object -ExpandProperty MacAddress -First 1
+            $Adapter = Get-VMNetworkAdapter -VMName $VMName
+            $MacAddress = ($Adapter | Select-Object -ExpandProperty MacAddress -First 1) -replace '(..)(?=.)', '$1-'
+            $IfAlias = "$VMName $($Adapter | Select-Object -ExpandProperty SwitchName) Adapter"
         }
         else
         {
-            $MacAddress = (Get-NetAdapter | Where-Object { $_.MacAddress } | Select-Object -ExpandProperty MacAddress -First 1) -replace '-', ''
+            $Adapter = Get-NetAdapter | Where-Object { $_.MacAddress } | Select-Object -First 1
+            $MacAddress =  $Adapter | Select-Object -ExpandProperty MacAddress
+            $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
         }
 
-        if (-not $MacAddress)
+        if ($MacAddress)
         {
-            throw "Can't find MacAddress, please use -MacAddress parameter."
+            Write-Warning "Parameter -MacAddress not specified, using `"$IfAlias`" ($MacAddress) as default."
+        }
+        else
+        {
+            throw "Please use -MacAddress parameter to specify which adapter to use."
         }
     }
 
@@ -103,6 +111,12 @@ Begin
     # ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║
     # ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 
+    $MainScriptBlock2 =
+    {
+        # Return
+        Write-Host $MacAddress
+    }
+
     $MainScriptBlock =
     {
         ######################
@@ -111,8 +125,10 @@ Begin
 
         try
         {
-            $IfIndex = Get-NetAdapter | Where-Object { $_.MacAddress -eq $MacAddress} | Select-Object -ExpandProperty InterfaceIndex
-            $IfAlias = Get-NetAdapter -InterfaceIndex $IfIndex | Select-Object -ExpandProperty InterfaceAlias
+            $Adapter = Get-NetAdapter | Where-Object { $_.MacAddress -eq $MacAddress }
+
+            $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
+            $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
         }
         catch [Exception]
         {
@@ -306,8 +322,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURowR0v5lnLjidXmTdGNlQbZe
-# UI+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUox+y5ge8pQGHxsaNQ6GlrzZ5
+# 3+Sggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -391,28 +407,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZatT2QcIse/QCk/N/dIfHA9wMi8wDQYJ
-# KoZIhvcNAQEBBQAEggIAIaEpDQAQWarb9/ADGAhGyQghLhTo+3FLtCyQ2UPBenvB
-# UruyipuxG9xZxZVUTc4dCMq5G3onybm9o6RhD7cdwqI6E8bu94181fSm1E7bF6ZU
-# rdG/6tO5VbBQ4vTIsblj3g5xipmTZQumkfpVD657X4qMowDJlyp9+zNW5TVSO8fN
-# UwVpnVxJmdobwn6IqTz8NlTaGEKnSQ4f2CdDaPu4wPEUSFifOmONx5Ea5xYcsMNh
-# xcJHIxXMJcOyzZbsXjlokURaM7p/IGr9n7hRv0Bk5gtBwBnwueSXYvPGgIaD49Fe
-# sqUcn1tCaPsFNlqN8aB1ulau79jlPFX3unLgr9m0GgzPUTVJJVlkbBz+YhCu11Xm
-# J7TQfMKvmt0jRetc8KjU9M9ruLId6r/PFWBrrrDsJCT07O+XSZslr1kl5Av6fjVU
-# sarP4+WxCcMs99QCqMi/XZhjHCO2lzJLs5oqfLUkWXT7WmF7q1pW2hXWrAeqMiF7
-# CHkt1jPBI5y4bZkQzhaL7ZMx8t1M6yaFo61luVn5/V8BpDKAFnJNhssKAgKrptMD
-# XBjHjw7G1gESwDPPyAE/AyXzddHxqztBasnsWPd8zHmVTNUnL5bnn8BQY7SsOryQ
-# ecIIyCrTSBV5bAJ9b7KBh5DuKju1ToCPNZkaZivwr1NaFf+eatlo8Zpy6mGTkCqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrYkfZVrAd0aZySdjyl8+Dd4u89swDQYJ
+# KoZIhvcNAQEBBQAEggIAYLyltmQZ1gUWW7MPUJFUPykd4WbF9Y+1Rq/QYH3Ts6GT
+# MDPKJtvflUgF45HKiErY9lxpkssnH9Jh3zbtVkhbpn72f2VfChx/ZGbSSDOVdv95
+# p9TxK4W/8sZAEc4oNvrpLmOgXOhom3IXP7WBULWkoGEKJe6T42JIZJGrxtjqSAc4
+# J1gYlJj1m8C2i0u2AEd6PFgjwvifrceua6uXIJWLtp/ZA8XAtMdo72q/ANG02b6T
+# 6yLcQjOAWFvp0l1TXYU/+mj88xL60+8dYqYIk/4bjvQ+apjyCK9nzl/WeGEwQZSe
+# czjSE6zX6bewve1tM/iM3wqNECRWaWAcJzQzej0fA7l0IORUM4maW6ME9n1I7mgs
+# cvFchErVezWBK+DfG5lESCX566j3L60qLYnW/erCffu5fCHQyXslCDK0KlZschhK
+# 8GoHw1leTNw/U3xGqj9XCktGtd8f3qv+Tm+VwtojciAdyMGnO/xFQeFcMTH9wXRw
+# fExmGFOEKLOxJs2PScS79HRYtGXH7P9zO66IsqMdcW3VLDQ8jMkrxNyuIR016Lyl
+# JiEZfV37SfPwywZYgxbyp7MRYo35/wuT6Q+aHANFbDcllN+NnhFGCE0+AeTtNLFA
+# KPgjcqZcp5v2LWwzdsXkrhxqXnZmFVy/9j57Yx6wPivqQ/oXrMIEcJD19+F1My6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIwMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIFRgDI8QUdEymzJGxJwnv5dqeTiOnG/YJxPeHa6T8AP1
-# MA0GCSqGSIb3DQEBAQUABIIBAFsr/NhjM86R2Nkt9pTrpNU81TKPcnQS2/8GNaFz
-# un2CeXJg1kMXhsZJpi49s+Vz9CdLpwN9yKB9eTSUiM0reI97kgiDARyf0XB0NhPf
-# znye99L+5FrDosmXjIzVbDke2UueimdLZIwH39V+Xx771e1vxDkyCN4cA5t1ooMs
-# RJQXQv115w6qFqyDcYwIha3gbLXm5LzMLl1ttLHrcHmifAyfnuCO+Mw426LGKG7r
-# Lsj3/ndAU3n0np5JZfkwDjPuqThlxjwNvTjCQdFImYMr69CRaZsKIuP1DIVDzgq2
-# pwU7IcjGPixftmStrf7farlwlzkxYk+/VelkwYFeu63CWGk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIAh8CSvqGgaxpcEgDEwFWNeaRDf5sFZB+/Kzqp0yDrDB
+# MA0GCSqGSIb3DQEBAQUABIIBAIbEWMaQIunzyQ7TNrkeLtw6K4wiG7XZ38swiMA8
+# 2aUQntBX+fLFJZX0ocSnYXeGZ+uMRpEXHgn6HP693MrlAUEKJOBc2wpaSLA40nwt
+# 74oSEvRAY18bt1YvYMTWYweKFflA+aBTyh9jEu/ZWYsJo7O9MkyYQbmY+06A1n0f
+# tvW757vulj+FGVZ3a93CC/J3uhfNAqVpgTaVtSKsnzRh+gBB6ZwIg5lTS4wG+hgU
+# dz8LctRGkMp/Fam8ilyU+n2x+iRs8aXT1NksecPTaKQVHuEH03BTnjmnh4Yh6+ib
+# JOElYkbx3igvmHwUqP492ZOo7G1hGPCOlYOl3gzmXB4GTPk=
 # SIG # End signature block
