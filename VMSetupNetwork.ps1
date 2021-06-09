@@ -23,7 +23,6 @@ Param
     $Credential,
 
     # Mac Address
-    [Parameter(Mandatory=$true)]
     [String]$MacAddress,
 
     # IP Address, defaults to DHCP
@@ -75,6 +74,27 @@ Begin
         }
 
     } -NoNewScope
+
+    ######################
+    # Validate parameters
+    ######################
+
+    if (-not $MacAddress)
+    {
+        if ($VMName)
+        {
+            $MacAddress = Get-VMNetworkAdapter -VMName $VMName | Select-Object -ExpandProperty MacAddress -First 1
+        }
+        else
+        {
+            $MacAddress = (Get-NetAdapter | Where-Object { $_.MacAddress } | Select-Object -ExpandProperty MacAddress -First 1) -replace '-', ''
+        }
+
+        if (-not $MacAddress)
+        {
+            throw "Can't find MacAddress, please use -MacAddress parameter."
+        }
+    }
 
     # ███╗   ███╗ █████╗ ██╗███╗   ██╗
     # ████╗ ████║██╔══██╗██║████╗  ██║
@@ -286,8 +306,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1ehnK+7vIA5yWBE7RzQEBFjS
-# KDeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURowR0v5lnLjidXmTdGNlQbZe
+# UI+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -371,28 +391,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFmE6WTwVxWgpv8RqZLKtpT5txwkwDQYJ
-# KoZIhvcNAQEBBQAEggIAPql+2lWSTVwmcUbXnnmXEGmBmkbijyj7qMf67cU/JkLj
-# V3KCaiLse81RHXR4wgkGGL2D9pWCVUKN7YG3zZaRzzE/i1bO/xW41che/XFAGC6z
-# hcFvRBjF4UGiXv6cKBtuIQKiOn/60a35dq4486cQkqWH2xUlrKS/AKDfD1a8ri0B
-# dd3Kxzq0yrHmlHaCwU/+G1TwiOOBGc6N+NZBQEzGiNyWrC0FhH3OPDwIGfIVzR4W
-# wuxZjfDqiKNl65/wReAqHIy/uh3BBGiQ0c1z2U868fA8BDsf8Uf/EslkKsWgK0Vx
-# aW8qb8iK+ft/zhc3fzHDvYAhYZJQjvxFMcQAURhrCB2i99mmaj1t2Z+L2Sp6b2G2
-# V7KY+fBgsL9zb0DPA3V3azyYevNz2throBUTQPrwENci5C2+SQkC7K+6YQw5TPat
-# Ad24Byq4822h3ykE26pcbuQYvq0FCOn2RMzRw6V8Z8bzUm9m2HTRwHOEXHmgab8d
-# So/CHLz4NXXHAadzUI8JGPQdj8G4btevmMOHcLRlPYogdXF5xoAMVm571d2ElPAp
-# N8HTa3v40hHpubIPfrfMGACBQJ2QHMkYQJ4oQcqTMkXROc9bw7AarumKukWBPs7U
-# VvAY+c2lKvX7dwUXbdQPnlX3B9Hn7wCEnxt+aEr44RD49hcNJT3crU3lWf16T92h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZatT2QcIse/QCk/N/dIfHA9wMi8wDQYJ
+# KoZIhvcNAQEBBQAEggIAIaEpDQAQWarb9/ADGAhGyQghLhTo+3FLtCyQ2UPBenvB
+# UruyipuxG9xZxZVUTc4dCMq5G3onybm9o6RhD7cdwqI6E8bu94181fSm1E7bF6ZU
+# rdG/6tO5VbBQ4vTIsblj3g5xipmTZQumkfpVD657X4qMowDJlyp9+zNW5TVSO8fN
+# UwVpnVxJmdobwn6IqTz8NlTaGEKnSQ4f2CdDaPu4wPEUSFifOmONx5Ea5xYcsMNh
+# xcJHIxXMJcOyzZbsXjlokURaM7p/IGr9n7hRv0Bk5gtBwBnwueSXYvPGgIaD49Fe
+# sqUcn1tCaPsFNlqN8aB1ulau79jlPFX3unLgr9m0GgzPUTVJJVlkbBz+YhCu11Xm
+# J7TQfMKvmt0jRetc8KjU9M9ruLId6r/PFWBrrrDsJCT07O+XSZslr1kl5Av6fjVU
+# sarP4+WxCcMs99QCqMi/XZhjHCO2lzJLs5oqfLUkWXT7WmF7q1pW2hXWrAeqMiF7
+# CHkt1jPBI5y4bZkQzhaL7ZMx8t1M6yaFo61luVn5/V8BpDKAFnJNhssKAgKrptMD
+# XBjHjw7G1gESwDPPyAE/AyXzddHxqztBasnsWPd8zHmVTNUnL5bnn8BQY7SsOryQ
+# ecIIyCrTSBV5bAJ9b7KBh5DuKju1ToCPNZkaZivwr1NaFf+eatlo8Zpy6mGTkCqh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODIzMDAwNVow
-# LwYJKoZIhvcNAQkEMSIEINfmzW+7LgLmkNwRSmpE2Rl1luCOeSkjyRmgHNZ9iQOJ
-# MA0GCSqGSIb3DQEBAQUABIIBAJzkmrH2X61CpgzqKvd0AH/IpgcboQldRgW04Qhy
-# s4gSg49+LeeOyFp4rUfsGKo75gu5MCFtmeVowDGUjad/oeBSFzi/8G3odZ4apHC4
-# s+RRTDQ4NuozCgXtKx8XzsyUVeFcwf//EhI68BqmbtjkuQZtC7GheUdn+1ya03Ka
-# LWSQIJYJFFuoEn/mut2b/pRxufcgY3YOIpM1Uy5edptnsyqAt8I93MS35EWuz4mg
-# pjiEoZwXjnF6V0qC7sS7alTcxX3suySHtNsAHkFKVdgE0skASZXL4bYhTiYSZpKL
-# hMJWbcrG23pcousGysEJGVs43HagAJ1/SSbbGaFZpg/A5e4=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIFRgDI8QUdEymzJGxJwnv5dqeTiOnG/YJxPeHa6T8AP1
+# MA0GCSqGSIb3DQEBAQUABIIBAFsr/NhjM86R2Nkt9pTrpNU81TKPcnQS2/8GNaFz
+# un2CeXJg1kMXhsZJpi49s+Vz9CdLpwN9yKB9eTSUiM0reI97kgiDARyf0XB0NhPf
+# znye99L+5FrDosmXjIzVbDke2UueimdLZIwH39V+Xx771e1vxDkyCN4cA5t1ooMs
+# RJQXQv115w6qFqyDcYwIha3gbLXm5LzMLl1ttLHrcHmifAyfnuCO+Mw426LGKG7r
+# Lsj3/ndAU3n0np5JZfkwDjPuqThlxjwNvTjCQdFImYMr69CRaZsKIuP1DIVDzgq2
+# pwU7IcjGPixftmStrf7farlwlzkxYk+/VelkwYFeu63CWGk=
 # SIG # End signature block
