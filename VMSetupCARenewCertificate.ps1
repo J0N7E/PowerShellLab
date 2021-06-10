@@ -478,42 +478,86 @@ Begin
         if (($KeyLength -ne $CAKeyLength -or $Force.IsPresent) -and
             (ShouldProcess @WhatIfSplat -Message "Renewing CA certificate." @VerboseSplat))
         {
-            # FIX
-            # set keylength in capolicy.inf
-
-            $RenewArguments = "-f -renewcert"
-
-            # Check if to reuse keys
-            if ($ReuseKeys.IsPresent)
+            # Check if parent CA certificate request exist
+            if (Test-Path -Path "$CertEnrollDirectory\*.csr")
             {
-                Write-Warning -Message "Reusing CA certificate keys."
-                $RenewArguments += " reusekeys"
+                # Check if response file exist
+                if ($ParentCAResponseFile -and
+                    (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
+                {
+                    #  ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗      ██████╗███████╗██████╗ ████████╗
+                    #  ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║     ██╔════╝██╔════╝██╔══██╗╚══██╔══╝
+                    #  ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║     ██║     █████╗  ██████╔╝   ██║
+                    #  ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║     ██║     ██╔══╝  ██╔══██╗   ██║
+                    #  ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗╚██████╗███████╗██║  ██║   ██║
+                    #  ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝
+
+                    Set-Content -Path "$CertEnrollDirectory\$CACommonName-Response.cer" -Value $ParentCAResponseFile
+
+                    # Try installing certificate
+                    TryCatch { certutil -f -installcert "`"$CertEnrollDirectory\$CACommonName-Response.cer`"" } -ErrorAction Stop > $null
+
+                    Restart-CertSvc
+
+                    # Give CA some time to create certificate and crl
+                    Start-Sleep -Seconds 3
+
+                    # Cleanup
+                    Remove-Item -Path "$CertEnrollDirectory\*.csr"
+                    Remove-Item -Path "$CertEnrollDirectory\$CACommonName-Response.cer"
+                }
+                else
+                {
+                    # Output requestfile
+                    Write-Request -Path $CertEnrollDirectory
+                    return
+                }
             }
-
-            if ((Read-Host "Procceed? [y/n]") -ne 'y')
+            else
             {
-                break
-            }
+                # ██████╗ ███████╗███╗   ██╗███████╗██╗    ██╗ ██████╗███████╗██████╗ ████████╗
+                # ██╔══██╗██╔════╝████╗  ██║██╔════╝██║    ██║██╔════╝██╔════╝██╔══██╗╚══██╔══╝
+                # ██████╔╝█████╗  ██╔██╗ ██║█████╗  ██║ █╗ ██║██║     █████╗  ██████╔╝   ██║
+                # ██╔══██╗██╔══╝  ██║╚██╗██║██╔══╝  ██║███╗██║██║     ██╔══╝  ██╔══██╗   ██║
+                # ██║  ██║███████╗██║ ╚████║███████╗╚███╔███╔╝╚██████╗███████╗██║  ██║   ██║
 
-            # Renew
-            $Process = Start-Process -FilePath "$env:SystemRoot\System32\certutil.exe" -NoNewWindow -ArgumentList $RenewArguments -PassThru
+                # FIX
+                # set keylength in capolicy.inf
 
-            # Kill certutil gui popup
-            Start-Sleep -Seconds 3
-            Stop-Process -InputObject $Process
+                $RenewArguments = "-f -renewcert"
 
-            # CAType enum
-            # https://docs.microsoft.com/gl-es/windows/win32/api/certsrv/ne-certsrv-enum_catypes
-            if ($CAType -in @(1,3))
-            {
-                # Restart service
-                $Restart = $true
-            }
-            elseif ($CAType -in @(2,4))
-            {
-                # Output requestfile
-                Write-Request -Path $CertEnrollDirectory
-                break
+                # Check if to reuse keys
+                if ($ReuseKeys.IsPresent)
+                {
+                    Write-Warning -Message "Reusing CA certificate keys."
+                    $RenewArguments += " reusekeys"
+                }
+
+                if ((Read-Host "Procceed? [y/n]") -ne 'y')
+                {
+                    break
+                }
+
+                # Renew
+                $Process = Start-Process -FilePath "$env:SystemRoot\System32\certutil.exe" -NoNewWindow -ArgumentList $RenewArguments -PassThru
+
+                # Kill certutil gui popup
+                Start-Sleep -Seconds 3
+                Stop-Process -InputObject $Process
+
+                # CAType enum
+                # https://docs.microsoft.com/gl-es/windows/win32/api/certsrv/ne-certsrv-enum_catypes
+                if ($CAType -in @(1,3))
+                {
+                    # Restart service
+                    $Restart = $true
+                }
+                elseif ($CAType -in @(2,4))
+                {
+                    # Output requestfile
+                    Write-Request -Path $CertEnrollDirectory
+                    break
+                }
             }
         }
 
@@ -737,8 +781,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhukHX6DwudV6ZAGY32CTC4c3
-# 3muggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJ3KokZzGJF9Qh60PiFOL80wz
+# Pqmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -822,28 +866,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhkf0kde3FyiTIGyu8otT2rifnUUwDQYJ
-# KoZIhvcNAQEBBQAEggIAKx4mITthjHJpm+LiGOB4V4HYD8u9NTXPwBnTnQD7HsYf
-# 49YimdNrqkIiSKuBAYi7FgvjVNP/c0W5DZNJ5mev3DaNsSurpV6RyxB8i7K4i7OS
-# LB9ljxd1gI1tXNDIr9eATSqqHMOY0AQXNb6HjJGOngXiXnclcwvrKPNS92ZC4xm1
-# Y5ksftGj23mqZ9EXD/bcFmV6zZR1SmW5b9bil5Iod+DGL2ag1KQKcuVeQwYGEXEB
-# cKzwWk8ya5e6aKfJih0wSuU/sVybcxGOhkWpO0mTwKZpLKuiTcuyi6wwmCloTyjZ
-# 2UvylhlIK+nvNQcNfngFatyfgdkDB6BRpVChEv1HyACEEPhSK8YzeYunV9DdaJ0U
-# OJylC6XJl3ASrX8+eRAWGOMF43lS3+h3ChHjGUIJgTLX7dVsdcdr7Gsqz/wEE/xc
-# W26Z+2lSqy8uUciA3IWTTPnbxvxv+4OzRfZx5Xj/UrfED4UN1bWWJMqWEJR6v7MV
-# qdzUypP7QoliGXhuSr9ZhPX9GOjd7aGkh2oDnRvEpDi7z4NGQCqlxP38TKRESqeo
-# 6P0R3MD6b1rsgAJT0x/fGOProma2iCEm7JhSo5XSLlaMY3xbIw1xWd32I0RXAlqR
-# LGZQyDlCSWzSQAapYojOsCFg8yBkzxFkMKYxkzhEqxHRLw1GBlTqypMBHN8k0QCh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVB50zHRnymMJ7JAbhOQ3SIhbIBAwDQYJ
+# KoZIhvcNAQEBBQAEggIAqHjcJLpS70w2ENfu5+zgBv8cM5jAhzYKdVpoRdpxoDya
+# y+bt6kJbIXY6CdBHfPZDjqf6cqtr0LbQzPe7vbCxXeLlcgBjL7/6GaFqMfscq6a+
+# 7MWS591wJ0p8Zm++Mkm7+Qeh4DSqqFocLpAlUQmGcEdDUWiFbGBPdjVj/EHVpMnh
+# HVQ+eJBurgjFWXjwLpZ3H2RFHKkewZsOKmdUbiaVouFJwzniOJusHpql3Bj2XGLC
+# qJt6CyZ9+MxKeFZDHuA5BsDVPS6pHhNEoEmKCOBZCBoSOn0t5RARdRrSzVkH8CNJ
+# x6vG4tnKKWgmZZDa04++f9LNLWRMN9PLH86MO0URSX42H2bI032GL8+wff0sf9wU
+# sJLKjORdKs5gxEJVYJnYC7e2mTc9vlrNxYqceaD33EatTccWXl57koCh5eIy+/AM
+# fes+x4uWSHYq8X6OkNumVxeYFNBGuTJaXBhSVkQbzy+ibp5ba+w1Z9+GR2YtLAf/
+# nf7ai5Qrcf6bvZ1ywBuYf05XWojzkJRux9oaPV+4qrp5tS+L4XAYl3hNWrINxLDD
+# /Wz6MCjkgGN8GXf3Xktn2MH4RteZiGouuoCKpC94Y3k+GQ0CopaGsylig7MHnC+z
+# qR/hY7mB3pqCFT5EMsHwWp7PxEeK+kzbJI6jC29TKO4Ru557Ds+xXBoC6vaEq1uh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEINApegAfCV6sHnVnfdnBMklsSjqvQi3TnirD1VoKjao6
-# MA0GCSqGSIb3DQEBAQUABIIBAAUKttBYMpfYvMzNZ+jYGMrgLSMowzEW1q2L/2MX
-# 9iJOHVXTNkQumxGRA8002uEZ6L4eDAPegYFBPT2HbOB1p3nDyPnlGicC8sidOreL
-# RvGtfr7tnAaae2OnnGP+PqfTPWR2zbVzWxVi27B3EKJQceyjNRwRG065npiYzqsS
-# F+XsxpDvYwxD1T5xJFKPfNFF4ceJo5kxv04dVRmKnDekh0KnsDD/Yd8r8kYEq7/e
-# X25syBnTemOH2rDjEG/foy6JQSmQYnD3pR7AA220WOcFNcdRzJrOQVi9HVFBK+B/
-# Y2SZA9OJeE7KlMzXb1kCUsiY14RgDIlxHh6ONoVlq8CZHQ0=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYxMDE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIIAqHbqbrHqy22eYVDX8QYOfRmN2hj3sDHvP3Tr3+tzp
+# MA0GCSqGSIb3DQEBAQUABIIBABJ2bt25hbee3pFwb6T58D1aWsoPM7pzQKF25mlx
+# zpwxfu/tfRYexm7T2wk9Ik1URKoM4XiQuqU6fdn3Dd4C+JdE0FzOq8Xo5gyKYVZf
+# yAQlW8/KrgTtwVF4FHQ4j0TFGajlHgrQtoZd3hPPp4bNQIZoiD+gEvh1xLe7nGm3
+# K+ybb614uWrOUbf3qGO5Be6BqPQs+YYbr0xVRUyUNWpB2qknruiI+k+Ui1/DzS7P
+# IZp1ZMxbcfLJAwUX5OBzCfqB/nrvHa6z5n7DGhNik6CpkIyd4sR+neyq4m830Vs5
+# 1eAT8xM8z7DuQMW2e74HUEISLHmO72baJMLajsHYSc3R9JY=
 # SIG # End signature block
