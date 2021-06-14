@@ -1137,7 +1137,7 @@ AlternateSignatureAlgorithm=0
                 }
                 elseif ($ParameterSetName -match 'Subordinate')
                 {
-                    if ($DomainName)
+                    if ($DomainName -and $ParameterSetName -match 'Enterprise')
                     {
                         Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
 
@@ -1178,6 +1178,35 @@ AlternateSignatureAlgorithm=0
             if (-not $CRLPublicationURLs)
             {
                 ##################
+                # PublishToServer
+                ##################
+
+                $PublishToServer = 0
+
+                if ($CRLPeriodUnits -gt 0)
+                {
+                    $PublishToServer += 1
+                }
+
+                if ($CRLDeltaPeriodUnits -gt 0)
+                {
+                    $PublishToServer += 64
+                }
+
+                ##################
+                # Set default CDP
+                ##################
+
+                $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
+
+                # Add custom CertEnroll directory
+
+                if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
+                {
+                    $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
+                }
+
+                ##################
                 # AddTo (Include)
                 ##################
 
@@ -1211,29 +1240,9 @@ AlternateSignatureAlgorithm=0
                     Check-Continue -Message "-PublicationHostName parameter not specified, no CDP will be used."
                 }
 
+                ###################
+                # Publishing Paths
                 ##################
-                # PublishToServer
-                ##################
-
-                $PublishToServer = 0
-
-                if ($CRLPeriodUnits -gt 0)
-                {
-                    $PublishToServer += 1
-                }
-
-                if ($CRLDeltaPeriodUnits -gt 0)
-                {
-                    $PublishToServer += 64
-                }
-
-                # Set default CDP
-                $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
-
-                if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
-                {
-                    $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
-                }
 
                 if ($PublishingPaths)
                 {
@@ -1245,7 +1254,7 @@ AlternateSignatureAlgorithm=0
                 }
                 else
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL only published to $CRLPublicationURLs"
+                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will be published to $CRLPublicationURLs"
                 }
             }
 
@@ -1657,8 +1666,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHPuGjFIYLrYMwdG2UWpFOJaR
-# Ibyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqYq8mTNPHF9Isvh35fxgfvVg
+# tOWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1742,28 +1751,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2+rDiT5UU6Vrmm5avvRlnCQh2pIwDQYJ
-# KoZIhvcNAQEBBQAEggIAMOIUWmxWVeyj0GFh6Q36Tq5BK425lJEp0qxDB0UqWUC4
-# EwaoUo9Q9O+5A/Z9rERMuV8fy+spZoIr0hA3szd92KfYEGco/vxOQbwfDzfj8PoB
-# scXH5pakwmZIiSvqwuzScREdC4VP9HemgnDGZPlRjEVrFffbzyjvYQc9239hEnIa
-# h2pbzkxva0+ZrW1F92pfqMmNuxy8gTo6f2p5mcm3It9OW7quLRhDzPyMDuQeJIXZ
-# W3Msiq+vX78rN8bVVek+GrOmMvhbUTrexd5/QdQvycIsDAsLS7+7JG+db/yGw9o0
-# CKimFzJ6ifjXiMnpGaUrz63aHTjFjfsomj3sF8y9HhlAt9UWIgIMPN93q9c4iEbD
-# /d6g3Xv0fiZ1hnHV6/iumlZtSR53FToLOFUwAMcjdVzM2TcfDq2ueRHIWtlcQCmA
-# oq0yTYQVwB6/2R8cGpiT2nEwjCYDpVpRBXp11kt4CasPB4cKm/A3Bswc24RcnW6d
-# ltwFOsF7Nz/FNmn7MvcU/5qbV3eq5gESkXx1WGgwOMNn3Xpw6PxeRA8YnpOC+zP1
-# +GN4jPPXgZkWk/oI0djVo3BzqvouEYUNuZzSsz2sr60Uo6hDOtjRADe7AcPq3VSH
-# 5pF/UHKQ3WASLbsEH4Pwa9fCXeGeX09TqSf1Thup/1TzfBLNaUvRh2tbgaOXyAuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUa6jMU2Ix4A8zjx8yN8ely25papUwDQYJ
+# KoZIhvcNAQEBBQAEggIAU2OffvIOIv1cVaXpqfG5IPf71KzHuyDhIdhx7qhSZ1/3
+# 8lNPwovPImHiTdymzdz12eva5JXULQFmwRV0+gtYq0gVEBapqSt2ei4qPyaiklVr
+# J48hqvUQFPFPpZeqbzKpFh3ivRthLIS02jw2dgNxG1fuWfkPrktyzFAp1rJMnhvO
+# 2Z81JkcwmeTMcSOrj/NPul8CMXhnRlyysUA6Ci1Swoa8UM0OzStAFhLPAjXQyHvh
+# GtP6X1MKgG08mElX7p1wm4WLKqIZgDa4sGD5tySHsthSxoQ/duGO6ygl/X7zBJu3
+# G0iEg7AHICsQUj4C9BfKWqDdhWSij4A9Kqlw+/zkOoloO/dw9p2unEpAH1C9Hg5I
+# IhtGU46vysCjHVetjEsQ5F7oo+rFN3e0YrZMxRD9yuTb8J9k/1/r+Qqpuks2OiNe
+# mW3YAGDC9GFQ+vM1ifLbSH1iOTY6aqoW+D9D5+JXMELgA1PZAQuY9D+KUS8w8SNw
+# X3FkasHKBPm1o3ZP5shtuFK5kVSCkdTBfM3RkPV9rKqpW+LlH+b4hEDO1BL0me1m
+# 666KCCDWyN6fekK4cJl/U0hTOpqhv3eoAPr0c3jKj9I4HEXlmW2DUd/fL/KJUWsX
+# e0879pcJvPxef5+RmUgqiDtA2I10VIf3T5HABzvncDJs4BP6gYTAJGTKJ98k9rWh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIMy46at6/leyc64uWP41k3AxOWoElc2KeZaWPGahlUkk
-# MA0GCSqGSIb3DQEBAQUABIIBAHeR9TGnqNwgJwjI/kSX7uVmHSm9f2zQE8RycAs8
-# iP9AkueOBpNzUxoWCm4W4py5J0T0rQ6s9TvpiKMJsX64A+gFN570qDOHjcSKAS87
-# i2GqT5t9XuswMjpbFiK7l0Kn4i8hFCz5uD/7VEVZxkBJH3oTK77U0s6rReB6bQjU
-# s0JK3eu3LL96s9HwQswzTV534/VIeXrGiSydVg1Hydwk3DO4bidQ/hDWWwmUHiuS
-# Ywg6zyu02kqGxf0o2kanhJ3WTX+NXDYY+mjYuu9k54a1VjtS16jeqEZBZ7gQJ9Nl
-# JNLaPILFhsMjzST48mtDbvRNhxXLwnOzB7hD9/FKHvE17gs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYxNDE0MDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIKjlvS/nYQqk5+WilnflNdVHm0B+OQCcb1I1GnE4APyc
+# MA0GCSqGSIb3DQEBAQUABIIBAKZgwZmDvdmqP0Um1YcEM9q5p9p79Mb1XuDXAAWE
+# W4KdxWQ6CmqtmX8EWg7RpGh8lbx+zKCF8prp/tByfb4tD9jt8Ua59D03Ys31Y1N/
+# Vp2dsMiz5ffHnZcpomV/eejeqp2nM/l62QRlvavx2shxx+OPukwi3AqIg/LsYWOp
+# R08odd6l0tIQr+NXLEsUc7fQL51hqJ9w1p+t10PHuPx1VusyQljco7NYrWDfFaI3
+# tfsR3pdbBPkgza1V8DkOjHQYVhWJ8O7ACMKpMOuHUofhHCd8Qt1y/Q6B/XXswrpH
+# kHiGdIF0UHaoqUzYcfrXTMcrHYZ0f10/q80yUlI4rxKF8HM=
 # SIG # End signature block
