@@ -994,14 +994,6 @@ Begin
                 }
 
                 @{
-                    Name        = 'Template NDES Service Certificates '
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
-                }
-
-                @{
                     Name        = 'Template ADFS Service Communication'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
@@ -1707,8 +1699,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFV4L3Q/pxlwLkHuj5QWftHJ2
-# Lm+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh3kRtB5cp0nWj02SbfkvZTVP
+# 2UWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1792,28 +1784,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxr7C1QRcDRNcJF+V24fEUoewUXcwDQYJ
-# KoZIhvcNAQEBBQAEggIAVqpe79nPKfnFkbr6zuhLe7xpJdKYNIV+zVEYRdRkHMqz
-# hbXwG2+qJzDSN1qRvSfyOo5eyci3QiDSMiKojt23hV+9M2RZdOSOeJb+FrbgQ0by
-# O+/snnpeoZGVSvEvE6s230Q98QXqLhZYuqY/I0yQ0CNxf4mBd3rpo27aC9tXJ86Q
-# Q91sv72Kj32X9BY+jVvpt6NncvnuflwbKyF2Dxl4HbWP5f3tyKqkPF2Fvwh/fnPY
-# 0sfLqGjrz3kwZeAK1Lo1W/VI4XAWtgsbJtrLbgZfmGJ5wETb4J3lLcCwrhvqyNYr
-# RxIcF0Hj2IWz616dYOjHrhq5IGyKwBjxAaGOYK9+CSxfjUmK1fDtVZsRNDnyLe8D
-# Q2ZOcG2pUZcIjRDjTPOGeAFmaru8axd0CptffFyT4AgVXTkF58myvmE1YTtEHVKJ
-# EfXQBqSE95Bp5znNFeigeBHEe3Pz9DCPysze+kbrOldzWFKsBk6BrClaeJMOkUBy
-# 2wC7lJQ3r8PjXiqGdrHKsuFYnZfuu0VSPBqYOZ/A56NKhae0S4NOoOBRXExCA35a
-# cIQmwRH/7VgU4d2CVWFWIIh6/QzOwRCrWVJXfmJG0UB19wgh6u4210zbkqzrANa0
-# DgVTi+mW2lfln3Er2BXn5WX0fR8Z+bkNU2/vQw+9Y53hnqqz8av8hw1hY9ptbmKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhwbriXV64SIo9UAjJsVdOb7EhBkwDQYJ
+# KoZIhvcNAQEBBQAEggIAFaoGpkTNtJH71sKi7yPICuZMM8v+7EmBKTAEKYGsvQm+
+# qbvwHASnw/R31SuRYLWHKl88g4eIzhK1G/k+3tEvidNQT4efqD9mnS/1Mn45/7jo
+# r/qjKzqaoeQ1hAtVnc01yWicoic/fRaCREkcPN8z/ro3FbcLyIyDSrnU/Fdu2UyZ
+# hAvv4yiSFUwauUP6dnlmwqRVxiJknnUiv5DomUArev9pOsDk7GdI5TWiNzelbSeN
+# jZ/wHfdVWJPpTBZvA1tiRcUwtHAK980W8+vJ/qo45VjhRuCf2CBjQvBuk8x+adSe
+# 1MNCjz2yqXSUqX/9KI/PdpGg/bKD6F4GtJEZ2H4G8RWtZ+VlZgKci/QvGYmeaXGU
+# g/BALn6s2QQzC4O4z9BV9vv6AEyfv2pFoPwUvBsAcybIlWtiflcndl5qO1QJHQBf
+# 9xoZ8Pk8QM/XRyizurxu7PqJTpt0rXidDXF2YEDWFTTskjx7iNralryYHHIysfre
+# iE+z0mtYydpgqrVinvLK0tRHYV0GBuj9dDKKbWCbmEOsMFienbPQHlnN9jq2I78e
+# GEgxJ0VpA1/cL8q5sgr2QpF+97XsnqMdHhQDuYIhHppCBVNPjV0Eo6yf02qlUQ5N
+# W9ozsbvMlRaX0jAqdlLCJ16Uf/cth1cwTZomY7hHGCZPPAXSWu6C611Ov8z3++2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYxNzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEINgXDizbAOERwRUd7SpxN8RvOAafFlhwKTV6pX0hcKTU
-# MA0GCSqGSIb3DQEBAQUABIIBAKeGyllm8682vpaibQ8QzHjxZ5n/pRvKLk8UW8DN
-# GnVMjYghnz5WgI3jIDDlYedmTUwDqCSIgEadJXwvjnjZNpe0Wa+NwCv1YEzjMlkz
-# 0VxrNmwyaE7qos9gZnVqHDS+yrvdd+Itj8208cZROkmJmE4KRqcatfrV2P93vv26
-# CYmDwsV+zqEGYjQ74AFDhkLaA71NVEoQa26TjTlsy00S3dpTzw29i8/CyMMurkm1
-# gir3mH1eFS1NrcYKR4R9iyFWA531xWYiYb0cVxcYXerujuUdFcTb8zJM5crdkIZV
-# eUQeAujCGAoacJFoXD45mgftPe6dEWhtXzhSvw8kpKYmvwg=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYxNzE0MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEILPLHYA1G6Lcm0sC0mCnEN1Cw2o44ep0imc0AHDyF0mt
+# MA0GCSqGSIb3DQEBAQUABIIBAASocqts/jigkeN4lay8AVLGrz7QeBRw17QrtFfB
+# iFwn1VmqCesGslwHxb23tMiYlU0w7TVqajLnDW8d+dmVVEOTGo+F77+w07tYiRN/
+# c01tAQEzZ/DK24icfKW1ZV2bce3Ixmo58yY0O4P8jFSujARsTUV/qqidaikrYvbk
+# Yf/bHxf2xxlL0/iD/MF4GS4ImqUIgmYYyQ2ucXcRUxubHgNBNug20CAY2qAtR8d7
+# FFdLwj3clUTWtRwCF2qqCfY+tbZZSL5bGZNmTGqHxFa/0xvWdeuCLIP0mz+5Q0iJ
+# 2foDy7CBcA1lyYtoQhVLBs5tlZuKRZW7b/kOMKk0rS54G0w=
 # SIG # End signature block
