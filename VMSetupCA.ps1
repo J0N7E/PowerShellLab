@@ -1048,28 +1048,25 @@ AlternateSignatureAlgorithm=0
                 Set-Content -Path "$env:TEMP\$CACommonName-Response.cer" -Value $ParentCAResponseFile
 
                 # Check key id hash
-                if ($CsrKeyIdHash -eq ((certutil -dump "$env:TEMP\$($file.Key.Name)") | Where-Object {
+                if ($CsrKeyIdHash -eq ((certutil -dump "$env:TEMP\$CACommonName-Response.cer") | Where-Object {
                         $_ -match "Key Id Hash\(sha1\): (.*)"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
                     # Matching key id
-                    $ParentCAResponseFilePath = "$env:TEMP\$($file.Key.Name)"
+                    $ParentCAResponseFilePath = "$env:TEMP\$CACommonName-Response.cer"
                 }
                 else
                 {
-                    # Remove other files
-                    Remove-Item -Path "$env:TEMP\$($file.Key.Name)"
+                    # Remove invalid files
+                    Remove-Item -Path "$env:TEMP\$CACommonName-Response.cer"
                 }
 
-
                 # Check if response file exist
-                if ($ParentCAResponseFile -and
+                if ($ParentCAResponseFilePath-and
                     (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
                 {
-                    Set-Content -Path "$CertEnrollDirectory\$CACommonName-Response.cer" -Value $ParentCAResponseFile
-
                     # Try installing certificate
-                    TryCatch { certutil -f -installcert "`"$CertEnrollDirectory\$CACommonName-Response.cer`"" } -ErrorAction Stop > $null
+                    TryCatch { certutil -f -installcert "`"$ParentCAResponseFilePath`"" } -ErrorAction Stop > $null
 
                     Restart-CertSvc
 
@@ -1078,7 +1075,7 @@ AlternateSignatureAlgorithm=0
 
                     # Cleanup
                     Remove-Item -Path "$CertEnrollDirectory\*.csr"
-                    Remove-Item -Path "$CertEnrollDirectory\$CACommonName-Response.cer"
+                    Remove-Item -Path "$ParentCAResponseFilePath"
                 }
                 else
                 {
@@ -1657,8 +1654,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh6GOvQPEzcABSE2NXcYtSiuh
-# 7Iyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0YTDXiuqH/aPvIVimJfEly+B
+# Beqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1742,28 +1739,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUca6zK6ez4kkGjeIYzCRGbPZk3FwwDQYJ
-# KoZIhvcNAQEBBQAEggIAWT1DNn9qFrgVI+R5E6PdbnOUkol7kre66PzMgTYz7FGf
-# XSf038wr9hKZH71raKa2jpZ3FJfVngITz9iX4/04CH/dTPGQg44FfB9L4rw5vIbz
-# kRfu2U0e8Yk5ki/PCcSFgolEf26S0GpKD94ACtp3XFiDYKR5/WoktzZ/3qhyhhFo
-# lNMkwfJcNJ+kV+z96c9Pwa6g9LjhNqGYcLdBAqB1Z/eTX4DK2OQZ+Ue0x+HmM+U/
-# Bvi01XibuxX7G8SnssX75tnC+4kBsSh5lInZe/BDK091vmwA9YdhmSMBy+r0Yzrg
-# x5BoIrQiKzq6eyZ0AkXGK9HHY4t/7CKnYiFkIRhvsDxZmi3Fk1PP3Tj+MAh/MiWD
-# PMh09el61J3S/cN32QvLOIvPh8PLTqblPfxW37ljZcs+Ku7O8PXLvHVHwVfr4oIA
-# zdSO9bYILSbv83vYd+wvYHFUqjvYsdxqdl1MVQnbJPUCSYWpSzxbkt7IWuBXMd12
-# scuem0DSiMM5hsknJWawp8FJtw0DAilytk662zsB2bdVL1D3SZYo4vtHL2+iTd4D
-# ER9hDbqzKBrYKmAc9eFnbaS76W7lXEHGnAdWzpzmOjW3QuKmaFHi2Qr9DLP70kBm
-# o5yNWTvEJKZD43Wmvjva8QW/MSRIFxGZ9ZLcIWsUDbpk5RlYy2bKXOmLlyjsUdKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFB+9kE9HRpa1yQsZBjZZbosVC9kwDQYJ
+# KoZIhvcNAQEBBQAEggIAPkKXdowm/HIbKwYNCmU06h74EmBSzYPtT+ufwZKjjMHW
+# 8gvkBNcR9m9E8zBkEbaNw/JBOLBLtAtlw+P/kmkQnXrzmFBd0+3ygX16EFpsxb1c
+# Z5KyE3bot1hirUL5LOue/gbVa+fNEj2E8aR7YCIu3q2KFaydRm28ThkkoHcfVwbM
+# PN6XiX9kAM7a4wK9nq8/rbnCCvrGbx4v2R03A8cCkb1h7s0oOsDy/1EVXrQgAiUH
+# agljs9vFtGUjhElLEI5n1FcRVTxevzkYPdpGcY87jw0VaSYjI2XRr6KT/A5xn0HR
+# EgzRIuzIo6WytJutswNn1ztCkK8OOtbXDYPYd+2guN45fAMtoK3QCSQbsUndAMip
+# PAXiIJQo47HJYNoHA15+Q76+p6sPTkDWfVVaxlmQBuIYyYnOhGYs9l9QdCOV9auZ
+# I75NZENbt+8hXPVFIgX4w/imTEwx3z0c1BCzpSBafuqVDTII+5Hmszo6QKXOtIqL
+# ahdyfwaf3fy8jUYMUsjGGquf8jVF4GbvMAbJMyiJpnlMINZ5cLOAVQqHHFZHOwhe
+# FaWTddITaf29DH9pVkZjV1eqWw/uXzHIelCQUr0ON1Kydo0y9lbu7C7gEU05YxIR
+# Er1XFcDlpKPn4MKn11Vmb6DqDM8GCeKLODysYWB0vUplJNfBqX5g+IwGYAdD5M6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNjIwMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEINVSv+X9gfmpQBY7G8bLioWlAvTXH8rGLpXF+Hd2gyO/
-# MA0GCSqGSIb3DQEBAQUABIIBAF1zW527iQYYwkPurTPtA9uOofZ8hcQmnh86zNnK
-# 7XV3puWYYTLy94zPXkvY+OS5E0ZGsOQnnMaVMUfU7MTFEgFWCwisV9pjBF9YXjEk
-# d94rSDzcq2I7TDwqh85J25yOcxqcVLsDv/WnBmUB9nA0F1AlYyZlEZgVerPfiKdD
-# ZCVn/gkCEr15dCh7MODYJKN6W5jyu3ReaTHJn69xGpdi7ruxoZf51a9k1EzwLqac
-# kVn1JZGDit/k1f+y3JRDcZzItjhqFuc/S7+DUAVrVgj52ksj0JvhGoEn7JCfdbUp
-# a7tkPPzq3VU5u/eQtQltr276cv4gwXxj5wngtdOZbqcmzB8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNjIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIJrWW8yg6hQpPeI7t3+igZRHcI2OAHC0bSpeBl7QZOLZ
+# MA0GCSqGSIb3DQEBAQUABIIBABLcWn0AigbbigJXMTmOg+IjtpCidvFZ+kzfDJfU
+# FVbthPsu+olSirchmvjb+BoHHRoibGQzj8hi/9/GDKx5hxdpMQoy64EysdIrOQnt
+# I09IYM4BoKLbSlMNM8jUfueK8MQhbDjo8kb7Kq2PTJxOgRfXiB/tE5C/atkvMhLU
+# GKdMxd4YBNDYtDDhj3Jl9f17X4OErNq6uFLStIclzYIWFwJpu0BoV6z/Ar1WQ5Gc
+# iQu/DS9ClGqiX7EKRZqy4Wi1VX1fo+VkNnufTVmDkrXXH4KscUEKW6YjiFYJQ2Nh
+# 0wmAVHhJsq1VUUPaYkrBZDwtz2pQvkNqz1aBMNPoeg/dKN8=
 # SIG # End signature block
