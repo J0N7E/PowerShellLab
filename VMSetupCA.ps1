@@ -369,6 +369,12 @@ Begin
         throw "Invalid CryptoProviderName `"$CryptoProviderName`", valid providers for $HashAlgorithmName/$KeyLength is $ValidCryptoProviderNames"
     }
 
+    #######################
+    # Get ParameterSetName
+    #######################1
+
+    $ParameterSetName = $PsCmdlet.ParameterSetName
+
     ##############
     # Set CA Type
     ##############
@@ -389,12 +395,6 @@ Begin
     {
         $CAType = 'StandaloneSubordinateCA'
     }
-
-    #######################
-    # Get ParameterSetName
-    #######################1
-
-    $ParameterSetName = $PsCmdlet.ParameterSetName
 
     ######################
     # Get parent ca files
@@ -1677,8 +1677,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUou0tcQVZr14J++xZT8/IZVyk
-# YJGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUO8V85JB5NYgGy7di1O5pgWfW
+# Xheggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1762,28 +1762,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUF4sSiIJGyAMgu/sb3LHSCDSm/ZgwDQYJ
-# KoZIhvcNAQEBBQAEggIAgD//qfd7ODpVeTxDs/qFzmRhHnhE1uVMojXONYujjSwU
-# cGrXyH7ZcC1OmDt9HQep2qQARd1gE4fkQ4vNnw50+lHnJZhbYaQKazr7PIV1Fx7l
-# UPuZdfixBPkqSmTMSRXKiJ1vg0xrSUo3oGAc7jogj+pK1kKVHCjmblf172Djk7rH
-# zvsWBUYRg121IbMWhKsDpMNraV2qOZFXP78uDtLxIxI8V0lXR7OGORabZzm+5cdY
-# ldNVgCQE7kVtzE148Wyy7fMqNW2gG1h5oabWf+hf/4cnGCvFCHMpNoG3WvfBhhPJ
-# PXx7Ni58jbcpr+ANbRQ8o3SDOK71hUExv5bee3sKvLQITm/3i2QMwN7SIrgjhP5n
-# 3sWvVAc7Qd7EqZIR9zgWJSj8GScjX1gKmvZA+KhItDgYTyV7VfPn/cxtfECwoIVc
-# 7/LmW7fjA91Un4HvGGNvnFdABViB7ue3+sZZn80pntxiwy0pc6cFLQmclN5WOd7u
-# Qm4ZX8UxZkVyGzKJjEedbgL3bBg83kWzWbOztvFn6zvaR/eCXqAas4gXe3Isa9UL
-# ushSdI8TZvjgKPmwvt5ZxK4oOPhz5pVVyAcx/VwYKPUfb8dn2MEGlmqj7NrvW1vk
-# ePFN4N1pgTf9UiQbCpMwvbX3lRatgWxO3u/xBTZhy6Y7s56cUwxD6KL4N/RyZsmh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaF43D8OiJzgYJ47uMZNMaV/WBBwwDQYJ
+# KoZIhvcNAQEBBQAEggIAklo6/clfz7Ixxy2pdBiAckrHlccQJxb0Wvg/wEi+nPTm
+# QyOLZ5EhnrRv7tzXWnqftDAeRFmp3JPzHW74mbirMw1eP+2WSV/a6m7pKOojF4tu
+# jHV1jadPJbvgrYpJadsLLp39I6DaBFkjjyUa/TkgD4EZQWy2QHEbpv6oCJHTkbrk
+# 3RPKIDbj3H4+5NCEKBLC29Ci31kTnpyBN8evP3QfRFGvLlnR2S+lTLRPiSrVMKea
+# 0pyRO4UUp1jv9V3cemjllwH1fwS5rNnsOJA2MfDOdQX33QNE6J08un1tWeS03OR7
+# i2j29p/0+BTFM13pb6edkS7ph/h/qhMlroNh4CPwABtQYSkYIWJs5gScvKEUZNY0
+# n7TkIhdP6jzww23P/0t3RFqkjpBcrgl6OBUQoAR9oyFOwCBUK03CVDfqRYdJ53on
+# EkSSC9/kEsdKGMkAULrsSAOx2M7s1dwtqNv6QJeW/Jp0pn2RE55aeUIB8Ci1tIrf
+# 1oxwLTjxPq9D/O65rYy9xpTuyny62rMiTVTcaQDLqEkqgDsr91u7tPPWaOaIj1GH
+# lIwjyeDqhO40Hl3uLdjmghia+WnqFBlVUJq41hEsiA/ro8AAiRINsWpPOn78+sSm
+# ANf+n3F7rqoRdR68gHAdpgav9JOxcHtREH0sItWrYkFcpLXXiNGzmhjgwbWj6Heh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYxNTE3MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIA9AHYd+XPMhQ9kYYStWqlgVuyKlhHDfzPruyG1kbDDn
-# MA0GCSqGSIb3DQEBAQUABIIBABzfxUTWbAI1IUCbsYLAx7RoH4jZNaHfFx0zfxit
-# c7p0lF/nssvk6DvW+Vr66FrAI32Lp96DyQg035orzibR75qnYEceA7yfvTrVazzQ
-# rtO5+S+76lyjq4seFaFo4mvLQWN9PNtOboaO/YGL8VQUSU0rXwTx/OP7RWUuXtpo
-# oGRYTPfqMLBagXhr9e0mSPEO9+IgTR+Ix8DPMS3JYtoZ5bBerJ1rFhxtIxMJPRl/
-# DmCKXF5Ba5yaSzHsunD6OKkILW0vtuI27w9WFtPyvy/MGqSLXWE06mUszQg5a6rQ
-# Qm48nmJ5zkBYxQNSNuZkROu/+9m0Cfy6m0P9sLtbk/ah9yE=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNjE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIL1rqZxnCj17MUmz2ABNiRYqNmi44KNdlJDLgOgm86dV
+# MA0GCSqGSIb3DQEBAQUABIIBADYJpFAOHwn6imSgVs/DpggOIBW0dHsE120fI1Fi
+# Ei+z/4+u60PhtV9A39YzloKCc2ffTJQJ+JJ36Gh9Kdg6//fbZHTcV8/1XnqxpH0Z
+# G7qXhPHl/xnJ33/ueVTSh7tCYQU44ta3MUw63u8O/E4/Tguhz1KiKDoCo+mVKx6g
+# F+kyw8ij4bqMdjsWBg2YQ5iG8oLy8GcT+GSbckXfUE5XVHn5PDI1PJhnS+RuwhhD
+# zms1/v5A5alP/y0mmCOIvjNZzNNe21yarVG++TYtBDMbaq5kwyZ9/Fe7LylTFhU2
+# NVYjb5tifoBz65df05ON0h/jRVIwgpdvl5GeF3lEsY1F398=
 # SIG # End signature block
