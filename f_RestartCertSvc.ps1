@@ -18,11 +18,11 @@ function Restart-CertSvc
 
         Start-Sleep -Seconds 3
 
-        if ((Get-Service -Name CertSvc).Status -ne 'Running')
+        if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
         {
            Write-Warning -Message "Can't start CertSvc..."
 
-           foreach($Event in (Get-WinEvent -ProviderName Microsoft-Windows-CertificationAuthority -MaxEvents 4))
+           foreach($Event in (Get-WinEvent -ProviderName Microsoft-Windows-CertificationAuthority -MaxEvents 2))
            {
                 Write-Warning -Message "TimeCreated: $($Event.TimeCreated)"
                 Write-Warning -Message "Id: $($Event.Id)"
@@ -36,8 +36,8 @@ function Restart-CertSvc
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMtLLbwsMjnSgSSw8XgDStm0T
-# Pb6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUewAAvbqo9wrD4Kd0PqPtlDAF
+# wM6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -121,28 +121,28 @@ function Restart-CertSvc
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU5PguehxLxkb0xLNpxd9MwOJTQW8wDQYJ
-# KoZIhvcNAQEBBQAEggIAASg5sNPGHZvrXpOFqAosb3i02c2iQdrAFb8eWT6H1lRb
-# gfqW4xdLqPYtdW1y+DRW8qiUbMrSms+KuHXH9PClK5j2iwOf1NWhBHCL5zd6/IDW
-# CPhz2KfTxE0KHe5lpS75Q/P9oTtmd8bzPenW9pyXNoxm0oSGyY0/onWvPAnkZYS4
-# 91LntyVm6Tmx8SiYJ4m18ghqK/IeDzguf9b8QzvHxNPQZ37ng5++s7MKehwkM3VG
-# 3E6+zbv8iCDwYQ/tHjlGxsdOlb58s+Lz1ezyg+ZBpYABOAHgV2t8SHSrnZHT/X4d
-# VDy3kCbM0381WcNp0H0KcRjwpF9dbuAd4HmuUo+qXuuc1qffPaC794wUGeb9MzR9
-# L9u+yPs0Mpv7q+jzb4aVKmt78jseNSkPVxorHBSrEaRFc6edu7AL8mJEQez8tabe
-# 6oB+ScZvWygnVleDB7Jzsy/hkB5ty+e0nd1GvucKblDdVdAl4aqRluIMFVQRCvUO
-# WCxS3FrGegVGGgBVg+VSgNOW5mYLkYFcF+hWdx985RaK8jAXOE8QMMzGc1klHtw2
-# U+aUXeb0DyqlxkL7JQ3qIAYzN/ZJnWgA0iXhamWrdxwM1qOHQEG0dv/lL20GppwL
-# KnYiu4n2Z3vzOw1vryyqBkT1dKu0xd4MxtN7ElFca+bvCG8JWWCTYeqMz9wpLbKh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkoUxfQdykAQrcJBHlgVtH3hhK5gwDQYJ
+# KoZIhvcNAQEBBQAEggIAPemN6Z5kokE8/EAvwp5+pVamlqHczxLx7ot2E05DEv9A
+# oOwtD4aEZ1ItUuc+xLt6uUkIYs+6nYw7nCp/fSewicGG4cUEQn7QUUuKd82FaluR
+# tuftd0VxxxxMNyjAfx07ol61ECqEhpbmxSMSe9Wge446ahcNv0+RY6iQIcm6TooN
+# UjC+hvPATiUrSaZziBC9Zu+PgzpcIWqDVY5X5KhmkrvVHGwnNQXkK5vtbZCRl0Ew
+# NVPHSQtHJdrLrrZoZBYF8TvPtV06rYrcJbtCYyKckvxC7U2D7wdUy7/9FnkfLVOH
+# 6rhXypao9sSyjGV7VBN2zCBUufKHZluv0zRTqOAFcQQLlyOLpW7oGPtnA+9BkFji
+# 8UVUvqtoyQDryjOq/oNFGFFFPDfE9lYbmSMuufNX876jpL+xtEM2lVlD+c8ylCJc
+# mp3mrUpFyknvjej380BGrpVFGqjP10UKJ2xD75rizibxgMJEK/CrVybUXIcWcgNz
+# /jJDSzZ12jN2NW4F1WBvwlhMBvY1ZXscUoM8GkP/Fg+mmNXQ/+RuirCPt/dfP1A2
+# OFYL3v67eQvEuBq3dYjpRTd863dzdvZZHRZNlR5A6F9cq77TV+4fFi098X+WjgIs
+# wesUE9nEl9OcOKVIOgYXSdwfPjnyDQ9S9RUz1qD71/HjlahxzSz73LZv8SxBEiih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzE0MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIFhL1GtDN6ux8CpmtuVS1qI11h7Gse6c2a6OPhhdN+fY
-# MA0GCSqGSIb3DQEBAQUABIIBAFiMwzemMp0j2e+uyvOg2FJUHlKqeTjWtTNmAFg5
-# RnIj4wF04EJNrCQ8grhalPfkihpQ6IQqM/Z5ogVX8by7mJ/dGDORhgGTyqaYJdu8
-# 8f2msf+12VyGRhcm+R5BKgtuKJibfSZuTJucVudx9SMNRlFw4ltE7TEN2mAjN9an
-# W8I3MzXoQq0WuZMn+EMV7VkmA/L4DKwzR7lnYYzIITARgXhRNqlAZ4eG23VtfUkz
-# yvt6e3EllimAbDakIiLDgoFLzqsNnis7IE6fIE7GcgsCLNuhst7WKZwDp6R24frk
-# D56eGSCuw2qd7+4RY8+Mw6JKxbCkeItw7bJfJwUyTjX1xSc=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEII8cD6dByGcl+imEC9aKpYqW3nxxoesi2F3MCppG5nHG
+# MA0GCSqGSIb3DQEBAQUABIIBABfudyPudrKGAHFHpY5IuiASYxk1iS530KUAb7Sj
+# sKrQclChsdKHgNTpcyu1nCaD9aV42gSZtRvAg/iYa90JLWkLMpd5j0vdoJr+JI+G
+# z09E6u3li3LmaTvtKhVHydm5JPS+VR9veclLilOoeeqNzPIyfd809zCPSdVfxk6i
+# Wxb0LnVu93AsTlIfH0AuSlPszl/KY2tHu9p3ZlGSuj/QVm4pR9y8Dh5v28aNctla
+# 2eHWqgHdB6kSzyHUR9aVQxRCc5ijrBnv1hRYFOTAxju6bzGbnvtdqrBoruPjecYu
+# YnlQB727JF11bByKdVFjV95XEacgwtcyzdLkfEv9xAlqm9M=
 # SIG # End signature block
