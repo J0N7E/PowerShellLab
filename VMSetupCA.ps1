@@ -92,6 +92,7 @@ Param
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [String]$RenewalValidityPeriodUnits = '20',
 
+    # Root CA certificate lifespan
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -229,6 +230,7 @@ Param
         }.Item($HashAlgorithmName).Item($KeyLength)
     })]
     [String]$CryptoProviderName = 'RSA#Microsoft Software Key Storage Provider',
+
     # FIX add custom provider
     #[String]$CustomCryptoProviderName,
     #   [Int]$CustomCryptoProviderType,
@@ -394,20 +396,31 @@ Begin
 
     # Initialize
     $ParentCAFiles = @{}
-    $ParentCAResponseFile = $null
+    $ParentCAResponseFiles = @{}
 
     if ($ParameterSetName -match 'NewKey.*Subordinate')
     {
         # Itterate all posbile parent ca files
         foreach($file in (Get-Item -Path "$PSScriptRoot\*.cer", "$PSScriptRoot\*.crt"))
         {
+            $CertutilDump = (certutil -dump $file) | Out-String
+
             # Check subject
-            if ($ParentCACommonName -eq ((certutil -dump $file) | Out-String | Where-Object {
+            if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
                     $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                 } | ForEach-Object { "$($Matches[1])" }))
             {
                 # Get file content
                 $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+            }
+
+            # Check issuer
+            if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
+                    $_ -match "Issuer:\r\n.*CN=(.*)\r\n"
+                } | ForEach-Object { "$($Matches[1])" }))
+            {
+                # Get file content
+                $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
             }
         }
 
@@ -415,19 +428,6 @@ Begin
         if ($ParentCAFiles -eq 0)
         {
             throw "Can't find `"$ParentCACommonName`" certificate, aborting..."
-        }
-
-        # Check response file
-        $ParentCAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName-Response.cer" -ErrorAction SilentlyContinue
-
-        if ($ParentCAResponse -and
-            (ShouldProcess @WhatIfSplat))
-        {
-            # Get file content
-            $ParentCAResponseFile = Get-Content -Path $ParentCAResponse.FullName -Raw
-
-            # Remove response file
-            Remove-Item -Path $ParentCAResponse.FullName
         }
     }
 
@@ -783,7 +783,7 @@ AlternateSignatureAlgorithm=0
             #############
 
             # Certificate
-            $RootCertificateHashArray = TryCatch { certutil -store root "`"$ParentCACommonName`"" } -ErrorAction SilentlyContinue | Where-Object {
+            $RootCertificateHashArray = TryCatch { certutil -store root "$ParentCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
                 $_ -match "Cert Hash\(sha1\): (.*)$"
             } | ForEach-Object { "$($Matches[1])" }
 
@@ -818,7 +818,7 @@ AlternateSignatureAlgorithm=0
             foreach($file in (Get-Item -Path "$env:TEMP\$ParentCACommonName\*"))
             {
                 # Get CA certificate hash
-                $ParentFileCertificateHash = TryCatch { certutil -dump "`"$($file.FullName)`"" } -ErrorAction SilentlyContinue | Where-Object {
+                $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
                     $_ -match "Cert Hash\(sha1\): (.*)"
                 } | ForEach-Object { "$($Matches[1])" }
 
@@ -829,7 +829,7 @@ AlternateSignatureAlgorithm=0
                 if ($ParentFileCertificateHash -notin $RootCertificateHashArray -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($ParentFileCertificateHash) to root store." @VerboseSplat))
                 {
-                    TryCatch { certutil -addstore root "`"$($file.FullName)`"" } -ErrorAction Stop > $null
+                    TryCatch { certutil -addstore root "$($file.FullName)" } -ErrorAction Stop > $null
                 }
         }
 
@@ -843,7 +843,7 @@ AlternateSignatureAlgorithm=0
                 if ($CertificateHash -notin $ParentFileCertificateHashArray -and
                     (ShouldProcess @WhatIfSplat -Message "Remove crt ($CertificateHash) from root store." @VerboseSplat))
                 {
-                    TryCatch { certutil -delstore root "`"$CertificateHash`"" } > $null
+                    TryCatch { certutil -delstore root "$CertificateHash" } > $null
                 }
             }
 
@@ -1028,49 +1028,54 @@ AlternateSignatureAlgorithm=0
             # Check if parent CA certificate request exist
             if (Test-Path -Path "$CertEnrollDirectory\*.csr")
             {
-                ######################
-                # Get csr key id hash
-                ######################
-
-                $CsrKeyIdHash = (certutil -dump "$(Get-Item -Path "$CertEnrollDirectory\*.csr" | Select-Object -First 1 -ExpandProperty FullName)") | Where-Object {
-                    $_ -match "Key Id Hash\(sha1\): (.*)"
-                } | ForEach-Object { "$($Matches[1])" }
-
-                ######################
-                # Cehck response file
-                ######################
-
-                Set-Content -Path "$env:TEMP\$CACommonName-Response.cer" -Value $ParentCAResponseFile
-
-                # Check key id hash
-                if ($CsrKeyIdHash -eq ((certutil -dump "$env:TEMP\$CACommonName-Response.cer") | Where-Object {
+                if ($ParentCAResponseFiles.Count -gt 0)
+                {
+                    # Get csr key id hash
+                    $CsrKeyIdHash = TryCatch { certutil -dump "$(Get-Item -Path `"$CertEnrollDirectory\*.csr`" | Select-Object -ExpandProperty FullName -First 1)" } -ErrorAction Stop | Where-Object {
                         $_ -match "Key Id Hash\(sha1\): (.*)"
-                    } | ForEach-Object { "$($Matches[1])" }))
-                {
-                    # Matching key id
-                    $ParentCAResponseFilePath = "$env:TEMP\$CACommonName-Response.cer"
-                }
-                else
-                {
-                    # Remove invalid files
-                    Remove-Item -Path "$env:TEMP\$CACommonName-Response.cer"
-                }
+                    } | ForEach-Object { "$($Matches[1])" }
 
-                # Check if response file exist
-                if ($ParentCAResponseFilePath-and
-                    (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
-                {
-                    # Try installing certificate
-                    TryCatch { certutil -f -installcert "`"$ParentCAResponseFilePath`"" } -ErrorAction Stop > $null
+                    Write-Verbose -Message "CA Request Key Id Hash = $CsrKeyIdHash" @VerboseSplat
 
-                    Restart-CertSvc
+                    # Itterate all posible response files
+                    foreach($file in $ParentCAResponseFiles.GetEnumerator())
+                    {
+                        # Set file to temp
+                        Set-Content -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
 
-                    # Give CA some time to create certificate and crl
-                    Start-Sleep -Seconds 3
+                        # Check key id hash
+                        if ($CsrKeyIdHash -eq (TryCatch { certutil -dump "$env:TEMP\$($file.Key.Name)" } -ErrorAction SilentlyContinue | Where-Object {
+                                $_ -match "Key Id Hash\(sha1\): (.*)"
+                            } | ForEach-Object { "$($Matches[1])" }))
+                        {
+                            # Matching key id
+                            $ParentCAResponseFilePath = "$env:TEMP\$($file.Key.Name)"
 
-                    # Cleanup
-                    Remove-Item -Path "$CertEnrollDirectory\*.csr"
-                    Remove-Item -Path "$ParentCAResponseFilePath"
+                            Write-Verbose -Message "Matched CA Request Key Id Hash in $ParentCAResponseFilePath" @VerboseSplat
+                        }
+                        else
+                        {
+                            # Remove non-matching file
+                            Remove-Item -Path "$env:TEMP\$($file.Key.Name)"
+                        }
+                    }
+
+                    # Check if response file exist
+                    if ($ParentCAResponseFilePath -and
+                        (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
+                    {
+                        # Try installing certificate
+                        TryCatch { certutil -f -q -installcert "$ParentCAResponseFilePath" } -ErrorAction Stop > $null
+
+                        Restart-CertSvc
+
+                        # Give CA some time to create certificate and crl
+                        Start-Sleep -Seconds 3
+
+                        # Cleanup
+                        Remove-Item -Path "$CertEnrollDirectory\*.csr"
+                        Remove-Item -Path "$ParentCAResponseFilePath"
+                    }
                 }
                 else
                 {
@@ -1148,7 +1153,7 @@ AlternateSignatureAlgorithm=0
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, no AIA will be used."
+                    Check-Continue -Message "-PublicationHostName parameter not specified, no AIA will be added."
                 }
             }
 
@@ -1220,7 +1225,7 @@ AlternateSignatureAlgorithm=0
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, no CDP will be used."
+                    Check-Continue -Message "-PublicationHostName parameter not specified, no CDP will be added."
                 }
 
                 ###################
@@ -1237,7 +1242,7 @@ AlternateSignatureAlgorithm=0
                 }
                 else
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will be published to $CRLPublicationURLs"
+                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be copied."
                 }
             }
 
@@ -1510,7 +1515,7 @@ Process
             # Subordinate CA installation parameters
             $ParentCACommonName = $Using:ParentCACommonName
             $ParentCAFiles = $Using:ParentCAFiles
-            $ParentCAResponseFile = $Using:ParentCAResponseFile
+            $ParentCAResponseFiles = $Using:ParentCAResponseFiles
 
             # Crypto params
             $HashAlgorithmName = $Using:HashAlgorithmName
@@ -1643,8 +1648,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh9gP4mO/2b3XOqVCR74GjMI+
-# bXKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+hKp+DUQ2x2L19FiQrL6JnnW
+# kV6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1728,28 +1733,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUjpbtn9JLzjQM5Z4FVSpszb4Aj1QwDQYJ
-# KoZIhvcNAQEBBQAEggIAHFWKXO3BJd+dEZ3c7XoiDFMawRknk1vUQPAQpkQGm6Um
-# aSpuORPP8DlqbPAFB5FFw/FTOxhI+/KuHRhnpUvuBosbL/QCbkBajCMU76DG6Mp6
-# RJQ2B+Yt5zGuv1NL/6KULpukrabAbeRKBNfRa1grvBBJZbsYy9CU7pXgkLJuzMWd
-# 8qt7rlD7tTXPcU2vw3HIQpma0Jmq/DrEcuVO2MpozOpwnl39z2E6HdvoeTNACKuJ
-# Vpfw9DMHt0UqQbhnKtVhgCEv2FMLaeWkWI1lH+3GJ6tGPbFGIoUhJfAjE5hU7Z0a
-# wkLKIRhiMvvzzc8WQK4k5nNwoc3ClnBw5YKYkGJhmnyegkpJMsPEQDiL1s/+GTyF
-# q+TQUibg5ZI+dM3rrPNQqwx9CpkzcCHSTi+imeEU9X2PSpmxAGnEghpGhAoxF3Pn
-# S9gJxKyor9i0VyNIL1CW+yhskyTi/wf4CzZp+zmmYFSKWTLCjx6LN6nZnKARcjsr
-# Hbvao9Fll7fP5N6GfWxOh5b2p3CEg35PwUHGXjwKSf5/NzUxoIPT2tvhfGTtTm1G
-# u5eWHOgJVxAjJVmYeMYcx9RP00bQbQwbTpYFlzKwR0G78drimiqDV30Mtdg7HbrK
-# DYSMnsMkcOrW4WVTSXxpxTCQwgHq5Ykxnetk4T5OSa9wlPRgLe9SkaMglQ4isd2h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxLsFspK1N+V5Oc7H+oEuZhUowaYwDQYJ
+# KoZIhvcNAQEBBQAEggIACwRk/gm1YHkNJVdbpyLPcPJ2NhZdcgu0ELCLBhsOW2l5
+# sqvtUZFf2xrMUpG7nYjMml+oZNbLcxXBglKQ0pYvnS39tPHIvbo2K45rxIROXl38
+# 1vWcqS1v+u7Y+AugmG2nJz27e3kwUCsVSylmg5Cu4dt7OTlu573TJF1tE0ue6bEf
+# 9itdczeJc8sZbQAMyhoAkTnjMKwmJamdpYjw4jRSjaSd1fSBX/KdMMeZbx4FPf4L
+# R81hlg0ek0FBsTIrCVUU+KNlVTrvc9u11wRjnASkst1I7DiBS/MQP5NtxlQu5EcB
+# oP+R4JBuQnaSze1iC9rQoUTjmfDa6mVcHTygc+wmSB9hUbcAyLAs9qP9nPsN0r+C
+# PSEgYpKw15uIB1WPGnKru9ISEl3CXUKBMkSNSh+frnD505WWLVlvVeWZT/dlz+yE
+# aKzI6WtFr7nl5iQlY+rm/VaNDP2pNFPRiv65tL3tTBhYPXp1+zrg55sspgUTj3Ki
+# GhqXA/rTuxvyx0GlQ/Y7VrXVS8k+cBIP6s/ukp5qJdl7xhOtlDzOPnTJm1cSgc77
+# E6Jh2fZrG0IrjmPn1OAheOkaT8M83xb2ntAbE/jV6CADDS1b0QEGaFIFQpvCbOXo
+# yO+60jmWU88kerknXr/tM2XiGGfWQYbIj+HRQjh9arNIJP5s3BF3UXDoIFy11mmh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIPF3Qy8GtS9cT5LNZOaPngwabu4Z8dhAt1e/lOGJ0bYn
-# MA0GCSqGSIb3DQEBAQUABIIBAGyLsvV1lAkL+LwwvSvF6rgksYpjdVTDIHLnT58Q
-# wXv9BOtLjJlY8sYMmKyKwa1fhTp9Zd/Sz2gmme7qmvikJrOrPHbbJ5NBNs1sQdGM
-# +MMsgUcIG5IpJnLjJZTRVgyq5H+ud4wx0ZFfbgs3W0FH9vDeKB+yBP34NQhTrClD
-# t4cEewg8VlWN/0WJI6x6qz5zx8b9Mum3TSsMrTuUF9vRcD8jLfQwwfrvLYh0EHTG
-# NarawyDs7XXUIxkN7ZmA2AqvqgIXrS6hjTBtKDGGECH5VbfpiDVUIgzoxA/4YJID
-# EGVGcMSFbBXR142mIG0DYobMHG2oUIJt+e565XHIG4osJgA=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIB95gZ4NfyZoBd53Wrn/kRbTY3pyEQQ3qlWjvbIxx6R7
+# MA0GCSqGSIb3DQEBAQUABIIBAGw++RnKpCUVY1xB6HJ9eW3WCAySkbHyao6a1g6U
+# +2EgCBUthgIIsY/K/g4t+NY78wITbefD87z4qj5mSsLVdh9P+A1LG2RrrSvT607/
+# S3hiJsnH8ildUiHtOCDnRQViRBQcIJ30nmF1Z3OphOV2nRR+ZaEapm0z2hvEBYw3
+# haCoio23GSDvtdeuP2Xdqa34R4bAORd0W0k1Ny4FZ+tGoXK0rVBcweLvS3/E6kwa
+# 8cgSjIbn512IzdiJKVF65RCeMyPJ3DrvfWG34JreSgglR1vTyxIFP8taVo/GSRJ8
+# omYBfiYmmgxVlS6B03s/OJuJjya5cXnscwyN+wbfRJq9E8k=
 # SIG # End signature block
