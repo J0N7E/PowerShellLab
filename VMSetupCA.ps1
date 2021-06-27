@@ -269,25 +269,17 @@ Param
     # Set host name for publication
     [String]$PublicationHostName,
 
-    ###############################
-    # Crl Distribution Point (CDP)
-    ###############################
-
-    # Add publishing UNCs
+    # Add publishing paths
     [Array]$PublishingPaths,
 
-    # Custom CDP
+    # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
 
-    #####################################
     # Authority Information Access (AIA)
-    #####################################
+    [String]$CACertPublicationURLs,
 
     # Set hostname for OCSP
     [String]$OCSPHostName,
-
-    # Custom AIA
-    [String]$CACertPublicationURLs,
 
     ###########
     # Switches
@@ -406,7 +398,7 @@ Begin
 
     if ($ParameterSetName -match 'NewKey.*Subordinate')
     {
-        # Itterate all parent ca files
+        # Itterate all posbile parent ca files
         foreach($file in (Get-Item -Path "$PSScriptRoot\*.cer", "$PSScriptRoot\*.crt"))
         {
             # Check subject
@@ -419,7 +411,7 @@ Begin
             }
         }
 
-        # Check crt
+        # Check if not found
         if ($ParentCAFiles -eq 0)
         {
             throw "Can't find `"$ParentCACommonName`" certificate, aborting..."
@@ -448,9 +440,12 @@ Begin
         $CertFile = Get-Content -Path $CertFile -Raw
     }
 
-    #################
-    # Define presets
-    #################
+    # ██████╗ ██████╗ ███████╗███████╗███████╗████████╗███████╗
+    # ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝╚══██╔══╝██╔════╝
+    # ██████╔╝██████╔╝█████╗  ███████╗█████╗     ██║   ███████╗
+    # ██╔═══╝ ██╔══██╗██╔══╝  ╚════██║██╔══╝     ██║   ╚════██║
+    # ██║     ██║  ██║███████╗███████║███████╗   ██║   ███████║
+    # ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝   ╚═╝   ╚══════╝
 
     $Preset =
     @{
@@ -1541,30 +1536,24 @@ Process
             $CRLDeltaOverlapPeriod = $Using:CRLDeltaOverlapPeriod
             $ValidityPeriodUnits = $Using:ValidityPeriodUnits
             $ValidityPeriod = $Using:ValidityPeriod
+
+            # Set log level
             $AuditFilter = $Using:AuditFilter
 
-            # Set uri for publication
+            # Set host name for publication
             $PublicationHostName = $Using:PublicationHostName
 
-            ###############################
-            # Crl Distribution Point (CDP)
-            ###############################
-
-            # Add publishing UNCs
+            # Add publishing paths
             $PublishingPaths = $Using:PublishingPaths
 
-            # Custom CDP
+            # Crl Distribution Point (CDP)
             $CRLPublicationURLs = $Using:CRLPublicationURLs
 
-            #####################################
             # Authority Information Access (AIA)
-            #####################################
+            $CACertPublicationURLs = $Using:CACertPublicationURLs
 
             # Set hostname for OCSP
             $OCSPHostName = $Using:OCSPHostName
-
-            # Custom AIA
-            $CACertPublicationURLs = $Using:CACertPublicationURLs
 
             ###########
             # Switches
@@ -1654,8 +1643,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0YTDXiuqH/aPvIVimJfEly+B
-# Beqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh9gP4mO/2b3XOqVCR74GjMI+
+# bXKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1739,28 +1728,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFB+9kE9HRpa1yQsZBjZZbosVC9kwDQYJ
-# KoZIhvcNAQEBBQAEggIAPkKXdowm/HIbKwYNCmU06h74EmBSzYPtT+ufwZKjjMHW
-# 8gvkBNcR9m9E8zBkEbaNw/JBOLBLtAtlw+P/kmkQnXrzmFBd0+3ygX16EFpsxb1c
-# Z5KyE3bot1hirUL5LOue/gbVa+fNEj2E8aR7YCIu3q2KFaydRm28ThkkoHcfVwbM
-# PN6XiX9kAM7a4wK9nq8/rbnCCvrGbx4v2R03A8cCkb1h7s0oOsDy/1EVXrQgAiUH
-# agljs9vFtGUjhElLEI5n1FcRVTxevzkYPdpGcY87jw0VaSYjI2XRr6KT/A5xn0HR
-# EgzRIuzIo6WytJutswNn1ztCkK8OOtbXDYPYd+2guN45fAMtoK3QCSQbsUndAMip
-# PAXiIJQo47HJYNoHA15+Q76+p6sPTkDWfVVaxlmQBuIYyYnOhGYs9l9QdCOV9auZ
-# I75NZENbt+8hXPVFIgX4w/imTEwx3z0c1BCzpSBafuqVDTII+5Hmszo6QKXOtIqL
-# ahdyfwaf3fy8jUYMUsjGGquf8jVF4GbvMAbJMyiJpnlMINZ5cLOAVQqHHFZHOwhe
-# FaWTddITaf29DH9pVkZjV1eqWw/uXzHIelCQUr0ON1Kydo0y9lbu7C7gEU05YxIR
-# Er1XFcDlpKPn4MKn11Vmb6DqDM8GCeKLODysYWB0vUplJNfBqX5g+IwGYAdD5M6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUjpbtn9JLzjQM5Z4FVSpszb4Aj1QwDQYJ
+# KoZIhvcNAQEBBQAEggIAHFWKXO3BJd+dEZ3c7XoiDFMawRknk1vUQPAQpkQGm6Um
+# aSpuORPP8DlqbPAFB5FFw/FTOxhI+/KuHRhnpUvuBosbL/QCbkBajCMU76DG6Mp6
+# RJQ2B+Yt5zGuv1NL/6KULpukrabAbeRKBNfRa1grvBBJZbsYy9CU7pXgkLJuzMWd
+# 8qt7rlD7tTXPcU2vw3HIQpma0Jmq/DrEcuVO2MpozOpwnl39z2E6HdvoeTNACKuJ
+# Vpfw9DMHt0UqQbhnKtVhgCEv2FMLaeWkWI1lH+3GJ6tGPbFGIoUhJfAjE5hU7Z0a
+# wkLKIRhiMvvzzc8WQK4k5nNwoc3ClnBw5YKYkGJhmnyegkpJMsPEQDiL1s/+GTyF
+# q+TQUibg5ZI+dM3rrPNQqwx9CpkzcCHSTi+imeEU9X2PSpmxAGnEghpGhAoxF3Pn
+# S9gJxKyor9i0VyNIL1CW+yhskyTi/wf4CzZp+zmmYFSKWTLCjx6LN6nZnKARcjsr
+# Hbvao9Fll7fP5N6GfWxOh5b2p3CEg35PwUHGXjwKSf5/NzUxoIPT2tvhfGTtTm1G
+# u5eWHOgJVxAjJVmYeMYcx9RP00bQbQwbTpYFlzKwR0G78drimiqDV30Mtdg7HbrK
+# DYSMnsMkcOrW4WVTSXxpxTCQwgHq5Ykxnetk4T5OSa9wlPRgLe9SkaMglQ4isd2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNjIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIJrWW8yg6hQpPeI7t3+igZRHcI2OAHC0bSpeBl7QZOLZ
-# MA0GCSqGSIb3DQEBAQUABIIBABLcWn0AigbbigJXMTmOg+IjtpCidvFZ+kzfDJfU
-# FVbthPsu+olSirchmvjb+BoHHRoibGQzj8hi/9/GDKx5hxdpMQoy64EysdIrOQnt
-# I09IYM4BoKLbSlMNM8jUfueK8MQhbDjo8kb7Kq2PTJxOgRfXiB/tE5C/atkvMhLU
-# GKdMxd4YBNDYtDDhj3Jl9f17X4OErNq6uFLStIclzYIWFwJpu0BoV6z/Ar1WQ5Gc
-# iQu/DS9ClGqiX7EKRZqy4Wi1VX1fo+VkNnufTVmDkrXXH4KscUEKW6YjiFYJQ2Nh
-# 0wmAVHhJsq1VUUPaYkrBZDwtz2pQvkNqz1aBMNPoeg/dKN8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzA4MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIPF3Qy8GtS9cT5LNZOaPngwabu4Z8dhAt1e/lOGJ0bYn
+# MA0GCSqGSIb3DQEBAQUABIIBAGyLsvV1lAkL+LwwvSvF6rgksYpjdVTDIHLnT58Q
+# wXv9BOtLjJlY8sYMmKyKwa1fhTp9Zd/Sz2gmme7qmvikJrOrPHbbJ5NBNs1sQdGM
+# +MMsgUcIG5IpJnLjJZTRVgyq5H+ud4wx0ZFfbgs3W0FH9vDeKB+yBP34NQhTrClD
+# t4cEewg8VlWN/0WJI6x6qz5zx8b9Mum3TSsMrTuUF9vRcD8jLfQwwfrvLYh0EHTG
+# NarawyDs7XXUIxkN7ZmA2AqvqgIXrS6hjTBtKDGGECH5VbfpiDVUIgzoxA/4YJID
+# EGVGcMSFbBXR142mIG0DYobMHG2oUIJt+e565XHIG4osJgA=
 # SIG # End signature block
