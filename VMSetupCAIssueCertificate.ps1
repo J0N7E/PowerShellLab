@@ -74,9 +74,8 @@ Begin
     # Check if certificate request exist
     if (Test-Path -Path $CertificateSigningRequest)
     {
-        $CsrFile = Get-Item -Path $CertificateSigningRequest
-        $CsrFileBaseName = $CsrFile.BaseName
-        $CsrFileContent = Get-Content -Path $CsrFile.FullName -Raw
+        $CsrFileBaseName = Get-Item -Path $CertificateSigningRequest | Select -ExpandAttribute BaseName
+        $CsrFileContent = Get-Content -Path $CertificateSigningRequest -Raw
     }
     else
     {
@@ -129,13 +128,17 @@ Begin
 
         Set-Content -Path "$env:TEMP\$CsrFileBaseName.csr" -Value $CsrFileContent -Force
 
+        $CsrFileSubject = (Certutil -dump "$env:TEMP\$CsrFileBaseName.csr" | Out-String | Where-Object {
+                    $_ -match "Subject:\r\n.*CN=(.*)\r\n"
+        } | ForEach-Object { "$($Matches[1])" })
+
         #########
         # Submit
         #########
 
         if (ShouldProcess @WhatIfSplat -Message "Submiting requestfile `"$CsrFileBaseName.csr`"." @VerboseSplat)
         {
-            $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$CsrFileBaseName.csr" "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction SilentlyContinue
+            $Response = TryCatch { certreq -f -q -submit "$env:TEMP\$CsrFileBaseName.csr" "$env:TEMP\$CsrFileSubject-Response.cer" } -ErrorAction SilentlyContinue
 
             # Get request id
             $RequestId = $Response[0] | Where-Object {
@@ -161,12 +164,12 @@ Begin
                 if (ShouldProcess @WhatIfSplat -Message "Retrieving request $RequestId." @VerboseSplat)
                 {
                     # Get certificate
-                    TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CsrFileBaseName-Response.cer" } -ErrorAction Stop > $null
+                    TryCatch { certreq -f -q -retrieve $RequestId "$env:TEMP\$CsrFileSubject-Response.cer" } -ErrorAction Stop > $null
                 }
             }
             elseif ((($Response) -join '') -notmatch 'Certificate retrieved')
             {
-                Remove-Item -Path "$env:TEMP\$CsrFileBaseName-Response.rsp" -Force
+                Remove-Item -Path "$env:TEMP\$CsrFileSubject-Response.rsp" -Force
                 throw $Response
             }
             else
@@ -203,7 +206,7 @@ Begin
         $Result = @{}
 
         # Get response file
-        $ResponseFile = Get-Item -Path "$env:TEMP\$CsrFileBaseName-Response.cer" -ErrorAction SilentlyContinue
+        $ResponseFile = Get-Item -Path "$env:TEMP\$CsrFileSubject-Response.cer" -ErrorAction SilentlyContinue
 
         if ($ResponseFile)
         {
@@ -341,8 +344,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKb68vZ3Ly0kDFRt7L0Wn8cte
-# Iyuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrfGQ1el0FhuUnc4qKN+g1Ll4
+# jPOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -426,28 +429,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFgRheWaruMhxUueUP/q23qY6b4owDQYJ
-# KoZIhvcNAQEBBQAEggIAZj3f8/u5I/H3ZReYA2Jkpq0A5IWCl/eIMPoYWFb5/bdY
-# sgLMhU/BRo/7mCRh9uimgSKIjOSahoFrs3zbTh37EQYnzGw7docRXL0Q6S73YKmV
-# Nsn5UvinSZEVWrcYgUVP8XEpYcSUPjSI/iuyMYBhQzQZRsod1w7I3K8QzP9Y9KFM
-# myELT219NsA7EmVYqnHhM/YE7CuT/LRBGowN+VdY1LUjZL9Rr5AzPED6pNyMhMoW
-# aj1z9gnxVN27q3CjAsxwk6/dZxtKFYOurxubL3uiEcSErlGBnZVbN2b2fkZpX7vI
-# 0gkOcJfGHl9F6HF7D7w5gz3I2UCmcmFMJjw1S3R6irGxRwdtiJflDfVAEkwAWBnk
-# 81qgI37srN2zzWMghViX4pN3o3Yhv4PsFb8eN26dW9G1Nrnej+f7VjSuWSMcDHTF
-# tYx9QPoKjgKwsu07yIK119ECWnT59WCbbnEL7FZ7a9msUX1OTJlkafYFxtEv1X53
-# fyaIQtd+t0oCfLlKPiSSN+oNB1ZZyWgyNJLZJX3TVS1r6w0Y1LmGEEeuWM6bXqbr
-# B4pMZASH5aszD1Bp3OGTivAiJu48IoeEv1Brx4zcFOzxrNjN6ejEVviXoLXZgJ35
-# qfwDPtVYs0oAYnsYYt+AQa0+aAfeWMXM93zjx6nw8G3CILS3WXcOVI+bLldp1syh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFf/A9W8MD6q35i+MmHtaH7KjL0UwDQYJ
+# KoZIhvcNAQEBBQAEggIAWVM6xbh4IhEfYzTrqUPdaHtQJ/cdiMAb7QVQoJiQvp34
+# S+TbnRyHyDSjeTHFw35wnMQEbLy4bszW+563wPAHK1vcUuqb0mArsIQweAuDCKKc
+# uxZNgvuldtR6pMHxF5VuH/Xo20TcQK0BA73HHZe8csH+WhjP+JmspebSe6P4fpn9
+# vBKySZUATjIfuUtv5jTAUZrfL3mV4DQGc5emMSH/w0VYARiSK1hC4BEwlmDNx817
+# 6STrl4qOk07ENdDGWLxSyHxZsJuMidlsGEWGazPAtgbNTS58p7TpJy5JwyDvam4M
+# qdlV4JgeKAhMh0WF4QkjzWPiNVlTT+EDI1UULZTCr4jN0kStmwTJJEKAirs+B/Tf
+# s2M+hEd+rsnmdykbZOez+n+misBteWfDQBHWBu1lEHtj+JjrTh8n6f8cWTTn39ma
+# r2bsb41SntnjfoxlN00RMIDtLVKZPJt5/dq7tDXUpCOs7m7hgnh4lDKwE85NmWZZ
+# 16jTOSt+6SBPF8nB9XO6WD/pwVwWpxWExBid5oFdya71eEq4EFasuPaP1rV5RVmO
+# 6ipmTATy6LmPnD2J589cld7XQvwpNQhjA8W61Cn9l/NBLbHYtOs4kfCkeB/NZ2e0
+# hqV1O7wlxONb9NrZ6bipI2zSSKGH1ZhnBRjGOe5uJCDyQVjPUi/FXQQxuISs6C2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDUyNTIwMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIAI8h1+57wSVNwcEFOH23qBXra4J2B03eBoPTVYCmeEG
-# MA0GCSqGSIb3DQEBAQUABIIBADQu4/WOL08BTrR1cYk9BFkr9aI0wxaHdeQtoOTK
-# gQNdTUK0gfyUjqrWYPRWNFy1XSb4yMJHLzRgQ79oe4lptngHRUEmD7QKFYStZsd7
-# aoa4eHfD+lcC+WtiRKt3zaT7rSwwbkAL2oN5oQNShwVrSBrtGKhx+E3CZgc6f9ZS
-# hx6piRnroERaDEN7mkv0jjNXIhb13QfX535Je3IaBBuiH7QQ138X/gKrf7vZ+4zl
-# Y6mepEtVrcdsw/JNxFTdtbhHvkZP/I4M1NwjFxiLoUwhGZFDtoav1avPHEAsLNm+
-# r99Tu9CQqye9IertGbDv5VSr4FA741607pJsNRfo8YuS9pk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzE0MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIFSjwIUjaYi1WyiZBE8F1ZiMXtWC0jBfl9DjWpHPCtSx
+# MA0GCSqGSIb3DQEBAQUABIIBAA96CiGAOerGVKK4dYONgWj0Sia6iZMBxOdbCY5N
+# DHqYANroOCuHkrdhNoAAzDZvw0E2ZlUCQQjvIFAXaJu3dFkkapXHybsB8MKtgU27
+# +GwczQcYg8neuwKBM7D35Sid+mm1dWvApRepsVY6ki8yJiarzs1ngfx9SZZnFuOp
+# jXlcLKdBdLhFQ0KJtZePNBIpiKiEm+j/b9Kw1LGb1XC5FIiIu/Sof9qkzHBr5NEB
+# Xe2a4RxNH6NGWRg2/bycwB1jZ77kKbj8FliCoeeTeRDHSmGq81IjjNNp2SjUTDyP
+# dbJObC0n1uaPFLwZjXK1/zd+1kdRB1legxRAFQul42ykKJ8=
 # SIG # End signature block
