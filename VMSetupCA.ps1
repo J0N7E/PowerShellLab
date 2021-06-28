@@ -415,9 +415,11 @@ Begin
             }
 
             # Check issuer
-            # FIX
-            # add check Subject -eq CACommonName
-            if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
+            if ($CACommonName -eq ($CertutilDump | Where-Object {
+                    $_ -match "Subject:\r\n.*CN=(.*)\r\n"
+                } | ForEach-Object { "$($Matches[1])" }) -and
+
+                $ParentCACommonName -eq ($CertutilDump | Where-Object {
                     $_ -match "Issuer:\r\n.*CN=(.*)\r\n"
                 } | ForEach-Object { "$($Matches[1])" }))
             {
@@ -429,7 +431,7 @@ Begin
         # Check if not found
         if ($ParentCAFiles -eq 0)
         {
-            throw "Can't find `"$ParentCACommonName`" certificate, aborting..."
+            throw "Invalid certificate `"$ParentCACommonName`", aborting..."
         }
     }
 
@@ -1651,8 +1653,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9znqMZTn3HIMHzCJjPuwhrEH
-# y02ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsKemCelaDTbnN5avf7yxnOK0
+# Xf+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1736,28 +1738,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2qlQnTT4AA/esYcx3Wt24ckEBZgwDQYJ
-# KoZIhvcNAQEBBQAEggIAMD2oUUWfmb+M++opkNV0raHONaX9wI3saRQuypvz4THw
-# cn4TUHzz/pQFG9NjYPabq34QiUwVyd+sGP1PKlJL3R6xE9Gd0+8dALcoNpdz93e+
-# 1KFQGdk+NkXplmUj/YHU/vW5ny+2nT9bxnBt9WKuSGUF8MUpCOFUlpWhOflz5+Vi
-# uvEUN8gy73gg4JO6e0RHuC82e5hqGqguRlmc7j8wz/8TfU7coOC8/W0jSp/2BifS
-# nJe6/xNvQSYAyU8ELgU1DQ26VcIs54+1/Fg/21USi5A15s0gDn6k+JWpWWK2eAbQ
-# IzMvc+HHHGsYJLk5/CxYx7KX4Iy0RQZPTQixgOZMFMfD0sGM3zNtO/HmjhXJqIIr
-# TnXHcEUazSjxbNlJrYRJsmo8TUifJmRGqv1SsWYvJBQyC6SdvLdrVNZibSMXODWO
-# nT8jH1SeRjlWN2gEPLLRKVAd3zwkt9EP0ZkuTLaNlmSHpMHnq1m9BBxSXEWkTNUi
-# IOI+GV0XNcAOFoCrRr6hHHx5XNlEDmF6vkBdWxt/VugF2ppgeEq/yBV4V1XcH+MH
-# sU7JmuYPZeNGnK1CapL0b8Z4RVb3Rxfr/wvLPf3qUWkKvsUtJgn5UWpmtXfrHc4X
-# Z3wGr4Q7j2WQX0Hr1+1nL+1hbaNAmCypIjzxm0CDOv8zvb01FcGLjhbuKmCkcMmh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJt6iUxlWcT7ANj7QitVNhgBi6PYwDQYJ
+# KoZIhvcNAQEBBQAEggIAoLox/PbU+prQJhZlfm4+gryCC/E8YzGTWwz7V3846KE/
+# Cp4ptbyorcM06ky8Cxy+TBCPBsap0TRWtFIBSp25ADDTHjd8sW/6IMhXSStjvAMF
+# 95gQ2+nlkugl6uRpIapYJrCYoUdRwqcmAixR8k3/FzSc9EoRTZ3FkRc8wdGkmwlE
+# iGAw8cqEWpAWUg20PzLfwLK3g0Kr7o+to8aC42zTP7rbKN0RhABw51QMnGMOvyTk
+# xq7MaE4DzcdBT0+ubn+CLxkZV5al923gsj0YjFST9pM5zye7r5hcHAjynZOFGwY7
+# ip63kVNEhS5WAqDJp4v91aBkTUvXAzd5iEksudgp2+ZFRP7uJNhnfcHm1mucy9F+
+# SJBZDR5MgZUJHeg+rklKwlYcHYhmoPvHlSH8SMHuZf6tKApp2p3esKN1wYYnmEwK
+# EgJwnudL/ExbnhSMCiAXpzSGoXkSpKf+RFSbHgdY7csdgKKbqYD6gnRZfHizpjro
+# WANKL/jvHdmw+ihbn2kJuUDBOQfyHx7njmDxhYELDyRtNs4kMzHWCEX24zmsXBtE
+# 2Pqn6/0wg9a5ro+8bh0xTEL/X7zzk9vu50iW/Yf6CJiYfh/k+Kf5CFoJRWFj8YQm
+# 7+3Khx1dUmk9CjWwSl0jw3f8HRoHX0CT+foXIorK+plaug30KY5uqy90Z2LGp1Kh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyODAyMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIAaNRnCD6Z4k8xTU7f4kOxzp+5HOOoDQJvp+L4/MSN47
-# MA0GCSqGSIb3DQEBAQUABIIBAIscPkk2svIwKkaI0bYmXqaMIYx+OhUtfEUPsQOo
-# p7xV5O63f5oDLfpaT1wshwDopoDZHzNYhBY1vPpCZP8W3dGvBE48mYoIXqGOhevS
-# 23wxvOT60LhQ1QysxAOeS/oEZHxB9IBF2lflxzI594ODQKwujzu3Fym185RBIJJE
-# ZvTF+zkFvIlt3OTDhDhSQhnecOZNUNvcBKAEFyHyUFvpnWtOFYLx/sAOpd687KWQ
-# zQM/bnDHest8zGUXQrKfPCPfuRKs9azLeqyVg+sSFGe7G+eDsrKNr+VGd4XsnIw6
-# 2wWbaIapJHDJCMiGemXm9y4oySL7xosnEljqgSTOcUMuMiY=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyODExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIADocX+AAtZWv1ouqD72ucD3j30MEn/8UD6eEyxJOrNV
+# MA0GCSqGSIb3DQEBAQUABIIBAJcJakvIo1/5suZdUEFIK5eY5VGw9QdlKdPXBlQc
+# O860qSklGDaJGIemTBjqkLEyU0An5jIPxHqMyX7avgja8qBgMtrgbzHjEiuEBgG2
+# i2omCDFPGUCmKeTmLOk1GS++qIh3uBmfeLiPV4wX6+d4IJ/T/MzT/JrqTR3DQvvv
+# q3/P0toj3gAhlDlth5RKXdC+xap7cWdaod/uzwi8jJHc1ak8zXvYtMH6ZfS/0kzg
+# 5JsIrKM0YNFs8AgdGdnz0n4wbmswD4sWJnQ0QQKAd+QoG9WilDl4+25YsaFOBB3k
+# i6XH0VwNL7EmdkdLG6YCdZh5hb3gAJQmhnxPTtwSvefTovo=
 # SIG # End signature block
