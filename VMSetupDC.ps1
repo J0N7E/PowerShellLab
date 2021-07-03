@@ -660,20 +660,26 @@ Begin
                 @(
                     "$DomainPrefix - Computer - Firewall - Basic Rules+"
                     "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+                    "$DomainPrefix - Computer - Sec - Enable SMB Encryption+"
+                    "$DomainPrefix - Computer - Sec - Enable LSA Protection & Audit+"
+                    "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security+"
+                    "$DomainPrefix - Computer - Sec - Enforce Netlogon Full Secure Channel Protection+"
+                    "$DomainPrefix - Computer - Sec - Require Client LDAP Signing+"
+                    "$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+"
+                    "$DomainPrefix - Computer - Sec - Disable Telemetry+"
+                    "$DomainPrefix - Computer - Sec - Disable Netbios+"
+                    "$DomainPrefix - Computer - Sec - Disable LLMNR+"
+                    "$DomainPrefix - Computer - Sec - Disable WPAD+"
+                    "$DomainPrefix - Computer - Sec - Block Untrusted Fonts+"
                     "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+                    "$DomainPrefix - Computer - Windows Update+"
                     "$DomainPrefix - Computer - Local Users and Groups+"
                     "$DomainPrefix - Computer - Display Settings+"
-                    "$DomainPrefix - Computer - Windows Update+"
-                    "$DomainPrefix - Computer - Enable SMB Encryption+"
-                    "$DomainPrefix - Computer - Enable LSA Protection & Audit+"
-                    "$DomainPrefix - Computer - Enable Virtualization Based Security+"
-                    "$DomainPrefix - Computer - Enforce Netlogon Full Secure Channel Protection+"
-                    "$DomainPrefix - Computer - Require Client LDAP Signing+"
-                    "$DomainPrefix - Computer - Block Untrusted Fonts+"
-                    "$DomainPrefix - Computer - Disable Telemetry+"
-                    "$DomainPrefix - Computer - Disable Netbios+"
-                    "$DomainPrefix - Computer - Disable LLMNR+"
-                    "$DomainPrefix - Computer - Disable WPAD+"
+                )
+
+                "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Computer - Sec - Disable Spooler+"
                 )
 
                 "OU=Users,OU=$DomainName,$BaseDN" =
@@ -689,18 +695,19 @@ Begin
                     "$DomainPrefix - Domain Controller - Time - PDC NTP"
                     #"$DomainPrefix - Domain Controller - Time - Non-PDC"
                     "$DomainPrefix - Computer - Firewall - Basic Rules"
+                    "$DomainPrefix - Computer - Sec - Enable SMB Encryption"
+                    "$DomainPrefix - Computer - Sec - Enable LSA Protection & Audit"
+                    "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security"
+                    "$DomainPrefix - Computer - Sec - Enforce Netlogon Full Secure Channel Protection"
+                    "$DomainPrefix - Computer - Sec - Require Client LDAP Signing"
+                    "$DomainPrefix - Computer - Sec - Disable Spooler"
+                    "$DomainPrefix - Computer - Sec - Disable Telemetry"
+                    "$DomainPrefix - Computer - Sec - Disable Netbios"
+                    "$DomainPrefix - Computer - Sec - Disable LLMNR"
+                    "$DomainPrefix - Computer - Sec - Disable WPAD"
+                    "$DomainPrefix - Computer - Sec - Block Untrusted Fonts"
                     "$DomainPrefix - Computer - Windows Update"
                     "$DomainPrefix - Computer - Display Settings"
-                    "$DomainPrefix - Computer - Enable SMB Encryption"
-                    "$DomainPrefix - Computer - Enable LSA Protection & Audit"
-                    "$DomainPrefix - Computer - Enable Virtualization Based Security"
-                    "$DomainPrefix - Computer - Enforce Netlogon Full Secure Channel Protection"
-                    "$DomainPrefix - Computer - Require Client LDAP Signing"
-                    "$DomainPrefix - Computer - Block Untrusted Fonts"
-                    "$DomainPrefix - Computer - Disable Telemetry"
-                    "$DomainPrefix - Computer - Disable Netbios"
-                    "$DomainPrefix - Computer - Disable LLMNR"
-                    "$DomainPrefix - Computer - Disable WPAD"
                     'MSFT Windows Server 1809 - Domain Controller'
                     'MSFT Windows 10 1809 and Server 1809 - Domain Security'
                     'MSFT Windows 10 1809 and Server 1809 - Defender Antivirus'
@@ -756,7 +763,7 @@ Begin
 
                         "MSFT Windows 10 $Version and Server $Version - Domain Security-"
                         "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
-                        "MSFT Windows 10 $Version - Computer"
+                        "MSFT Windows 10 $Version - Computer-"
                         "MSFT Windows 10 $Version - User"
                         "MSFT Internet Explorer 11 - Computer-"
                         "MSFT Internet Explorer 11 - User-"
@@ -1706,8 +1713,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAeZqa0SyIHmNfIB4gN/FLpml
-# ppuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyp7izX8k/4ZK7Zaz26S4R1Z6
+# 51uggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1791,28 +1798,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhughAPW4Jl0OFDmRP0az6F7AGiswDQYJ
-# KoZIhvcNAQEBBQAEggIACvgeypJzKq4/0MdChirPNmsVRH+4Ob/yeKSA9hnrNZsj
-# I1GlTFiWRW33cqlzcIsp14ciLCI7dKVGX89+qpoL06SU9lMntrJYayDcGdulJsNP
-# VP9rMrEDFnlYSFFz5c0398qOBoaC9zpOyHWpU7SFdr1n/Sy3I7srNMC/bZcSPmab
-# hsBJGcpE09iQbNn3IUDxAoPwP6a0Hwyw5GKisx1D6pLgwio3puBGHL3QOdreqJ98
-# A48NmdsfTJgSjq6R9TVNEA6yfvk+PabSpfagRYNio9ZZlT7JGSD0C0IvKQdS7t5x
-# zUjOmUeUY+IEcVQA3dj62Sp9I26r+nFzqHpBR7tiOpX3DqqeBGfCayyMZwX59X0T
-# UySS83au7N2JIgZZIQyoW9WOfv59zmm7MwI/IVwOXKd0et9oUrfyprBQhGcdKpac
-# dXGufY2drGdgOw5+m3QYwg+TIQUF5B4tHUXx6ts1xw2bbbY6I7l1wTqkYv8IXuCK
-# 93MjONdNNXq7k8dz1gXTDxL30PRKbojAqUauHLCbVs8VEHHM8U8X50PN0nvUfMaH
-# H2QNLe8H4ZT4o9g3cyWtB3O3bkATSbVVvljHq69K8085UIA9gCFvHUX0Eu4G3DXe
-# YwMTkPpwswx8yq58ID8DJ0s2bmrFsYcSDolL7qfYZg6/ROqBi/6hFV720xChpYSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUOMTZoEFmdZtg7tXN17FDDt22L2UwDQYJ
+# KoZIhvcNAQEBBQAEggIASn+vb8EEKRKQCRVwCJYP6F6porlChQ8v7CIjihwXvBjX
+# H/lT2R8xdFhItYzyagEbQETmG0xtGuT2azR1xvyIXjESmt75VWgOOCggHk+U3jTF
+# P8UBQI8UswJwULnyypJXj4TW4yID5mnV/Xv7V7HW6uNJdVR+s45t1aWoDJCFL1aC
+# Dbyin24rE4Zkr7mR6qkKc+fWmSBd0h31+f5Nof3/EDvSrZyjZjCpkpVXL85LIdPt
+# 9apJaoI4p6obrRCUXyytNfv4QM/fhTf6LFEnwojAp57pORMUEJ4XX+GOWUxdHSur
+# YGo6av5C8dVpjxA8i4nrPSgPKzxWKpDfka0Da+evwop8e1jLgotHKywdc8KjVcae
+# XKCmqdIOryGd+m0a6x/N4BkFpvc601amlp1S2PartIGcsnFpcw7y0uMJJ/MCRORx
+# w51SOCwewbd0JTC/FB9G1HsrAKwTjtaDG6V9nA88w6z+1xvvUMINOb9IMM+2Hq3V
+# ceLIr83vYLfyxm3qaKirxOafGlH3FqfkQOb3csETIDkf8vo7AZL3cxhaz+aRVONZ
+# 7+l5yAosxyYsffSnVp7EA3XjPm5xC3bYBnOAYtB5EA24mydTWqCWfJ5D6qjffh7K
+# yO3NWGxrVaYgNeonSGOT85P9AUFSZ6cOSds4sLE/AZ0loyRzt5vqOTBaosgVYXih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyMzE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIC6WoYO0qBYnkyKMV7MapM/CKAe8sLnmAtNvje8YBc0N
-# MA0GCSqGSIb3DQEBAQUABIIBAHI8u8tGYwUoGHQlZ3MM7GZ4hws24ylkCofyox6W
-# Gd4vsxCgoGZsdtdcLoIbUpVpvB4FgeG666NckaHMdoaFy1QnNBwdifjXPz/Lzzkm
-# mU5Kg4J2Le3EQyXcmULA2eh9SMkQUiE++budkajDGqbIsKWz4mVSgqtD3V5PY22s
-# O4ccScLtPmFwc3tfjgxA614EIwXzgyGVxgwBuiJLKwPDuVbdd4PCA1gijgJZeSbZ
-# IrfmZd2m8c8HKNLjswNSNKVVehm14ug4KhSkhdrf9qBCqZ+r9Zl1Q1O9p+/MFEKZ
-# XkjnKIRym3CeyBUT0uxALiCK2RXjg1YditevopODP39hoc8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDcwMzExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIBjXQCIYSjX8UPDvfTSWZBRzf7Eq6y/gTQ5toMPE5koq
+# MA0GCSqGSIb3DQEBAQUABIIBAMD9Hqi1QmAfbNhbyepJlsy0tCE8Q0M6+FANHDek
+# +oMV0e+U2VyDHHhtIKvhjx0aY1RwoFTaXp8TFs4sGOhECUOJVDaQiC4bWpzbFA1W
+# yW6/8DO3a5C1KjRI0oHaQv62RWR03fnWNedW73xO2MN0BzdKgHWgSyrjLDABD9fV
+# jLNNdEBMfAZHz9MnDl4mdqt4iiC48W2hD5AQW9YLgN9UM00nsVwn4eFsh7jwz5Wh
+# 7V/FdiO/AofDx8egjBToxsVM2NHpvgvlBDK6oEVFqXIqZ3x1F6DCgLgAOozqVoRB
+# NR7b1TtcFtWgqbgFNKBjwMEWXexKd94IaZdYibL2eR5HdDw=
 # SIG # End signature block
