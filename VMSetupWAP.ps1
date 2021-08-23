@@ -334,42 +334,49 @@ Begin
         {
             $Certificates =
             @(
-                @("*.$DomainName")#,
-                #@("adfs.$DomainName", "certauth.adfs.$DomainName", "enterpriseregistration.$DomainName")
+                @("*.$DomainName"),
+                @("adfs.$DomainName", "certauth.adfs.$DomainName", "enterpriseregistration.$DomainName")
             )
 
             foreach ($San in $Certificates)
             {
-                # Get order
-                $Order = Get-PAOrder | Where-Object { $_.MainDomain -eq $San[0] }
+                if ($San.GetType().Name -eq 'object[]')
+                {
+                    $MainDomain = $San[0]
+                }
+                else
+                {
+                    $MainDomain = $San
+                }
 
-                whoami
-                $Order
-                return
+                # Get order
+                $Order = Get-PAOrder | Where-Object { $_.MainDomain -eq $MainDomain }
 
                 # Check order
                 if(-not $Order -and
-                  (ShouldProcess @WhatIfSplat -Message "Adding order for `"$San`"" @VerboseSplat))
+                  (ShouldProcess @WhatIfSplat -Message "Adding order for `"$MainDomain`"" @VerboseSplat))
                 {
                     # Adding order
                     $Order = New-PAOrder -Domain $San
                 }
 
                 # Check order status
-                if($Order.Status -eq 'Pending')
+                if($Order.Status -eq 'pending')
                 {
                     # Get authorizations
                     $Authorizations = $Order | Get-PAAuthorizations
 
                     foreach ($Auth in $Authorizations)
                     {
+                        $Auth
+
                         if ($Auth.DNS01Status -eq 'Pending')
                         {
                             # Get token
                             $Token = Get-KeyAuthorization -ForDNS -Token $Auth.DNS01Token
 
                             # Prompt
-                            Write-Host -Object "Add TXT record '_acme-challenge.$($Auth.fqdn)' with value '$Token'"
+                            Write-Host -Object "Add TXT record '_acme-challenge.$($Auth.DNSId)' with value '$Token'"
 
                             do
                             {
@@ -377,7 +384,7 @@ Begin
                                 Read-Host  -Prompt "Press <Enter> to resolve dns"
 
                                 # Resolve
-                                $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$($Auth.fqdn)" -Type TXT
+                                $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$($Auth.DNSId)" -Type TXT
                                 $TXTRecordMatch = $TXTRecord | Where-Object { $_.Strings -eq $Token }
 
                                 # Check dns
@@ -392,7 +399,7 @@ Begin
                                 }
                                 else
                                 {
-                                    Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$DomainName"
+                                    Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$($Auth.DNSId)"
                                 }
                             }
                             until ($TXTRecordMatch)
@@ -407,12 +414,10 @@ Begin
                         New-PACertificate -AcceptTOS -Domain $San | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
                     }
                 }
-                elseif($Order.Status -eq 'valid' -and $Order.CertExpires -lt (get-date).ToShortDateString())
+                elseif($Order.Status -eq 'valid' -and $Order.CertExpires -le (get-date).AddDays(14).ToShortDateString())
                 {
-                    Write-Hosty $Order.MainDomain "EXPIRED"
+                    Submit-Renewal -MainDomain $Order.MainDomain
                 }
-
-
             }
         }
     }
@@ -501,8 +506,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe21aExlnFYm9atCA8Wzze5VT
-# 9Veggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZgpPjcVeNF0VuQJgKTT2aI3q
+# yhiggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -586,28 +591,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUh1Yn5lkhgtFSSaJ9Aqx2U9nwINMwDQYJ
-# KoZIhvcNAQEBBQAEggIAGof+d8JsTbWS2XhM2ReIO3+mM2KXPMaWC09Mfa6A3YIZ
-# h7ZYJTNi64FIMqvAYeB1FE0zQFR4My00E4Yn2sGyTUYDdzihgC3bYyPQDr9Uxb+U
-# zk+oAAtVD/BkUvGjzxV2/G48UXG5WxYjakJAyEGkFIk1U7BnswH1vJqYp35/LkhM
-# QQpIMpt1oFGZ0Kfho0RFEwu7RJemjl8TGCc0984MEfeqLWPa6RixG+ROk5AIAjPq
-# MYBwBXOJbYqR49ur/ns1L1tqW1/KezytI0Y+68jKSe24CzAB6wAcGipit7e1UZZK
-# fRUkbOVHW2yQeIXRkpbv1ZZMLSxzKq3OgHaYc41t4Z898o4ubHMwtj8hw2h5NEQ1
-# PQPtO9lXhCy+p0xSHTPb8IO/MFVyxvAfoGM7Wks8cbGe8beAao+LO+PP/80pxBQF
-# IFAV1UxoJhIpkwa+2+7SxbMWNo9QS0kEuRnLsBkKHRPOR0lXSMybG6zb5SwpCXIh
-# 4XPsCzNggWJWYU5fhBNwDKnxZbU0r+h2xbqdCeohxv6AInOOHW/Sd+abff9cL+6g
-# YoyKviK1VOZk1u+o1IigltRgYdHP6tEazE0So+Zlbe5IKubC27RrVuIcvjzGim/z
-# HxFTRivbOCEtB8qx3zm9cIXZpi5zn3Ac5qhMqGlzSkR3s1UUGgFK8QFs8KaU8rqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUcc4/7NYFS6aVpRWRglAfDg8ym+0wDQYJ
+# KoZIhvcNAQEBBQAEggIAOzxE8dU3Ow7OAAtL/QF0S5twhn9uII03PwtVrdfyLlm0
+# 0O6EM8GOLjtdb5oQ5NWqYJiPZWIl5kwV4Mqao+okcsPUvlaIsSeZufA5A4l/5Bd2
+# Tic1norDuJzmuN/pz8+t8nqb5rB/xuW2t3lQQndViXhK0I+wAHgIDqhiyjuQiV99
+# 8qa9LuvE4qUj6CWNizg31YLMzMSdR6JqcJfn+7vXVj2nuwnCm0qG3Q9Uz08O0wAC
+# EUV0VKCtMPVOIA6hy+WEG59N8m2KVopwBpYbQlcJqYX/0EDNqqbkz4VXb3z70Bc9
+# N0/zdEjZJ3gxeoZBpyZTMLcYAvXikFTrvvOep52YWtS4K742g+4KUNCsFr7AVQD5
+# If/2KuoJ3JjhGQzeROSZ9syVgcYLou5NTxdtFuR0zLp+SITqHS+1rB9+A8vHEDNe
+# 0di0C2jrxo9jA5DwO0LjsUjneoHFBn2Q0ivkySxOyegigZ5Jpb4seiknVnjdfqLF
+# vDE1RSoPpY22Ug9FeD5GszP/fdDkTObcKfpLQbwBE0F67HYQMwqeSJ7+tTwi7YxN
+# brHdoUieRnjKUDvDbUBxckWJLB3VI9OYmVTrWJV/rx1pmHitJZD0K5VA7bwqEgDp
+# /EcoNKX4CrpDDpchuy2dYD4O7HUs+w+qWxin5WNQZJd0X8ETHRooJgRu50RgNmqh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyMzE0MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEICr0RQZvInJ04oNBzBN6z6pBGfUDDCMuCEBULy6q+Jva
-# MA0GCSqGSIb3DQEBAQUABIIBAHbi67WwopJJ1TmtH0glCBwaJKuV3LtAiYJ2E5/A
-# +Rka1Wt3wWI8CMyQgMEcDBArNrl/Do3WjHTHFeqSlWBEfPYYLxo65aagbfV++jeA
-# 3BtBzuWUv3hEkIWWgOakAuy8xx6Mk3FNcmPbyTytoUxrja+Xj+3eGoWvm7hsW5fw
-# tOIPhf//F9BAeSlZbXi+voyfVQZYKMdIUZZtTowgDRAruNtC9+EETG0hnj/QO+9m
-# aVX7k/y8S24nmDtbk7+uZeIl9mUq3z2JnjNBdEt5jOdTlH2bvw+vzCZUzRarZ9Rj
-# 8HC+cKiujrZy48FJkN54+S1lF+j/lJot4LBJNd9a/3/Zse8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyMzE3MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIK9bB0pOJqZn/kZtUoy6R4YCqP5Qi0FBpboAT7OpnfSo
+# MA0GCSqGSIb3DQEBAQUABIIBAI2dTPU8rjFRDP0bOrmcW4b02/D2mPGjtVfYe6i5
+# 4PuYpmyL/UaFDgEBM3pZkoPKelw7XoFuQlDa6K0h5iHclpc7mf49Foew+P/i3Beo
+# KRS8UtJJSihjjp8xv3N6QGclM1u7m5XBGpKCrYH7GiZfEVxUq/mnNRvWCSrmnkQq
+# QrKaqQQJwxl0HzqWsXjtqTUysCb8VlJ1UIwpoRUAC7nP2sNcHX1MxOyka6mxUZ7R
+# +zBucXom+e9IdzVmEWyeyCIlH5pahhCzOb/IB+VqBKxo3TG9Isae+Vkf7nl4ufJI
+# RMENiYEJM9Ua79A+TsaKqoNZf2bV5MuzxPk1sKEzTpC7O1U=
 # SIG # End signature block
