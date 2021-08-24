@@ -314,11 +314,11 @@ Begin
                 $Server = @{}
 
                 # Define server records to get
-                $ServerNames = @('ADFS', 'AS', 'APP', 'WAP')
+                $ServerNames = @('ADFS', 'AS', 'WAP')
 
                 foreach ($Name in $ServerNames)
                 {
-                    # Get record
+                    # Get dns record
                     $ServerHostName = Get-DnsServerResourceRecord -ZoneName $DomainName -RRType A | Where-Object { $_.HostName -like "*$Name*" -and $_.Timestamp -notlike $null } | Select-Object -ExpandProperty HostName -First 1
 
                     if ($ServerHostName)
@@ -327,23 +327,26 @@ Begin
                     }
                 }
 
-                # Set records
-                $DnsRecords =
-                @(
-                    @{ Name = 'wap';     Type = 'A';  Data = "$DomainNetworkId.100" }
-                    @{ Name = 'adfs';    Type = 'A';  Data = "$DomainNetworkId.150" }
-                )
+                # Initialize
+                $DnsRecords = @()
 
-                # Check if server exist
-                if ($Server.APP)
+                # Check if ADFS server exist
+                if ($Server.ADFS)
                 {
-                    $DnsRecords += @{ Name = 'pki';  Type = 'CNAME';  Data = "$($Server.APP).$DomainName." }
+                    $DnsRecords += @{ Name = 'adfs'; Type = 'A';      Data = "$DomainNetworkId.150" }
                 }
-                elseif ($Server.AS)
+
+                # Check if AS server exist
+                if ($Server.AS)
                 {
                     $DnsRecords += @{ Name = 'pki';  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
                 }
 
+                # Check if WAP server exist
+                if ($Server.WAP)
+                {
+                    $DnsRecords += @{ Name = 'wap';  Type = 'A';      Data = "$DomainNetworkId.100" }
+                }
 
                 foreach($Rec in $DnsRecords)
                 {
@@ -461,7 +464,6 @@ Begin
                 @(
                     @{ Name = "ADFS";  IPAddress = "$DomainNetworkId.150"; }
                     @{ Name = "AS";    IPAddress = "$DomainNetworkId.200"; }
-                    @{ Name = "APP";   IPAddress = "$DomainNetworkId.200"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)
@@ -870,11 +872,11 @@ Begin
             $MoveObjects =
             @(
                 @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'";  TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "(Name -like 'WIN*' -or Name -like 'WW*') -and ObjectClass -eq 'computer'";  TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "(Name -like 'RTR*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "(Name -like 'RT*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
 
                 @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
@@ -968,7 +970,7 @@ Begin
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
+                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -976,7 +978,7 @@ Begin
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter = "Name -like 'APP*' -and ObjectClass -eq 'computer'"
+                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
             )
 
@@ -1095,7 +1097,7 @@ Begin
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "(Name -like 'APP*' -or Name -like 'AS*') -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
@@ -1713,8 +1715,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+mU/aegjLb+lDVnXXnOL34ZD
-# lvGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUz8CbHcsJe6u9XdM8EFr6EMGN
+# KLOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1798,28 +1800,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUpbU2awU6XMvALzSxaMCywnUkog0wDQYJ
-# KoZIhvcNAQEBBQAEggIAavI/RdBI7R4t3XICVajqK5U7kP4b768HKUCFUxnuH2os
-# 7OHneR5mjWTCI/w60w1QHSQN/xVJ1QZchEm3KilYcxnWcrhIrLPugX2lYG/cs0Xy
-# aCJSGU1Pq6AvbxsUzQrJ1q8nR8O64cBGxNUBgj+wq95BYAvWduf/8IH+qzNp036h
-# Q2S8SGlmCXjnhjcFLqTvILLfF/cpm7l3t7tDgMjWyLZNjBl7YowQuNKyvEKszVjN
-# AAgThZ5oNJWNSkB+U7U9+f1cNFH6kCjs6hdSB8m+dinWyUv0HAFeChQ7emmbiVl6
-# TXz5XldJsMf+M5ayf7inJiHLujgSwEnWVM8owbe0FX0apFUxke/l5WKe23bkzD3e
-# QsuxNjXU65dSrh7pGZTdKQwoeu9/WtKHHsyZDuqTNOMZmqSjX8xBoUh+hU0Hi6iG
-# UYuPrqOO8TTT1AWatddDL24ZSDVJG3B38oR4TJ/rG5/QxJWRUmEss6n4SGwOi9l4
-# mJL0yhjISA1Foqh8vCoe4IpyWmf61XoXPZyvfozBKw0uiaprHrK0ZbHnXOn36oMp
-# WnQb2KuY4BG1siSnbKb73O7iOAulRLwWIBOpryA7Tm2XPGzMmlJfjS92WUGp1pPq
-# xlbXaS8vZkzL84IQNFYioMOD3iUC2JzQxHtCdBgnSMcrZ+ICjF7nPPFm5wC5l7+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgSvRwCDPqUCPN+ILSmfDJPkzd30wDQYJ
+# KoZIhvcNAQEBBQAEggIAgfg29ybsY2+A3lR5zQPeX09dcE8y8mFT4yHwOiQl/5AB
+# HAy0O4AfOB+Y+Ltfhf0yuQtlU5Z22LrTWFfeJ/2ql8XPXyMNLBKKQZWuwslDQcol
+# FVZHx8znOrrSkE7oHolPvnSP5obEv6j+jgdl6FuxyryfdbC6Hb56gcxORlsT/vUT
+# A6R1qGv83nbgMymwVdmeooLrg++22KmbJtn0E4CrAWnkOVJBKouyRB1knvT6JhbN
+# yoTq9I2ACOnogyojiCZJTd8M4qgRu8NCVeS5p0w59iNtTMULQDkIR+c1uWCNzmAA
+# ZjDtf3N62tlMvzbtxUWTuHQcj1MaObZVTdJA83oChRmT0Zse93j5qhhNibOEJ4vJ
+# 29Y7vXAEhOGS0eUFnf3QTODwCWn5xEYvmNl4Y1fjx13sHQOcnhvwmZ98U5VVafEJ
+# rofqNB2VYKGlNB+WEALKQIseaxiWIo/uSiwd/jdpOG4Utjy89nm5TnNlgUNCv2fX
+# u7vFXfpfE5USvLa2Lya3tv0npL0OoU53SKj8aKlucvgrTrNYC5DrPXZ/2q1ltaAq
+# UKJ9fBZKPx7ITHnM145DV9Ne3T3N47purmIRXUQ9i5FDYO6FrtGtx/ws+FTCh5Ok
+# zEObPGipUtv0una+p0TVy1qKkRHs/8bORuaIvqGaVLD4tvQ1iO5TOvrIRPsKTXih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyMzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEICs93FklngVaY4c2d6TU5fRjr0TfXxvpbiBtFFAW7oj6
-# MA0GCSqGSIb3DQEBAQUABIIBAIZNmaqDADbn4s7SE57+8T/MwBQ8LuJSXcAQU/M4
-# 0AYP88onp8nV+uVgbtRXMzjJXfvMFBNBDuOA8WEUD7hwHvH0CCcAxfULoR3kcmvq
-# 64ahxRTjniDf8F2KVCQT4xbtIZUUKPRlIPno4ab9qv+/Xi+W346ttxLysWSz6H9Z
-# 5DG6XYLxE5QGwYM3duWdWQiGZNOP0lH7aXZjmdbXyQKbNnQ1SBlexo9LNaGS3omM
-# vS5btUw/EZblo8E77C8G5onJTcPQfK5EV2aWEBe843MVf0/qvxzNn2CstaFUp716
-# Ytogw1Q0F9eJblLF+umDoww3YvCw3x6CF/LXJH4K+Ifsq+I=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNDIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIFJCpL+GXs5gFH+6CbgEmeOnNfoUz2BOGYyBrnV7vh8H
+# MA0GCSqGSIb3DQEBAQUABIIBAC9HBzjK7ztDiJrkTlDZyQfRz8TKAt2DnTZCHdaa
+# HJJqTeBR5QMNYb77ktfytFXswac1UrlJRjmYj6qbFxaThKW+k2P/8B4b5aqCo5/H
+# e4s8rMimuH9CKAYyh2vmyln6KRYxunGEqaHpK0BaSzixCLWESQ9t1SXTZK6PCa6R
+# mfUtzTRY77zGoctlMeET5A6K/EOWwoPP7pEnsFSYaNu623hErQfT8OS3p5FGtAzD
+# Zq7vRZxnvXYFPQlRPWVPRX1Ihilny3m9LmieEylbbl+YJfI1f/TDswqymc6kCle7
+# DFSNvORmk04KmKpbZQXCfPi2lmBz4d0zpPj645GW/35wLfI=
 # SIG # End signature block
