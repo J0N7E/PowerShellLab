@@ -77,7 +77,7 @@ Begin
     if ($ADFSPfxFile)
     {
         # Get file content
-        $ADFSPfx = Get-Content -Path (Get-Item -Path $PSScriptRoot\$ADFSPfxFile -ErrorAction Stop).FullName -Raw
+        $ADFSPfxFile = Get-Content -Path (Get-Item -Path $PSScriptRoot\$ADFSPfxFile -ErrorAction Stop).FullName -Raw
     }
 
     ################################
@@ -130,23 +130,167 @@ Begin
         # ██║     ██║  ██║███████╗██║  ██║███████╗╚██████╔╝
         # ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝ ╚══▀▀═╝
 
+        #######
+        # Acme
+        #######
+
+        if ($EnrollAcmeCertificates)
+        {
+            #########
+            # Prereq
+            #########
+
+            # Check package provider
+            if(-not (Get-PackageProvider | Where-Object { $_.Name -eq 'NuGet' }) -and
+              (ShouldProcess @WhatIfSplat -Message "Installing NuGet package provider." @VerboseSplat))
+            {
+                # Install package provider
+                Install-PackageProvider -Name NuGet -Force -Confirm:$false > $null
+            }
+
+            # Check module
+            if(-not (Get-InstalledModule | Where-Object { $_.Name -eq 'Posh-ACME' }) -and
+              (ShouldProcess @WhatIfSplat -Message "Installing Posh-ACME module." @VerboseSplat))
+            {
+                # Install module
+                Install-Module -Name Posh-ACME -Force -Confirm:$false > $null
+            }
+
+            # Check server
+            if(-not (Get-PAServer | Where-Object { $_.location -eq 'https://acme-v02.api.letsencrypt.org/directory' }) -and
+              (ShouldProcess @WhatIfSplat -Message "Setting production server." @VerboseSplat))
+            {
+                # Set server
+                Set-PAServer -DirectoryUrl 'https://acme-v02.api.letsencrypt.org/directory' > $null
+            }
+
+            # Check account
+            if(-not (Get-PAAccount | Where-Object { $_.contact -eq "mailto:admin@$DomainName" }) -and
+              (ShouldProcess @WhatIfSplat -Message "Adding account admin@$DomainName." @VerboseSplat))
+            {
+                # Adding account
+                New-PAAccount -AcceptTOS -Contact "admin@$DomainName" > $null
+            }
+
+            ###############
+            # Certificates
+            ###############
+
+            $Certificates =
+            @(
+                @("*.$DomainName"),
+                @("adfs.$DomainName", "certauth.adfs.$DomainName", "enterpriseregistration.$DomainName")
+            )
+
+            ##########
+            # Request
+            ##########
+
+            foreach ($Cert in $Certificates)
+            {
+                if ($Cert.GetType().Name -eq 'object[]')
+                {
+                    $MainDomain = $Cert[0]
+                }
+                else
+                {
+                    $MainDomain = $Cert
+                }
+
+                # Get order
+                $Order = Get-PAOrder -List | Where-Object { $_.MainDomain -eq $MainDomain }
+
+                # Check order
+                if(-not $Order -and
+                  (ShouldProcess @WhatIfSplat -Message "Adding order for `"$MainDomain`"" @VerboseSplat))
+                {
+                    # Adding order
+                    $Order = New-PAOrder -Domain $Cert
+                }
+
+                # Check order status
+                if($Order.Status -eq 'pending')
+                {
+                    # Get authorizations
+                    $Authorizations = $Order | Get-PAAuthorizations
+
+                    foreach ($Auth in $Authorizations)
+                    {
+                        if ($Auth.DNS01Status -eq 'pending')
+                        {
+                            # Get token
+                            $Token = Get-KeyAuthorization -ForDNS -Token $Auth.DNS01Token
+
+                            # Prompt
+                            Write-Host -Object "Add TXT record '_acme-challenge.$($Auth.DNSId)' with value '$Token'"
+
+                            do
+                            {
+                                Clear-DnsClientCache
+                                Read-Host  -Prompt "Press <Enter> to resolve dns"
+
+                                # Resolve
+                                $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$($Auth.DNSId)" -Type TXT -Server 8.8.8.8
+                                $TXTRecordMatch = $TXTRecord | Where-Object { $_.Strings -eq $Token }
+
+                                # Check dns
+                                if($TXTRecordMatch -and
+                                  (ShouldProcess @WhatIfSplat -Message "Sending challenge." @VerboseSplat))
+                                {
+                                    Send-ChallengeAck -ChallengeUrl $Auth.DNS01Url
+                                }
+                                elseif ($TXTRecord)
+                                {
+                                    Write-Warning -Message "TXT record value '$($TXTRecord | Select-Object -ExpandProperty Strings)' differs from token '$Token'"
+                                }
+                                else
+                                {
+                                    Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$($Auth.DNSId)"
+                                }
+                            }
+                            until ($TXTRecordMatch)
+                        }
+                    }
+
+                    # Check certificate
+                    if(-not (Get-PACertificate | Where-Object { $_.AllSANs -eq $Cert }) -and
+                      (ShouldProcess @WhatIfSplat -Message "Getting certificate." @VerboseSplat))
+                    {
+                        # Install certificate
+                        New-PACertificate -AcceptTOS -Domain $MainDomain | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
+                    }
+                }
+                elseif($Order.Status -eq 'valid' -and $Order.CertExpires -le (get-date).AddDays(14).ToShortDateString())
+                {
+                    Submit-Renewal -MainDomain $Order.MainDomain
+                }
+            }
+        }
+
+        ##################
         # Get certificate
+        ##################
+
         $ADFSCertificate = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {
             $_.DnsNameList.Contains("adfs.$DomainName") -and (
                 $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Server Authentication')
             )
         }
 
+        #####################
+        # Import certificate
+        #####################
+
         if (-not $ADFSCertificate)
         {
-            if (-not $ADFSPfx)
+            if (-not $ADFSPfxFile)
             {
                 throw "Can't find ADFS certificate, please use -ADFSPfxFile to submit certificate."
             }
             elseif (ShouldProcess @WhatIfSplat -Message "Importing ADFS certificate from PFX." @VerboseSplat)
             {
                 # Save pfx
-                Set-Content -Value $ADFSPfx -Path "$env:TEMP\ADFSCertificate.pfx" -Force
+                Set-Content -Value $ADFSPfxFile -Path "$env:TEMP\ADFSCertificate.pfx" -Force
 
                 try
                 {
@@ -194,6 +338,10 @@ Begin
             }
         }
 
+        ###########
+        # Firewall
+        ###########
+
         # Check if Windows Remote Management - Compatibility Mode (HTTP-In) firewall rule is enabled
         if ((Get-NetFirewallRule -Name WINRM-HTTP-Compat-In-TCP).Enabled -eq 'False' -and
             (ShouldProcess @WhatIfSplat -Message "Enabling WINRM-HTTP-Compat-In-TCP firewall rule." @VerboseSplat))
@@ -201,10 +349,12 @@ Begin
             Enable-NetFirewallRule -Name WINRM-HTTP-Compat-In-TCP > $null
         }
 
+        ########
+        # Hosts
+        ########
+
         # FIX
         # IP / Get-NetConnectionProfile
-
-        # Hosts
         $Hosts =
         @(
             "192.168.0.150 adfs.$DomainName"
@@ -331,7 +481,7 @@ Process
 
             $ADFSTrustCredential = $Using:ADFSTrustCredential
             $CertFilePassword = $Using:CertFilePassword
-            $ADFSPfx = $Using:ADFSPfx
+            $ADFSPfxFile = $Using:ADFSPfxFile
             $ADFSFederationServiceName = $Using:ADFSFederationServiceName
 
             $EnrollAcmeCertificates = $Using:EnrollAcmeCertificates
@@ -372,8 +522,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3xL0DX39DL0birKLrPHTEx7F
-# sVeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTDIGVcKdV8Yp1Onul7exDN8O
+# xaSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -457,28 +607,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUdAewuxz1X8vOJ3g6JrmhRp18sbwwDQYJ
-# KoZIhvcNAQEBBQAEggIAUeTgc8QSuKfAH1dwbJHcnnF21pQ6Q55c80j5I+RTfOIq
-# L8X4tDVaiHHo7aXkOjEe8jFEuT6FZk463WwPA5vJ8GvayDJJuHtfhgvWFQ4isCF1
-# lP+O4zGjvH7yrK0+LIxAZl1PdHgrYNrWsUrnwrfIX0JzAt3R4pBgdTcJiutYW5OM
-# q6Za7R0xEXNZeAVE1Z78hIvNVD1rWBt8vAbZlmRtSM4nPnaiO0+bUUIOArT1ido/
-# 45OYgTl8CBJN6gjh8GUF5CPUuIcKxsn38QWvUd4PZhx1/hxM0xQ9iI4bjb2sJFxQ
-# R0+EbmvaqQyy2FkhPSZjHyBOz5lRvXXXX7YXGZZ69szHxxkcL0V+jaZihP9yYrCH
-# fTiQGoKK8EDFM4fJ4dQl5B3j9hTLHFcTSBR/eHCAw/XyMQn402K75dD+5SWN9a1a
-# 5MinlQu+74nPmKc59AslBFy82AxeB0FwGfRqHksiQ25+VQf2NqL+Y7Gu//ckiwhZ
-# CYMzQcsDfN+NK7qKSz9TK0xFxne8ewc6RN9/OTW98RBCG1kbZvGkzt2gq5b+Jf1p
-# BhjCd5ew/wHPOUdQ7czm7k/TrWbHXHuLl7vZM8WKUzHxhmw23G3gOELtPxgcPlw4
-# SD6MsWA9n51Q1Z1rBkjRSb4OhQY82lYc1YekkcmgzI+GYyuN9wjHDwQcaoZMsQuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUd9Kr3PDvREJqWXKVsgOEwieuJKcwDQYJ
+# KoZIhvcNAQEBBQAEggIAdppNU5mhmYr2CDe16sxQtf/UGp9vD/OLYO+RKJ7mCGOA
+# eH0UyVrWZH3ODR2QdaBEIg76zLeNc+ydMdUGvaCNY12sun/79u0YvE1FNnmtfCsx
+# 981xipe+RhSTdT/EfUpxurnskv5S5sd08sgGlrobPEtniLzC91CFM2Nt2OpEium2
+# Jq/fbVOVMB1J6vlK4LRif9wJplujtNvrYVkNeSHHd5YHLQB9hfioEn5BgRyXZ3Qg
+# 9YKefC6Za0DRaUMOE8OfQX4VHHS+Lcr/zdx0F3viKaAJmrs/sttmL9BE+C02nviR
+# 6LT+Nt4SdnAL4Ea6Z+uOLADfUj2bWTrbSP3LX6wYjfca5yiK3h3119sLxKApIurI
+# C3uEsxmAG2DZprQb2ojmSTk0czYyXPlndRaYVSNqL7/9uZ8HCta6LZIGXt6jMEKj
+# bRfneqvM7Z3OGxkDjAITbVRusyVPUUSYH2/WagOZpqhu4SzpV1D8QhIo9JfCRx+T
+# pVn/E3wPCwArkwFHM+hskJreESJVec7CnQC6psc0hUI6We+sb0kXZ4JyqADhCYzy
+# rTtzdV9m9DPlrgeLsjrVsr7e9fAbxbay1u3Yqca91MXvyWvaKgiOQYnCUJv/33uS
+# KVYhcxkjgdDcx1L6FdzSsjpHR2IintclEbCneUkz9Sx4+ssJbCKyyRCS2mfjQ+6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNDExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEILDvP69vcb+p/qFBA2C4J//itiUr/aRr4yhVLFJ48aUN
-# MA0GCSqGSIb3DQEBAQUABIIBAHoW0EfrJCxKf7DzHJtzbkQXPNUNPmZXm5CTi2fZ
-# 9x4EUj17vuWYBnWHmsRmXBazwWi9HUyCnC/ggCrDQXEwGyjDWrSiRBskHbh6943j
-# WwcJEXwRYt9Zc7a7PE2SP1DX/eUz6gYCLrturgo1xgWtYApFJbj5kHCGB8gBssXG
-# NqNFQKEoMpf7zR2+bInXmR72ml7t5GVyNSU3SHeE9+dsLxSXc0ZFwN5/QOeFFBKL
-# mnCSrOLg4pQ5aKAUcIME+RqLRjLr/CjXQq3j2Nw9sGfj8/CfmO4jDQML+pvBYIEt
-# KmR/9FeO5ZbqElH/A8cMiWO7ZIdeeLrXcWLT1jJHjTX/wtI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNDE0MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIJgKbLnawdSfJJ0jKn1Ly+ozM1us7Az4k0KVfmQyKDVg
+# MA0GCSqGSIb3DQEBAQUABIIBAKETTZ4VYSxsmPRfNdi+o3PzVQx4j1jp9q56y8v4
+# Uqwfz/Wn72Kxt523w3wjWPksd8mbsv2skjYPJ0b126ekRyIkdhwyoui1C0uaOuwP
+# BEUelh8JGPMd/4M3pEce2xGzDvQqObZQn1RzTQtTOaer3fEygPrsJbT8aAGfSFrZ
+# By1ANFPZoOErePFcDZEwg+dMsyjiWXi82WrXFWbpeyVQFcls2QUNpE+jOad1Isb+
+# aOrnmwwv4yJpC8gsjZPefvLh/469BGj7fiwN0Qt5D5anH4e0dQaL4/zqyrls7Dv6
+# CX5TrHZRaAKF3n9Be68DJ4LZhw7YtLvFbbbDiwhSjagEs4w=
 # SIG # End signature block
