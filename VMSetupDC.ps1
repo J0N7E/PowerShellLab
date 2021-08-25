@@ -522,6 +522,7 @@ Begin
                 '19041' = '2004'
                 '19042' = '20H2'
                 '19043' = '21H1'
+                '20348' = '21H2'
             }
 
             #  ██████╗ ██╗   ██╗
@@ -556,14 +557,22 @@ Begin
 
             foreach ($Version in $WinVer.Values)
             {
-                $OrganizationalUnits += @{ Name = "Windows Server $Version";   Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Routing and Remote Access'; Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                # Server
+                if ($Version -notin @('21H1'))
+                {
+                    $OrganizationalUnits += @{ Name = "Windows Server $Version";   Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Routing and Remote Access'; Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                }
 
-                $OrganizationalUnits += @{ Name = "Windows 10 $Version";       Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                # Workstation
+                if ($Version -notin @('21H2'))
+                {
+                    $OrganizationalUnits += @{ Name = "Windows 10 $Version";       Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                }
             }
 
             foreach($Ou in $OrganizationalUnits)
@@ -600,7 +609,10 @@ Begin
             #  ╚═════╝ ╚═╝      ╚═════╝
 
             # Directory names holding gpos
-            foreach($GpoDir in @('Baseline', 'Gpo'))
+            foreach($GpoDir in @('Gpo',
+                                 'Baseline\1809',
+                                 'Baseline\2004',
+                                 'Baseline\20H2'))
             {
                 # Check if gpo set exist
                 if (Test-Path -Path "$env:TEMP\$GpoDir")
@@ -713,8 +725,8 @@ Begin
                     'MSFT Windows Server 1809 - Domain Controller'
                     'MSFT Windows 10 1809 and Server 1809 - Domain Security'
                     'MSFT Windows 10 1809 and Server 1809 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 - Computer-'
-                    'MSFT Internet Explorer 11 - User-'
+                    'MSFT Internet Explorer 11 1809 - Computer-'
+                    'MSFT Internet Explorer 11 1809 - User-'
                     'Default Domain Controllers Policy'
                 )
             }
@@ -727,8 +739,8 @@ Begin
                         "MSFT Windows 10 $Version and Server $Version - Domain Security-"
                         "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                         "MSFT Windows Server $Version - Member Server"
-                        "MSFT Internet Explorer 11 - Computer-"
-                        "MSFT Internet Explorer 11 - User-"
+                        "MSFT Internet Explorer 11 $Version - Computer-"
+                        "MSFT Internet Explorer 11 $Version - User-"
                     )
                 )
 
@@ -767,8 +779,8 @@ Begin
                         "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                         "MSFT Windows 10 $Version - Computer-"
                         "MSFT Windows 10 $Version - User"
-                        "MSFT Internet Explorer 11 - Computer-"
-                        "MSFT Internet Explorer 11 - User-"
+                        "MSFT Internet Explorer 11 $Version - Computer-"
+                        "MSFT Internet Explorer 11 $Version - User-"
                     )
                 )
             }
@@ -836,6 +848,9 @@ Begin
             # ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║
             # ╚██████╔╝███████║███████╗██║  ██║███████║
             #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
+
+            # FIX
+            # Add Path
 
             $Users =
             @(
@@ -1715,8 +1730,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUz8CbHcsJe6u9XdM8EFr6EMGN
-# KLOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwC5iqS5HDq0OZ9YgUy+9bNqe
+# CLmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1800,28 +1815,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgSvRwCDPqUCPN+ILSmfDJPkzd30wDQYJ
-# KoZIhvcNAQEBBQAEggIAgfg29ybsY2+A3lR5zQPeX09dcE8y8mFT4yHwOiQl/5AB
-# HAy0O4AfOB+Y+Ltfhf0yuQtlU5Z22LrTWFfeJ/2ql8XPXyMNLBKKQZWuwslDQcol
-# FVZHx8znOrrSkE7oHolPvnSP5obEv6j+jgdl6FuxyryfdbC6Hb56gcxORlsT/vUT
-# A6R1qGv83nbgMymwVdmeooLrg++22KmbJtn0E4CrAWnkOVJBKouyRB1knvT6JhbN
-# yoTq9I2ACOnogyojiCZJTd8M4qgRu8NCVeS5p0w59iNtTMULQDkIR+c1uWCNzmAA
-# ZjDtf3N62tlMvzbtxUWTuHQcj1MaObZVTdJA83oChRmT0Zse93j5qhhNibOEJ4vJ
-# 29Y7vXAEhOGS0eUFnf3QTODwCWn5xEYvmNl4Y1fjx13sHQOcnhvwmZ98U5VVafEJ
-# rofqNB2VYKGlNB+WEALKQIseaxiWIo/uSiwd/jdpOG4Utjy89nm5TnNlgUNCv2fX
-# u7vFXfpfE5USvLa2Lya3tv0npL0OoU53SKj8aKlucvgrTrNYC5DrPXZ/2q1ltaAq
-# UKJ9fBZKPx7ITHnM145DV9Ne3T3N47purmIRXUQ9i5FDYO6FrtGtx/ws+FTCh5Ok
-# zEObPGipUtv0una+p0TVy1qKkRHs/8bORuaIvqGaVLD4tvQ1iO5TOvrIRPsKTXih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJsx+jntt9Gj++7ieA7XBjccQgyIwDQYJ
+# KoZIhvcNAQEBBQAEggIAbvT07C4aQma/aRzNODxaV7qI5D2eascfexOCDyjvw9n9
+# 4dqh4IkXcnEEbuSCeZsiIqGQOYfaxy8bCNDOxDnn6jabiTMCd3+f+dQhYbgXmHmp
+# WVHrO9dumChVZnZALkw56BPRRCoQ4dirV7GloQhF3IHJNGFqC+ygZ+C3OonM4DgF
+# bM+uKwXcb7E64zbYzbLx51bHhDTT+rh+pcF5XRNII0o7DDWAoPMMJi2sqNuMD/WU
+# 0n/QLzULOT6BGZSXEm8VLST1CXRpVRY48UD3NoYHqdfrw/avzykGQVJJ5iJuy69w
+# VfFeC9Ee//Lh5YWOkLDqLGCqkVUtamqndajc2tBkzvzBo7SGAK2dG6OxIo2HfW9o
+# BIOgaJWf/6uAFthGCZdVhkZk1c1FGfnKYA0fencysWgcZPqg+Z33iVS9hqC3stf5
+# QzCnwnebP7IRo/oTGQAMsP0LBUh14R8DiPPa7Unx7FuQwFR9EMQYHlQH2V+gEMqN
+# ZHosXuhtFstnBnYlR5Onbm84p+XFwbhkuaRcedWYZy+h0cbRHzPJ34ccO9vBkAL7
+# wXYHI4MzFR/9u2ugd7TRKFYqDliLtUP0h1JUM7+DYN+FsmvVaEbxhvw2fR/ziJCx
+# 2AHCH+QZBydXaqN2Ni8/gdJIUzGW8WiQvFM9CNwKXyaYOyT/SvxOd5GRtlyuY+uh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNDIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIFJCpL+GXs5gFH+6CbgEmeOnNfoUz2BOGYyBrnV7vh8H
-# MA0GCSqGSIb3DQEBAQUABIIBAC9HBzjK7ztDiJrkTlDZyQfRz8TKAt2DnTZCHdaa
-# HJJqTeBR5QMNYb77ktfytFXswac1UrlJRjmYj6qbFxaThKW+k2P/8B4b5aqCo5/H
-# e4s8rMimuH9CKAYyh2vmyln6KRYxunGEqaHpK0BaSzixCLWESQ9t1SXTZK6PCa6R
-# mfUtzTRY77zGoctlMeET5A6K/EOWwoPP7pEnsFSYaNu623hErQfT8OS3p5FGtAzD
-# Zq7vRZxnvXYFPQlRPWVPRX1Ihilny3m9LmieEylbbl+YJfI1f/TDswqymc6kCle7
-# DFSNvORmk04KmKpbZQXCfPi2lmBz4d0zpPj645GW/35wLfI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNTIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIMXx79D/aDlD7ckxWnUhzLxJM+m/sHNYiuRGWgmDGmJ+
+# MA0GCSqGSIb3DQEBAQUABIIBAIa9DV0Fu2NBd85ubNIm4oAh2e91zuHhTzf9+n9H
+# bz/YsxAwVPk+blJZQPZ3zwb1LTjFPaSa0SWgKsoRkhJWWu8Q6stkbcgqlv8DDUBe
+# BB1UGrkieBIQjSo2wYhao/zSCH2tQmpaBkdLb3iCYsTR60IXkcuwRADlhvfgkf+V
+# RiYmVrKZslEgO61HG+ylhtIaYIozmxRsINrvIz5syWYfls1j7ZeVK88GzemOiWat
+# O5FcFnmrI2R/azLRgnLZvK47hbtOiMhZEcaL8VWsDGF826TRdChm768q3h8MHAxI
+# Mr4AACCz+vbZw1EJf9riWzt1nfFd08qe2S6mzJJJucwQAew=
 # SIG # End signature block
