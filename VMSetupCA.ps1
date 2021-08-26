@@ -1032,6 +1032,9 @@ AlternateSignatureAlgorithm=0
         #  ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗╚██████╗███████╗██║  ██║   ██║
         #  ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝
 
+        # Define restart of service
+        $Restart = $false
+
         if ($ParameterSetName -match 'NewKey.*Subordinate')
         {
             # Check if parent CA certificate request exist
@@ -1072,10 +1075,11 @@ AlternateSignatureAlgorithm=0
                     # Try installing certificate
                     TryCatch { certutil -f -q -installcert "$ParentCAResponseFilePath" } -ErrorAction Stop > $null
 
-                    Restart-CertSvc
+                    #Restart-CertSvc
+                    $Restart = $true
 
                     # Give CA some time to create certificate and crl
-                    Start-Sleep -Seconds 3
+                    #Start-Sleep -Seconds 3
 
                     # Cleanup
                     Remove-Item -Path "$CertEnrollDirectory\*.csr"
@@ -1107,9 +1111,6 @@ AlternateSignatureAlgorithm=0
         }
         else
         {
-            # Define restart of service
-            $Restart = $false
-
             ######
             # AIA
             # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
@@ -1658,8 +1659,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTLAvcJ0ANBvmD0ZeTlkgxYLd
-# tWmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsDyVPmzX520rwOIrp032KCig
+# Himggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1743,28 +1744,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhkyNBz7+hPeK+ofk+vQGjfqDvMswDQYJ
-# KoZIhvcNAQEBBQAEggIAoQ0yJh9ImJS7slYd9FbHuk5RR+Jxl2hXtfj9i/sYKNAK
-# /BjqzhIcdNK60fz8QpjaxIFrBUnPEKoTu1yTcD7WnRZSHDyXd7iZRTlJZuBuh8lT
-# ZJTT6Aa8/s9Whezfd0iyX3pjnCNyRTGIM0UPoc4JImbtmvVt1VBIFuGlEb57S1AF
-# mV2PtdxZY0VaZ6S8GFcITbBoO6nXZwg38MKaZGdi5ty74mM7h3dPT//m38kYdYHf
-# UJSln4xiZCiXnnZmJJH+UF4B/ENb1R58ukkaAK/1bNuI/ZjHEYQL0vWLlQBn5o/s
-# yhLJTOtkkI+gPwVwhHaKSw/ofXySEZsIWwTQaurj6m8kRjlFTAGLyexXQCBGmCN0
-# phoCmgf+mreW+4Of6pLPnQQthORCJ/gS/AV7xEtqWIEaauqSmDpV7IOvVmvWf5qF
-# kxqPMOrzbz9IAJ8Z99wcG4tJ213ndQdfCNYOf8aLRGgV8chiUcBgAGmpqHll7NpC
-# RW6gI1Jqa4dPyImyxWjLEkXMD6+xQa6oNnA6PCl+ItXFYPmKWzHpUie6beSkPagq
-# z/emujIh0DkM4ftRwAy1oo+E7tkKNaTVgRlEN7HiE0PWK2SU5z3hKKGJKeYAmW0J
-# WxQ9KZwxoopHeEFUi7IAjVgc8CYb7vtL4QWe2xi8nISu65FDFjM9yHbakMF5+Wih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3KzYLKCcik6TeVW2ujVYL7DfLQkwDQYJ
+# KoZIhvcNAQEBBQAEggIAZPrBMMgj6cOd7qFpnbVpSgiBSe68xyMk+mJZsTS0Mern
+# 9yaQIDhPowNOZ2wTqedrJHf7qLC7xFi0YxwryoMm/49XahjptgkzkM4Ji+3eqHUO
+# 6jluDYdJWqubyK+Be6zOARtWBfEUCojGCIMH3Osk60bT67pvRzvTjb1jhCdyNo1W
+# 4P5CWpt2Ngt/K5RohnlPysoxpmL4d1KzKiakJtjhp8nixMSso2hprrxYYqOGLKjq
+# Z+ZKLkn4zgjt2u/Qx+Vfjj4D2Ex1U/bz4f/TtrvJ9ZqzRJN07uxoYTKAGyYdiEP5
+# pTvpSR/U/UfNE++OMr4JV5P+VGjHYGpWHEySQpP4h4Vnqhlle+V3ft4+TN3OK4ZL
+# p/y5TKbFL2DD6WEKnts3wiYYctQFYEQW/qlFxbrs0hWt3S08MIokWiceV48HImjP
+# 4mLJ1R7Abz1sZLtxhvkbVwFCLLxxGIlI/W/WHxjf8A672pkPsbgQ6bYpG6F3fTsq
+# HRNSj6CRtJORnQxpt4uE9mTC66hxZIWS9LEP8HkrerffaypJMNgsh+OaNd08a2oO
+# 9r77onY5KzjIjuk9GQYNkpjuHLPlNz4GHv6QorzP2snu9vWkEVv5proOAIU5q//8
+# zScqwdUctnuY9kwNydEh1JfBYBsj1/rVCjleBicpsoMu17pzCG1W0V+JTsrl/7eh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNjE0MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIIzedDK4yii4g9dbxIlsSFxcgI4vRfyl/vF32ULrKq21
-# MA0GCSqGSIb3DQEBAQUABIIBAKEqHSLt96Cpupe4wVHmS6yQxBfkmI5K2YrxKHma
-# Rt67OrN8fInaINMTpief0zSkaF2puY0Ox43HqYOdAlGq8HpxhhYA9QcjyWJ/mlfy
-# b+ku8q3h5PMNtf9vrPr/aVThWK59QKeQ8LpKlMHCJXuKUtitBwqTHYP1bcU8DBMB
-# Rd5blnwllGSfn9QFCt9rduj5879NyY6iVd4Ag1+emUL5Ic2oo6FXTiZUkXQcxc9b
-# g7dRMl4qNKHPm+ANxo7bS3D16OhdT41dqfEX/POiUO5u0qlQZyr4W2nwRWGveL3c
-# v6jMMX24ltx+a3lKlAs4lLQWoU6ZBOMOKsqd1mPUROio+Ic=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNjIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIHGMMbLekHRPG3dF/Rxcxyt6fGsAg4BWy7GbHOBX0Bx7
+# MA0GCSqGSIb3DQEBAQUABIIBAGTWRjocTWXgqJypCH8FpqCiaiRQQ/sJNn3GxdzT
+# jStsmwn5HNs+PmrlmiWB9F7lF0hkBTIMGRCRbMe8ARHy+C40v5sietBXhldxRM72
+# 0jQiDfytgSUwRIF/GPkN/pcmGo3Z4TudK3BirRyZs6YcYeC/Qaw825TFycYzI3i2
+# SCNWy+OoPhPlT0gg1JSoF81PigbjBVYEBP0KfCF32AHxV/d+YV+UHPVtEQZcexcf
+# LxyyxBmUWsE6jvjeNcGZN4DOk58UZB/7xVLMA4jJvjM4PrFVuj1I4xZA2ZcpzsGg
+# eNriZozdn7CMFP9JPbROSD7m3L54cc/6J1ogfNrdaq/lccQ=
 # SIG # End signature block
