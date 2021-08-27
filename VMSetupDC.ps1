@@ -495,19 +495,6 @@ Begin
                 }
             }
 
-            # ██████╗ ███████╗ ██████╗██╗   ██╗ ██████╗██╗     ███████╗██████╗ ██╗███╗   ██╗
-            # ██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔════╝██╔══██╗██║████╗  ██║
-            # ██████╔╝█████╗  ██║      ╚████╔╝ ██║     ██║     █████╗  ██████╔╝██║██╔██╗ ██║
-            # ██╔══██╗██╔══╝  ██║       ╚██╔╝  ██║     ██║     ██╔══╝  ██╔══██╗██║██║╚██╗██║
-            # ██║  ██║███████╗╚██████╗   ██║   ╚██████╗███████╗███████╗██████╔╝██║██║ ╚████║
-            # ╚═╝  ╚═╝╚══════╝ ╚═════╝   ╚═╝    ╚═════╝╚══════╝╚══════╝╚═════╝ ╚═╝╚═╝  ╚═══╝
-
-            if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
-                (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
-            {
-                Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
-            }
-
             # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
             # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
             # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
@@ -1511,6 +1498,27 @@ Begin
                 Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
             }
 
+            # ██████╗  ██████╗ ███████╗████████╗
+            # ██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝
+            # ██████╔╝██║   ██║███████╗   ██║
+            # ██╔═══╝ ██║   ██║╚════██║   ██║
+            # ██║     ╚██████╔╝███████║   ██║
+            # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
+
+            # Recycle bin
+            if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
+                (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
+            {
+                Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
+            }
+
+            # Register schema mmc
+            if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
+            {
+                regsvr32.exe schmmgmt.dll
+            }
+
             # ██╗      █████╗ ██████╗ ███████╗
             # ██║     ██╔══██╗██╔══██╗██╔════╝
             # ██║     ███████║██████╔╝███████╗
@@ -1730,8 +1738,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwC5iqS5HDq0OZ9YgUy+9bNqe
-# CLmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURVhwRI2TAo6T7JUTzmOweUHQ
+# p+Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1815,28 +1823,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJsx+jntt9Gj++7ieA7XBjccQgyIwDQYJ
-# KoZIhvcNAQEBBQAEggIAbvT07C4aQma/aRzNODxaV7qI5D2eascfexOCDyjvw9n9
-# 4dqh4IkXcnEEbuSCeZsiIqGQOYfaxy8bCNDOxDnn6jabiTMCd3+f+dQhYbgXmHmp
-# WVHrO9dumChVZnZALkw56BPRRCoQ4dirV7GloQhF3IHJNGFqC+ygZ+C3OonM4DgF
-# bM+uKwXcb7E64zbYzbLx51bHhDTT+rh+pcF5XRNII0o7DDWAoPMMJi2sqNuMD/WU
-# 0n/QLzULOT6BGZSXEm8VLST1CXRpVRY48UD3NoYHqdfrw/avzykGQVJJ5iJuy69w
-# VfFeC9Ee//Lh5YWOkLDqLGCqkVUtamqndajc2tBkzvzBo7SGAK2dG6OxIo2HfW9o
-# BIOgaJWf/6uAFthGCZdVhkZk1c1FGfnKYA0fencysWgcZPqg+Z33iVS9hqC3stf5
-# QzCnwnebP7IRo/oTGQAMsP0LBUh14R8DiPPa7Unx7FuQwFR9EMQYHlQH2V+gEMqN
-# ZHosXuhtFstnBnYlR5Onbm84p+XFwbhkuaRcedWYZy+h0cbRHzPJ34ccO9vBkAL7
-# wXYHI4MzFR/9u2ugd7TRKFYqDliLtUP0h1JUM7+DYN+FsmvVaEbxhvw2fR/ziJCx
-# 2AHCH+QZBydXaqN2Ni8/gdJIUzGW8WiQvFM9CNwKXyaYOyT/SvxOd5GRtlyuY+uh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHE6wUOGhOuxy34CAryEmPkVeRzQwDQYJ
+# KoZIhvcNAQEBBQAEggIAK9G3EB2Lvf5PBDVRLBn3BGcJ6Po+A6nXOxA53yWZqrNc
+# RtsmLoin+hxPZHe03h8OXkDYIA9iLGglZXdIttLWbxXdDoDFz0zdmYlScKC04ELb
+# ijSXpYuthJPd3sJ4Ch+eujrWm42La2Yi80G19Lo5/f01IvO9en//lY+8UpCocAj/
+# Gao/OTM1wjFCK8b9Nx7A7KVha0JwMViZI/OWXTza2D1Cg1IAvpHEmdoASrEsxUf6
+# J3qnTIwf6z56wvJTT58A0RE6LtOGvfbF7oPuXEGOXQN/IixVOtc1nFkoy1/0kbAr
+# BpR5gPQzaHFSQOrCx3S+iIhtK2kprqi0Xz66fk+lwikOcLyQUSKrBrjTbs2RaRxU
+# TjCVTsa1o+Lf2u6CwbpwCBIwJGZpTQQdONq38Cq1eYFY9eFedRTRf5EG6KEvk4/i
+# j3knx2lPBElXFBSaZLdMd0hGGOVeesfnRAxeEU2xjXV6EUjLneMOgWSImNmP76iB
+# DDIV/FqLps6q+GaoPzxuJQy7ArqO6dTuAWgKrDLdHFp/QNtYZCISBPoQrzjuvoVr
+# N98A6hGx+CuRBBqb9BBMKHqxU01iCYHfxCJVpazGak7FnbfIBZhjyc8RKTCMwmaY
+# yUaqGQ0dcOIIZzB+cii62Emv480ZRRrBWOfD10bPRDNsW1BUJAGeR6kFokpGr7Oh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNTIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIMXx79D/aDlD7ckxWnUhzLxJM+m/sHNYiuRGWgmDGmJ+
-# MA0GCSqGSIb3DQEBAQUABIIBAIa9DV0Fu2NBd85ubNIm4oAh2e91zuHhTzf9+n9H
-# bz/YsxAwVPk+blJZQPZ3zwb1LTjFPaSa0SWgKsoRkhJWWu8Q6stkbcgqlv8DDUBe
-# BB1UGrkieBIQjSo2wYhao/zSCH2tQmpaBkdLb3iCYsTR60IXkcuwRADlhvfgkf+V
-# RiYmVrKZslEgO61HG+ylhtIaYIozmxRsINrvIz5syWYfls1j7ZeVK88GzemOiWat
-# O5FcFnmrI2R/azLRgnLZvK47hbtOiMhZEcaL8VWsDGF826TRdChm768q3h8MHAxI
-# Mr4AACCz+vbZw1EJf9riWzt1nfFd08qe2S6mzJJJucwQAew=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNzExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIGvohdsQW8WCc4wZeXbhM2rjHjoVAifTt/twep390Jrk
+# MA0GCSqGSIb3DQEBAQUABIIBAIaqeTsQLwpoulQwih94nh3/Y21vwhmsexc1bNSq
+# Ous9XB1kLYPhheX4cD4SqudjHDJ7Zg7+UH35S6P+aKpnFCz0l5UwxBAIpFnkwbFi
+# BH21fqU2wFmLi64P3BcYhQDTMAx1grrKd1BNifn12CxFiDbpkRgE8nWUgaJFVU7q
+# dm6gxv98Fdgx5a3IJsCxM9g/PgFGR+E/KU4dcAWqilwRaPe0cl484jmzYEVfY2Ie
+# wLJqcclFF3LJR3j1Px4J3S5UnM9JxwCjP00Cz4Ypy96dZ8hI6yHUWs7IX1FKOPQi
+# hJrtgvQ0zG7Qze80I3kKMIOxq/MXzD1Z4Kbs0369Rw2hH3I=
 # SIG # End signature block
