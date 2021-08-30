@@ -22,9 +22,12 @@ Param
     $Session,
     $Credential,
 
-    # Certificate Authority common name
+    # Certificate Authority config
     [Parameter(ParameterSetName='Standard', Mandatory=$true)]
-    [String]$CACommonName,
+    [Parameter(ParameterSetName='Share', Mandatory=$true)]
+    [Parameter(ParameterSetName='OCSPAuto', Mandatory=$true)]
+    [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
+    [String]$CAConfig,
 
     # Host name
     [String]$HostName,
@@ -44,12 +47,6 @@ Param
     #####################
     # OCSP Enterprise CA
     #####################
-
-    # OCSP CA config
-    [Parameter(ParameterSetName='Standard')]
-    [Parameter(ParameterSetName='Share')]
-    [Parameter(ParameterSetName='OCSPAuto', Mandatory=$true)]
-    [String]$OCSPCAConfig,
 
     # OCSP template name
     [Parameter(ParameterSetName='Standard')]
@@ -132,6 +129,18 @@ Begin
 
     } -NoNewScope
 
+    ###############
+    # Parse config
+    ###############
+
+    $CAConfig | Where-Object {
+                    $_ -match "(.*?)\.(.*)\\(.*)"
+    } | ForEach-Object {
+        $CAHostName = $Matches[1]
+        $CACommonName = $Matches[3]
+        $DomainName = $Matches[2]
+    }
+
     ############
     # Get files
     ############
@@ -188,27 +197,12 @@ Begin
     $MainScriptBlock =
     {
         ###############
-        # Check domain
+        # Set hostname
         ###############
-
-        $Win32_ComputerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
-
-        # Check for part of domain
-        if ($Win32_ComputerSystem.PartOfDomain)
-        {
-            $DomainName = $Win32_ComputerSystem.Domain
-        }
 
         if (-not $HostName)
         {
-            if ($DomainName)
-            {
-                $HostName = "pki.$DomainName"
-            }
-            else
-            {
-                throw "Not domain joined, please use -HostName to set FQDN of host."
-            }
+            $HostName = "pki.$DomainName"
         }
 
         ######
@@ -424,7 +418,7 @@ Begin
         # ╚██████╔╝╚██████╗███████║██║
         #  ╚═════╝  ╚═════╝╚══════╝╚═╝
 
-        if ($OCSPManualRequest.IsPresent -or ($OCSPCAConfig -and $OCSPTemplate))
+        if ($OCSPManualRequest.IsPresent -or $OCSPTemplate)
         {
             ##########
             # Feature
@@ -652,10 +646,10 @@ OID="1.3.6.1.5.5.7.3.9"
                     $OCSPHashAlgorithm = 'SHA256'
                 }
 
-                if ($OcspConfig.CAConfig -ne $OCSPCAConfig -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting CAConfig `"$OCSPCAConfig`"" @VerboseSplat))
+                if ($OcspConfig.CAConfig -ne $CAConfig -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting CAConfig `"$CAConfig`"" @VerboseSplat))
                 {
-                    $OcspConfig.CAConfig = $OCSPCAConfig
+                    $OcspConfig.CAConfig = $CAConfig
                 }
 
                 if ($OcspConfig.SigningCertificateTemplate -ne $OCSPTemplate -and
@@ -830,28 +824,42 @@ OID="1.3.6.1.5.5.7.3.9"
                 Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
             }
 
-            <#
-            # Initialize
-            $NdesConfigured = $false
-
-            #Check if CA is configured
-            try
+            if (-not (Get-Item -Path HKLM:\SOFTWARE\Microsoft\Cryptography\MSCEP -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Configuring Device Enrollment." @VerboseSplat))
             {
-                # Throws if configured
-                Install-AdcsNetworkDeviceEnrollmentService -WhatIf > $null
-            }
-            catch
-            {
-                # CA is configured
-                $NdesConfigured = $true
-            }
-            #>
+                # Initialize
+                $NdesParams =
+                @{
+                    ApplicationPoolIdentity = $true
+                    CAConfig = $CAConfig
+                    RAName = "$CACommonName NDES"
+                    RACountry = 'SE'
+                    RACompany = $DomainName
+                    SigningProviderName = 'Microsoft Strong Cryptographic Provider'
+                    SigningKeyLength = 2048
+                    EncryptionProviderName = 'Microsoft Strong Cryptographic Provider'
+                    EncryptionKeyLength = 2048
+                }
 
-            # IIS
+                try
+                {
+                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
+                }
+                catch [Exception]
+                {
+                    throw $_.Exception
+                }
+            }
+
+            # Add CertSrv application
+            if (-not (Get-WebApplication -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv application." @VerboseSplat))
+            {
+                New-WebApplication -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' -ApplicationPool 'DefaultAppPool' > $null
+            }
 
             # Force SSL on MSCEP_admin
             # Move ISAPA 4.0 64bit Handler mapping down
-            # Add application, default apppool CertSrv
 
             # useKernelMode false
             # useAppPoolCredentials true
@@ -864,30 +872,6 @@ OID="1.3.6.1.5.5.7.3.9"
             # Allow log on locally
             # Log on as a service
 
-<#
-            # Initialize
-            $NdesParams =
-            @{
-                RAName = "$CACommonName NDES"
-                RACountry = 'SE'
-                CAConfig = $OCSPCAConfig
-                ServiceAccountName = 'home\AzADDSConnector'
-                ServiceAccountPassword = (ConvertTo-SecureString -String "PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p" -AsPlainText -Force)
-            }
-
-            try
-            {
-                if (-not $NdesConfigured -and
-                    (ShouldProcess @WhatIfSplat -Message "Configuring Device Enrollment." @VerboseSplat))
-                {
-                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
-                }
-            }
-            catch [Exception]
-            {
-                throw $_.Exception
-            }
-#>
         }
     }
 }
@@ -936,13 +920,15 @@ Process
             $WhatIfSplat  = $Using:WhatIfSplat
             $Force        = $Using:Force
 
+            $CAConfig = $Using:CAConfig
+            $CAHostName = $Using:CAHostName
             $CACommonName = $Using:CACommonName
+            $DomainName = $Using:DomainName
 
             $HostName = $Using:HostName
             $PhysicalPath = $Using:PhysicalPath
             $ShareAccess = $Using:ShareAccess
 
-            $OCSPCAConfig = $Using:OCSPCAConfig
             $OCSPTemplate = $Using:OCSPTemplate
 
             $OCSPManualRequest = $Using:OCSPManualRequest
@@ -1029,8 +1015,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTJQai/b0POCfSsBF1J/VhSqy
-# DkOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgY4aNYCz8bwdK260XvTvmnnX
+# oQOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1114,28 +1100,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUTONoqINRHjaGQDivh//KHiB/xi8wDQYJ
-# KoZIhvcNAQEBBQAEggIASQ54XzS0+pdlFg6nNvzvPjhTwbOWOOzaz63TBEbh0YEO
-# S7YE0SjYm66GpZkdCv8JDi8f6ZhLEjgQjhzzL21rsyu+uJIobOyXu6IIqsB3OTXw
-# eKmQt6v31mmvCacekT+qulcKi+oDhoWKIuuLI+beIPQEvTJ3P6EGKbBNazkxt01K
-# /0M0e43qN6KgDOYG53Cus6x5CSxWHW73RC4bPduC3jFKOtjIHz8tF4y13Cj88w2u
-# YDWKpsJ3o/wxJzRhX1oRP2Ls6yx+grYa6cbU7hOhXy8voaezr6w4k5mZ/yUA01ku
-# cQmtdGAj5bHp3iwSMDSOSHpuzgs7HXpKfDfECTbK9DKret6bJt61HvVAwcJBQJ3A
-# 9eZRw3/G8uB65e30fiL+UMJfndOV4hIyFhqwYmvJHCVCdwV0bpTA3JMRAhfdO5tn
-# W0Axyl9SlPxHJk4/jv800UaBaMv+ssy6rw7skgLyFB/iT+7SjLmeyGzwkyU3tD2W
-# /gQoEi590+YYJlPJtLkFWTlZ0UIoO9tlPH5NdRO2HtXbXJY8BvmCfJwuGTSimuL8
-# VlaBy4dLS80KaHNpQYJX8IY6mPZSEKBE+0wtoI3DNvStnKm9TAaxDaYWahEOdsoj
-# 4W8GuOkAJ6Az4W4hcsNkAt0Bzuajy1jUqt5279erPwBoRSY7LBgxEM1lfSAnyoah
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUACBM7yYXihmXYP2Fb0S5qQeNJEkwDQYJ
+# KoZIhvcNAQEBBQAEggIAf3CK6xR7M+n8GxELWPIidKM6YxUH/+LupiKvJrhAQuVX
+# m4UTpccwewhRMEdvFEwhPeUNCUwduTYvEd5dbSYmiqlGIl7Wfamd+btxXs5JOIsv
+# YrWZxtTlsmivQc3v7b8XsqllK7aHDPcIkeixbL/RpZKCcFGzk22WlOa2NjW5JTDt
+# HcUYKdaxQxifG2aTgo0KxXFpd3AZtot+PzURSK5EGIKGUFsIHYVfO2GigkMEUZdf
+# Hl2AzX0eslFZ/C64XCQtZATYoEjmvqshDhOQBWLZY8t9tW4hVRaMEVOyB1JNFmNc
+# kBXo4EY0yqWVc+APx4K1V/3WHuYeITG0ltiIOyPH5lP6unSNKmAijkfHAFRUs8Js
+# jhvIS30wu/HGG5xrN5iY1yybg60VFeOw3QNT4hjkFnA8v8YiIKHpFoOXx1KVkJY1
+# Uj/MKeCvOnLLIyDNWZK1r26wkMUhBl/RvhtWFZiZQLj23vfp+xxu4lyG/m7/MjUW
+# ojXEvELaX0nagkyB/PDcMLEozlk3bXTz83NrW5DS9ZNbS7iuRr3LSO82WFvncXwR
+# 9//Y1InTXgpfyOgQhY7t8dX97FmBApX+poZm1Zh6Qiyx+TT9SILXpTmtmRnX/ITJ
+# gnte3w5K1wZ6uJXy3vwxGBYwpVaXR4phDNlCwgtgkjOMXHeKlYabiN8RWjfXkH6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNjIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIEoZSDKAjLkxPw5W2eExQMKf7s7ZDIWVIYrxmW2UJtT3
-# MA0GCSqGSIb3DQEBAQUABIIBAG2ARid+gjRamf/hXwRt0yrf7OoNWzKABgylP2Bo
-# YgzOBgLH6rbIa3UMJMKNpcte78biAZ7tHtx+UU9DHB3mh8WDrt0MVGGMBEseqTG2
-# l3qFiaJLTnQlFUte1DtW5QNn+pkuDiJV5zmKEYKEK7m/6hUh0jifXsJES1FspU5i
-# vFnR1LH8D/MPpDqKQUI0xBTp4NlP/iCnp0GBcudLNtXyqVCe5g2BThydxhAUMwvk
-# VZE0MIhLb1fgxLVoPJQZ2iqzHij5vZXP8z5xmYGv4i+OKRZkkqX3W1trFoOzZuu3
-# HiQIAM+8Zu3tnLkcbfblhEZt3X87riDLCOmoe9hWVxLxXf0=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgzMDExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIFBUKUSnCmisT61npypTDfuZPWbnfY0+KzSqkCZaFYyb
+# MA0GCSqGSIb3DQEBAQUABIIBAEiUTBIqC5PyDRqnjxbDKgSfc64kZUjKWFesdj5a
+# cs8AKQ1UG/qrz2RjRjT79Tiy+t0v4YJ1J0k+OcaR/WA6DcW9jBmCkj4tbCwINogz
+# jCk6U/LV3/XY/Eb/p0v3WWiWNwWBIbP5u24JQxammROh5Zr/TQrLorB9PY23eftJ
+# YjxyvHt9YFdJWuBBrwdYNIVv115IH5wTGxv9L2tIqLSHWE6/fkIX6QrjIbCZJELs
+# YR+yKf350BfnM9WUxW5LFJTKlEfxsa6yNXG50s3ASzJGx7ErRBzcbk4pzfNjuj9/
+# OOHbng+yyItEDcv5rNuttPNDX8mFayZELlBLv/fGJexQp0Y=
 # SIG # End signature block
