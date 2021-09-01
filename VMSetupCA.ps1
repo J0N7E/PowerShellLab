@@ -566,6 +566,33 @@ Begin
             throw "Must be administrator to setup Certficate Authority."
         }
 
+        #####################
+        # Check installation
+        #####################
+
+        # Initialize
+        $CAInstalled = $false
+        $CAConfigured = $false
+
+        # Check if CA is installed
+        if (((Get-WindowsFeature -Name ADCS-Cert-Authority).InstallState -eq 'Installed'))
+        {
+            # CA is installed
+            $CAInstalled = $true
+
+            #Check if CA is configured
+            try
+            {
+                # Throws if configured
+                Install-AdcsCertificationAuthority -WhatIf > $null
+            }
+            catch
+            {
+                # CA is configured
+                $CAConfigured = $true
+            }
+        }
+
         ###############
         # Check domain
         ###############
@@ -592,14 +619,26 @@ Begin
             Check-Continue -Message "-AddDomainConfig parameter not specified, DSDomainDN and DSConfigDN will not be set."
         }
 
+        # Get basedn from domain name
         if ($DomainName)
         {
             $BaseDn = Get-BaseDn -DomainName $DomainName
+
+            if (-not $CAConfigured -and -not $CADistinguishedNameSuffix)
+            {
+                $CADistinguishedNameSuffix = $BaseDn
+
+                Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, using default suffix $BaseDn."
+            }
+        }
+        elseif (-not $CAConfigured -and -not $CADistinguishedNameSuffix)
+        {
+            Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, no suffix will be used."
         }
 
-        ###########
-        # Check CN
-        ###########
+        #########
+        # Get CN
+        #########
 
         if (-not $CACommonName)
         {
@@ -610,6 +649,145 @@ Begin
             if (-not $CACommonName)
             {
                 Write-Warning -Message "Can't get CACommonName."
+            }
+        }
+
+        ######
+        # AIA
+        # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
+        ######
+
+        # Check if exist
+        if (-not $CACertPublicationURLs)
+        {
+            # Set default AIA
+            $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
+
+            # Check if exist
+            if ($AIAUri)
+            {
+                # Add AIA url
+                $CACertPublicationURLs += "\n2:http://$AIAUri/%3%4.crt"
+            }
+            elseif ($DomainName)
+            {
+                Check-Continue -Message "-AIAUri parameter not specified, using `"http://pki.$DomainName`" as AIAUri."
+
+                # Add default AIA url
+                $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
+            }
+            else
+            {
+                Check-Continue -Message "-AIAUri parameter not specified, no AIA will be used."
+            }
+
+            # Check if exist
+            if ($OCSPUri)
+            {
+                # Add OCSP url
+                $CACertPublicationURLs += "\n32:http://$OCSPUri"
+            }
+            elseif ($ParameterSetName -match 'Subordinate')
+            {
+                if ($DomainName)
+                {
+                    Check-Continue -Message "-OCSPUri parameter not specified, using `"http://pki.$DomainName/ocsp`" as OCSPUri."
+
+                    # Add default OCSP url
+                    $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
+                }
+                else
+                {
+                    Check-Continue -Message "-OCSPUri parameter not specified, no OCSP will be used."
+                }
+            }
+        }
+
+        ######
+        # CDP
+        # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-cdp-extension
+        ######
+
+        # Check if exist
+        if (-not $CRLPublicationURLs)
+        {
+            ##################
+            # PublishToServer
+            ##################
+
+            $PublishToServer = 0
+
+            if ($CRLPeriodUnits -gt 0)
+            {
+                $PublishToServer += 1
+            }
+
+            if ($CRLDeltaPeriodUnits -gt 0)
+            {
+                $PublishToServer += 64
+            }
+
+            ##################
+            # Set default CDP
+            ##################
+
+            $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
+
+            if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
+            {
+                # Add custom CertEnroll directory
+                $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
+            }
+
+            ##################
+            # AddTo (Include)
+            ##################
+
+            $AddTo = 0
+
+            if ($CRLPeriodUnits -gt 0)
+            {
+                $AddTo += 2
+            }
+
+            if ($CRLDeltaPeriodUnits -gt 0)
+            {
+                $AddTo += 4
+            }
+
+            # Check if exist
+            if ($CDPUri)
+            {
+                # Add CDP url
+                $CRLPublicationURLs += "\n$($AddTo):http://$CDPUri/%3%8%9.crl"
+            }
+            elseif ($DomainName)
+            {
+                Check-Continue -Message "-CDPUri parameter not specified, using `"http://pki.$DomainName`" as CDPUri."
+
+                # Add default CDP url
+                $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
+            }
+            else
+            {
+                Check-Continue -Message "-CDPUri parameter not specified, no CDP will be used."
+            }
+
+            ###################
+            # Publishing Paths
+            ##################
+
+            if ($PublishingPaths)
+            {
+                foreach ($Item in $PublishingPaths)
+                {
+                    # Add publishing paths
+                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
+                }
+            }
+            elseif ($ParameterSetName -match 'Subordinate')
+            {
+                Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved."
             }
         }
 
@@ -883,29 +1061,6 @@ AlternateSignatureAlgorithm=0
         # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
         # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 
-        # Initialize
-        $CAInstalled = $false
-        $CAConfigured = $false
-
-        # Check if CA is installed
-        if (((Get-WindowsFeature -Name ADCS-Cert-Authority).InstallState -eq 'Installed'))
-        {
-            # CA is installed
-            $CAInstalled = $true
-
-            #Check if CA is configured
-            try
-            {
-                # Throws if configured
-                Install-AdcsCertificationAuthority -WhatIf > $null
-            }
-            catch
-            {
-                # CA is configured
-                $CAConfigured = $true
-            }
-        }
-
         # Install CA
         if (-not $CAInstalled -and
             (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Cert-Authority." @VerboseSplat))
@@ -975,12 +1130,6 @@ AlternateSignatureAlgorithm=0
                     @{
                         'CADistinguishedNameSuffix' = $CADistinguishedNameSuffix
                     }
-                }
-                else
-                {
-                    # FIX
-                    # check default Suffix to propose in message
-                    Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, using default suffix."
                 }
 
                 if ($ParameterSetName -match 'Root')
@@ -1123,145 +1272,6 @@ AlternateSignatureAlgorithm=0
         }
         else
         {
-            ######
-            # AIA
-            # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
-            ######
-
-            # Check if exist
-            if (-not $CACertPublicationURLs)
-            {
-                # Set default AIA
-                $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
-
-                # Check if exist
-                if ($OCSPUri)
-                {
-                    # Add OCSP url
-                    $CACertPublicationURLs += "\n32:http://$OCSPUri"
-                }
-                elseif ($ParameterSetName -match 'Subordinate')
-                {
-                    if ($DomainName)
-                    {
-                        Check-Continue -Message "-OCSPUri parameter not specified, using `"http://pki.$DomainName/ocsp`" as OCSPUri."
-
-                        # Add default OCSP url
-                        $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
-                    }
-                    else
-                    {
-                        Check-Continue -Message "-OCSPUri parameter not specified, no OCSP will be used."
-                    }
-                }
-
-                # Check if exist
-                if ($AIAUri)
-                {
-                    # Add AIA url
-                    $CACertPublicationURLs += "\n2:http://$AIAUri/%3%4.crt"
-                }
-                elseif ($DomainName)
-                {
-                    Check-Continue -Message "-AIAUri parameter not specified, using `"http://pki.$DomainName`" as AIAUri."
-
-                    # Add default AIA url
-                    $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
-                }
-                else
-                {
-                    Check-Continue -Message "-AIAUri parameter not specified, no AIA will be used."
-                }
-            }
-
-            ######
-            # CDP
-            # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-cdp-extension
-            ######
-
-            # Check if exist
-            if (-not $CRLPublicationURLs)
-            {
-                ##################
-                # PublishToServer
-                ##################
-
-                $PublishToServer = 0
-
-                if ($CRLPeriodUnits -gt 0)
-                {
-                    $PublishToServer += 1
-                }
-
-                if ($CRLDeltaPeriodUnits -gt 0)
-                {
-                    $PublishToServer += 64
-                }
-
-                ##################
-                # Set default CDP
-                ##################
-
-                $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
-
-                if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
-                {
-                    # Add custom CertEnroll directory
-                    $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
-                }
-
-                ##################
-                # AddTo (Include)
-                ##################
-
-                $AddTo = 0
-
-                if ($CRLPeriodUnits -gt 0)
-                {
-                    $AddTo += 2
-                }
-
-                if ($CRLDeltaPeriodUnits -gt 0)
-                {
-                    $AddTo += 4
-                }
-
-                # Check if exist
-                if ($CDPUri)
-                {
-                    # Add CDP url
-                    $CRLPublicationURLs += "\n$($AddTo):http://$CDPUri/%3%8%9.crl"
-                }
-                elseif ($DomainName)
-                {
-                    Check-Continue -Message "-CDPUri parameter not specified, using `"http://pki.$DomainName`" as CDPUri."
-
-                    # Add default CDP url
-                    $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
-                }
-                else
-                {
-                    Check-Continue -Message "-CDPUri parameter not specified, no CDP will be used."
-                }
-
-                ###################
-                # Publishing Paths
-                ##################
-
-                if ($PublishingPaths)
-                {
-                    foreach ($Item in $PublishingPaths)
-                    {
-                        # Add publishing paths
-                        $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
-                    }
-                }
-                elseif ($ParameterSetName -match 'Subordinate')
-                {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved."
-                }
-            }
-
             ########################
             # Set registry settings
             ########################
@@ -1295,6 +1305,10 @@ AlternateSignatureAlgorithm=0
             # Set auditing
             $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
 
+            #############
+            # Enterprise
+            #############
+
             if ($ParameterSetName -match 'Enterprise')
             {
                 # Add logging for changes to templates
@@ -1313,6 +1327,12 @@ AlternateSignatureAlgorithm=0
                     # Add domain configuration for standalone ca
                     $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
+                }
+                else
+                {
+                    # Remove domain configuration for standalone ca
+                    $Restart = Set-CASetting -Key 'DSDomainDN' -Remove -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'DSConfigDN' -Remove -InputFlag $Restart
                 }
 
                 if ($ParameterSetName -match 'Subordinate' -or $OCSPUri)
@@ -1676,8 +1696,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxljV7Yy2hlGWRIT7mQXm78GA
-# VwCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwl4hnwR9vte3NIfJYc+0wzrk
+# pNKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1761,28 +1781,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7IukKUzyPUTuyILRPU6aIXXmAegwDQYJ
-# KoZIhvcNAQEBBQAEggIAja5sRfdwZHqqN2Xu9cVYc2cEXXP3poaNaA470iEFMsN7
-# Cz9Tgto0Fz7EpKlQn39ydyJo0ISr2f7hEGfhLRD2NvJUjzc1NbpaHuStlyv5pmlI
-# zoZemDPrPeJ4V535xwNFIFb3pUwGzv/7FqyYqBltV3nfCH692ID2ikzpxKqBQOn5
-# PdbdL/I+rHi/YsmnVUTVQfSiipojlQGmwYVZwVno88VbFSCYK9kezSHX/ivjZ4vF
-# nMoXWeKQj1TIQq0X40VHB69cUaH7/nRH0ZzEc9EpEnxLLpM1gmVSH3RKBKuHDiva
-# NzbqaqgROiX1dWjawoCf2yDe2IrZaLIv9jwftRRrfV0qguzIsD2lf51MFxTDVTkR
-# FlOtdqPRhF3SRjjRKdPqZpNxS9dKkDF7C5pwSieoOs0QMwykHsc7mv4lQkyd3cGl
-# c1OY3VgfFbMtsBfUCuI8ZLSdSFqTIBV4Q1/2H4/BkU5U8XS2J9+bjlnb+RaaUGkj
-# LG1ZlgwMN4wh9dL0SKJ2BLb7OlmNI1DOH5H7jynbMq9aOuUW7u5pVSq7FE1rvFF9
-# 2cAOJnmANw5FCjTrwbJcyC02OIRqNOYYfX/H5Ht0onWwTWWuUyt7/2l92VBkTA0f
-# e2YI4y/DTs+muiMitaL5+8NguFTuYZ8C7xGe4el5dsowd4udFD0GOxD6sXACW5Kh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFLMf1CW5FcJOMXu90VLlfFkZXPYwDQYJ
+# KoZIhvcNAQEBBQAEggIAEptNXXFWUidNy79l6clnx6bItU2m237F+UKlShi+uhQT
+# 5yJ1Qr6FvsPPProWs/3aKuB7CSOCpftSn6Kno+6IhmPfmTJNEDJBJRooUbCpGOI/
+# f6tRJksU/Fe5LlzZAOtVY0gjp4wK9WlAw9i6in0prYXi5nnS1ZLk9q7JE+Yc8yvc
+# 54JEvAtUrEAW4iRL6VGhIPh0lIYeW9GBF+hrR+Nul0Mj4BmsiW1R58lJFlibvbqU
+# bip/4HqjoIJ2cIJUehbOBGifkvS/WLTZqW2t1sDA6vllvZhkAFurWX4Vr0mlde5d
+# ivV3eC+NTLoePyJP2P0u6WC48ERCP0PpDL8OFhhn6gYO6IB+T7whmwsK25S7VpWO
+# LPLgqCmam3jgNmA9JIZ9clg0ITlno/hsBNLcoUa5EwMHb4qsArSk87OoAHOzpgmQ
+# z1CxHH2vSRF07YynbSOUL+HV0yT69OC+P9h8eWAK+pAzY5Id/pk/njFElzL1dVt2
+# 9mhTTyLUBCjsxXpHGRdKsBIHpRIxTe/0xjiZdrGA63oCubfrwf51JWAU+MhxiT3/
+# Yp8nGayKSpYfL8QHhVAg0Gr1bLXhwKt4XHQ2JIx7xURFeZ7PkHZ9D1ycU9kKyO2t
+# CiB3SQb5w1L2CCdseOO6zuxlDhRLaVhu8f6NxsBIsjLNKKWj5ibwVBRxwLG3gTah
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTIwMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIHDb00CKV81RpOehtX8+E67ikhrFyR0Gpv9Qt242lowN
-# MA0GCSqGSIb3DQEBAQUABIIBALZcXiKYfKOfadcVEk6ZTdkcHZbfLySnqTHI3pFe
-# 9i/RJgpq/ggdEXxfYchtlOqMIPyzvBmejCIKbpEXT+XKtEdTKBl49A39z2HBUrxf
-# iJgEGAmYfQMXFlrn4YyrgoAnbwyYiarvZs5mUGZJ9trOOfKaCf3qOtU9+T+cNrsq
-# SPfG6hYz3RlrzZAdneTc+0AVIPRJhSD9yw6W/wdUv14QiuWnt+H5BQNzKbfHzraa
-# x2LtLPVt3stnFteZblh/g0DFrIQT0mzk5VKnNmCbLjRFW+xnvuc7NMuWiNOEUwU5
-# WPQKOujNgib3Vs5o6kmZy4t6LY3Hy3MPWIm59BOWwVshC5g=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIMPrFGzfqdQciATjTOHGuqlkfGSkzreK2n0VGOFfDLUr
+# MA0GCSqGSIb3DQEBAQUABIIBALasvmIBypdDUQzg2a9vbprBxA7hPmKI/KTCGjbw
+# DHNMMyEfzREpu7VibdaIDmO+z6rAOO43HdL5D+8zvgvIH+fjK3GumdCV85R0fD8b
+# CI4vbj7hvfLb/x6NLevrl8UI4iQBu+s9SDbPj6S76IVoS9Lk+EWr8oX1SpKBZQYk
+# eF1rqFczhnZL+uvrLpQIhgc8OBEAQDeGfhfMVVi+mfMlxOKvs3kSU/smzuU37H2L
+# 3hSiSw0u+IVCATIFTr3NoA87sa5JBxg7hYdsWgKUWwd7B+8hRmRcw+EGwPxytiE8
+# WdNxE2set/Yquw3j3i8ryOviyOb0pqUY0iBM+x0lBhkcAGk=
 # SIG # End signature block
