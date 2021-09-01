@@ -74,7 +74,7 @@ Param
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
 
-    # Root CA certificate lifespan
+    # Root CA certificate validity period units
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -83,7 +83,7 @@ Param
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [String]$RenewalValidityPeriodUnits = '20',
 
-    # Root CA certificate lifespan
+    # Root CA certificate validity period
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
@@ -93,7 +93,7 @@ Param
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$RenewalValidityPeriod = 'Years',
 
-    # Subordinate CA installation parameters
+    # Subordinate CA parent CA common name
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
@@ -131,7 +131,7 @@ Param
     })]
     [Int]$KeyLength = 4096,
 
-    # Crypto providers
+    # Crypto provider name
     [ArgumentCompleter({
 
         if ($args[4].HashAlgorithmName)
@@ -235,7 +235,30 @@ Param
     [String]$DatabaseDirectory = '$env:SystemRoot\System32\CertLog',
     [String]$CertEnrollDirectory = '$env:SystemDrive\CertSrv\CertEnroll',
 
-    # Post setup registry settings
+    # Validity period of issued certificates
+    [String]$ValidityPeriodUnits,
+    [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
+    [String]$ValidityPeriod,
+
+    # Set url for OCSP
+    [String]$OCSPUri,
+
+    # Set url for AIA
+    [String]$AIAUri,
+
+    # Set url for CDP
+    [String]$CDPUri,
+
+    # Add publishing paths
+    [Array]$PublishingPaths,
+
+    # Crl Distribution Point (CDP)
+    [String]$CRLPublicationURLs,
+
+    # Authority Information Access (AIA)
+    [String]$CACertPublicationURLs,
+
+    # CRL settings
     [String]$CRLPeriodUnits,
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$CRLPeriod,
@@ -252,10 +275,6 @@ Param
     [ValidateSet('Minutes', 'Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$CRLDeltaOverlapPeriod,
 
-    [String]$ValidityPeriodUnits,
-    [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
-    [String]$ValidityPeriod,
-
     # Set log level
     [String]$AuditFilter = 127,
 
@@ -267,23 +286,6 @@ Param
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$AddDomainConfig,
-
-
-
-    # Set host name for publication
-    [String]$PublicationHostName,
-
-    # Add publishing paths
-    [Array]$PublishingPaths,
-
-    # Crl Distribution Point (CDP)
-    [String]$CRLPublicationURLs,
-
-    # Authority Information Access (AIA)
-    [String]$CACertPublicationURLs,
-
-    # Set hostname for OCSP
-    [String]$OCSPHostName,
 
     ###########
     # Switches
@@ -321,7 +323,7 @@ Begin
         @{ Name = 'Session';                                  },
         @{ Name = 'Credential';         Type = [PSCredential] },
         @{ Name = 'CertFilePassword';   Type = [SecureString] },
-        @{ Name = 'PublishingPaths';     Type = [Array]        }
+        @{ Name = 'PublishingPaths';    Type = [Array]        }
     )
 
     #########
@@ -460,7 +462,11 @@ Begin
             # CAPolicy parameters
             PathLength = 'None'
 
-            # Post setup registry settings
+            # Validity period of issued certificates
+            ValidityPeriodUnits = 10
+            ValidityPeriod = 'Years'
+
+            # CRL settings
             CRLPeriodUnits = 180
             CRLPeriod = 'Days'
             CRLOverlapUnits = 14
@@ -469,8 +475,6 @@ Begin
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
             CRLDeltaOverlapPeriod = 'Minutes'
-            ValidityPeriodUnits = 10
-            ValidityPeriod = 'Years'
         }
 
         EnterpriseRootCA =
@@ -478,7 +482,11 @@ Begin
             # CAPolicy parameters
             PathLength = 0
 
-            # Post setup registry settings
+            # Validity period of issued certificates
+            ValidityPeriodUnits = 1
+            ValidityPeriod = 'Years'
+
+            # CRL settings
             CRLPeriodUnits = 1
             CRLPeriod = 'Weeks'
             CRLOverlapUnits = 84
@@ -487,8 +495,6 @@ Begin
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
             CRLDeltaOverlapPeriod = 'Minutes'
-            ValidityPeriodUnits = 1
-            ValidityPeriod = 'Years'
         }
 
         EnterpriseSubordinateCA =
@@ -496,7 +502,11 @@ Begin
             # CAPolicy parameters
             PathLength = 0
 
-            # Post setup registry settings
+            # Validity period of issued certificates
+            ValidityPeriodUnits = 1
+            ValidityPeriod = 'Years'
+
+            # CRL settings
             CRLPeriodUnits = 1
             CRLPeriod = 'Weeks'
             CRLOverlapUnits = 84
@@ -505,8 +515,6 @@ Begin
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
             CRLDeltaOverlapPeriod = 'Minutes'
-            ValidityPeriodUnits = 1
-            ValidityPeriod = 'Years'
         }
 
         StandaloneSubordinateCA =
@@ -514,7 +522,11 @@ Begin
             # CAPolicy parameters
             PathLength = 0
 
-            # Post setup registry settings
+            # Validity period of issued certificates
+            ValidityPeriodUnits = 1
+            ValidityPeriod = 'Years'
+
+            # CRL settings
             CRLPeriodUnits = 1
             CRLPeriod = 'Weeks'
             CRLOverlapUnits = 84
@@ -523,8 +535,6 @@ Begin
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
             CRLDeltaOverlapPeriod = 'Minutes'
-            ValidityPeriodUnits = 1
-            ValidityPeriod = 'Years'
         }
     }
 
@@ -1125,42 +1135,42 @@ AlternateSignatureAlgorithm=0
                 $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
 
                 # Check if exist
-                if ($OCSPHostName)
+                if ($OCSPUri)
                 {
                     # Add OCSP url
-                    $CACertPublicationURLs += "\n32:http://$OCSPHostName/ocsp"
+                    $CACertPublicationURLs += "\n32:http://$OCSPUri"
                 }
                 elseif ($ParameterSetName -match 'Subordinate')
                 {
-                    if ($DomainName -and $ParameterSetName -match 'Enterprise')
+                    if ($DomainName)
                     {
-                        Check-Continue -Message "-OCSPHostName parameter not specified, using `"pki.$DomainName`" for OCSPHostName."
+                        Check-Continue -Message "-OCSPUri parameter not specified, using `"http://pki.$DomainName/ocsp`" as OCSPUri."
 
                         # Add default OCSP url
                         $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
                     }
                     else
                     {
-                        Check-Continue -Message "-OCSPHostName parameter not specified, no OCSP will be used."
+                        Check-Continue -Message "-OCSPUri parameter not specified, no OCSP will be used."
                     }
                 }
 
                 # Check if exist
-                if ($PublicationHostName)
+                if ($AIAUri)
                 {
                     # Add AIA url
-                    $CACertPublicationURLs += "\n2:http://$PublicationHostName/%3%4.crt"
+                    $CACertPublicationURLs += "\n2:http://$AIAUri/%3%4.crt"
                 }
                 elseif ($DomainName)
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CACertPublication."
+                    Check-Continue -Message "-AIAUri parameter not specified, using `"http://pki.$DomainName`" as AIAUri."
 
                     # Add default AIA url
                     $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, no AIA will be added."
+                    Check-Continue -Message "-AIAUri parameter not specified, no AIA will be used."
                 }
             }
 
@@ -1194,10 +1204,9 @@ AlternateSignatureAlgorithm=0
 
                 $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
 
-                # Add custom CertEnroll directory
-
                 if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
                 {
+                    # Add custom CertEnroll directory
                     $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
                 }
 
@@ -1218,21 +1227,21 @@ AlternateSignatureAlgorithm=0
                 }
 
                 # Check if exist
-                if ($PublicationHostName)
+                if ($CDPUri)
                 {
                     # Add CDP url
-                    $CRLPublicationURLs += "\n$($AddTo):http://$PublicationHostName/%3%8%9.crl"
+                    $CRLPublicationURLs += "\n$($AddTo):http://$CDPUri/%3%8%9.crl"
                 }
                 elseif ($DomainName)
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, using `"pki.$DomainName`" for CRLPublication."
+                    Check-Continue -Message "-CDPUri parameter not specified, using `"http://pki.$DomainName`" as CDPUri."
 
                     # Add default CDP url
                     $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
                 }
                 else
                 {
-                    Check-Continue -Message "-PublicationHostName parameter not specified, no CDP will be added."
+                    Check-Continue -Message "-CDPUri parameter not specified, no CDP will be used."
                 }
 
                 ###################
@@ -1244,12 +1253,12 @@ AlternateSignatureAlgorithm=0
                     foreach ($Item in $PublishingPaths)
                     {
                         # Add publishing paths
-                        $CRLPublicationURLs += "\n$($PublishToServer):$Item\\%3%8%9.crl"
+                        $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
                     }
                 }
                 elseif ($ParameterSetName -match 'Subordinate')
                 {
-                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be copied."
+                    Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved."
                 }
             }
 
@@ -1265,6 +1274,10 @@ AlternateSignatureAlgorithm=0
                 $Restart = $true
             }
 
+            # Set validity period of issued certificates
+            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+
             # Set Crl Distribution Point (CDP)
             $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
 
@@ -1279,12 +1292,14 @@ AlternateSignatureAlgorithm=0
             $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
 
-            # Set validity period
-            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
-
             # Set auditing
             $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
+
+            if ($ParameterSetName -match 'Enterprise')
+            {
+                # Add logging for changes to templates
+                $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
+            }
 
             #############
             # Standalone
@@ -1300,7 +1315,7 @@ AlternateSignatureAlgorithm=0
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
 
-                if ($ParameterSetName -match 'Subordinate' -or $OCSPHostName)
+                if ($ParameterSetName -match 'Subordinate' -or $OCSPUri)
                 {
                     # Enable ocsp extension requests
                     $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
@@ -1308,16 +1323,6 @@ AlternateSignatureAlgorithm=0
                     # Enable ocsp no revocation check for standalone ca
                     $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_ENABLEOCSPREVNOCHECK' -InputFlag $Restart
                 }
-            }
-
-            #############
-            # Enterprise
-            #############
-
-            if ($ParameterSetName -match 'Enterprise')
-            {
-                # Add logging for changes to templates
-                $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
             }
 
             ##########
@@ -1520,13 +1525,10 @@ Process
             # Certificate Authority common name
             $CACommonName = $Using:CACommonName
 
-            # Domain config
-            $AddDomainConfig = $Using:AddDomainConfig
-
             # DN Suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
 
-            # Root CA certificate lifespan
+            # Root CA certificate validity period
             $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
             $RenewalValidityPeriod = $Using:RenewalValidityPeriod
 
@@ -1548,23 +1550,18 @@ Process
             $DatabaseDirectory = $Using:DatabaseDirectory
             $CertEnrollDirectory = $Using:CertEnrollDirectory
 
-            # Post setup registry settings
-            $CRLPeriodUnits = $Using:CRLPeriodUnits
-            $CRLPeriod = $Using:CRLPeriod
-            $CRLOverlapUnits = $Using:CRLOverlapUnits
-            $CRLOverlapPeriod = $Using:CRLOverlapPeriod
-            $CRLDeltaPeriodUnits = $Using:CRLDeltaPeriodUnits
-            $CRLDeltaPeriod = $Using:CRLDeltaPeriod
-            $CRLDeltaOverlapUnits = $Using:CRLDeltaOverlapUnits
-            $CRLDeltaOverlapPeriod = $Using:CRLDeltaOverlapPeriod
+            # Validity period of issued certificates
             $ValidityPeriodUnits = $Using:ValidityPeriodUnits
             $ValidityPeriod = $Using:ValidityPeriod
 
-            # Set log level
-            $AuditFilter = $Using:AuditFilter
+            # Set url for OCSP
+            $OCSPUri = $Using:OCSPUri
 
-            # Set host name for publication
-            $PublicationHostName = $Using:PublicationHostName
+            # Set url for AIA
+            $AIAUri = $Using:AIAUri
+
+            # Set url for CDP
+            $CDPUri = $Using:CDPUri
 
             # Add publishing paths
             $PublishingPaths = $Using:PublishingPaths
@@ -1575,8 +1572,21 @@ Process
             # Authority Information Access (AIA)
             $CACertPublicationURLs = $Using:CACertPublicationURLs
 
-            # Set hostname for OCSP
-            $OCSPHostName = $Using:OCSPHostName
+            # CRL settings
+            $CRLPeriodUnits = $Using:CRLPeriodUnits
+            $CRLPeriod = $Using:CRLPeriod
+            $CRLOverlapUnits = $Using:CRLOverlapUnits
+            $CRLOverlapPeriod = $Using:CRLOverlapPeriod
+            $CRLDeltaPeriodUnits = $Using:CRLDeltaPeriodUnits
+            $CRLDeltaPeriod = $Using:CRLDeltaPeriod
+            $CRLDeltaOverlapUnits = $Using:CRLDeltaOverlapUnits
+            $CRLDeltaOverlapPeriod = $Using:CRLDeltaOverlapPeriod
+
+            # Set log level
+            $AuditFilter = $Using:AuditFilter
+
+            # DSConfigDN / DSDomainDN
+            $AddDomainConfig = $Using:AddDomainConfig
 
             ###########
             # Switches
@@ -1666,8 +1676,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbeiItRQy4PHs1bt5R9l1DfZg
-# G/aggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxljV7Yy2hlGWRIT7mQXm78GA
+# VwCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1751,28 +1761,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+j98LzDm4eO60s5ABpewP04A5oIwDQYJ
-# KoZIhvcNAQEBBQAEggIADatWK5ChH8nKERZGf6BjNGMSy9vZJXmrdXNM0vnUKe4F
-# doVOR7MhJMOpMeqo60id135b1R8ILw5N8dzwWj6V7ibSGvnL/wa6CooiUbotzvVI
-# mroYQ96hU6N131fEEHVPbo2lKenWES4OSlRdOy4b9xMdZu6Q7eTRqsLzCGnjInJ5
-# iL0M7Pef1EltJwMN/NSeoxRqwZuvf+Zv/fmGzhoJUGUaGSF5zZV37yUUBFUVfcow
-# 4BloG9dAimG8fC3WnVTWfnHlKAg/S5YfCraMbgatv3mB+Zpx1aDBIz+ET++Czt+m
-# sk/Fua03ZT1McBMCjKVGgMKdFdEmtExco25UW5/FFczpV4Asqdmh51A84l/uWJL+
-# rmr3BdDtRdroFXEz53neArSY7XjPmPzlmqm6LP+5vHNVkX+6YRFHbHmXVkHkWZjp
-# y1Q4+p6FvAAWE/zcV27Ls591ltDX4tSmrrzbyslwobLbhZchiq/tNtUE+xqy9iFF
-# PmNFAsTf+9KgDBS1c2kk6xvXZjSbYsgogti5svprARhHwjJbl9F7RkON7qqCfLaU
-# i8dKGQpUsTKwcANCHbCxJw9Tg6HE4aDMjaFJGa/tRMtM/Tcs8flRsjF+DHYPS1jX
-# 5XUnF70YW9f3xGOI/PJAiCXEqsXDw33ZC5o2jx/jVjpR7bDcBmov30MwfTPH6Iuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7IukKUzyPUTuyILRPU6aIXXmAegwDQYJ
+# KoZIhvcNAQEBBQAEggIAja5sRfdwZHqqN2Xu9cVYc2cEXXP3poaNaA470iEFMsN7
+# Cz9Tgto0Fz7EpKlQn39ydyJo0ISr2f7hEGfhLRD2NvJUjzc1NbpaHuStlyv5pmlI
+# zoZemDPrPeJ4V535xwNFIFb3pUwGzv/7FqyYqBltV3nfCH692ID2ikzpxKqBQOn5
+# PdbdL/I+rHi/YsmnVUTVQfSiipojlQGmwYVZwVno88VbFSCYK9kezSHX/ivjZ4vF
+# nMoXWeKQj1TIQq0X40VHB69cUaH7/nRH0ZzEc9EpEnxLLpM1gmVSH3RKBKuHDiva
+# NzbqaqgROiX1dWjawoCf2yDe2IrZaLIv9jwftRRrfV0qguzIsD2lf51MFxTDVTkR
+# FlOtdqPRhF3SRjjRKdPqZpNxS9dKkDF7C5pwSieoOs0QMwykHsc7mv4lQkyd3cGl
+# c1OY3VgfFbMtsBfUCuI8ZLSdSFqTIBV4Q1/2H4/BkU5U8XS2J9+bjlnb+RaaUGkj
+# LG1ZlgwMN4wh9dL0SKJ2BLb7OlmNI1DOH5H7jynbMq9aOuUW7u5pVSq7FE1rvFF9
+# 2cAOJnmANw5FCjTrwbJcyC02OIRqNOYYfX/H5Ht0onWwTWWuUyt7/2l92VBkTA0f
+# e2YI4y/DTs+muiMitaL5+8NguFTuYZ8C7xGe4el5dsowd4udFD0GOxD6sXACW5Kh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIN/s+8NnI45bAJtlazveEc6A4LPVFL0X7/fXbGt8s+SH
-# MA0GCSqGSIb3DQEBAQUABIIBABWAEN+NixxvIP7GHmbD+klIBKbAvOkSWHfouJ2W
-# HWlRuHlgaRJJvbqhgbaqRRRgbqX8AouAEHu/SA+gPLp7zb42omiqPU2H2FRohOu8
-# aIfiLV5wbV61+jF4//3mbic3iYqoQv5F+eFCnDCyIPinLyP5iZeUdZvupfECWtuc
-# XyBxM9xPG7x5IwRp8cDRuezTGkP6VclEIPXMW+iX7gu3+Agh50FI3DZudzjVwZBD
-# 5/fKDREXMbiH0KRdo8Mt7hVxuPVIiNTrj8yzAUKh00AWZQw37wENf7DRYDTOqU9O
-# Tc3LAPC1RdrzMh9jnqB8B9JqX4U/O3HkaGIrUSLYBqUI3W8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTIwMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIHDb00CKV81RpOehtX8+E67ikhrFyR0Gpv9Qt242lowN
+# MA0GCSqGSIb3DQEBAQUABIIBALZcXiKYfKOfadcVEk6ZTdkcHZbfLySnqTHI3pFe
+# 9i/RJgpq/ggdEXxfYchtlOqMIPyzvBmejCIKbpEXT+XKtEdTKBl49A39z2HBUrxf
+# iJgEGAmYfQMXFlrn4YyrgoAnbwyYiarvZs5mUGZJ9trOOfKaCf3qOtU9+T+cNrsq
+# SPfG6hYz3RlrzZAdneTc+0AVIPRJhSD9yw6W/wdUv14QiuWnt+H5BQNzKbfHzraa
+# x2LtLPVt3stnFteZblh/g0DFrIQT0mzk5VKnNmCbLjRFW+xnvuc7NMuWiNOEUwU5
+# WPQKOujNgib3Vs5o6kmZy4t6LY3Hy3MPWIm59BOWwVshC5g=
 # SIG # End signature block
