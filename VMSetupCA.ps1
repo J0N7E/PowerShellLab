@@ -74,15 +74,6 @@ Param
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
 
-    # DSConfigDN / DSDomainDN
-    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [String]$AddDomainConfig,
-
     # Root CA certificate lifespan
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
@@ -267,6 +258,17 @@ Param
 
     # Set log level
     [String]$AuditFilter = 127,
+
+    # DSConfigDN / DSDomainDN
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [String]$AddDomainConfig,
+
+
 
     # Set host name for publication
     [String]$PublicationHostName,
@@ -1251,15 +1253,9 @@ AlternateSignatureAlgorithm=0
                 }
             }
 
-            ####################
-            # Registry settings
-            ####################
-
-            # Set Crl Distribution Point (CDP)
-            $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
-
-            # Set Authority Information Access (AIA)
-            $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
+            ########################
+            # Set registry settings
+            ########################
 
             # Set CertEnrollDirectory
             if ($Configuration.GetValue('CertEnrollDirectory') -ne $CertEnrollDirectory -and
@@ -1269,14 +1265,25 @@ AlternateSignatureAlgorithm=0
                 $Restart = $true
             }
 
+            # Set Crl Distribution Point (CDP)
+            $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
+
+            # Set Authority Information Access (AIA)
+            $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
+
+            # Set CRL settings
             $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
             $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
+
+            # Set validity period
             $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
             $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+
+            # Set auditing
             $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
 
             #############
@@ -1659,8 +1666,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUN5uvLGG67DqENDpIBu8ZUcLj
-# ltuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbeiItRQy4PHs1bt5R9l1DfZg
+# G/aggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1744,28 +1751,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUH9zxoGpq7ctZPF3XUNcmFTVXFN4wDQYJ
-# KoZIhvcNAQEBBQAEggIADKVEcAY5RIio5MT4RaRzYhAC/EuuFGBlYdq/Gr+yPS5v
-# 4foSJYwulKgWozObFmgEMaJGH9tX/CxcIzyY2xVs2a88w6WUxFt5pY8Vxtxnv4u8
-# 0GyUt4svhdWAV5NfvX+rm78RzFYlN1ng7ilC91heecbAbclH2bDjMBXo1w4ATt5i
-# nLb73oKF6LULJg5ttPEsoxaFLs7M+a3pOzOnq8n1OSCaJ8ljYf7IPe8n4Bj5goca
-# kIS0Q5ZwEj/0+6r8jLHAOVA9QEbuXMMAF0CnQaYsKAZBrH1Ud6ZtIqmcz9CxEarW
-# IR2YTJ53eVVqv+TQxBqIT0D+BgjsjWzLTQKHRWiWT1wXE7nK3gKzW2z+YCF9TnXy
-# zo8Ju9k4za5wMZsNmrnBMTVGgY9zLtQb6qJowfWlrUmCUJpd0HfxO3nIdh+Fcx95
-# 9QftGdcspika/MbZSFs3/ILtvTWGqtpf3ICq0MutgOEpkTOrYGVy1MAqTHbRVzIF
-# sQJBu2O5nFVDPLHG7DlqijsR15w8WStRdqT1Il3GfrjKNnw2mGlegSqlTXAYNbCe
-# dehtEYGZQunufdNnu8FonQ9U5X2Xd3UxOiMny1i1lBNqH3h1d7pyHGqAkU24HAI7
-# qsr0MkFRI9Dy4WhSMklhK5kR6uZmLqjyxKKJeTepQ2B7y6VPtAdfDvgQu1JpfIah
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+j98LzDm4eO60s5ABpewP04A5oIwDQYJ
+# KoZIhvcNAQEBBQAEggIADatWK5ChH8nKERZGf6BjNGMSy9vZJXmrdXNM0vnUKe4F
+# doVOR7MhJMOpMeqo60id135b1R8ILw5N8dzwWj6V7ibSGvnL/wa6CooiUbotzvVI
+# mroYQ96hU6N131fEEHVPbo2lKenWES4OSlRdOy4b9xMdZu6Q7eTRqsLzCGnjInJ5
+# iL0M7Pef1EltJwMN/NSeoxRqwZuvf+Zv/fmGzhoJUGUaGSF5zZV37yUUBFUVfcow
+# 4BloG9dAimG8fC3WnVTWfnHlKAg/S5YfCraMbgatv3mB+Zpx1aDBIz+ET++Czt+m
+# sk/Fua03ZT1McBMCjKVGgMKdFdEmtExco25UW5/FFczpV4Asqdmh51A84l/uWJL+
+# rmr3BdDtRdroFXEz53neArSY7XjPmPzlmqm6LP+5vHNVkX+6YRFHbHmXVkHkWZjp
+# y1Q4+p6FvAAWE/zcV27Ls591ltDX4tSmrrzbyslwobLbhZchiq/tNtUE+xqy9iFF
+# PmNFAsTf+9KgDBS1c2kk6xvXZjSbYsgogti5svprARhHwjJbl9F7RkON7qqCfLaU
+# i8dKGQpUsTKwcANCHbCxJw9Tg6HE4aDMjaFJGa/tRMtM/Tcs8flRsjF+DHYPS1jX
+# 5XUnF70YW9f3xGOI/PJAiCXEqsXDw33ZC5o2jx/jVjpR7bDcBmov30MwfTPH6Iuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgzMTIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIJA7As+Hk0MVn13ktrF4XyN/SuCdvskf8EIWrPH0c7XO
-# MA0GCSqGSIb3DQEBAQUABIIBADEsyoUteXknp3IHaame7ip9hMeoKPxlqiF+8gjI
-# Z6l6nVyUcVMOkErRG7T/2o7/7ivpmylR+aV9KVg68xhvcqp4sYC/c0bxjOMUOJBb
-# jmkNdoHvhwS6N+h9frs7hxcSsmP7ma7VpMW1vgX+lzEEQnCCQXtTpZhttPD9KOO4
-# DcUu/DOiMO47CYc3VOD7P/VHgMLl1xplkIiBykEujcn2+qETvoVS3N6B81fSYd2z
-# Um/qT4ZOUyY1qGxhw47zdalxShew2MgsO9tmfzwFumpdckcp/5eBXczAdyrZrgeD
-# 45UouZ2SFfhRmtE1P/HoXK4K87OHp+rCNAMGoLk5SJRzIOc=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIN/s+8NnI45bAJtlazveEc6A4LPVFL0X7/fXbGt8s+SH
+# MA0GCSqGSIb3DQEBAQUABIIBABWAEN+NixxvIP7GHmbD+klIBKbAvOkSWHfouJ2W
+# HWlRuHlgaRJJvbqhgbaqRRRgbqX8AouAEHu/SA+gPLp7zb42omiqPU2H2FRohOu8
+# aIfiLV5wbV61+jF4//3mbic3iYqoQv5F+eFCnDCyIPinLyP5iZeUdZvupfECWtuc
+# XyBxM9xPG7x5IwRp8cDRuezTGkP6VclEIPXMW+iX7gu3+Agh50FI3DZudzjVwZBD
+# 5/fKDREXMbiH0KRdo8Mt7hVxuPVIiNTrj8yzAUKh00AWZQw37wENf7DRYDTOqU9O
+# Tc3LAPC1RdrzMh9jnqB8B9JqX4U/O3HkaGIrUSLYBqUI3W8=
 # SIG # End signature block
