@@ -739,6 +739,23 @@ Begin
                 $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
             }
 
+            ###################
+            # Publishing Paths
+            ##################
+
+            if ($PublishingPaths)
+            {
+                foreach ($Item in $PublishingPaths)
+                {
+                    # Add publishing paths
+                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
+                }
+            }
+            elseif ($ParameterSetName -match 'Subordinate')
+            {
+                Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved."
+            }
+
             ##################
             # AddTo (Include)
             ##################
@@ -771,23 +788,6 @@ Begin
             else
             {
                 Check-Continue -Message "-CDPUri parameter not specified, no CDP will be used."
-            }
-
-            ###################
-            # Publishing Paths
-            ##################
-
-            if ($PublishingPaths)
-            {
-                foreach ($Item in $PublishingPaths)
-                {
-                    # Add publishing paths
-                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
-                }
-            }
-            elseif ($ParameterSetName -match 'Subordinate')
-            {
-                Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved."
             }
         }
 
@@ -1696,8 +1696,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwl4hnwR9vte3NIfJYc+0wzrk
-# pNKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+QjbbeNORGhFrI6k4dOffKeP
+# PLuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1781,28 +1781,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFLMf1CW5FcJOMXu90VLlfFkZXPYwDQYJ
-# KoZIhvcNAQEBBQAEggIAEptNXXFWUidNy79l6clnx6bItU2m237F+UKlShi+uhQT
-# 5yJ1Qr6FvsPPProWs/3aKuB7CSOCpftSn6Kno+6IhmPfmTJNEDJBJRooUbCpGOI/
-# f6tRJksU/Fe5LlzZAOtVY0gjp4wK9WlAw9i6in0prYXi5nnS1ZLk9q7JE+Yc8yvc
-# 54JEvAtUrEAW4iRL6VGhIPh0lIYeW9GBF+hrR+Nul0Mj4BmsiW1R58lJFlibvbqU
-# bip/4HqjoIJ2cIJUehbOBGifkvS/WLTZqW2t1sDA6vllvZhkAFurWX4Vr0mlde5d
-# ivV3eC+NTLoePyJP2P0u6WC48ERCP0PpDL8OFhhn6gYO6IB+T7whmwsK25S7VpWO
-# LPLgqCmam3jgNmA9JIZ9clg0ITlno/hsBNLcoUa5EwMHb4qsArSk87OoAHOzpgmQ
-# z1CxHH2vSRF07YynbSOUL+HV0yT69OC+P9h8eWAK+pAzY5Id/pk/njFElzL1dVt2
-# 9mhTTyLUBCjsxXpHGRdKsBIHpRIxTe/0xjiZdrGA63oCubfrwf51JWAU+MhxiT3/
-# Yp8nGayKSpYfL8QHhVAg0Gr1bLXhwKt4XHQ2JIx7xURFeZ7PkHZ9D1ycU9kKyO2t
-# CiB3SQb5w1L2CCdseOO6zuxlDhRLaVhu8f6NxsBIsjLNKKWj5ibwVBRxwLG3gTah
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyZ7kOWsDo3XVlWDJAeEDNo2zjPYwDQYJ
+# KoZIhvcNAQEBBQAEggIAB0JqtzXXLfAQIWA9w5uqO+SRfYsPyI+cFMIjN30AH8Vn
+# Sl0XtbAil+nHCSgdOJGzZM740dyo2lPusyUncMiMHEZMuClFOmavv8H6axrmj69D
+# WnOvDAVgiNtmYGGbyjw1paUVFKXBtYgHNvMdirN+BI3fgvn28K4Hshn26a51bRYk
+# +PCIi+x4xZsR1AH9DZO418ZnwxeA/WfEgOd5uj5TGqG8Z4u8k5wleGp1ayS4mntW
+# Px4q3nJhCnW5vaFLCKgfxhHjGh4Bf6gs0Ad9v5bE/abqft9EDrSen9Oop71/jPgI
+# yMD4I9gz2QCElsUOMFg28ab/A+XeGbmzzr4zjo/3ISeCR84K9PC0ECsCTT3B9z7b
+# JVXikJq47oc3/w8awrkd4DW3Dco3k6eQRQzmyKaDswgf4+4keCnbgiCmedwUnOHQ
+# uB6WLTBu2kkOAlTT1l0A/+72UcYsw/SsVo0DaNRtuGKoDhCfOqnPUHhbjeAH9qJD
+# tJ73HPKOZSK8ZusxBV9HhkB8Q+5P22zROnRhF+cCWuJPj+/MLNxBTHWlRUeRSyTw
+# 0RVZcdSNOybWTCyx1Gb+oTaqjJ3b3vyvzWb9Oz103DANRNNs6ouFrPC86mIqFyqv
+# m9LkV9uACFIzbOsq03gO8OVsY+efHzGvrXF5lMKAQ54RHPEvrjX8K+cE8Fg701qh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMTIzMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIMPrFGzfqdQciATjTOHGuqlkfGSkzreK2n0VGOFfDLUr
-# MA0GCSqGSIb3DQEBAQUABIIBALasvmIBypdDUQzg2a9vbprBxA7hPmKI/KTCGjbw
-# DHNMMyEfzREpu7VibdaIDmO+z6rAOO43HdL5D+8zvgvIH+fjK3GumdCV85R0fD8b
-# CI4vbj7hvfLb/x6NLevrl8UI4iQBu+s9SDbPj6S76IVoS9Lk+EWr8oX1SpKBZQYk
-# eF1rqFczhnZL+uvrLpQIhgc8OBEAQDeGfhfMVVi+mfMlxOKvs3kSU/smzuU37H2L
-# 3hSiSw0u+IVCATIFTr3NoA87sa5JBxg7hYdsWgKUWwd7B+8hRmRcw+EGwPxytiE8
-# WdNxE2set/Yquw3j3i8ryOviyOb0pqUY0iBM+x0lBhkcAGk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMjA4MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIBgR67qi3ajDtOJ1vK6Wb1nYldVHjczTninUNwqc7j2L
+# MA0GCSqGSIb3DQEBAQUABIIBAKaGoWFEnhdlY7rr/9KHQdsqxJZWhRDbbVo/oMKQ
+# rLlGXngjpQxZdZUDUgPdRhZjyh7sNuvkQoeeS4FIHvdzE9Qtkn6KjQ7HPXvg/+lJ
+# omoiKAFu1V7eMnVNRrQ/FKHBJRCd6qjxlBXhuSWgElaCh92953fKIn2x67m0bVmU
+# eSpDJ8bBoSiuD12uAtbWt+xpIosrBx+YhUdmJ0MwTo592Bn8lAJjby5o/wMk2Oj0
+# xDMotpSELNNQnC/tENIsynJFORFjsBhP9rDo3QAGP4uuawSR4HKWCumvAgM8Er0J
+# fgk4mTPkM2VXi0FgZPfxjXpUdavakINp9HlPlyAEoeTDrF0=
 # SIG # End signature block
