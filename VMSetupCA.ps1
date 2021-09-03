@@ -463,15 +463,15 @@ Begin
             # CAPolicy parameters
             PathLength = 'None'
 
-            # Validity period of issued certificates
-            ValidityPeriodUnits = 10
+            # Validity period of issued certificates    # Default
+            ValidityPeriodUnits = 10                    # 1
             ValidityPeriod = 'Years'
 
-            # CRL settings
-            CRLPeriodUnits = 180
-            CRLPeriod = 'Days'
-            CRLOverlapUnits = 14
-            CRLOverlapPeriod = 'Days'
+            # CRL settings                              # Default
+            CRLPeriodUnits = 180                        # 1
+            CRLPeriod = 'Days'                          # Weeks
+            CRLOverlapUnits = 14                        # 0
+            CRLOverlapPeriod = 'Days'                   # Hours
             CRLDeltaPeriodUnits = 0
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
@@ -527,12 +527,12 @@ Begin
             ValidityPeriodUnits = 1
             ValidityPeriod = 'Years'
 
-            # CRL settings
+            # CRL settings                              # Default
             CRLPeriodUnits = 1
             CRLPeriod = 'Weeks'
-            CRLOverlapUnits = 84
+            CRLOverlapUnits = 84                        # 0
             CRLOverlapPeriod = 'Hours'
-            CRLDeltaPeriodUnits = 0
+            CRLDeltaPeriodUnits = 0                     # 1
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
             CRLDeltaOverlapPeriod = 'Minutes'
@@ -655,6 +655,14 @@ Begin
                 Write-Warning -Message "Can't get CACommonName."
             }
         }
+
+        ###################
+        # Expand variables
+        ###################
+
+        $LogDirectory        = $ExecutionContext.InvokeCommand.ExpandString($LogDirectory)
+        $DatabaseDirectory   = $ExecutionContext.InvokeCommand.ExpandString($DatabaseDirectory)
+        $CertEnrollDirectory = $ExecutionContext.InvokeCommand.ExpandString($CertEnrollDirectory)
 
         ######
         # AIA
@@ -799,11 +807,6 @@ Begin
         # Create directories
         #####################
 
-        # Expand vars
-        $LogDirectory        = $ExecutionContext.InvokeCommand.ExpandString($LogDirectory)
-        $DatabaseDirectory   = $ExecutionContext.InvokeCommand.ExpandString($DatabaseDirectory)
-        $CertEnrollDirectory = $ExecutionContext.InvokeCommand.ExpandString($CertEnrollDirectory)
-
         # Check if directories exist
         foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
         {
@@ -814,18 +817,22 @@ Begin
             }
         }
 
-# ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
-# ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
-# ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
-# ██╔═══╝ ██║   ██║██║     ██║██║       ╚██╔╝
-# ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
-# ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
+        # ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
+        # ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
+        # ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
+        # ██╔═══╝ ██║   ██║██║     ██║██║       ╚██╔╝
+        # ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
+        # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-##################
-# Standalone Root
-##################
+        # FIX
+        # add parameters for issuance policy
+        # add oid parameter
 
-$CAPolicy_StandaloneRootCA =
+        ##################
+        # Standalone Root
+        ##################
+
+        $CAPolicy_StandaloneRootCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -835,16 +842,23 @@ Critical=Yes
 
 [Certsrv_Server]
 RenewalKeyLength=$KeyLength
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
 "@
 
-#########################
-# Enterprise Subordinate
-#########################
+        if (-not $UseDefaultSettings.IsPresent)
+        {
+            $CAPolicy_StandaloneRootCA +=
+@"
+CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
+CRLDeltaPeriod=$CRLDeltaPeriod
+"@
+        }
 
-$CAPolicy_EnterpriseSubordinateCA =
+        ##################
+        # Enterprise Root
+        ##################
+
+        $CAPolicy_EnterpriseRootCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -863,14 +877,22 @@ Critical=Yes
 
 [Certsrv_Server]
 RenewalKeyLength=$KeyLength
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
 LoadDefaultTemplates=0
 "@
 
-if ($UsePolicyNameConstraints.IsPresent)
-{
+        if (-not $UseDefaultSettings.IsPresent)
+        {
+            $CAPolicy_EnterpriseRootCA +=
+@"
+CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
+CRLDeltaPeriod=$CRLDeltaPeriod
+"@
+        }
+
+        if ($UsePolicyNameConstraints.IsPresent)
+        {
+            $CAPolicy_EnterpriseRootCA +=
 @"
 [Strings]
 szOID_NAME_CONSTRAINTS = "2.5.29.30"
@@ -885,17 +907,13 @@ _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 _continue_ = "DirectoryName = $BaseDn&"
 "@
-}
+        }
 
-##################
-# Enterprise Root
-##################
+        #########################
+        # Enterprise Subordinate
+        #########################
 
-# FIX
-# add parameters for issuance policy
-# add oid parameter
-
-$CAPolicy_EnterpriseRootCA =
+        $CAPolicy_EnterpriseSubordinateCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -914,15 +932,24 @@ Critical=Yes
 
 [Certsrv_Server]
 RenewalKeyLength=$KeyLength
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
 LoadDefaultTemplates=0
 "@
 
-if ($UsePolicyNameConstraints.IsPresent)
-{
-$CAPolicy_StandaloneRootCA += @"
+        if (-not $UseDefaultSettings.IsPresent)
+        {
+            $CAPolicy_EnterpriseSubordinateCA +=
+@"
+CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
+CRLDeltaPeriod=$CRLDeltaPeriod
+"@
+        }
+
+        if ($UsePolicyNameConstraints.IsPresent)
+        {
+
+            $CAPolicy_EnterpriseSubordinateCA +=
+@"
 [Strings]
 szOID_NAME_CONSTRAINTS = "2.5.29.30"
 
@@ -936,13 +963,13 @@ _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 _continue_ = "DirectoryName = $BaseDn&"
 "@
-}
+        }
 
-#########################
-# Standalone Subordinate
-#########################
+        #########################
+        # Standalone Subordinate
+        #########################
 
-$CAPolicy_StandaloneSubordinateCA =
+        $CAPolicy_StandaloneSubordinateCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -961,10 +988,21 @@ Critical=Yes
 
 [Certsrv_Server]
 RenewalKeyLength=$KeyLength
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
 AlternateSignatureAlgorithm=0
 "@
+
+        if (-not $UseDefaultSettings.IsPresent)
+        {
+            $CAPolicy_StandaloneSubordinateCA +=
+@"
+CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
+CRLDeltaPeriod=$CRLDeltaPeriod
+"@
+        }
+
+        #############
+        # Set policy
+        #############
 
         # Save CA policy to temp
         Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
@@ -1015,7 +1053,6 @@ AlternateSignatureAlgorithm=0
 
             # Initialize arrays
             $ParentFileCertificateHashArray = @()
-            #$ParentFileCrlHashArray = @()
 
             # Itterate all parent ca files
             foreach($file in (Get-Item -Path "$env:TEMP\$ParentCACommonName\*"))
@@ -1240,11 +1277,7 @@ AlternateSignatureAlgorithm=0
                     # Try installing certificate
                     TryCatch { certutil -f -q -installcert "$ParentCAResponseFilePath" } -ErrorAction Stop > $null
 
-                    #Restart-CertSvc
                     $Restart = $true
-
-                    # Give CA some time to create certificate and crl
-                    #Start-Sleep -Seconds 3
 
                     # Cleanup
                     Remove-Item -Path "$CertEnrollDirectory\*.csr"
@@ -1288,26 +1321,29 @@ AlternateSignatureAlgorithm=0
                 $Restart = $true
             }
 
-            # Set validity period of issued certificates
-            $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+            if (-not $UseDefaultSettings.IsPresent)
+            {
+                # Set validity period of issued certificates
+                $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
 
-            # Set Crl Distribution Point (CDP)
-            $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
+                # Set Crl Distribution Point (CDP)
+                $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
 
-            # Set Authority Information Access (AIA)
-            $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
+                # Set Authority Information Access (AIA)
+                $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
 
-            # Set CRL settings
-            $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
+                # Set CRL settings
+                $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
 
-            # Set auditing
-            $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
+                # Set auditing
+                $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
+            }
 
             #############
             # Enterprise
@@ -1414,9 +1450,6 @@ AlternateSignatureAlgorithm=0
             (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
         {
             TryCatch { certutil -crl } > $null
-
-            # Give CA some time to create crl
-            Start-Sleep -Seconds 3
         }
 
         #  ██████╗███████╗██████╗ ████████╗███████╗███╗   ██╗██████╗  ██████╗ ██╗     ██╗
@@ -1701,8 +1734,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU32pGR7pvCivN+EnKh4ZTM+tv
-# v5Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7JDYQWtRWaDms5vPLpOb8aGo
+# 3I2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1786,28 +1819,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXhEnhfyYq7DNUxMErQeVAD0Xv2YwDQYJ
-# KoZIhvcNAQEBBQAEggIAE85faL4PHga7sIBJZthfnB6ABnP5dUAboAeqJxY8yU/8
-# dU0mLTLcIMKKAOjPsryXLmFMpuTx2Xf+1A3sT9jeDFiL8YiCvYz2gerlahoLo3Zb
-# HS7nAaWm8kyKhlFi24jViZILGvOTNx5Q/MMLNyK/p9uNNLzhh8ULe09YU7UC1YzT
-# b1NJjWpU4jboKSZcm1Vg7HHWpd56ABHsVvTF2I7UYH4YVu+YywgJ+PFMH30lw1uq
-# c14EC1uTtfLyrykfRirXn6Un8Wz01bA4Uf2LBKPXIHCCBcsBQR3Ov3MunL2zDubn
-# HblgDSPDjbpvhHVMhVnV17ThUVXoVv0dQYklHSZjlCJeTn2nGSeNug5vE1jLzCXf
-# jmPWqk3WGTrbXcoyQI4TtV1KVdhEY44QdPPooMbxxfKt7vmXLWCL/DQs50xiDs/M
-# A77XhhS2hGvOPhLvVmPfoFZbK/xsHdYGvhSpwQz1Tmsl3dRNXScOFDjMqt1oM5Rv
-# UY4DvxqMxr+mtiUPxxzdE+xKAwf8PW/uWFIrPKKCYv8AhrwyATQ2YTb0K3H2ssrn
-# lpfxpqPr+5gPyLzFuN9nV9kOgVokn4OivanxBgOvCg3J2qCTle+ByVCWzKWUaGwi
-# zvn/POYoa7Dng7MWCh3FyUoCcKSkUpR0sbdgUL6wN00Gs18j1b23eLfJuip83eih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZDw12XdwQRFWCfRSYGSY1iZPtL0wDQYJ
+# KoZIhvcNAQEBBQAEggIACY9maXq5enfhslOh427byVERVja2FWnvvEzLaNTJzFyq
+# hFNxUT29mFHeg/tY7+ep/GYTxT9Wd0hD3bdW4exiTmyulEt3tZwc8mMQZ9QQOO70
+# zoj+Jgd9W/w59GmSFHRI+DtbXj/Zs5vJLGc5ucF96iGUj5CTM33e2Faso/tYq8CF
+# wYhuqGLmpDLfFMBIASN03K5z7amsnCcajJJY22X1Xj/9/v/szDbQTmoJJQXzz7jL
+# Zoxh2kX3KXPAIuTGSRmi8TqAUlHv8hi8vXFkJsaJ4XMlOWuBH6fGJhIjWw0rP3L1
+# TybAPlUiW+I+Qf5knRvxcp0a672qnRfGFvtxUOAUDk5/e4nUE1Ltcr0O7xWfmHwv
+# vEk/yrizjiJQbZ+gyRq3LRpAyCV7cv50IOVyEn04vtRMS/296T+oTW/VqZQ5ML4Z
+# WK8EHI40H+C3c9z67cigmnimURC2s4yVz1TFwOFb+dwjYFE80GUFbPUDmBnLLfyF
+# godwPZBKlzoczXiBk07Zd29uYFeOnIiS/UCLKM/B2JN/RUCCfyew76aSGidr7nR2
+# WTY1pVhTJF9DYmwQLacCd7Aiqxadys279rUzF0LeHS42PoztFvDyz/vOIo+Elx0j
+# uZHqbpfXd84TyOJpsPKsSGAC+rm/D7cv45aZRgygL63F9o5JOaDKer8hz1kLioGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMzA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIEwkA1eFzxU2NoL3F1oBBTRBPfGxL7Y0GH9chax+fYIr
-# MA0GCSqGSIb3DQEBAQUABIIBAFbGbb7Rjx83iLnlSNFHkvEjp7nKAvBa2163PGoT
-# UEpovdVgEn2Vke1laD2fyEutrwKsNyo/J7Pta+npbML+Aif+FBObRTr1Iz7FjatX
-# 2850nI6uy9l1zYqBNcO+iXBSSuGbQSAl5PNLkQnIezy8Zcm8N5qmkU3GSz+oLfWs
-# oKKPZc9O8QeEQUETpA4BFfyAydfmcSSNscnoC5rG1GlsyGLqvbadGMS1B3WDEM0+
-# Hrv/9I2HrVtJKPo2hzPnTkjxRYT6Z7XXDeO3DTVzB0iJKmZC1BPWw9vtyWkPbRJN
-# Mjsxha4Gc7R92kA6VbplitSKmBzUBCCJVeQNVpegIgE8l+I=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMzExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEII9GSqPDypYJn285wpijPCeMJ6jRgdEGHgW8BnMuRWI0
+# MA0GCSqGSIb3DQEBAQUABIIBACOvJkjSzxmzW0oFNLlzJI0i0XTxdRlOauFM8fjq
+# BKH89zqOcGNU9nhB9w6YFR1IB5o12EaxhgeNTDTMB8SlA9Cmxz86BYL8+4flD4Cv
+# e65Owtq2A/8PLbTFEPPta7igQte8zg0m97r+Hq5vO9zS5YQERZJ7dmrOlTs8Zwf1
+# taIga3G8HP0JI807zJ0m9g+ZM6WYlTvb7zR/z1+lCdziKScWSbQdTXrkDRZtY4OS
+# IhstHIOfbPAYxGpZHLZa1Ed94FzyzLUMy4HPgZmRXLCJooThMbI1DPv0ZtQbyxj6
+# xqSVlto9rbBeQ2ctD2S62i63uFjWtiH2IUCOW8Uny7sfdVw=
 # SIG # End signature block

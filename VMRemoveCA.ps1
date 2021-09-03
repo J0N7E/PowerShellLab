@@ -86,8 +86,8 @@ Begin
 
         if ($Configuration)
         {
-           $LogDirectory = $Configuration | Select-Object -ExpandProperty LogDirectory -ErrorAction SilentlyContinue
-           $DatabaseDirectory = $Configuration | Select-Object -ExpandProperty DatabaseDirectory -ErrorAction SilentlyContinue
+           $LogDirectory = $Configuration | Select-Object -ExpandProperty DBLogDirectory -ErrorAction SilentlyContinue
+           $DatabaseDirectory = $Configuration | Select-Object -ExpandProperty DBDirectory -ErrorAction SilentlyContinue
            $CertEnrollDirectory = $Configuration | Select-Object -ExpandProperty CertEnrollDirectory -ErrorAction SilentlyContinue
         }
 
@@ -215,12 +215,6 @@ Begin
             (ShouldProcess @WhatIfSplat -Message "Removing $CertEnrollDirectory." @VerboseSplat))
         {
             Remove-Item -Path $CertEnrollDirectory -Recurse -Force
-        }
-
-        if ((Test-Path -Path "C:\CertSrv") -and
-            (ShouldProcess @WhatIfSplat -Message "Removing C:\CertSrv." @VerboseSplat))
-        {
-            Remove-Item -Path "C:\CertSrv" -Recurse -Force
         }
 
         if ($Reboot -and
@@ -355,8 +349,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURMKjOsxfLQXLDNpwvt4c0vay
-# Ev6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdRpvAp1/txWbccUntTYNcvqq
+# +YOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -440,28 +434,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIYiEoQhEYmGVDwqvu35z4zzYJ6IwDQYJ
-# KoZIhvcNAQEBBQAEggIARyAIIfU3V1Kcj38Gz20ut+PG2VzMVMaNVwMObyGbFI6d
-# 4oH3DnjMMkBwCojvTPzg6QR/u/stY2H2ELe25tn/lZweep3UmW8JzOBClFMPt35i
-# +RrICsQmKP36yw/Ehgt+fOW/YkYsjr7r6RXCtIMNPP4KUeMjb0JYKF2T/6EK4Q28
-# e5YzSr5F72aQejjqaSKszEMlX0pq59FRjB0olmmNHGBW8C6gTT/P8rOG2RfO7RAP
-# OHEXDvyF+3/rjauFqdD+rv9+TROsmrTnowXizW7r5M8tRka4yCz2of5d8aPeQ1hR
-# HexHE4pUz57P2u5Sp+SFAIIe9trgeJ12CoJwkTLC5ewpPPZw/xRjqmvEJCQ8d/Y4
-# 5O9Ff7cs0G6qphAbVy9GNJRK7RmNZwwrSsrHQ69I1b2jReiqRFX3HOcSGb4KcR6B
-# LY/U+azWO7tXueNvyRr7zDvsZQv0xmffjae3P7GSqNa16ywFQXzeK3sXkZzMQeyj
-# YhBASiVhASrNDLaZS+hfV4SA3V+OfHYATaqRK39ZzGFip4L0DLyzx8iBY4c+eYRe
-# 89nMU7luZBjb8q7x2skW6lkgcCH2Ue1tCq/66d69+jChYe/CEXrVH0qE9BbJyWD0
-# 6+doeu8qOgQG++e8QDlevNvqK0uZRarAZ32old/K/vE67ysXo35QvVKASeLH/Gmh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxB5oATcL+++Mop3prvngtNrwBgowDQYJ
+# KoZIhvcNAQEBBQAEggIAUUG9pYoKbnlB8ooW6kkBJA5u/0egaOmlQrwpS+zNr7Sb
+# hAcrhpG261LARERcK0eU9KjrHf9l+b6qQVUHiz+I6GEvDofeagZUpEq0IpLqcBhW
+# I5Gx9zmTEC5C3mEm9sufNLzvBw9mco1Qu5HLXToY/Fmb9++oXJhrHFPSBscHIgCD
+# ohSepoewkt1+mG1QyGHzuzEV5zmfCqWaCBFOyQ/zkLm5YnMRjxCgydsGMtqyrMh7
+# tVGvXldH5MNc528R/O33dqnnrC0HsB1Hg/t14DbpYAY4MekYP995Er4w7A5nKJKF
+# Zup94ahc1mn3gWzAXr74OcVv9pwkPxnHYtg0WOldc0EjR/PCCd/wrlOOR5SZkNI7
+# g6ytD4CER9Ybk7AsgAuvfGnwTVtBxfAd9ge4C+DuFKnKm7u3P7ZpQAhJJacPd3XP
+# 1mlWwBwMMgIY6jpdLplSOytW2So8ez7Ia7miy2dT7Fz8zT5Cxu7qANoG99N+YL7G
+# /cGS6Qx4Z95BW1MRLfhbE57runEmXlr6X21Ct/FoCmI4GGFcdMnScxeSVThP2cSk
+# 6xbS+YbmKg+NP+UJxIg2YHTG2WVbOxtQGApIjO95RbT2bg244ekVFT9Ebhrat5jO
+# cD0NKG17Qln7+ycxJigMnIv+UVtq9t23RZl/sVkjtkCxF/ubhtaFlGI8Lbgywl+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIFwvV6XCDDYpiScJCOeKjbsFLIg5O3piBeKGzT8sBJwa
-# MA0GCSqGSIb3DQEBAQUABIIBAIwE4fG+z6HvFasYi2gyAzlwOWQoW2kVlxlNyWdw
-# RT/f/D6WIMXWgK55MYrXWb2EQNh5wdWMXdb9EhVZJxppo4PEd0SHm+mIsEXm4HaN
-# 3QMmCZM9Dt5kjTu8SQXVWesCqeLDrAPcyueo1pDm52coqcIAmqLC0lg+7N1AjVp5
-# jZ6f/w2CxH4DIlKEV+JfXLUkTo0nZBnm9mt4ph81RMLuUYMraWoqt9PfFpsddV6r
-# uiz85w109pYULbyV54qyAi187VP/bWJJFs/eTcSUQfJztCwHQx9u6IjWRQWESGmQ
-# SWeVBore/qkM3e1qPtxIz+e0Xb2PfW6TEzcrHjZJDBdpnLo=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMzExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIG/WgtGj96B/7DN+u//78z0Roda6l+68q2F4YFdxMkaq
+# MA0GCSqGSIb3DQEBAQUABIIBAKd3KFYrd7uZManvBaVICImpsjRp0cDTJUmaiyFP
+# HLhzINx0mA5cui8EUsauSbeXOJuRzSE/pe4nKO/U4XpV7RJMWcAXlqkfBB6u/d3h
+# zvtEHEq2s9i5fW/5hc9HHSQrcJ8NH/egRPFrIsd+ZYFeexJ5dz0Kb55lCsm3hF7d
+# 4CBilVZU+KEH3eCCmOuDD8PEiTudKRGXFSuFP2EzVzAnrqnbTvdWdrhOdQ88/Sn1
+# UT/hn/Tm49FYjiei+3VYiguEEt8B4pjUCnbuMNUdVERti+uUA9WspDjjFY+cL0LJ
+# 56yQG6yCJyOcnvFmKVrcBuTJtxKKhlSKWSLlm78XAoWUKDI=
 # SIG # End signature block
