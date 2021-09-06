@@ -136,9 +136,16 @@ Begin
     $CAConfig | Where-Object {
                     $_ -match "(.*?)\.(.*)\\(.*)"
     } | ForEach-Object {
+
+        $CAConfigMatch = $Matches[0]
         $CAHostName = $Matches[1]
         $CACommonName = $Matches[3]
         $DomainName = $Matches[2]
+    }
+
+    if ($CAConfig -ne $CAConfigMatch)
+    {
+        throw "Invalid CAConfig `"$CAConfig`""
     }
 
     ############
@@ -324,50 +331,6 @@ Begin
         }
 
         ########
-        # Share
-        ########
-
-        if ($ShareAccess)
-        {
-            $ShareName = "$(Split-Path -Path $PhysicalPath -Leaf)$"
-
-            if (-not (Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Creating share `"$ShareName`"" @VerboseSplat))
-            {
-                # Add new share
-                New-SmbShare -Name $ShareName -Path $PhysicalPath -ReadAccess "Authenticated Users" > $null
-            }
-
-            if (-not (Get-SmbShareAccess -Name $ShareName | Where-Object { $_.AccountName -like "*$ShareAccess*" -and $_.AccessRight -eq 'Change'}) -and
-                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" change access for `"$ShareAccess`"." @VerboseSplat))
-            {
-                # Grant change access
-                Grant-SmbShareAccess -Name $ShareName -AccountName $ShareAccess -AccessRight Change -Force > $null
-            }
-
-            # Get NTFS acl
-            $Acl = Get-Acl -Path $PhysicalPath
-
-            if (-not ($Acl.Access | Where-Object { $_.FileSystemRights -eq 'Modify, Synchronize' -and $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -like "*$ShareAccess*" -and $_.InheritanceFlags -eq 'ContainerInherit, ObjectInherit' -and $_.PropagationFlags -eq 'None' }) -and
-                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" NTFS modify rights for `"$ShareAccess`"." @VerboseSplat))
-            {
-                # Add CA server modify
-                $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                @(
-                    <#IdentityReference#> [System.Security.Principal.NTAccount] $ShareAccess,
-                    [System.Security.AccessControl.FileSystemRights] "Modify, Synchronize",
-                    [System.Security.AccessControl.InheritanceFlags] "ContainerInherit, ObjectInherit"
-                    [System.Security.AccessControl.PropagationFlags] "None",
-                    [System.Security.AccessControl.AccessControlType] "Allow"
-                )
-                $Acl.AddAccessRule($Ace)
-
-                # Set NTFS acl
-                Set-Acl -AclObject $Acl -Path $PhysicalPath
-            }
-        }
-
-        ########
         # Files
         ########
 
@@ -410,6 +373,53 @@ Begin
 
         # Remove temp directory
         Remove-Item -Path "$env:TEMP\$CACommonName" -Force -Recurse
+
+        # ███████╗██╗  ██╗ █████╗ ██████╗ ███████╗
+        # ██╔════╝██║  ██║██╔══██╗██╔══██╗██╔════╝
+        # ███████╗███████║███████║██████╔╝█████╗
+        # ╚════██║██╔══██║██╔══██║██╔══██╗██╔══╝
+        # ███████║██║  ██║██║  ██║██║  ██║███████╗
+        # ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+
+        if ($ShareAccess)
+        {
+            $ShareName = "$(Split-Path -Path $PhysicalPath -Leaf)$"
+
+            if (-not (Get-SmbShare -Name $ShareName -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating share `"$ShareName`"" @VerboseSplat))
+            {
+                # Add new share
+                New-SmbShare -Name $ShareName -Path $PhysicalPath -ReadAccess "Authenticated Users" > $null
+            }
+
+            if (-not (Get-SmbShareAccess -Name $ShareName | Where-Object { $_.AccountName -like "*$ShareAccess*" -and $_.AccessRight -eq 'Change'}) -and
+                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" change access for `"$ShareAccess`"." @VerboseSplat))
+            {
+                # Grant change access
+                Grant-SmbShareAccess -Name $ShareName -AccountName $ShareAccess -AccessRight Change -Force > $null
+            }
+
+            # Get NTFS acl
+            $Acl = Get-Acl -Path $PhysicalPath
+
+            if (-not ($Acl.Access | Where-Object { $_.FileSystemRights -eq 'Modify, Synchronize' -and $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -like "*$ShareAccess*" -and $_.InheritanceFlags -eq 'ContainerInherit, ObjectInherit' -and $_.PropagationFlags -eq 'None' }) -and
+                (ShouldProcess @WhatIfSplat -Message "Setting share `"$ShareName`" NTFS modify rights for `"$ShareAccess`"." @VerboseSplat))
+            {
+                # Add CA server modify
+                $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                @(
+                    <#IdentityReference#> [System.Security.Principal.NTAccount] $ShareAccess,
+                    [System.Security.AccessControl.FileSystemRights] "Modify, Synchronize",
+                    [System.Security.AccessControl.InheritanceFlags] "ContainerInherit, ObjectInherit"
+                    [System.Security.AccessControl.PropagationFlags] "None",
+                    [System.Security.AccessControl.AccessControlType] "Allow"
+                )
+                $Acl.AddAccessRule($Ace)
+
+                # Set NTFS acl
+                Set-Acl -AclObject $Acl -Path $PhysicalPath
+            }
+        }
 
         #  ██████╗  ██████╗███████╗██████╗
         # ██╔═══██╗██╔════╝██╔════╝██╔══██╗
@@ -1015,8 +1025,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgY4aNYCz8bwdK260XvTvmnnX
-# oQOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVB481CVCoQmZA91/TjboJuT7
+# UcOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1100,28 +1110,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUACBM7yYXihmXYP2Fb0S5qQeNJEkwDQYJ
-# KoZIhvcNAQEBBQAEggIAf3CK6xR7M+n8GxELWPIidKM6YxUH/+LupiKvJrhAQuVX
-# m4UTpccwewhRMEdvFEwhPeUNCUwduTYvEd5dbSYmiqlGIl7Wfamd+btxXs5JOIsv
-# YrWZxtTlsmivQc3v7b8XsqllK7aHDPcIkeixbL/RpZKCcFGzk22WlOa2NjW5JTDt
-# HcUYKdaxQxifG2aTgo0KxXFpd3AZtot+PzURSK5EGIKGUFsIHYVfO2GigkMEUZdf
-# Hl2AzX0eslFZ/C64XCQtZATYoEjmvqshDhOQBWLZY8t9tW4hVRaMEVOyB1JNFmNc
-# kBXo4EY0yqWVc+APx4K1V/3WHuYeITG0ltiIOyPH5lP6unSNKmAijkfHAFRUs8Js
-# jhvIS30wu/HGG5xrN5iY1yybg60VFeOw3QNT4hjkFnA8v8YiIKHpFoOXx1KVkJY1
-# Uj/MKeCvOnLLIyDNWZK1r26wkMUhBl/RvhtWFZiZQLj23vfp+xxu4lyG/m7/MjUW
-# ojXEvELaX0nagkyB/PDcMLEozlk3bXTz83NrW5DS9ZNbS7iuRr3LSO82WFvncXwR
-# 9//Y1InTXgpfyOgQhY7t8dX97FmBApX+poZm1Zh6Qiyx+TT9SILXpTmtmRnX/ITJ
-# gnte3w5K1wZ6uJXy3vwxGBYwpVaXR4phDNlCwgtgkjOMXHeKlYabiN8RWjfXkH6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiZiWT3VCtn73XvQ2jCed79b5zN8wDQYJ
+# KoZIhvcNAQEBBQAEggIAUEcu4UP5oYsAnBtIOgKEExl5O4F6o50ueRKOObDGnUFq
+# nFjZHzh1Uv5fsZkBoNAlc9lCOIXb3NrUCDr7wQBsBv6zaKXUTid6AVLceRWpXqkX
+# hp/T/VWxFXrBrc9Fo10TC8cqFaKQJYEqLiyK0MpTnjvBmDMtQ/SYzJ9OLh7xt+11
+# Wq3FkQU1C6eFje5Oq/xKNAJeA6qTAXIKpUnNzw5Jfluxd7fBwCC4YNfwhkbipBEK
+# XsDqLKYDwhurJD5QiWvbZP6Yz1H2CUVUQQJFbrxSO4pjLYCoZ4DeuOOLMNqPPkur
+# EmruMAej9aRj/yUiy3Psk3DpoyWTGC00FtnLUzgxZHgE44FypUnANOKG0pLVJ6+Y
+# HU/Ziiu4drM4idWt9vMJ+m2MohjVKHOfXpueO9zcFHqLskFoMF+3ugyH7Bkg8lCi
+# Fvv7aWNhS3ojpDseNyf7fyI1KTd/dx1A4a+GQEcC3FqfosMYB7P50k9+391m1v4G
+# lA6SxdrBZGbOrv72QCM1AgBrzewZpEMQntVSFmB5P+8zpF2U3Dzo/KOSZpM8HmOF
+# cVVQ880ctYP016kVBkb4R30TkynPx6s5nYHxrOlQv9hDPOO+MB/+e1CcFYYHvvBt
+# qIwGVy6+x6kn43SuRzuhDSm+YKdfwZktqPTkBGenZAn0eZyhWW3cpkf4UseWBiih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgzMDExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIFBUKUSnCmisT61npypTDfuZPWbnfY0+KzSqkCZaFYyb
-# MA0GCSqGSIb3DQEBAQUABIIBAEiUTBIqC5PyDRqnjxbDKgSfc64kZUjKWFesdj5a
-# cs8AKQ1UG/qrz2RjRjT79Tiy+t0v4YJ1J0k+OcaR/WA6DcW9jBmCkj4tbCwINogz
-# jCk6U/LV3/XY/Eb/p0v3WWiWNwWBIbP5u24JQxammROh5Zr/TQrLorB9PY23eftJ
-# YjxyvHt9YFdJWuBBrwdYNIVv115IH5wTGxv9L2tIqLSHWE6/fkIX6QrjIbCZJELs
-# YR+yKf350BfnM9WUxW5LFJTKlEfxsa6yNXG50s3ASzJGx7ErRBzcbk4pzfNjuj9/
-# OOHbng+yyItEDcv5rNuttPNDX8mFayZELlBLv/fGJexQp0Y=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwNjIwMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIJ5QXc7wz3KgLe6tg2QbW1eC/+GZn5BUiWwV2mdat4u5
+# MA0GCSqGSIb3DQEBAQUABIIBAEyTRo6oPTOmmA/DfY2Yh+kAe3pknAdp+oA/RpnT
+# oiaRTQcEM9zpIx1h1sgD0Lp7YHfPde/TtiPgq4cczuzIyZUouBumkb5SeSo5V6Uy
+# xsyj9O8EgjIS2Qgqkh6TCD2/c0e1GHA/iTgxjNGt3IFVSICZ1/thW4PHi6NK3905
+# kYecbggmJ6FqNR6Vwvx7K0t6bOpI4hx9ADthh9e6lc43gD9F4NULBqlZAqi75mDV
+# oQzuiEz0+tuvfpfQnep7tkkecc1TtGNOb5RMwqBdMp3baVrYqgMB0FhA6I/hxryz
+# W/0eZCb4ycrAO0J42BfId24vgQUD5yO96V/GOhwpEvJaXyo=
 # SIG # End signature block
