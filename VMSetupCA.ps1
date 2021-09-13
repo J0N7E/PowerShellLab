@@ -74,6 +74,12 @@ Param
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
 
+    # Policy OID
+    [String]$PolicyOID = '2.5.29.32.0',
+
+    # Policy URL
+    [String]$PolicyURL,
+
     # Root CA certificate validity period units
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
@@ -803,20 +809,6 @@ Begin
             }
         }
 
-        #####################
-        # Create directories
-        #####################
-
-        # Check if directories exist
-        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
-        {
-            if ($Directory -and -not (Test-Path -Path $Directory) -and
-                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
-            {
-                New-Item -ItemType Directory -Path $Directory > $null
-            }
-        }
-
         # ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
         # ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
         # ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
@@ -827,6 +819,19 @@ Begin
         # FIX
         # add parameters for issuance policy
         # add oid parameter
+
+        # Check if exist
+        if (-not $PolicyURL -and $DomainName)
+        {
+            Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/policy.html`" as PolicyURL."
+
+            # Add default AIA url
+            $PolicyURL = "http://pki.$DomainName/policy.html"
+        }
+        else
+        {
+            Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
+        }
 
         ##################
         # Standalone Root
@@ -919,13 +924,23 @@ _continue_ = "DirectoryName = $BaseDn&"
 Signature="`$Windows NT$"
 
 [PolicyStatementExtension]
-Policies=AllIssuancePolicy
+Policies=IssuancePolicy
 Critical=No
 
-[AllIssuancePolicy]
-OID=2.5.29.32.0
-Notice="All Issuance Policy"
+[IssuancePolicy]
+OID=$PolicyOID
+"@
 
+        if ($PolicyURL)
+        {
+            $CAPolicy_EnterpriseSubordinateCA +=
+@"
+URL=$PolicyURL
+"@
+        }
+
+        $CAPolicy_EnterpriseSubordinateCA +=
+@"
 [BasicConstraintsExtension]
 Pathlength=$PathLength
 Critical=Yes
@@ -1101,6 +1116,16 @@ CRLDeltaPeriod=$CRLDeltaPeriod
         # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
         # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
         # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
+
+        # Check if directories exist
+        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
+        {
+            if ($Directory -and -not (Test-Path -Path $Directory) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
+            {
+                New-Item -ItemType Directory -Path $Directory > $null
+            }
+        }
 
         # Install CA
         if (-not $CAInstalled -and
@@ -1585,6 +1610,12 @@ Process
             # DN Suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
 
+            # Policy OID
+            $PolicyOID = $Using:PolicyOID
+
+            # Policy URL
+            ]$PolicyURL = $Using:PolicyURL
+
             # Root CA certificate validity period
             $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
             $RenewalValidityPeriod = $Using:RenewalValidityPeriod
@@ -1734,8 +1765,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7JDYQWtRWaDms5vPLpOb8aGo
-# 3I2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjhrqlPdvlKUUFBdqy5wv4k/p
+# VNWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1819,28 +1850,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZDw12XdwQRFWCfRSYGSY1iZPtL0wDQYJ
-# KoZIhvcNAQEBBQAEggIACY9maXq5enfhslOh427byVERVja2FWnvvEzLaNTJzFyq
-# hFNxUT29mFHeg/tY7+ep/GYTxT9Wd0hD3bdW4exiTmyulEt3tZwc8mMQZ9QQOO70
-# zoj+Jgd9W/w59GmSFHRI+DtbXj/Zs5vJLGc5ucF96iGUj5CTM33e2Faso/tYq8CF
-# wYhuqGLmpDLfFMBIASN03K5z7amsnCcajJJY22X1Xj/9/v/szDbQTmoJJQXzz7jL
-# Zoxh2kX3KXPAIuTGSRmi8TqAUlHv8hi8vXFkJsaJ4XMlOWuBH6fGJhIjWw0rP3L1
-# TybAPlUiW+I+Qf5knRvxcp0a672qnRfGFvtxUOAUDk5/e4nUE1Ltcr0O7xWfmHwv
-# vEk/yrizjiJQbZ+gyRq3LRpAyCV7cv50IOVyEn04vtRMS/296T+oTW/VqZQ5ML4Z
-# WK8EHI40H+C3c9z67cigmnimURC2s4yVz1TFwOFb+dwjYFE80GUFbPUDmBnLLfyF
-# godwPZBKlzoczXiBk07Zd29uYFeOnIiS/UCLKM/B2JN/RUCCfyew76aSGidr7nR2
-# WTY1pVhTJF9DYmwQLacCd7Aiqxadys279rUzF0LeHS42PoztFvDyz/vOIo+Elx0j
-# uZHqbpfXd84TyOJpsPKsSGAC+rm/D7cv45aZRgygL63F9o5JOaDKer8hz1kLioGh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUcc4I1fvmBveSTIVHc9dhxk7grMswDQYJ
+# KoZIhvcNAQEBBQAEggIAGYdVQQnJzrlepCT4UvUQDMWhoGh+0DZwHtcSgmQZzGF5
+# HBQDn+py199RxqMYVl27BzeXJbFAi8tv8KrhfntlquorSnHhRD719sdWB4U+hfLW
+# vy2Dk/2AGvAzL7G+KDyffI/UAmH9B7Rki0LOalhwNfBwiQOdHV/jBL4ObKw/6m1K
+# yKHrFNxKRNy0NfiBPMOoMUthxsCb+q/r6zIXbeFpRPqfvSezIWJExDVzDAkdhN9Q
+# 6+t6Px99+UJanJTXq31V8AnDHgtTGfAmU/GN9LBO6zuIViC7ap5ZWmE5l1K6jDVu
+# 4RK+PsUVGio9axkyOKs7PPZAbNsIZBd2cWYJXMfWf7mwf6ligzKWjhLGq+pZoD5+
+# OfaVXIdx+AdA8+T6+ynQY/s4xBhBoxyNtrQY8BXJxUg/ufDWhHHgeTsDLW1U0+Bu
+# 52cOjNAfgSqJL+S64fAW2zaDS7+wHqFDrGdvVSY/Mc+WjpWYSNofVsISJAdeSe85
+# CTPiv6yzpdZKVJT4ewTgXcl0amSfmbBiI21jL5Uv2NOryHzgOrNSQFlkaS3Cwr3W
+# WLOVr84iTEOdwOVFNS0/IcE1XUQu8k6AhxX1z3oWBUi7vtfi+Lxh+0pg5k4/yK+d
+# CVvCVsq8cYQfwf5ewRB9zEDRqDPBZnlmQu8knqcESFMEbRR1GGuPgDbnweM928Oh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwMzExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEII9GSqPDypYJn285wpijPCeMJ6jRgdEGHgW8BnMuRWI0
-# MA0GCSqGSIb3DQEBAQUABIIBACOvJkjSzxmzW0oFNLlzJI0i0XTxdRlOauFM8fjq
-# BKH89zqOcGNU9nhB9w6YFR1IB5o12EaxhgeNTDTMB8SlA9Cmxz86BYL8+4flD4Cv
-# e65Owtq2A/8PLbTFEPPta7igQte8zg0m97r+Hq5vO9zS5YQERZJ7dmrOlTs8Zwf1
-# taIga3G8HP0JI807zJ0m9g+ZM6WYlTvb7zR/z1+lCdziKScWSbQdTXrkDRZtY4OS
-# IhstHIOfbPAYxGpZHLZa1Ed94FzyzLUMy4HPgZmRXLCJooThMbI1DPv0ZtQbyxj6
-# xqSVlto9rbBeQ2ctD2S62i63uFjWtiH2IUCOW8Uny7sfdVw=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxMzIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIMKKshA5J36pg/LGukjI0Yo+3M0hrCbolZ+lJ3SR6d56
+# MA0GCSqGSIb3DQEBAQUABIIBAJaFqtMnoeJyEdiLnQijAmGRBxPz1cenm4d5MlIy
+# L0YLCIhYLEUc7alworx99a0/eJDvONBIDudTRzDo4OZhgymqe3D3yq+7dOu7VqeN
+# Hh5U8r+1E3ywAul1R0W6It9uyweBcLN/W9Kgw6wTXVyv0ZJPBzIkJSUIVnaYJy6Q
+# v3raCdE4R6w72mVUSW9QDWb/QDLinm+gN+B/kgv8Pp7m1+5AWLnRZD6fXqWsLhFo
+# WqgcDfULtjZi906KN70kDRBFCmOY7ThouIpe6zq7E+Yz0+7S5YeOF7QXJ5WiDY/L
+# j8OeBPTsVFsAgFf43a7z9Mxuz/j/bJifInNJawAaWEJohh8=
 # SIG # End signature block
