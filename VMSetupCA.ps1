@@ -246,17 +246,17 @@ Param
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$ValidityPeriod,
 
-    # Set url for OCSP
+    # Set uri for OCSP
     [String]$OCSPUri,
 
-    # Set url for AIA
+    # Set uri for AIA
     [String]$AIAUri,
 
-    # Set url for CDP
-    [String]$CDPUri,
+    # Crl publish uris
+    [Array]$CRLPublishURIs,
 
-    # Add publishing paths
-    [Array]$PublishingPaths,
+    # Set uri for CDP
+    [String]$CDPUri,
 
     # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
@@ -330,7 +330,7 @@ Begin
         @{ Name = 'Session';                                  },
         @{ Name = 'Credential';         Type = [PSCredential] },
         @{ Name = 'CertFilePassword';   Type = [SecureString] },
-        @{ Name = 'PublishingPaths';    Type = [Array]        }
+        @{ Name = 'CRLPublishURIs';    Type = [Array]        }
     )
 
     #########
@@ -695,7 +695,7 @@ Begin
             }
             elseif ($DomainName)
             {
-                Check-Continue -Message "-AIAUri parameter not specified, using `"http://pki.$DomainName`" as AIAUri."
+                Check-Continue -Message "-AIAUri parameter not specified, using `"pki.$DomainName`" as AIAUri."
 
                 # Add default AIA url
                 $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
@@ -715,7 +715,7 @@ Begin
             {
                 if ($DomainName)
                 {
-                    Check-Continue -Message "-OCSPUri parameter not specified, using `"http://pki.$DomainName/ocsp`" as OCSPUri."
+                    Check-Continue -Message "-OCSPUri parameter not specified, using `"pki.$DomainName/ocsp`" as OCSPUri."
 
                     # Add default OCSP url
                     $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
@@ -763,13 +763,13 @@ Begin
                 $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
             }
 
-            ###################
-            # Publishing Paths
-            ##################
+            ####################
+            # Publish Locations
+            ####################
 
-            if ($PublishingPaths)
+            if ($CRLPublishURIs)
             {
-                foreach ($Item in $PublishingPaths)
+                foreach ($Item in $CRLPublishURIs)
                 {
                     # Add publishing paths
                     $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
@@ -777,7 +777,7 @@ Begin
             }
             elseif ($ParameterSetName -match 'Subordinate')
             {
-                Check-Continue -Message "-PublishingPaths parameter not specified, CRL will not be moved from CA."
+                Check-Continue -Message "-CRLPublishURIs parameter not specified, CRL will not be published to another server."
             }
 
             ##################
@@ -804,7 +804,7 @@ Begin
             }
             elseif ($DomainName)
             {
-                Check-Continue -Message "-CDPUri parameter not specified, using `"http://pki.$DomainName`" as CDPUri."
+                Check-Continue -Message "-CDPUri parameter not specified, using `"pki.$DomainName`" as CDPUri."
 
                 # Add default CDP url
                 $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
@@ -1652,17 +1652,17 @@ Process
             $ValidityPeriodUnits = $Using:ValidityPeriodUnits
             $ValidityPeriod = $Using:ValidityPeriod
 
-            # Set url for OCSP
+            # Set uri for OCSP
             $OCSPUri = $Using:OCSPUri
 
-            # Set url for AIA
+            # Set uri for AIA
             $AIAUri = $Using:AIAUri
 
-            # Set url for CDP
+            # Set uri for CDP
             $CDPUri = $Using:CDPUri
 
-            # Add publishing paths
-            $PublishingPaths = $Using:PublishingPaths
+            # Crl publish uris
+            $CRLPublishURIs = $Using:CRLPublishURIs
 
             # Crl Distribution Point (CDP)
             $CRLPublicationURLs = $Using:CRLPublicationURLs
@@ -1775,8 +1775,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpFPLVjh+BdaorRXflbrLO+cu
-# Oxyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY95ps4ZfFXC/CKKftLilOpMd
+# gfeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1860,28 +1860,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7SuADHijmRCTuvYJPZN3THUfTscwDQYJ
-# KoZIhvcNAQEBBQAEggIAJ7e6VYvtmAJS3XSEBmSl/gGfkgOftD5rxx5AYfbEvl/o
-# mlyGeaeLe1Zm62M1CjPf1g2YQUJWRMWsSJr08lqhzAzhVOItLU+4mzT/7ZaZOU7e
-# J6QCcw5M+OsOV84ejbsPyV6pA2Rnq+LNR8RikjODOtcy3Cr4w3NAAq9BawNBWp8p
-# eokvFLIFe+LDOYX5uLD4PF2jGG4Zueq9p+tmaSH/L5X6ipIuD38ntCNviQlkb2Yy
-# kRYpxxuxtM3c6RSlF58fLtkiknRRRJri2gN9wvQqm2qkfprIR7OEfVR7+T6Kj1YO
-# 3gLuhP/PmHb6vXKUmLPOw8hq28g33Llt6bjYNhftQkfQp9HJPD5+3vvZyAStXLvs
-# lksO9zfuwBWi8Em6flLwrqMa8+ZV7xrD3JGek86MIuLIWrfxJKGn6BsbaEMPR2nS
-# JVy0ATkrih5caoNKY77qrhFKQqB/yc2RZoIe6Om7aR00rYNR/b+DTqgdF9Xg5S+m
-# yEeX8APd5soLjWomtBM/nKgmXVkdOVEDfHBOA6vIve3SoqbVdjCSaZS6nfhpcHuS
-# ltevJ/y9lKKg7bnGqHW0tjfdSqWDsi9reOU/luL+xmsaMLNKF5AeWNV3q/Ehpk3R
-# SY6R2Wx1su6jGTHbIpGU0ovl/w/aUQKgxJWYeR2iMXcZUefO+MudLmwGGoRWdTSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWEwHHLJ3UIX4/qBbU0a2cex5dtcwDQYJ
+# KoZIhvcNAQEBBQAEggIApmTDDVRe3MkifKhSnHPtjFpyU2THBYuiLVOObTKNhrQ8
+# af/LUOrxmuPiuyELzyVrc9GlXdVhxCxLNmngTNlNuBncDCx5/sZKi2YEjGL6No7j
+# nN7bkG8sls20mPvmaTg4csUko2BN99VstmhWSqlYhNBClFXifvqV6lOpdU7WqqpW
+# LjfkueQFBpf8cBHzYknZJBfsU7zOA5n04w+nCPL/PnXX3+8qCDIVRnzSJ0IHFd1B
+# fPTu5hRVCHQcbyJFal1BeRctmN17y54Gx0ireSY1ojKHSnjc8sJZCHGrWmtNfghl
+# SyX/ceNnr+t9bjYib/w3mFR54kwhpmLREt1WtWdeoRO0fnyyoS06h9PmJa7ldNK7
+# 1YaB+sNjhLQIFdbkBAD/k6QTBUo7RNkaOqBgDopPZkwVMquPzE5Vmeyo37iXRAKd
+# 6z+pp7EuXuTXKa+THcTuD73Vj7Cl1wLINlMTrQccews8ME6KzOGGgOIlBmqkPN/z
+# prC5ZIAqGL4WiJwu5Ilv6OJdFAtRaW2mdY83+pyQXNjxwj501r5TPp5UzHC4DY9N
+# /4HiO6UkEYsOPvBXR870a3NBozVkMC7E393dtNJQO11emm5LCxfHua6u++fHdYLC
+# 8zQvjXzpud4EIqrFCzGWLWeuYaeMS2pG1xUJ9m89/mVd+1gqkj/YKYFgzvWr8/Gh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEILy0zW4w9IKRU/faxi+wrV6UchFDax87V8uwWFEQDCHG
-# MA0GCSqGSIb3DQEBAQUABIIBALoqiSo4VnSnCWm/EOnyyTc2gUEoDoiEELgxGqVN
-# LOFcRcq6dPWxrqHdKsJIHD7izn4EiAPgOi8+Ix5ExEr91J4IEVMUQsLQu3UfAwif
-# rgEd7ZN4Qs0lY5Uea1k1z71e6CsEJ2tzA2/PHwqPujNx5T0Ky7a9Dd61g9rkvo7G
-# +VzvTbhKSf68mrJZ8lmSjk6xIm0MvEtqSYvGs6SBoGFrAJjInx1zdEMSbLJdeKUE
-# sgUdT+25m+Y+Sq6h450H2wvY7AcPqG7LNZUjTYi2jou2sm/zE7o6hba3b1X+AEQQ
-# zZZdje/3LPIt5QtWB8lZaDTqoVVMRcYd/jR6vS+dz5BKguQ=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIwMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIHObOpjXp8QIZx6vgJdQXXrgyBu5H6iP2CCQYfg+XwlS
+# MA0GCSqGSIb3DQEBAQUABIIBAFnOeBsTlGw0LgwbDQ6BSc3qw22kq7z9umYn2Gdb
+# z7speoDt/r+04UXBdXhz7LXNKkyGg5COn+N6HPp0M9RRag8PybFxsoPgck1iSUOZ
+# bwvuP5JtZeBvzRQHwSxkjTtfcT9gStnCcq0n3EHFc4aaFP/44F2MNhETJoK9EsAi
+# V3VxM3oKN78d1iD7vXmv9T//AhQmfuukBS0tZRvztTBNb4TxwxRS3mx7dT74g+/l
+# AR+JIqvtwcBbtypDzd6KDE+Ayd+nU1CXwL3aIrD+B72XxzNT8AYiGyQhxWFvHJn6
+# Ku/nMVlq9FE92KwW0JQ/4FRbTOzeIejiLb+fIL7ymBgnrF4=
 # SIG # End signature block
