@@ -393,9 +393,16 @@ Begin
 
                 # Dynamically update DNS
                 if ((Get-DhcpServerv4DnsSetting).DynamicUpdates -ne 'Always' -and
-                    (ShouldProcess @WhatIfSplat -Message "Enable always dynamically update DNS." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Enable always dynamically update DNS records." @VerboseSplat))
                 {
                     Set-DhcpServerv4DnsSetting -DynamicUpdates Always
+                }
+
+                # Dynamically update DNS for older clients
+                if ((Get-DhcpServerv4DnsSetting).UpdateDnsRRForOlderClients -ne $true -and
+                    (ShouldProcess @WhatIfSplat -Message "Enable dynamically update DNS records for older clients." @VerboseSplat))
+                {
+                    Set-DhcpServerv4DnsSetting -UpdateDnsRRForOlderClients $true
                 }
 
                 # Scope
@@ -1738,8 +1745,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURVhwRI2TAo6T7JUTzmOweUHQ
-# p+Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxV2/A3UMv4jpTfpGciryTk74
+# 7iCggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1823,28 +1830,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHE6wUOGhOuxy34CAryEmPkVeRzQwDQYJ
-# KoZIhvcNAQEBBQAEggIAK9G3EB2Lvf5PBDVRLBn3BGcJ6Po+A6nXOxA53yWZqrNc
-# RtsmLoin+hxPZHe03h8OXkDYIA9iLGglZXdIttLWbxXdDoDFz0zdmYlScKC04ELb
-# ijSXpYuthJPd3sJ4Ch+eujrWm42La2Yi80G19Lo5/f01IvO9en//lY+8UpCocAj/
-# Gao/OTM1wjFCK8b9Nx7A7KVha0JwMViZI/OWXTza2D1Cg1IAvpHEmdoASrEsxUf6
-# J3qnTIwf6z56wvJTT58A0RE6LtOGvfbF7oPuXEGOXQN/IixVOtc1nFkoy1/0kbAr
-# BpR5gPQzaHFSQOrCx3S+iIhtK2kprqi0Xz66fk+lwikOcLyQUSKrBrjTbs2RaRxU
-# TjCVTsa1o+Lf2u6CwbpwCBIwJGZpTQQdONq38Cq1eYFY9eFedRTRf5EG6KEvk4/i
-# j3knx2lPBElXFBSaZLdMd0hGGOVeesfnRAxeEU2xjXV6EUjLneMOgWSImNmP76iB
-# DDIV/FqLps6q+GaoPzxuJQy7ArqO6dTuAWgKrDLdHFp/QNtYZCISBPoQrzjuvoVr
-# N98A6hGx+CuRBBqb9BBMKHqxU01iCYHfxCJVpazGak7FnbfIBZhjyc8RKTCMwmaY
-# yUaqGQ0dcOIIZzB+cii62Emv480ZRRrBWOfD10bPRDNsW1BUJAGeR6kFokpGr7Oh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWctJrgGJ51wxwhhC4B2oiSGakH0wDQYJ
+# KoZIhvcNAQEBBQAEggIAqJpkF7vaJR8tR3uFJ1lrGHXMNQxYX9jxii/Uld1JdJ+6
+# amX38/ysm+4oWRAiGB1+hCiN/7AlOlf5G64ZbBksV/qxRA4tNyN57wkUP3USJutl
+# I0Vq4V/ZG/KNcYJksh8wJYDcDhuiBLKBuEcB2ZpX0sBRgD5zG7KptCcBqvjsO4wv
+# M+6LTUJpcC/ZcJGAeBR7HL1MYAotX6KW6JrHEfDq225RlZYLHfuLT4Fqe1l1DmC9
+# 6ILpYNM1sAESQ2q5nmjCq3U2bwtm2OoiuqxH827j5Ay0B2zbD0WbvaPWelPsdjuw
+# AXU1EPC6CBbyKV5OMrm2EVp1A8dyqiDW9VfWQTuyt6AKIca4g2PacMYgsytnlhQO
+# e+G73bB4wY8LbXiMjuCxOWn43vN9glI0qo7I3hG7mcO53xcnQoLvbAGO5eOq5IN7
+# o5d0cSninG5/L9dCFNzNHuCk64qL1+NCd/mFYoRJ8ndwf22xNFoF9awkonBf7Jks
+# M1XtFeWTCkHxSjoR1eegu7C+vrsA0/8UD4Whxb6WT/p5+hvDVkSTcalJsHVobqlB
+# 5GGL6KNvSwwkHeRcfU5McIP+L3W6LOGCUsq5b2MjQTnlycSCWSMTDYFPjw2+CxiC
+# YMfMs0sOC3fy78N1xPAf2fdqmIZI0US2g4xSPO8upYl2IOG2zJ0X41hjZSu0uMyh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDgyNzExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIGvohdsQW8WCc4wZeXbhM2rjHjoVAifTt/twep390Jrk
-# MA0GCSqGSIb3DQEBAQUABIIBAIaqeTsQLwpoulQwih94nh3/Y21vwhmsexc1bNSq
-# Ous9XB1kLYPhheX4cD4SqudjHDJ7Zg7+UH35S6P+aKpnFCz0l5UwxBAIpFnkwbFi
-# BH21fqU2wFmLi64P3BcYhQDTMAx1grrKd1BNifn12CxFiDbpkRgE8nWUgaJFVU7q
-# dm6gxv98Fdgx5a3IJsCxM9g/PgFGR+E/KU4dcAWqilwRaPe0cl484jmzYEVfY2Ie
-# wLJqcclFF3LJR3j1Px4J3S5UnM9JxwCjP00Cz4Ypy96dZ8hI6yHUWs7IX1FKOPQi
-# hJrtgvQ0zG7Qze80I3kKMIOxq/MXzD1Z4Kbs0369Rw2hH3I=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIHqDjljPESovHaiEg+3eETEBtSt6vTXCHLdDl1vmy1Lm
+# MA0GCSqGSIb3DQEBAQUABIIBAGAhEvzy6rO1nByuh7hENeD/VtFd2ZqrGtXjrzGB
+# Mc9pVnSmswLx67C9AZ8sJE+zi9qZ6KUu0KaCuFFBqlJRcHzIg3zHAWoxlf+1h5as
+# h0XPejJzTSM/oJALKw93EujvsaRTspXT1Dj0ozR8AWtl7dQucfyiznNJzB0wxJfr
+# LrgCcOYf7lDqjRJYcoyT0RzwLrbvrbmcDP03kdsjALYhIuFpk5bKnWMvtrsGF7Kj
+# U9nHNeroAO69mqB//79e/ugwaHgK1a3PaAk3NwEIak+xNRmbE4eUuSCH7J4Wp68Z
+# ZRad+QJyI3ubJp+Pgin5Ycv/aSZP79BzjSAR/mKsaNgFtiw=
 # SIG # End signature block
