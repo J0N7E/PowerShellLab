@@ -1228,6 +1228,35 @@ Begin
             # Install Certificate Authority
             ################################
 
+            $InstallCertificateAuthority =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                    ActiveDirectoryRights = 'GenericAll';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
+
+            $AddToGroup =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['member'];
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
+            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
             ################################
             # AdSync Basic Read Permissions
             ################################
@@ -1298,7 +1327,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName $BaseDN -AceList $AdSyncBasicReadPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
 
             ########################################
             # AdSync Password Hash Sync Permissions
@@ -1325,7 +1354,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName $BaseDN -AceList $AdSyncPasswordHashSyncPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
 
             ###########################################
             # AdSync MsDs Consistency Guid Permissions
@@ -1352,7 +1381,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName $BaseDN -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
             Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
 
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
@@ -1757,8 +1786,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj4A6l0OPjtP3zyfBOZ5Vl4dj
-# /wuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIiWLh2jenDD7141zyEiE6k+l
+# pBGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1842,28 +1871,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUngwxo8uL4CUJUct08+4leOH5XzYwDQYJ
-# KoZIhvcNAQEBBQAEggIAOMWnBEFjR0LXq7rLBYwIczSImubP86TTvLN2vlnW9leH
-# YxU7825+P1QhB6I++4g8P/ko3tZDho8xUnt/7/Y//fe6HVzwG8Vxqblreqj6lrym
-# FYICE4Z96qcBlCIr3j2ehDk+FYY60nv2qXKkltqQwU2OmyNJNSBRW1EQ3uqICzZ8
-# PIekU/XzVODA0bFc9yr84JRHdTQHPRGqFbfBqV3mIuehn8Tf2/fWgjxJ8UyDHB+L
-# wL5v5uoXJFtIHpkBMn6o1A1RPobUBNYFkgvJXeQ1tC8DVF1nVgBdmvIKVGQwVsyr
-# 7kwQRcVYaamXl9dGBU2akHK1/oelWjl2gLQkMmUnH+0Z7LTKHRu0uJRhNo6X92fx
-# rzzYdOBtDatf9saYjb3+lGxqv9q4UYkX7XdVcmf+u3sJ7zbVcLKNoJhG23s4RwZE
-# ck/Y3Eq1r15xss+++KTLZGUSJ/M+P7wZQ3JxL/QPEVqkuJDndKoCnbI5zcmEIdAC
-# dJbGYRNr1pSjbwcz5z2qQuYQG0PNIF5OYsiTP2d2qAFCG+XhT8zVHwuQvCiqfr4U
-# INIAZ5vrH2LpXmR71ONS8ty9kOYCz/df+Vledw6P+Gv+JxMgTEyFl4XcvGRPbrTT
-# pw2MAQY1lBn/azMC2ZH8g/zJBNNbjEJ8GUX8n0e9UscfGUbUMku3KfA9DCbPCg2h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeq6HEMI/J1T2EmkAtpsIFf2c150wDQYJ
+# KoZIhvcNAQEBBQAEggIADEHc2zdGQunrNvPElxJDOJUgzTfvUJKfdvjMFxOM+CBP
+# LeSqgZKGM5kbhO5+SDeD5kxKsaEWgDIUjMWAdZ8yVD/qi/nntkz6EA28DYPAderT
+# 2/wO9bNIj2uVC0CewZgIz9g+pk+4aqclAonqhQaB8VF6QQypSGCD+Y3S9tu9d4Lk
+# ZkrEy4gjHYWOXd3cQjS+qKZX280xUa8vx0iYDPPqrhAtPIqTBghdmPNxFrD1Xsne
+# rvlKcvds3hRP1104sm2FIpIFw9fa9WYc9yYTsVXrzIftaTkICBsaI175wmI576fH
+# DFtPOYDckI8TvajxUJIQKiXuRjK8kfzAYtzQX7EwSfOswcqpbQoyZNE/23RquAm5
+# 9wpU1+9mflPsfgUTw5zCCGkuUCH0I9qqo+RUEYwoxaNP9dTb+pAqGi2WRL8gjHf2
+# flgCb7dUojuZtWb3+CUfVbeGo/Gqd7zD9zrzMCfsPiyW6+yMymeA+PvdNdr6e3X5
+# P3xPPulXQmfO4K230Y8TiTP+lGYtJaA/VSWvQQxAi8Tr6YEaXYmtEVWW+gfxmYGN
+# oyXZ659uiIvhpEUBuIzncjvbcG0d79Rd/Xncv/rkOfB3mx3BqFMIPAfdZ5jGDpK+
+# bIfx2BaDxiR1p6Zkt9EdZcabh7ViR3p7VloynahCc47saPFyMUesHGqdlRmRGfOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIwMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIHWT2L7dWDSnbehCQxpo+940CyC+iiuKjS32KdlbMzan
-# MA0GCSqGSIb3DQEBAQUABIIBABuRk1Pg9XYgyQZD5hrpeSgo5wZyCmvOuNXHcADk
-# qyeH6emiJVNCkmep0cRZqxz3at/r7378sWPWwy1Um2E3SmKyIt9SoFbNRCTjSMco
-# 5SmNGo24AzTYVnoM1h+7w7XpdP4g6BH5ZadZelAjjYGmFufEwE44PnVP/LUVb5xY
-# qDFLBZXkG5cFPjA/BgHTv/nMhb3eGHD2bOiKFJX6+X5cr+vc0IQCo1W5sDyEufoB
-# hHIHCCXh9fUNLxdjEqDuABxqleZAmjIqhdToKIHDZ4PyA5lKGplSvyM5CBKzPFjS
-# RxfHegNoQq/xt6Yxx4PNgKOU491D3YBR+LLZx3r0aNVoxYU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIOKwUKaUfm+GRY4K/r0Bhr13XR67Z9LgwdaWZvuYiAgL
+# MA0GCSqGSIb3DQEBAQUABIIBAHE91hgE5OW+dTdvc3a2AUvTWMcQ1aQLdcUkPfHm
+# lQpRFtjBzfBxYAnUw3vgBibvx09BiDPZzFlFRK74UYlO01iWtpqludGivpoXq16h
+# vtvXAtSNVebSox6U4mSHylaHMaa9taefqL3/gY8jQYWGgyGP1XASayQILDHvY7gR
+# efz4N7wWEpkNRA80/3SqTV3nnA78V11IDOr5dyX4gLQamoBMAdH1YeRPGDZ3DCY1
+# h6dBHDBc5Tl9XVxEb9jeogtl3a5jRZQEfqaBKzn5CeWUjRG2IOJxWQJL5Hja/M0j
+# L88H41w8tCIfoKX49v/q6k7Dc+x16AqBQx4v6+OmVmFCCck=
 # SIG # End signature block

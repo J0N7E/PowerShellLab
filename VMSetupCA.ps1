@@ -414,8 +414,6 @@ Begin
         # Itterate all posbile parent ca files
         foreach($file in (Get-Item -Path "$PSScriptRoot\*.cer", "$PSScriptRoot\*.crt"))
         {
-
-
             $CertutilDump = (certutil -dump $file) | Out-String
 
             # Check subject
@@ -448,7 +446,7 @@ Begin
         # Check if not found
         if ($ParentCAFiles -eq 0)
         {
-            throw "Invalid certificate `"$ParentCACommonName`", aborting..."
+            throw "No parent certificate for `"$ParentCACommonName`" found, aborting..."
         }
     }
 
@@ -924,70 +922,58 @@ _continue_ = "DirectoryName = $BaseDn&"
         # Enterprise Subordinate
         #########################
 
-        $CAPolicy_EnterpriseSubordinateCA =
-@"
-[Version]
-Signature="`$Windows NT$"
+        $CAPolicy_EnterpriseSubordinateCA = @(
+            "[Version]",
+            "Signature=`"`$Windows NT$`"`n",
 
-[PolicyStatementExtension]
-Policies=IssuancePolicy
-Critical=No
+            "[PolicyStatementExtension]",
+            "Policies=IssuancePolicy",
+            "Critical=No`n",
 
-[IssuancePolicy]
-OID=$PolicyOID
-
-"@
+            "[IssuancePolicy]",
+            "OID=$PolicyOID"
+        )
 
         if ($PolicyURL)
         {
-            $CAPolicy_EnterpriseSubordinateCA +=
-@"
-URL=$PolicyURL
-
-"@
+            $CAPolicy_EnterpriseSubordinateCA += @("URL=$PolicyURL")
         }
 
-        $CAPolicy_EnterpriseSubordinateCA +=
-@"
-[BasicConstraintsExtension]
-Pathlength=$PathLength
-Critical=Yes
+        $CAPolicy_EnterpriseSubordinateCA += @(
+            "`n[BasicConstraintsExtension]",
+            "Pathlength=$PathLength",
+            "Critical=Yes`n",
 
-[Certsrv_Server]
-RenewalKeyLength=$KeyLength
-AlternateSignatureAlgorithm=0
-LoadDefaultTemplates=0
-
-"@
+            "[Certsrv_Server]",
+            "RenewalKeyLength=$KeyLength",
+            "AlternateSignatureAlgorithm=0",
+            "LoadDefaultTemplates=0"
+        )
 
         if (-not $UseDefaultSettings.IsPresent)
         {
-            $CAPolicy_EnterpriseSubordinateCA +=
-@"
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
-
-"@
+            $CAPolicy_EnterpriseSubordinateCA += @(
+                "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                "CRLDeltaPeriod=$CRLDeltaPeriod"
+            )
         }
 
         if ($UsePolicyNameConstraints.IsPresent)
         {
+            $CAPolicy_EnterpriseSubordinateCA += @(
+                "`n[Strings]"
+                "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"`n"
 
-            $CAPolicy_EnterpriseSubordinateCA +=
-@"
-[Strings]
-szOID_NAME_CONSTRAINTS = "2.5.29.30"
+                "[Extensions]",
+                "Critical = %szOID_NAME_CONSTRAINTS%",
+                "%szOID_NAME_CONSTRAINTS% = `"{text}`"`n",
 
-[Extensions]
-Critical = %szOID_NAME_CONSTRAINTS%
-%szOID_NAME_CONSTRAINTS% = "{text}"
-
-_continue_ = "SubTree=Include&"
-_continue_ = "DNS = $DomainName&"
-_continue_ = "UPN = @$DomainName&"
-_continue_ = "Email = @$DomainName&"
-_continue_ = "DirectoryName = $BaseDn&"
-"@
+                "_continue_ = `"SubTree=Include&`"",
+                "_continue_ = `"DNS = $DomainName&`"",
+                "_continue_ = `"UPN = @$DomainName&`"",
+                "_continue_ = `"Email = @$DomainName&`"",
+                "_continue_ = `"DirectoryName = $BaseDn&`""
+            )
         }
 
         #########################
@@ -1274,6 +1260,9 @@ CRLDeltaPeriod=$CRLDeltaPeriod
 
         if ($ParameterSetName -match 'NewKey.*Subordinate')
         {
+            # FIX
+            # bug if multiple csr
+
             # Check if parent CA certificate request exist
             if (Test-Path -Path "$CertEnrollDirectory\*.csr")
             {
@@ -1775,8 +1764,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY95ps4ZfFXC/CKKftLilOpMd
-# gfeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBxm9yxAt7Z7AK9KVSIqL1FA0
+# E3aggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1860,28 +1849,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWEwHHLJ3UIX4/qBbU0a2cex5dtcwDQYJ
-# KoZIhvcNAQEBBQAEggIApmTDDVRe3MkifKhSnHPtjFpyU2THBYuiLVOObTKNhrQ8
-# af/LUOrxmuPiuyELzyVrc9GlXdVhxCxLNmngTNlNuBncDCx5/sZKi2YEjGL6No7j
-# nN7bkG8sls20mPvmaTg4csUko2BN99VstmhWSqlYhNBClFXifvqV6lOpdU7WqqpW
-# LjfkueQFBpf8cBHzYknZJBfsU7zOA5n04w+nCPL/PnXX3+8qCDIVRnzSJ0IHFd1B
-# fPTu5hRVCHQcbyJFal1BeRctmN17y54Gx0ireSY1ojKHSnjc8sJZCHGrWmtNfghl
-# SyX/ceNnr+t9bjYib/w3mFR54kwhpmLREt1WtWdeoRO0fnyyoS06h9PmJa7ldNK7
-# 1YaB+sNjhLQIFdbkBAD/k6QTBUo7RNkaOqBgDopPZkwVMquPzE5Vmeyo37iXRAKd
-# 6z+pp7EuXuTXKa+THcTuD73Vj7Cl1wLINlMTrQccews8ME6KzOGGgOIlBmqkPN/z
-# prC5ZIAqGL4WiJwu5Ilv6OJdFAtRaW2mdY83+pyQXNjxwj501r5TPp5UzHC4DY9N
-# /4HiO6UkEYsOPvBXR870a3NBozVkMC7E393dtNJQO11emm5LCxfHua6u++fHdYLC
-# 8zQvjXzpud4EIqrFCzGWLWeuYaeMS2pG1xUJ9m89/mVd+1gqkj/YKYFgzvWr8/Gh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUu2wvFXHmSjXTfSbcmgDvo+g/F0AwDQYJ
+# KoZIhvcNAQEBBQAEggIAEHqJPK1cok9eplnbaUyYnoBYNTkgdWkluSsgDZI5lF6W
+# QXFXlyikzE88qWLUVD7VETehEXT0k4TGBNnEqiqjAEcorK922uZMyQeelfpUM9+3
+# omd7SlbAXvh+uGG7gKD68oyha88GTNOxEh9pLdnmc4wrhVhe1rJod/qxiBwbYsm8
+# bbTzJuWKpGr5g31CI/n5vcP+a19wjwzj4XYOcy1BXoydzxTU3h/KdqimcnQoBlS7
+# vVaeH/NAjW4a5+93KWcWAcAlUeuEPlIv7+1Q8DPIkUTqADm4BuwSDViGfHrVPu3O
+# dMKhE+3FgH5C2JlIDD8eqwdklf1c6IqBdtMo9WiQGladz2cLLxFc5UkUf1kXYINQ
+# DANloUQXIuQO3VIWe5kTQHd3htAtJllUupBdAXUpqpeWCPJ5yYdibBIVW1u1jTwl
+# Fj4D42PpU0MNorhjDW5vhvuqji5Vsx07qQ+1k1Xz6QVcWg9M8P1/DWmuXfcrk37G
+# sZt9MpVgsMsHei7OgLWcEiRP7zXaA71SFlzlN6z+CfjO/hu43AX7g1FvHGNvPaDq
+# tnuZ73SjC0wwf1tC3rmLzSaQCiBLrRY2udmlhX7Uq9hg1U9oKjDsZp1PCpyJZ/uj
+# HL03brmUnuGS/QElsBRJRmRwHlc4IROuINA/iI4vOQAkbYcH1PlZpJY2hNllbq6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIwMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIHObOpjXp8QIZx6vgJdQXXrgyBu5H6iP2CCQYfg+XwlS
-# MA0GCSqGSIb3DQEBAQUABIIBAFnOeBsTlGw0LgwbDQ6BSc3qw22kq7z9umYn2Gdb
-# z7speoDt/r+04UXBdXhz7LXNKkyGg5COn+N6HPp0M9RRag8PybFxsoPgck1iSUOZ
-# bwvuP5JtZeBvzRQHwSxkjTtfcT9gStnCcq0n3EHFc4aaFP/44F2MNhETJoK9EsAi
-# V3VxM3oKN78d1iD7vXmv9T//AhQmfuukBS0tZRvztTBNb4TxwxRS3mx7dT74g+/l
-# AR+JIqvtwcBbtypDzd6KDE+Ayd+nU1CXwL3aIrD+B72XxzNT8AYiGyQhxWFvHJn6
-# Ku/nMVlq9FE92KwW0JQ/4FRbTOzeIejiLb+fIL7ymBgnrF4=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIEmuZleWDpRHOzsPhTw6WK1Z4gE73nTVmf3RWEwqZcFE
+# MA0GCSqGSIb3DQEBAQUABIIBAKu1ntDEn34Qlhqi0oL2fgloKonkZ6lgzNC7kFdl
+# QhyeBe29ekg4B2J6iC5vVYu3Bb6beFl+xZeFNB8xSFRr8LpA1LOZaPC0wAVU4n7l
+# VnBz16KHCZQzvQfRtAW7KQfvNWZ1L/qXe11v8323m9P20ZgBo0R/TrE2ekSCjLoA
+# eYtAiGDOXLQl7sZ8ShrspBXrF9olpn6D4+dfM2iPI2E0T8RRCo5rUrBODjMO0HIK
+# UvsKTlDlPV9q1LoZq+HzLVDA69WuYGkR78B3SAlFok7xqObt5UdaMk8JnUupphRU
+# wkwqLEYVQprsCXgGE7N4CihbVCzPHsxmihyPOQuiH+atH8A=
 # SIG # End signature block
