@@ -624,7 +624,7 @@ OID="1.3.6.1.5.5.7.3.9"
                     Set-Content -Path "$env:TEMP\$CACommonName OSCP Signing.inf" -Value $RequestInf
 
                     # New certificate request
-                    TryCatch { certreq -f -q -new "$env:TEMP\$CACommonName OSCP Signing.inf" "$env:TEMP\$CACommonName OSCP Signing.req" } > $null
+                    TryCatch { certreq -f -q -new "$env:TEMP\$CACommonName OSCP Signing.inf" "$env:TEMP\$CACommonName OSCP Signing.csr" } > $null
 
                     # Remove inf file
                     Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.inf"
@@ -708,7 +708,7 @@ OID="1.3.6.1.5.5.7.3.9"
             #########
 
             # Check if OCSP signing certificate request exist
-            if (Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing.req")
+            if (Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing.csr")
             {
                 # Check if file exist
                 $CAResponseFileExist = Test-Path -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
@@ -799,7 +799,7 @@ OID="1.3.6.1.5.5.7.3.9"
                     ##########
 
                     # Remove request file
-                    Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.req"
+                    Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing.csr"
 
                     # Remove response file
                     Remove-Item -Path "$env:TEMP\$CACommonName OSCP Signing-Response.crt"
@@ -813,7 +813,7 @@ OID="1.3.6.1.5.5.7.3.9"
                     }
 
                     # Output requestfile
-                    Write-Request -Path "$env:TEMP"
+                    Write-Request -FilePath "$env:TEMP\$CACommonName OSCP Signing.csr"
                 }
             }
         }
@@ -1025,8 +1025,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVB481CVCoQmZA91/TjboJuT7
-# UcOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu7sJHPz5eq6S847Nyt5zK47r
+# 9F6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1110,28 +1110,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiZiWT3VCtn73XvQ2jCed79b5zN8wDQYJ
-# KoZIhvcNAQEBBQAEggIAUEcu4UP5oYsAnBtIOgKEExl5O4F6o50ueRKOObDGnUFq
-# nFjZHzh1Uv5fsZkBoNAlc9lCOIXb3NrUCDr7wQBsBv6zaKXUTid6AVLceRWpXqkX
-# hp/T/VWxFXrBrc9Fo10TC8cqFaKQJYEqLiyK0MpTnjvBmDMtQ/SYzJ9OLh7xt+11
-# Wq3FkQU1C6eFje5Oq/xKNAJeA6qTAXIKpUnNzw5Jfluxd7fBwCC4YNfwhkbipBEK
-# XsDqLKYDwhurJD5QiWvbZP6Yz1H2CUVUQQJFbrxSO4pjLYCoZ4DeuOOLMNqPPkur
-# EmruMAej9aRj/yUiy3Psk3DpoyWTGC00FtnLUzgxZHgE44FypUnANOKG0pLVJ6+Y
-# HU/Ziiu4drM4idWt9vMJ+m2MohjVKHOfXpueO9zcFHqLskFoMF+3ugyH7Bkg8lCi
-# Fvv7aWNhS3ojpDseNyf7fyI1KTd/dx1A4a+GQEcC3FqfosMYB7P50k9+391m1v4G
-# lA6SxdrBZGbOrv72QCM1AgBrzewZpEMQntVSFmB5P+8zpF2U3Dzo/KOSZpM8HmOF
-# cVVQ880ctYP016kVBkb4R30TkynPx6s5nYHxrOlQv9hDPOO+MB/+e1CcFYYHvvBt
-# qIwGVy6+x6kn43SuRzuhDSm+YKdfwZktqPTkBGenZAn0eZyhWW3cpkf4UseWBiih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUv1SYnmtpxafSH7K0HARtFDY6ZGQwDQYJ
+# KoZIhvcNAQEBBQAEggIAhLJb907r0r9//0PFretL7W7jHG9jqzM1N528bTXWO0R8
+# mKiiPE2N1kxe7LINKPKBegy9OMTyZl/SR9mH4QLqwafu/v0XxPvuAPVTKOvfIvJ2
+# RtemjuGB+1mIdpkzaXvajRhNTR4AHGTYCtPmBAd0dVElH2cKsbPvB2UlUtzVF6r6
+# gcl2cd1TTxXkBk6rgVsFkO6uJFLmHexAiYzQTp2q0YC4OnaeQCICMMtHJntb7FGK
+# H460SQlWC2jGCx27xPcXRLkXCm3W8idwRZKH6ebiUZ+DIeDUoJVS/ABfDpuhTeic
+# +0NDHFYhSpSBNgo+4w4aOT/ka9GWEMO36r4smdKslUs7p+8ffYKRqYUIYczd2ECJ
+# 4Vz/p6MYTDBODw9t5SF45yYgjr9xUxOhzh2m7lOk6O4S9KzAn6CoBt3r5QA9+Zux
+# F1pd5na77MtPBmFhvKE06USTU2ocaAF08YJH7l1PNL3G4h29dDKBxx+O3OmlB9VH
+# KKK91iZKMq0RShSL47FtdavboK/At9yrAQjRA7ssHAZCrlzhjbWFfGCKoilFjREH
+# 2hG0n7+z10D076HojpGewIJ3f0MP+pb1IjyaPG7nsFeAiU7G7zc8bl9clsnv2Xh1
+# 6QoCRNJwLjwrtFCLW+PPZbIW1UvHFn5HqhRvgd4/t0bxTxD/PYMUKf53/We2GZCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkwNjIwMDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIJ5QXc7wz3KgLe6tg2QbW1eC/+GZn5BUiWwV2mdat4u5
-# MA0GCSqGSIb3DQEBAQUABIIBAEyTRo6oPTOmmA/DfY2Yh+kAe3pknAdp+oA/RpnT
-# oiaRTQcEM9zpIx1h1sgD0Lp7YHfPde/TtiPgq4cczuzIyZUouBumkb5SeSo5V6Uy
-# xsyj9O8EgjIS2Qgqkh6TCD2/c0e1GHA/iTgxjNGt3IFVSICZ1/thW4PHi6NK3905
-# kYecbggmJ6FqNR6Vwvx7K0t6bOpI4hx9ADthh9e6lc43gD9F4NULBqlZAqi75mDV
-# oQzuiEz0+tuvfpfQnep7tkkecc1TtGNOb5RMwqBdMp3baVrYqgMB0FhA6I/hxryz
-# W/0eZCb4ycrAO0J42BfId24vgQUD5yO96V/GOhwpEvJaXyo=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTExMDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIEQL9+b+nWNJ6BoTA7EaitBxXQcH/QF8FKc3vX80NI/K
+# MA0GCSqGSIb3DQEBAQUABIIBAAy7ww2QmUUDqQAw5HOTlkK+r1qeOL3+rXQWL9Vb
+# Qto+lmhT9hykdIRfeHC+S4vGRuIIsHLm36bDdIGTQY2k63yS4+KpIZU6yCXTRGFd
+# Saa6lIPBiMLGpka3Iz/6APEPQ22SAKKHWZQMxTuGFm6wzsQlW2E598B6ImFngq/U
+# XjI4UdKWl7NRqDLn2sMMq4gqg7TN73bCguxFKw13J4MQhKg6EiseH+UuOj5WVSEi
+# eMv2cEFXP2YbhJkI3/JfF/8MFHS1KZB33mGmfjJOlP5+Ve9TaHDmEwyalzw8jDZy
+# mAWodWhShMxvO4ig9nOyCWo20NY8cZjCupkahAXkU2YjY6M=
 # SIG # End signature block

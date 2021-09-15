@@ -501,10 +501,10 @@ Begin
             #  ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝
 
             # Check if parent CA certificate request exist
-            if (Test-Path -Path "$CertEnrollDirectory\*.csr")
+            if (Test-Path -Path "$CertEnrollDirectory\$CACommonName-Request.csr")
             {
                 # Get csr previous cert hash
-                $CsrPreviousCAHash = TryCatch { certutil -dump "$(Get-Item -Path `"$CertEnrollDirectory\*.csr`" | Select-Object -ExpandProperty FullName -First 1)" } -ErrorAction Stop | Out-String | Where-Object {
+                $CsrPreviousCAHash = TryCatch { certutil -dump "$(Get-Item -Path `"$CertEnrollDirectory\$CACommonName-Request.csr`" | Select-Object -ExpandProperty FullName -First 1)" } -ErrorAction Stop | Out-String | Where-Object {
                     $_ -match "Previous CA Certificate Hash\r\n\s*(.*)\r\n"
                 } | ForEach-Object { "$($Matches[1])" }
 
@@ -520,9 +520,9 @@ Begin
                         } | ForEach-Object { "$($Matches[1])" }))
                     {
                         # Matching previous cert hash
-                        $ParentCAResponseFilePath = "$env:TEMP\$($file.Key.Name)"
+                        $ParentCAResponseFileMatch = "$env:TEMP\$($file.Key.Name)"
 
-                        Write-Verbose -Message "Matched Previous CA Certificate Hash $CsrPreviousCAHash in $ParentCAResponseFilePath" @VerboseSplat
+                        Write-Verbose -Message "Matched Previous CA Certificate Hash $CsrPreviousCAHash in $ParentCAResponseFileMatch" @VerboseSplat
                     }
                     else
                     {
@@ -532,25 +532,22 @@ Begin
                 }
 
                 # Check if response file matched
-                if ($ParentCAResponseFilePath -and
+                if ($ParentCAResponseFileMatch -and
                     (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
                 {
                     # Try installing certificate
-                    TryCatch { certutil -f -q -installcert "`"$ParentCAResponseFilePath`"" } -ErrorAction Stop > $null
+                    TryCatch { certutil -f -q -installcert "`"$ParentCAResponseFileMatch`"" } -ErrorAction Stop > $null
 
-                    Restart-CertSvc
-
-                    # Give CA some time to create certificate and crl
-                    Start-Sleep -Seconds 3
+                    $Restart = $true
 
                     # Cleanup
-                    Remove-Item -Path "$CertEnrollDirectory\*.csr"
-                    Remove-Item -Path "$ParentCAResponseFilePath"
+                    Remove-Item -Path "$ParentCAResponseFileMatch"
+                    Remove-Item -Path "$CertEnrollDirectory\$CACommonName-Request.csr"
                 }
                 else
                 {
                     # Output requestfile
-                    Write-Request -Path $CertEnrollDirectory
+                    Write-Request -FilePath "$CertEnrollDirectory\$CACommonName-Request.csr"
                     return
                 }
             }
@@ -824,8 +821,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/Rudd2N0sxV56Yo0xbHkl2Az
-# Vueggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7e2GgOXWrCoYCkyGMV1Nutw1
+# n46ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -909,28 +906,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURS/xGfB5WktFuqaMhYcr9azNZ/UwDQYJ
-# KoZIhvcNAQEBBQAEggIAqkWmfaTVo86WSVQ8WxUrTk77NBQtN+JBPlK44NdJ41VP
-# M16hn6QyPzpVaukBXgX387gBongZvaSkNVBVouV4ijI9Fw55vuYmTVoW36NZHPaM
-# NHPNEHhbJUc6PbSc18u+7mnEjSGWwrI537ePZvUm+yrl5B8BnF95fJHV7OQvoSY0
-# P6HG2ay/ZNUWWndZJyj+S+mnCXgcWzKW43Y1XO8MmQ3jSFHwViaBmHwuJWpyRxdO
-# 1bHaVgsjoAC8a8JsIe/lLO1QW+N8DiPv/QD4QAq9qXrEPCCYAo/bi0tUZKcTgvyn
-# G3wxd8ZEtqwfbIBlaLMynHD3dh8PZti2Rs/K+GGEWHDZq+EPmpWTmniG89pExQLV
-# NQHWMqJMw5HMNzk48WeTVRMb9jji6f5kt5b2tjaSX1B77EqBthLtdxJXahC+8suy
-# PdcyeZS5l6EnKNkwttekGrgWT4/xxjVrZNeowM+pT5iRvi3zxM2gVLddxbOgXij1
-# fmuzmU5L6S5bsUzsZ1aOrjySttFrzMf0Q5Cyarbu8P6YIFQ3ZHT5uoTS6B7kKpvD
-# srGMyYn92ySINtkmZg/NVB/kdXPwBYpAiKEz1S9y1sA8Ubt3x7gOIorZ9cHYq9KN
-# WtUNgq8iDGrh26GfdjSvjZPUV23VaP6tGUxRpQQiw6EGluGmYofMk6atYXS+edqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4ArgV8dtSYg37QGVgni8R+eWYOQwDQYJ
+# KoZIhvcNAQEBBQAEggIADjLjbNhpzDsSU3287DlNhTZjDWWle8aRfu31eXlOje76
+# MA2v0FbtAlRWCJEudlaSqc3TwX7gii/duFpK+J19sakPeWX5sxktVhEqbdj2vnZa
+# Kcu+3npVsg8yTOn0OBZdGr+6skgTbF7z3seSL66mJH5jmTuUjAT37nYVR1NbosCy
+# e6qZXmUP7hOCspzFOdFBbormDczvFuu0yyz3MAIMBm1+LLM1kk3vXrNLxXdhZYAT
+# xqFs/RAaGmXMWh9Ql1UL5I9O79e8Sklfmkn9223ahBI3YGKXmMDT/Rv5Cs6sXsqa
+# IAy5tl+3eIF4TLDXtNJcu9lw9Ldpj1xjnNgfbTmGqlz3gfNoWIfJfiFJm2goHb6V
+# RHKsykN6/WY5oN8XT1uWtmBx19gLKyxZ9f67//gpso282TjSR5nm+8lDLsU5RVQn
+# gBhQJHw7OMQMLcFfL2RTQeqvYW2n1FtClAoPlbq9S5F1iZ5CgR9zSWzcDNJUzHk3
+# 0Qav6Z0J93zSFGrVc2n0b/jdgQ2hkesk1u3S1GVJ/E1e0h2RV+XAkjbEcZ/slY0u
+# 61VWqbQacJ33J533ok0FYHIEE05hUol60p1DjsR2C8uG2JYFuDQYUgsW4uxWHGLO
+# fuDxupvxglc+li7t/s/3shoUO5hQef+Mpf4n3/nR6FnXXxmaLPQyCvMGgklIuFmh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYyNzE0MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEINdKoD+onYM1cB0jKyYNLeyaXkeGUAuXwJCda/4wyMWP
-# MA0GCSqGSIb3DQEBAQUABIIBAG5FYgSFBDfzXxyLh2F3EOCG1Y8qUqM8WASMso0f
-# YMRBZkHjPEnLI1cMd2EJPSj5eeIBkEVhJaVzqv5rGxfgeEesnfgKYxOtVnQ8uJ1D
-# Pa9jccMLMQuJ55oPhBA+qrIUrcDFZtghSiYAOix4WyJ6VI5qL+iqSLq0RliiaMV1
-# 3ipq4dKh/GwjL5FSqu6uttgdhDBHkX15drl9fFw68RUQ51eDe9o+3eODuBcJVs2L
-# syJs8PiWnN7mt9RhFOx9kUmXinWJpjhkqxkrpHEub5V6/NeOsBdurqk42d+FJzRT
-# li7dAAtt+BdegCbaGFvFzQ2mVwq8oibxWHLS6BZUWOT9uio=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTExMDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIMKdjeM0i/9LkQQ0VjHGqdE93xUFlfEy8LjYrNa8uVTN
+# MA0GCSqGSIb3DQEBAQUABIIBAEADL9+E4b286io59RHkoxnif8eEHF5ijIiNuxNn
+# zsOuCSgSzqGc4X65DFFkVyfj794NsdLd0e2ru1xBNNb7FOv0/nWG9Xg1+5ujKvbs
+# bGPQSSpFkTbm2idUlMIYqF+KdPUH3UCDqwKlt+4U4y60K7aY2khYvoRvsV89x6ha
+# jX/tW2KK3SAQIQvi/OMppkP3NBH7VSkfc0dGmipD4BDh4tIn290FljttY+ozDUfR
+# XQjGbzDlvk5SqJunxvEDpic09NLg9GJF5WCCdxits0SNr+Fx08u2yM26o8CWROo3
+# Zv+hUfHBXcpvw635zpIlTxVXkueSTh5hSa+xC784+1kzcKw=
 # SIG # End signature block
