@@ -606,7 +606,9 @@ Begin
             foreach($GpoDir in @('Gpo',
                                  'Baseline\1809',
                                  'Baseline\2004',
-                                 'Baseline\20H2'))
+                                 'Baseline\20H2',
+                                 'Baseline\21H1',
+                                 'Baseline\21H2'))
             {
                 # Check if gpo set exist
                 if (Test-Path -Path "$env:TEMP\$GpoDir")
@@ -643,8 +645,13 @@ Begin
                     }
 
                     Start-Sleep -Seconds 1
-                    Remove-Item -Path "$($env:TEMP)\$GpoDir" -Recurse -Force
+                    Remove-Item -Path "$env:TEMP\$GpoDir" -Recurse -Force
                 }
+            }
+
+            if (Test-Path -Path "$env:TEMP\Baseline")
+            {
+                 Remove-Item -Path "$env:TEMP\BaseLine" -Force
             }
 
             ############
@@ -716,11 +723,10 @@ Begin
                     "$DomainPrefix - Computer - Sec - Block Untrusted Fonts"
                     "$DomainPrefix - Computer - Windows Update"
                     "$DomainPrefix - Computer - Display Settings"
-                    'MSFT Windows Server 1809 - Domain Controller'
-                    'MSFT Windows 10 1809 and Server 1809 - Domain Security'
-                    'MSFT Windows 10 1809 and Server 1809 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 1809 - Computer-'
-                    'MSFT Internet Explorer 11 1809 - User-'
+                    'MSFT Windows Server 2022 - Domain Controller'
+                    'MSFT Windows Server 2022 - Domain Security'
+                    'MSFT Windows Server 2022 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 2022 - Computer'
                     'Default Domain Controllers Policy'
                 )
             }
@@ -728,22 +734,60 @@ Begin
             # Add gpo links for each version
             foreach($Version in $WinVer.Values)
             {
-                $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
+                # Baseline older
+                if ($Version -notin @('21H1', '21H2'))
+                {
+                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                        "MSFT Windows 10 $Version and Server $Version - Domain Security-"
-                        "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
-                        "MSFT Windows Server $Version - Member Server"
-                        "MSFT Internet Explorer 11 $Version - Computer-"
-                        "MSFT Internet Explorer 11 $Version - User-"
+                            "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                            "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
+                            "MSFT Windows 10 $Version - Computer"
+                            "MSFT Internet Explorer 11 $Version - Computer"
+                        )
                     )
-                )
 
+                    $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "MSFT Windows 10 $Version and Server $Version - Domain Security"
+                            "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
+                            "MSFT Windows Server $Version - Member Server"
+                            "MSFT Internet Explorer 11 $Version - Computer"
+                        )
+                    )
+                }
+                # Baseline Windows 10
+                elseif ($Version -in @('21H1'))
+                {
+                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "MSFT Windows 10 $Version - Domain Security"
+                            "MSFT Windows 10 $Version - Defender Antivirus"
+                            "MSFT Windows 10 $Version - Computer"
+                            "MSFT Internet Explorer 11 $Version - Computer"
+                        )
+                    )
+                }
+                # Baseline Server 2022
+                elseif ($Version -in @('21H2'))
+                {
+                    $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "MSFT Windows Server 2022 - Domain Security"
+                            "MSFT Windows Server 2022 - Defender Antivirus"
+                            "MSFT Windows Server 2022 - Member Server"
+                            "MSFT Internet Explorer 11 2022 - Computer"
+                        )
+                    )
+                }
+
+                # Certificate Authorities
                 $GPOLinks.Add("OU=Certificate Authorities,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Computer - Auditing - Certification Services"
                     )
                 )
 
+                # Federation Services
                 $GPOLinks.Add("OU=Federation Services,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
@@ -751,6 +795,7 @@ Begin
                     )
                 )
 
+                # Web Application Proxy
                 $GPOLinks.Add("OU=Web Application Proxy,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
@@ -758,23 +803,13 @@ Begin
                     )
                 )
 
+                # Web Servers
                 $GPOLinks.Add("OU=Web Servers,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Computer - User Rights Assignment - Web Server"
                         "$DomainPrefix - Computer - Firewall - Web Server"
                         "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
                         "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                    )
-                )
-
-                $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                        "MSFT Windows 10 $Version and Server $Version - Domain Security-"
-                        "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
-                        "MSFT Windows 10 $Version - Computer-"
-                        "MSFT Windows 10 $Version - User"
-                        "MSFT Internet Explorer 11 $Version - Computer-"
-                        "MSFT Internet Explorer 11 $Version - User-"
                     )
                 )
             }
@@ -1786,8 +1821,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIiWLh2jenDD7141zyEiE6k+l
-# pBGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNeSzsTKQjC9dvqIt66WwbEzg
+# kJWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1871,28 +1906,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeq6HEMI/J1T2EmkAtpsIFf2c150wDQYJ
-# KoZIhvcNAQEBBQAEggIADEHc2zdGQunrNvPElxJDOJUgzTfvUJKfdvjMFxOM+CBP
-# LeSqgZKGM5kbhO5+SDeD5kxKsaEWgDIUjMWAdZ8yVD/qi/nntkz6EA28DYPAderT
-# 2/wO9bNIj2uVC0CewZgIz9g+pk+4aqclAonqhQaB8VF6QQypSGCD+Y3S9tu9d4Lk
-# ZkrEy4gjHYWOXd3cQjS+qKZX280xUa8vx0iYDPPqrhAtPIqTBghdmPNxFrD1Xsne
-# rvlKcvds3hRP1104sm2FIpIFw9fa9WYc9yYTsVXrzIftaTkICBsaI175wmI576fH
-# DFtPOYDckI8TvajxUJIQKiXuRjK8kfzAYtzQX7EwSfOswcqpbQoyZNE/23RquAm5
-# 9wpU1+9mflPsfgUTw5zCCGkuUCH0I9qqo+RUEYwoxaNP9dTb+pAqGi2WRL8gjHf2
-# flgCb7dUojuZtWb3+CUfVbeGo/Gqd7zD9zrzMCfsPiyW6+yMymeA+PvdNdr6e3X5
-# P3xPPulXQmfO4K230Y8TiTP+lGYtJaA/VSWvQQxAi8Tr6YEaXYmtEVWW+gfxmYGN
-# oyXZ659uiIvhpEUBuIzncjvbcG0d79Rd/Xncv/rkOfB3mx3BqFMIPAfdZ5jGDpK+
-# bIfx2BaDxiR1p6Zkt9EdZcabh7ViR3p7VloynahCc47saPFyMUesHGqdlRmRGfOh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8TGGZLIdSm6e11OsQuJojW3fM4kwDQYJ
+# KoZIhvcNAQEBBQAEggIAMvEqEZLQQ4EsiflJbqYoUgKOcoKXnqZ2RchUcyV6dW6r
+# cfyz4nPHH3a7FB8793Mlb7YxDA76b4PFTOSayGkWOMVFHPfIm9E7rAUWORZ4OZhD
+# NFF7Oc1NGB2hDLvtRUQ09HktnZa/T7xg0mTLf6Gv63t7/m+v+f8PJ/UE8TSS4ZT2
+# Yf250kinmGQdnEDCeNWkDFNs1clt8w9Ax7KkBjM4BhJgwrLnyOrxufzDTEm1/MO2
+# jZVuYVm67lXUVslnhn1Z5MTJYdJQaYeput587/4uyE/78QhvVAmZGh8bqSlRwuAH
+# d3SKZhDLHypuF9/YJlyACAlryFftRxoUL9ePwZQ4p2TfJT5MJtTeazNQwmmMNClU
+# nOF4ssunjgGgH8UbXHSR39F3Z1Et0UKNxmoJDRKulvjqpS2n0e4N1C85dVqWeB3H
+# 6q1MGiFtNf+tKEECcJkm0qq7WA5USsQrZmvdeOjl6BhuMqZ20q2RYf3YUE0/Kwub
+# MeMXfxzZ9yuYtxHOvSAsutXEVHKrnU0dLFWrGKMrGmzy7W13H1llQHLJ+3Ldx5Wu
+# 85VXSGG/gG5F2K0fDepNHpdWfuFmx86mQf12CQvFFrbFV7xAuvW48kbGH+BK+K2x
+# UFLM/mAbkgb1uk2/BfQ7V+GEDLsB9TooZ5a5xVo7qkkddEnd1C0VXbdVZZdd9oGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIOKwUKaUfm+GRY4K/r0Bhr13XR67Z9LgwdaWZvuYiAgL
-# MA0GCSqGSIb3DQEBAQUABIIBAHE91hgE5OW+dTdvc3a2AUvTWMcQ1aQLdcUkPfHm
-# lQpRFtjBzfBxYAnUw3vgBibvx09BiDPZzFlFRK74UYlO01iWtpqludGivpoXq16h
-# vtvXAtSNVebSox6U4mSHylaHMaa9taefqL3/gY8jQYWGgyGP1XASayQILDHvY7gR
-# efz4N7wWEpkNRA80/3SqTV3nnA78V11IDOr5dyX4gLQamoBMAdH1YeRPGDZ3DCY1
-# h6dBHDBc5Tl9XVxEb9jeogtl3a5jRZQEfqaBKzn5CeWUjRG2IOJxWQJL5Hja/M0j
-# L88H41w8tCIfoKX49v/q6k7Dc+x16AqBQx4v6+OmVmFCCck=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTIwMDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIEh5FiuixcPafkUqqPjyGCYB9hP7tIPkkLsnC8ZohHCN
+# MA0GCSqGSIb3DQEBAQUABIIBACFy/fM3m4re49Q0tG1vlbkpyypl4wdthoPSBmWW
+# xRMS2jRwG5jcMKpDXbY8GRMTbbt0rHVwwkCUvN4kLFvKUKMGyknEdeBugacKzuLm
+# V+cFCvsJlu5FHKAwPed22sd4VAGctOa8Apnm49f8+Zq9kKkaOlQHTTl87it2UdZM
+# tQo47QPGLQmdJBPq29lBf+80lzjOZ/abb6r1n4mpPEwgM98TTsa96mnGBMeYWBeM
+# OyjtuUuKacQsVUrMLu38fSTggNQwW/gjzmpa+izF0mhm3qzgJn0Qe4e7JbDJpm1q
+# HCIJ3HVbPNj7vEURKe/iqWgqkW6i9UKqhy1rAZSI50KliFg=
 # SIG # End signature block
