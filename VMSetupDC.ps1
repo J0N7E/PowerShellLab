@@ -671,6 +671,32 @@ Begin
                     'Default Domain Policy'
                 )
 
+                "OU=Domain Controllers,$BaseDN" =
+                @(
+                    "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
+                    "$DomainPrefix - Domain Controller - Time - PDC NTP"
+                    #"$DomainPrefix - Domain Controller - Time - Non-PDC"
+                    "$DomainPrefix - Computer - Firewall - Basic Rules"
+                    "$DomainPrefix - Computer - Sec - Enable SMB Encryption"
+                    "$DomainPrefix - Computer - Sec - Enable LSA Protection & Audit"
+                    "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security"
+                    "$DomainPrefix - Computer - Sec - Enforce Netlogon Full Secure Channel Protection"
+                    "$DomainPrefix - Computer - Sec - Require Client LDAP Signing"
+                    "$DomainPrefix - Computer - Sec - Disable Spooler"
+                    "$DomainPrefix - Computer - Sec - Disable Telemetry"
+                    "$DomainPrefix - Computer - Sec - Disable Netbios"
+                    "$DomainPrefix - Computer - Sec - Disable LLMNR"
+                    "$DomainPrefix - Computer - Sec - Disable WPAD"
+                    "$DomainPrefix - Computer - Sec - Block Untrusted Fonts"
+                    "$DomainPrefix - Computer - Windows Update"
+                    "$DomainPrefix - Computer - Display Settings"
+                    'MSFT Windows Server 2022 - Domain Controller'
+                    'MSFT Windows Server 2022 - Domain Security'
+                    'MSFT Windows Server 2022 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 2022 - Computer'
+                    'Default Domain Controllers Policy'
+                )
+
                 "OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - Computer - Firewall - Basic Rules+"
@@ -703,33 +729,20 @@ Begin
                     "$DomainPrefix - User - Disable WPAD"
                     "$DomainPrefix - User - Disable WSH-"
                 )
+            }
 
-                "OU=Domain Controllers,$BaseDN" =
-                @(
-                    "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                    "$DomainPrefix - Domain Controller - Time - PDC NTP"
-                    #"$DomainPrefix - Domain Controller - Time - Non-PDC"
-                    "$DomainPrefix - Computer - Firewall - Basic Rules"
-                    "$DomainPrefix - Computer - Sec - Enable SMB Encryption"
-                    "$DomainPrefix - Computer - Sec - Enable LSA Protection & Audit"
-                    "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security"
-                    "$DomainPrefix - Computer - Sec - Enforce Netlogon Full Secure Channel Protection"
-                    "$DomainPrefix - Computer - Sec - Require Client LDAP Signing"
-                    "$DomainPrefix - Computer - Sec - Disable Spooler"
-                    "$DomainPrefix - Computer - Sec - Disable Telemetry"
-                    "$DomainPrefix - Computer - Sec - Disable Netbios"
-                    "$DomainPrefix - Computer - Sec - Disable LLMNR"
-                    "$DomainPrefix - Computer - Sec - Disable WPAD"
-                    "$DomainPrefix - Computer - Sec - Block Untrusted Fonts"
-                    "$DomainPrefix - Computer - Windows Update"
-                    "$DomainPrefix - Computer - Display Settings"
-                    'MSFT Windows Server 2022 - Domain Controller'
-                    'MSFT Windows Server 2022 - Domain Security'
-                    'MSFT Windows Server 2022 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 2022 - Computer'
-                    'Default Domain Controllers Policy'
+            # Get baseline for all versions
+            foreach($Version in $WinVer.Values)
+            {
+                $AllUserBaseline += @(
+
+                    "MSFT Internet Explorer 11 $Version - User"
+                    "MSFT Windows 10 $Version - User"
                 )
             }
+
+            # Employees
+            $GPOLinks.Add("OU=Employees,OU=Users,OU=$DomainName,$BaseDN", $AllUserBaseline)
 
             # Add gpo links for each version
             foreach($Version in $WinVer.Values)
@@ -772,10 +785,10 @@ Begin
                 {
                     $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                            "MSFT Windows Server 2022 - Domain Security"
-                            "MSFT Windows Server 2022 - Defender Antivirus"
-                            "MSFT Windows Server 2022 - Member Server"
-                            "MSFT Internet Explorer 11 2022 - Computer"
+                            "MSFT Windows Server $Version - Domain Security"
+                            "MSFT Windows Server $Version - Defender Antivirus"
+                            "MSFT Windows Server $Version - Member Server"
+                            "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
                 }
@@ -915,11 +928,11 @@ Begin
 
             $MoveObjects =
             @(
-                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
                 @{ Filter = "(Name -like 'RT*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
 
                 @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
@@ -1169,7 +1182,7 @@ Begin
                 }
             )
 
-            # Add computer groups
+            # Add local admin and rdp groups
             foreach($Computer in (Get-ADObject -SearchBase "OU=Computers,OU=$DomainName,$BaseDN" -SearchScope 'Subtree' -Filter "Name -like '*' -and ObjectClass -eq 'computer'"))
             {
                 $DomainGroups +=
@@ -1188,6 +1201,28 @@ Begin
                     SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
+                }
+            }
+
+            # Add computer groups
+            foreach ($Version in $WinVer.Values)
+            {
+                $DomainGroups +=
+                @{
+                    Name        = "Windows Server $Version"
+                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Version*'"
+                }
+
+                $DomainGroups +=
+                @{
+                    Name        = "Windows 10 $Version"
+                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Version*'"
                 }
             }
 
@@ -1821,8 +1856,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNeSzsTKQjC9dvqIt66WwbEzg
-# kJWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9hkSaXSfiJA9kgPWTllzXON3
+# ZPeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1906,28 +1941,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8TGGZLIdSm6e11OsQuJojW3fM4kwDQYJ
-# KoZIhvcNAQEBBQAEggIAMvEqEZLQQ4EsiflJbqYoUgKOcoKXnqZ2RchUcyV6dW6r
-# cfyz4nPHH3a7FB8793Mlb7YxDA76b4PFTOSayGkWOMVFHPfIm9E7rAUWORZ4OZhD
-# NFF7Oc1NGB2hDLvtRUQ09HktnZa/T7xg0mTLf6Gv63t7/m+v+f8PJ/UE8TSS4ZT2
-# Yf250kinmGQdnEDCeNWkDFNs1clt8w9Ax7KkBjM4BhJgwrLnyOrxufzDTEm1/MO2
-# jZVuYVm67lXUVslnhn1Z5MTJYdJQaYeput587/4uyE/78QhvVAmZGh8bqSlRwuAH
-# d3SKZhDLHypuF9/YJlyACAlryFftRxoUL9ePwZQ4p2TfJT5MJtTeazNQwmmMNClU
-# nOF4ssunjgGgH8UbXHSR39F3Z1Et0UKNxmoJDRKulvjqpS2n0e4N1C85dVqWeB3H
-# 6q1MGiFtNf+tKEECcJkm0qq7WA5USsQrZmvdeOjl6BhuMqZ20q2RYf3YUE0/Kwub
-# MeMXfxzZ9yuYtxHOvSAsutXEVHKrnU0dLFWrGKMrGmzy7W13H1llQHLJ+3Ldx5Wu
-# 85VXSGG/gG5F2K0fDepNHpdWfuFmx86mQf12CQvFFrbFV7xAuvW48kbGH+BK+K2x
-# UFLM/mAbkgb1uk2/BfQ7V+GEDLsB9TooZ5a5xVo7qkkddEnd1C0VXbdVZZdd9oGh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8CVDC3If5a47oraP7DM0qhM7QZcwDQYJ
+# KoZIhvcNAQEBBQAEggIAIbQAfdsOL/sn+mXg7ujIk7p8PoGqlqrVDv5mqjX57I/Q
+# 8djnMK3qbBvenO6TgpvPi2JIAbmR5u1DMS27iqHEKeqngjq/YI3qU+eVqnt48UPz
+# u8tuXqHb52WLmDrHQniRFktT8CS/xTx/ZcNjwVDr2xUc5vodvaJj5WzUB+qGKbXn
+# Pw9aKAmXEiC5mInZpRW71mgaJQdfnOGk1rHSEPMlkZU+sQixl2FibuL8z/aKZUJh
+# E+ShP6AXB3PA/7qEZ8Y+Zya2Vh/h8jCPMGu7xw0FhSLBoYDg4N66NkeGyH+FXquy
+# UQno6m9oMLX0TYwIRsY0c/B8ghdjXriH2RdmBHgOoPomOZV9Zs6sjTvxSPQrZwWR
+# nIGdRJWHGnaHDQOtGxeUFL57BXGdlLhUJWhgUg+NRuH6QVqL27ThxXl5TADyon9R
+# x+3RSN1G+3bLb8SHDJHBbS+fZIsm2BhaMOfNdqK5Ct4kP092Y21eQE5glEG+ABh3
+# RLPwgk3saQaeXviizYbSNchtaJE7Doy48OYIJH7xmwyHDEZxY33NHki91eCkRzdf
+# sI7ZQK0lfSqNgfuOcIuJ9Vxds0CDb4Oc7omoPph6fukNQh7yljsrJyx8sHx5lxvF
+# 6fKn13T13vfQaAZPYCvg6txFkA/cgd7zEPkzZmRcpC/9ms691KAzeMH21+4XSFih
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTIwMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIEh5FiuixcPafkUqqPjyGCYB9hP7tIPkkLsnC8ZohHCN
-# MA0GCSqGSIb3DQEBAQUABIIBACFy/fM3m4re49Q0tG1vlbkpyypl4wdthoPSBmWW
-# xRMS2jRwG5jcMKpDXbY8GRMTbbt0rHVwwkCUvN4kLFvKUKMGyknEdeBugacKzuLm
-# V+cFCvsJlu5FHKAwPed22sd4VAGctOa8Apnm49f8+Zq9kKkaOlQHTTl87it2UdZM
-# tQo47QPGLQmdJBPq29lBf+80lzjOZ/abb6r1n4mpPEwgM98TTsa96mnGBMeYWBeM
-# OyjtuUuKacQsVUrMLu38fSTggNQwW/gjzmpa+izF0mhm3qzgJn0Qe4e7JbDJpm1q
-# HCIJ3HVbPNj7vEURKe/iqWgqkW6i9UKqhy1rAZSI50KliFg=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIBkqgziB8vhXp0a81X9t66XHt9Z8kG2Sfe+rQaaPRAHg
+# MA0GCSqGSIb3DQEBAQUABIIBALxElfOBpyA+Kk7WGZekG3JpN/Lad97TkAvQAAKi
+# BZebAUkA2FmEyCWdHuaIYWIUbHh1NeV5ApGTOcolQ07TRDe836Ni3E29o5Se+hK5
+# XQxKjzbK7pia34IBKDl4xSCWU45U4CXRpsSSDJb1z+lEZdFUZCBc0wSmHqqGjWYI
+# 5nJRWxv/6Gn8wH5ctHK9Gkbt2/ZzIDqTezMG+gh1STZrGcaszG6NY0bgFBkW6Jdi
+# 8V9pfD01ikeeeQtHSTmAD97BRCUZcjzaS9rQto9rHeOb1jhW/61xsVJHsPqb6cb5
+# VN/xZ9Ls2h5Fv+u79xsTdnPYJvEjfIIVofF4R1HBJd8yd90=
 # SIG # End signature block
