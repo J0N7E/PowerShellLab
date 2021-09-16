@@ -88,8 +88,9 @@ Begin
 
     $MainScriptBlock =
     {
-        # Define reboot of machine
+        # Define flags
         $Reboot = $false
+        $Pause = $false
 
         # Setup splat if to rename computer
         if ($NewName -and $NewName -ne $env:COMPUTERNAME)
@@ -124,6 +125,7 @@ Begin
                     catch [Exception]
                     {
                         Write-Warning -Message $_
+                        $Pause = $true
                     }
                 }
 
@@ -148,10 +150,14 @@ Begin
             catch [Exception]
             {
                 Write-Warning -Message $_
+                $Pause = $true
             }
         }
 
-        Read-Host -Prompt "Press <enter> to continue"
+        if ($Reboot -or $Pause)
+        {
+            Read-Host -Prompt "Press <enter> to continue"
+        }
 
         # Check if to reboot
         if ($Reboot)
@@ -267,8 +273,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnbE473tbw6N2PgcN84MAiNOe
-# iImggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlHlv9XL8wXFF/WuzNGFxIjth
+# rR+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -352,28 +358,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUs0lXtUdLYLJcaDlSzpDKahSwDLgwDQYJ
-# KoZIhvcNAQEBBQAEggIAYUHkgrzCOBK9+DXIzM0C6hTu4GjxfpwfgO5SRdRpDeiT
-# fujU2fyCHUaiTGFzd7Sy2BHDJNX34eAICKP9bPjylv5T6lmgovriApRdgjgqtQgN
-# tAFKTKLJsGCmOgMPHm3zV1ZEpgT+rRujmr1456GKBByAKMYGWPIpa6FwTUAVENlo
-# YK4DMr5LFg8xM0J9wBRTF19nuguHE1uKWsQeSinaHWvEOl1zFNL41MzrO9QiOyMp
-# 9/5rv9cgjWwjJTj1k63NZT5VAmbywVljpJHdfQe4S3XlwI9vp2VdLMrU2Nhn3bxf
-# DUTVetRE4VYV9piz6eRba4vapE6rLx5fig+dVNlcaHWP+aTh+hPEirKPdfG2i/GT
-# HYaQ1ASMl2E2s8hAwk0e5mGrf5DiK1JYVxgzdxwegOwSjomwvu+8dPHiAk0dUNx6
-# rD8qG/G4HVWJFIsnDu6DSIzFGTPEuiCrH9x7fFE3fGD+JWGxu/PzEZI8rWKbHPYF
-# RSLn2Oe31m0zHQuUUcE/V0voRhNxWDkeC2RghFwmPwLjZzfDVc6JKfnwhWoSxvDE
-# gupYz6D/1TMtR/hFB8R9klXSeezlBIsqgYTUAFlnsbHbyGsJTSQgRyFhVBeCoxdz
-# Wkx+BS7nM2S0a7v5jHVpPT5BMQVud+otzqZcjLFrBb08tU59NOqToLCfBp4n0Fqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULR69PCh+840LhnWsUQm9lz/14McwDQYJ
+# KoZIhvcNAQEBBQAEggIAL2qCiJ/XXjN56XgC8MOYxw5l+QTE9gIh7lCd75vYVQ+0
+# qs/3SQrW02iAhQFbuPeubGUhu3D5XcrzMsrR8iHAsN1zhRhtuFu4ystjBSK8G5I2
+# FfX9mmun80pbrSE7aB6mgXinQe1gPu+TF3L/QZgAa3FS4bMfFkhvKsOSfPVoWKWF
+# R3fqvvBYi2OTW885mzVIS+JQ8L4nlhjEKUAviqfYmzeRqzNuESsniMQl0MhhNFOp
+# 4PgVlNCGPEt3PS66sDQIjCD1baecryJjgm3fVOrqF8S3QZnNO+APZtfjT6VbPj4C
+# YOhhIQfTtTudOUvzTBATN/QAHYgjC7Gcz6Qmdgpcfn176vlW8hNRittC/bY6TjDh
+# EDpp94QChrFJ3twQVRMGxfJijTbdy5bi06BZ/8YLi4b9nTzPIzCmzSlry6yQMMHQ
+# FaNPDArPvjc5J0Pfo8903NGPVHMg6JxDh26NyWeu97XuCnyUY4dStu29mPwZXpcb
+# OjQPIHzhXcvJaytssEdClv+LY5n/iLlihef98iJs1PcVFj1wnmXzv71HEP6cbCPO
+# J1eLfYLiNEwUE09vURufbelbwijfFJW31M7xEnWj/MpmyXHxO1C2XIlVY3fsZHq8
+# 0JSC8oIRtz37JEU7mW+I/JJn7wjpylLiT43y4tPkA8e5vNebDNd+F4KqOD4tyCqh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNDExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIOdV6dXvKXFUJUnXMTiV1wEMp2Py6Rh/cTmkWg0wx425
-# MA0GCSqGSIb3DQEBAQUABIIBABJwLeMxeIvVt8nCU46IAfMSpf3rs2ePPLzvU1Re
-# DuY+F04YFiZtlVK0uKxAzu7OZQbTTW9LlupSHhJBLlsb1FVI/uRajtQEeK903NIz
-# 4Ghp1/1NL4Gl4ujcqmhc65AJhsLO0Bw3+mLdVkT5B9CCp+WnN1sVhoYTWuLkdhiI
-# kyfoeONg4+HcL/4j3BL0BpW7bP2ZdAEtvH+Y7jp4iU+3mM9hPahvSLqDW5tIwzZx
-# jDiuk2oYbfhTVnLskJf0SFuwssoAvKnABX6EqQvfGHQE5XLVGuWnsl/0eDs+hAUe
-# eIt8OJpzhgox3+dwGsRvJ2xOrmu2v1VgOW9yfNb9iO8ZIDs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjIwMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEINiLR/zJM104LqIQScTYGvT1ko4NNqZYgkk10D1dujgp
+# MA0GCSqGSIb3DQEBAQUABIIBAEW7XNzHSOvZYP0mjBSS1e22A9ON7G93c9MZJ3Xr
+# geeAr56yXpFQQl6+J2QOiohWNBDon/HJYzbpuF6Cw3M5kotnUo4I86zElcUAmz63
+# 5mXSY3iLtqaaehAo9gPrjDOEEkOK+PzeQvTfV63tkjCBuRo/aJMkIfOYoWxYkqOL
+# Br+v2098GUOjj+4SVAWiQrsA5nZaM8KUozHyVNSH3lVzSplGJ54Buxqna2s6W8kM
+# bxdRKNEPvb2LFr24d1VD3DIz61PWRBDUZ6RBPuulYsSIkH06gBvFG1m9aF3VQujV
+# Hy02xfyHnSPM3kvvayd7QKr0nlz+Y7FCE+ROJ5bzi9epSpQ=
 # SIG # End signature block
