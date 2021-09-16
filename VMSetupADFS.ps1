@@ -172,7 +172,7 @@ Begin
             # CA config
             $CAConfig = TryCatch { certutil -dump } -ErrorAction SilentlyContinue | Where-Object {
                 $_ -match "^  (?:Config|Konfiguration):.*(?:``|`")(.*)(?:'|`")"
-            } | ForEach-Object { "$($Matches[1])" }
+            } | Select-Object -First 1 | ForEach-Object { "$($Matches[1])" }
 
             if (-not $CAConfig)
             {
@@ -200,7 +200,7 @@ szOID_PKIX_KP_SERVER_AUTH = "1.3.6.1.5.5.7.3.1"
 Subject="CN=$FederationServiceName,$(Get-BaseDn -DomainName $DomainName)"
 KeyLength=2048
 MachineKeySet=TRUE
-Exportable=TRUE
+Exportable=FALSE
 KeySpec=AT_KEYEXCHANGE
 
 [Extensions]
@@ -235,6 +235,8 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
             {
                 $Response = TryCatch { certreq -f -q -submit -config "`"$CAConfig`"" -attrib "`"CertificateTemplate:$CATemplate`"" "$env:TEMP\ADFSCertificateRequest.csr" "$env:TEMP\ADFSCertificateRequest.cer" } -ErrorAction SilentlyContinue
 
+                Write-Verbose -Message $Response -Verbose
+
                 if (($Response -join '') -match 'Taken Under Submission')
                 {
                     # Get request id
@@ -246,11 +248,14 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     Set-Content -Path "$env:TEMP\ADFSCertificateRequestId.txt" -Value $RequestId
 
                     Write-Warning -Message "Issue ADFS certificate on CA and rerun this script..."
+                    break
                 }
-
-                if ((($Response) -join '') -notmatch 'Certificate retrieved')
+                elseif ((($Response) -join '') -match 'Certificate retrieved')
                 {
                     Remove-Item -Path "$env:TEMP\ADFSCertificateRequest.rsp" -Force
+                }
+                else
+                {
                     throw $Response
                 }
             }
@@ -272,10 +277,13 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     {
                         Remove-Item -Path "$env:TEMP\ADFSCertificateRequestId.txt"
                     }
-                    else
+                    elseif (($Response -join '') -match 'Taken Under Submission')
                     {
                         Write-Warning -Message "Certificate not issued, please issue ADFS certificate on CA and rerun this script..."
-
+                        break
+                    }
+                    else
+                    {
                         throw $Response
                     }
                 }
@@ -360,7 +368,6 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                 Install-AdfsFarm @ADFSParams -OverwriteConfiguration > $null
 
                 $Reboot = $true
-                $ExportCertificate = $true
             }
         }
 
@@ -370,6 +377,12 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # ██╔═══╝ ██║   ██║╚════██║   ██║
         # ██║     ╚██████╔╝███████║   ██║
         # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
+
+        if ((Get-AdfsProperties).EnableIdpInitiatedSignonPage -eq $false -and
+            (ShouldProcess @WhatIfSplat -Message "Enabling IdpInitiatedSignon page." @VerboseSplat))
+        {
+            Set-ADFSProperties -EnableIdPInitiatedSignonPage:$true
+        }
 
         # FIX
 
@@ -565,8 +578,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiS7ti3LNc8hfoocbdOZqybFB
-# YWyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh7WAze3YTvFfMawUUzoR0wN+
+# 2Diggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -650,28 +663,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxlia3OOwpFz72J10jE+vZxU7F28wDQYJ
-# KoZIhvcNAQEBBQAEggIAZ4gJujdEemxm458nQhZJBr1UCrQ5q8KWZB78rRfbRthH
-# fdIqvpwCOjmNAH9H8bCl12GCdWGW1C9g3/T2m7NIxew2IbTyWNX4WM6K+GzgxUKT
-# tQB8DrafnwlYCxF6DOUyqs2V0tNtXI6MnMp7HCmIfUHxj43pWpJvtmnunVWzOewL
-# XLG/AgA7QwIiFM3rh4mvPXCA+NjTyycvxazhc2jU3xL3plukKSiOpLgdi1/KWjW7
-# pvoI0RKkcUxax05r8HJ8R8HU0ZJape/XxCd1lBHaIqInYQ9FCxCER7hY9rkqU0xq
-# 53nt0BtZRWNLeVpZb2a/SdDIltQlC2Zi7/AprZbqPvEYgJbegLwUyrv67itPlchT
-# y0Mie3pp5rX1Goi7jRABlp/mFgKDH2xc4cmhuq089awS4TF/WlIa0sKO4vDNCwId
-# YcJP9apXqx3H1RGe5mCegv50BeHQcfUdwNpsV1OR5j2Qb+VSWC3EK07js9qrnBdK
-# HafnopE1/SCpHkjmOUp/OLoBRlNt0t3MV6GDiLcuZKmcJmFPqPkIe9suapyN574V
-# 3KIaz/yPO5H0Iknt3lmAu5Gq8MEj7Owvk93N8yXyxGjVnnPSKPzXTzfrdMojGEO9
-# HdZ9YvGJyt1aYMkAjhBr3AbUW6dUMgPUxlluJcykgcr6Bd8rA8cC2VdxKIKUj22h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoBnZyMjepGU2aD/PFEGMC0ps1gAwDQYJ
+# KoZIhvcNAQEBBQAEggIATogmzG4DqV+ZZ+YCP2ko6hs97HklrOdX7Y3QKCZvUzBo
+# yl8HpeYu2HMJGz9825WgwiDs7hlsxmW5Acof4pCEg50D1eQkPGvjLMM6oMCLk0Xl
+# rWKn93n/SrsorHWrc6UgRxvGdRxfS/LcfrhK4DC3pUcovMIG72+Tfo3SWzpmacQz
+# cqrYEamGcEiHcykuhn1lnJKQZZFcpFfAG0KGCuDE/s5GcnPrdFHNB/tdeZnVPqam
+# 8N9jUVLUiasCRM4xe5ZquUFLqk2cMq8n6C8vZB2TSIYPwJxpRXNurU1h1+AbTIdz
+# XWNjkDHvQKkDyf2IALs/r2U//Ve47L7RJ3WkZxabqGb9dR89a+tBhBuvq224a8sT
+# I1QMzSkHKEGtXllCPmnuXGaHrDhEUyklqEOPAH4YdzKMhAmlAjSPnnT+r4ifnLx4
+# vftgHaIrkByMmgt/HU97mwxcc+veqkhmRh+Zb2CkauVdjQrydPciof+RrVjhM0GV
+# d3p2c28wfQRz7qyQx3qlmVXaSs2zCCzR31i6iCRFmxgSdrzKNZ0tvFuEyOAtjZbv
+# hZYeQ6g8I4c8XePvcMx6VSkcoSnhVy3wkl04cvYPrnyA1mDIs/5RN1bLhI8uXMQS
+# DLtIU+jLZDKY2QfR3dNjFZwiyPCVyGd1hGQbvXLCX9PGR2LUcfMwZ/UF7ORsNlWh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDMxODIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIA4U7wSMYmu5Z9uWehEekgGj1+zRQb0sNAso3rn1+u/A
-# MA0GCSqGSIb3DQEBAQUABIIBAHv3aDSg7oK16qeJClPqX8P/3YMf5iKXu/C9wiIG
-# hUIw9Nw5FbcwbhAgFEjWFzlqSlBhCO+AKGjx51gveOy2EOACvUZ1ERnYCaIaMK4A
-# T/2mMJdhqP+bc4xWAuqo1Byd15iFO1lRoTErFOg3QksPTgTDkjTFq90tre2D2yC5
-# Wo/vAtFFEtDO0kjPxtqGNIcvfpwyuj5gL9euBOczjZZAggLc0juWCEiKo4pFb+G2
-# 2Xq4n6PLK/GdS5RTgirxHWbMbCihzdOKTc2LlLqZS00z+v52CwwGaW+qwGjEkQjF
-# gKPQInU9/FXFwDFZVuN89Epnp4pdjeraBENnrFYfYVERyEs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEICJbBaLRQofr3vexexnyV6ezQynN2UlG6c0+GV9cnHPa
+# MA0GCSqGSIb3DQEBAQUABIIBAAHALnbx7sziZpD/Iuq0eBGKkjMwSvBuE+E/+EbE
+# SWdRCnqRj4ykBnS5sGqhZTrLTDr5MwqP2L8bxUhnXLgjFzPW4oCIqiOB4tYn0P7P
+# slxC8z0pcgCR5hExguyUFMlWRKXzJGxCIkzS47SOeEt31grKEf+xjsokoJADFuSf
+# mRWZhDh6iz/0yuvtI4m1WQSFmSlZCP7rIO71w1/RpQ7uEGZC1ml3CTxW9EflXDjt
+# 8kOavHwMJ0IRPajkpfsAEqIEJFMNo9pzLNXDlf708tIG96zwwcHul/EWeOx+MWYT
+# fNrmZZCHBQGLkFHNKxW5ovAqEaMd4UAbxgT+BSXtwuOSR9A=
 # SIG # End signature block
