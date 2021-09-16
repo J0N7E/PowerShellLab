@@ -510,7 +510,7 @@ Begin
             #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
             $WinVer =
-            @{
+            [ordered]@{
                # build  = version
                 '17763' = '1809'
                 '19041' = '2004'
@@ -748,8 +748,8 @@ Begin
             foreach($Version in $WinVer.Values)
             {
                 # Baseline older
-                if ($Version -notin @('21H1', '21H2'))
-                {
+                #if ($Version -notin @('21H1', '21H2'))
+                #{
                     $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows 10 $Version and Server $Version - Domain Security"
@@ -767,10 +767,10 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                }
+                #}
                 # Baseline Windows 10
-                elseif ($Version -in @('21H1'))
-                {
+                #elseif ($Version -in @('21H1'))
+                #{
                     $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows 10 $Version - Domain Security"
@@ -779,10 +779,10 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                }
+                #}
                 # Baseline Server 2022
-                elseif ($Version -in @('21H2'))
-                {
+                #elseif ($Version -in @('21H2'))
+                #{
                     $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows Server $Version - Domain Security"
@@ -791,7 +791,7 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                }
+                #}
 
                 # Certificate Authorities
                 $GPOLinks.Add("OU=Certificate Authorities,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
@@ -884,6 +884,15 @@ Begin
                 }
             }
 
+            # Set GP permission
+
+            foreach
+
+            if (Get-GPPermission -Name 'MSFT Internet Explorer 11 1809 - User' -All | Where-Object { $_.Trustee.Name -eq 'Authenticated Users' })
+            {
+
+            }
+
             # ██╗   ██╗███████╗███████╗██████╗ ███████╗
             # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
             # ██║   ██║███████╗█████╗  ██████╔╝███████╗
@@ -954,20 +963,16 @@ Begin
                     # Check if computer
                     if ($CurrentObj.ObjectClass -eq 'computer')
                     {
+                        # Set default build
+                        $Build = $($WinVer.Keys)[-1]
+
                         # Get computer build
                         $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
                             $_ -match "\((\d+)\)"
                         } | ForEach-Object { $Matches[1] }
 
-                        # Check build
-                        if (-not $Build)
-                        {
-                            # Set default build
-                            $Build = $($WinVer.Keys)[0]
-                        }
-
-                        # Set version
-                        $TargetPath = $TargetPath.Replace('%Version%', $WinVer[$Build])
+                        # Set targetpath with version
+                        $TargetPath = $Obj.TargetPath.Replace('%Version%', $WinVer[$Build])
                     }
 
                     # Check if object is in targetpath
@@ -1205,24 +1210,30 @@ Begin
             }
 
             # Add computer groups
-            foreach ($Version in $WinVer.Values)
+            foreach ($Build in $WinVer.Keys)
             {
-                $DomainGroups +=
-                @{
-                    Name        = "Windows Server $Version"
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Version*'"
+                if ($Build -notin @('19043')) #21H1
+                {
+                    $DomainGroups +=
+                    @{
+                        Name        = "Windows Server $($WinVer.Item($Build))"
+                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                    }
                 }
 
-                $DomainGroups +=
-                @{
-                    Name        = "Windows 10 $Version"
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Version*'"
+                if ($Build -notin @('20348')) #21H2
+                {
+                    $DomainGroups +=
+                    @{
+                        Name        = "Windows 10 $($WinVer.Item($Build))"
+                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                    }
                 }
             }
 
@@ -1856,8 +1867,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9hkSaXSfiJA9kgPWTllzXON3
-# ZPeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1AnT+184x49p1lC5SMf9a8Fp
+# o/Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1941,28 +1952,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8CVDC3If5a47oraP7DM0qhM7QZcwDQYJ
-# KoZIhvcNAQEBBQAEggIAIbQAfdsOL/sn+mXg7ujIk7p8PoGqlqrVDv5mqjX57I/Q
-# 8djnMK3qbBvenO6TgpvPi2JIAbmR5u1DMS27iqHEKeqngjq/YI3qU+eVqnt48UPz
-# u8tuXqHb52WLmDrHQniRFktT8CS/xTx/ZcNjwVDr2xUc5vodvaJj5WzUB+qGKbXn
-# Pw9aKAmXEiC5mInZpRW71mgaJQdfnOGk1rHSEPMlkZU+sQixl2FibuL8z/aKZUJh
-# E+ShP6AXB3PA/7qEZ8Y+Zya2Vh/h8jCPMGu7xw0FhSLBoYDg4N66NkeGyH+FXquy
-# UQno6m9oMLX0TYwIRsY0c/B8ghdjXriH2RdmBHgOoPomOZV9Zs6sjTvxSPQrZwWR
-# nIGdRJWHGnaHDQOtGxeUFL57BXGdlLhUJWhgUg+NRuH6QVqL27ThxXl5TADyon9R
-# x+3RSN1G+3bLb8SHDJHBbS+fZIsm2BhaMOfNdqK5Ct4kP092Y21eQE5glEG+ABh3
-# RLPwgk3saQaeXviizYbSNchtaJE7Doy48OYIJH7xmwyHDEZxY33NHki91eCkRzdf
-# sI7ZQK0lfSqNgfuOcIuJ9Vxds0CDb4Oc7omoPph6fukNQh7yljsrJyx8sHx5lxvF
-# 6fKn13T13vfQaAZPYCvg6txFkA/cgd7zEPkzZmRcpC/9ms691KAzeMH21+4XSFih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgc4pd/K+zqIYBUt9a24Fy48UFk0wDQYJ
+# KoZIhvcNAQEBBQAEggIAc0CsHRXwb+Y4oXAaBI4w/+kYPkfY3ZdfFHCNcQd2CeZT
+# /HxsgILJtBLPC8aCmvF4G9JW4M8UtK3Oo++RE0gtbBYatrgcW4/UlsdbOTvcj2TG
+# 4NYft0H8UL2vpEq4rFP6NjbzFfer5tWUWS3Z5dcM2c5BvCvKTa52f9undkYPir5l
+# G3TI/BpD6/xCBBaEkP3iy9t53sPtgqlmx3wajaU1q1Ybnll2y1kSwjcBUzB1MszL
+# 7NITL1PjYP6fjcAKwznbg+C6xnFmSi1DlDLAx1PwTP7LOLWFjdq7sf+Rw4biTGKm
+# aPQKckaBdo2rVQJP5tpygT96R70gJVpGOeMqiMin8B24PGCZlyG4B6+bt+DdkpK2
+# SfySyk8Rpj8oCLlpY0g9nY0H2ZMJihWjVIbRgf0wIs47keIY6sP98vu6yc0pk16C
+# FMEBw8EeuP5cTo4McNHwuXk87C1XaPhLnoR5Nn5V6A4KFDOq0dt8paFdpOe3mD9O
+# QDiVvN5RNqZcG/u55YuPS+avWFbbG84qG66lQPZQthOwD8rajZ0H8lB3B7i9uh3s
+# YL8nDtbgIqnQKfGO2eqJsZQzoiWo/aoUVwm2joYtfaFQnhd+JKRz3RyGc7zRbwLT
+# 5CGnVblz3/uBO5+7BfYUNmBqeS+s3O1dRASlJS5kjB7rkBZRgPQwm2fh86jUPM+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIBkqgziB8vhXp0a81X9t66XHt9Z8kG2Sfe+rQaaPRAHg
-# MA0GCSqGSIb3DQEBAQUABIIBALxElfOBpyA+Kk7WGZekG3JpN/Lad97TkAvQAAKi
-# BZebAUkA2FmEyCWdHuaIYWIUbHh1NeV5ApGTOcolQ07TRDe836Ni3E29o5Se+hK5
-# XQxKjzbK7pia34IBKDl4xSCWU45U4CXRpsSSDJb1z+lEZdFUZCBc0wSmHqqGjWYI
-# 5nJRWxv/6Gn8wH5ctHK9Gkbt2/ZzIDqTezMG+gh1STZrGcaszG6NY0bgFBkW6Jdi
-# 8V9pfD01ikeeeQtHSTmAD97BRCUZcjzaS9rQto9rHeOb1jhW/61xsVJHsPqb6cb5
-# VN/xZ9Ls2h5Fv+u79xsTdnPYJvEjfIIVofF4R1HBJd8yd90=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIIN0IexkkjIIL9lSGHLSFTxqQJwhwARawZ48GwtWraRe
+# MA0GCSqGSIb3DQEBAQUABIIBACQ06ArzqUGXLpjT7jfsyQOYcsSXTTYnonvV1wXj
+# Y7vHIhApHPiKqAC9Argsk4PIqdWJUDrY8XeTlYdr/Xi2JM5DBwSlT5uCnTx0Low+
+# mLdPWxRWWOMvAvu8kencyI2AxzuiBUi8uRJRYUqSMMqF31fbNVEZtCMzQrpn7qTw
+# vFBXpg3chUHdY85FJlMuigfdL5QOAW7dUF5+JGi7HzG7/BB80jJuGgZFAeeFjUKx
+# Dtmgt6PnAhFUa4yXooME6TTIyEvAGEyiopKVngpMNRly0uCCT+69ErE+YoUtfc3w
+# F233Kf7DdmZ5alYlrJ6Zm4q5CqJkwTS9Xetd7sGP47ynlTM=
 # SIG # End signature block
