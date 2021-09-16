@@ -602,6 +602,9 @@ Begin
             # ╚██████╔╝██║     ╚██████╔╝
             #  ╚═════╝ ╚═╝      ╚═════╝
 
+            # FIX
+            # read subdirs one level (base)
+
             # Directory names holding gpos
             foreach($GpoDir in @('Gpo',
                                  'Baseline\1809',
@@ -748,8 +751,8 @@ Begin
             foreach($Version in $WinVer.Values)
             {
                 # Baseline older
-                #if ($Version -notin @('21H1', '21H2'))
-                #{
+                if ($Version -notin @('21H1', '21H2'))
+                {
                     $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows 10 $Version and Server $Version - Domain Security"
@@ -767,10 +770,10 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                #}
+                }
                 # Baseline Windows 10
-                #elseif ($Version -in @('21H1'))
-                #{
+                elseif ($Version -in @('21H1'))
+                {
                     $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows 10 $Version - Domain Security"
@@ -779,10 +782,10 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                #}
+                }
                 # Baseline Server 2022
-                #elseif ($Version -in @('21H2'))
-                #{
+                elseif ($Version -in @('21H2'))
+                {
                     $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
                             "MSFT Windows Server $Version - Domain Security"
@@ -791,7 +794,7 @@ Begin
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
-                #}
+                }
 
                 # Certificate Authorities
                 $GPOLinks.Add("OU=Certificate Authorities,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
@@ -828,7 +831,7 @@ Begin
             }
 
             # Itterate targets
-            foreach($Target in $GPOLinks.Keys)
+            foreach ($Target in $GPOLinks.Keys)
             {
                 $Order = 1
 
@@ -884,13 +887,44 @@ Begin
                 }
             }
 
-            # Set GP permission
-
-            foreach
-
-            if (Get-GPPermission -Name 'MSFT Internet Explorer 11 1809 - User' -All | Where-Object { $_.Trustee.Name -eq 'Authenticated Users' })
+            # Set gp permissions on user policy
+            foreach ($GpoName in (Get-GPInheritance -Target "OU=Employees,OU=Users,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
             {
+                # Get version
+                $Version = $GpoName | Where-Object {
+                    $_ -match "(.{4}) - User"
+                } | ForEach-Object { $Matches[1] }
 
+                # Set groups
+                $GpoPermissionGroups =
+                @(
+                    @{ Name = "Domain Users";            Version = @('');     }
+                    @{ Name = "Windows 10 $Version";     Version = @('21H2'); }
+                    @{ Name = "Windows Server $Version"; Version = @('21H1'); }
+                )
+
+                # Itterate group types
+                foreach ($Group in $GpoPermissionGroups)
+                {
+                    # Remove authenticated user
+                    if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
+                    {
+                        Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None > $nul
+                    }
+
+                    # Get permission
+                    $Permission = (Get-GPPermission -Name $GpoName -TargetName $Group.Name -TargetType Group -ErrorAction SilentlyContinue ).Permission
+
+                    # Set permission
+                    if ($Version -notin $Group.Version -and
+                        -not ($Group.Name -like '*Windows Server*' -and $GpoName -like '*Windows 10*') -and
+                        $Permission -ne 'GpoApply' -and
+                        (ShouldProcess @WhatIfSplat -Message "Setting `"$($Group.Name)`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
+                    {
+                        Set-GPPermission -Name $GpoName -TargetName $Group.Name -TargetType Group -PermissionLevel GpoApply > $nul
+                    }
+                }
             }
 
             # ██╗   ██╗███████╗███████╗██████╗ ███████╗
@@ -1867,8 +1901,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1AnT+184x49p1lC5SMf9a8Fp
-# o/Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaxnFfJX2q3/3ivGWsX2t2Lwm
+# UsOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1952,28 +1986,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgc4pd/K+zqIYBUt9a24Fy48UFk0wDQYJ
-# KoZIhvcNAQEBBQAEggIAc0CsHRXwb+Y4oXAaBI4w/+kYPkfY3ZdfFHCNcQd2CeZT
-# /HxsgILJtBLPC8aCmvF4G9JW4M8UtK3Oo++RE0gtbBYatrgcW4/UlsdbOTvcj2TG
-# 4NYft0H8UL2vpEq4rFP6NjbzFfer5tWUWS3Z5dcM2c5BvCvKTa52f9undkYPir5l
-# G3TI/BpD6/xCBBaEkP3iy9t53sPtgqlmx3wajaU1q1Ybnll2y1kSwjcBUzB1MszL
-# 7NITL1PjYP6fjcAKwznbg+C6xnFmSi1DlDLAx1PwTP7LOLWFjdq7sf+Rw4biTGKm
-# aPQKckaBdo2rVQJP5tpygT96R70gJVpGOeMqiMin8B24PGCZlyG4B6+bt+DdkpK2
-# SfySyk8Rpj8oCLlpY0g9nY0H2ZMJihWjVIbRgf0wIs47keIY6sP98vu6yc0pk16C
-# FMEBw8EeuP5cTo4McNHwuXk87C1XaPhLnoR5Nn5V6A4KFDOq0dt8paFdpOe3mD9O
-# QDiVvN5RNqZcG/u55YuPS+avWFbbG84qG66lQPZQthOwD8rajZ0H8lB3B7i9uh3s
-# YL8nDtbgIqnQKfGO2eqJsZQzoiWo/aoUVwm2joYtfaFQnhd+JKRz3RyGc7zRbwLT
-# 5CGnVblz3/uBO5+7BfYUNmBqeS+s3O1dRASlJS5kjB7rkBZRgPQwm2fh86jUPM+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqHR2K1hncEmX16+WqB/NeeSA2w8wDQYJ
+# KoZIhvcNAQEBBQAEggIAfmM8NuBvoauB9v3XFVw0RHjp22GP2809yf/pCZuXhgCi
+# +SipLh1gPGpkbwrVTpYQazy/kaqQvTqVTrHupC67eN83aAGYUhR1d48pduOXuXXT
+# XXlm/I4uk5aziwISKgUeO4g1h3qD/3qyHutltnzirB/KHe/NONIcnKg4RodngnFq
+# VbLsPcR+4RjuftLX0WelLCY2RlNFciE+N0ClgKkaFn0x7kI9gJvDsCrOGDXN+jNj
+# S1SzP8DjSk+fcIcoV8+c+tnikrW3p7WGOndv4GO1OfU5YgT/ERSi5wBEd31lWQSQ
+# sDKNmRWyQ7yplM2IM7Xi6Q4qklMEUf42ptRkNC0T5zodN8tibj7FQXjWtioYjb/P
+# UXnJHSRGEc1CjAZAVlOF+XZT2H/8Hnups0sFjZgXU6nTxWGxnl2fl9kgPq+Pqrk0
+# OwEP9F0eTh43QgG+mLBxJJcb/hrjA0DmHGoVqUJTtcLtK6aUIp3LAG6B7IOcef+n
+# qKdhoMc6YXhEGx43kK13evhnjiQF6wJO3Ax9HHrMCe2Ls7GMD4nB/Y+1xnk6QfS9
+# X7TTyKbLxmmoYkK3GBAxjpm7dL8MCnIjQFknMC+0SSTxjJTRU2Nr7QmMP1NYpZFU
+# T2ZDWb3Fclz3uHtkEEeiJWloCHS99WwmU7qk/cEQZNsKSudzrn25O1Fdu99owWuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIIN0IexkkjIIL9lSGHLSFTxqQJwhwARawZ48GwtWraRe
-# MA0GCSqGSIb3DQEBAQUABIIBACQ06ArzqUGXLpjT7jfsyQOYcsSXTTYnonvV1wXj
-# Y7vHIhApHPiKqAC9Argsk4PIqdWJUDrY8XeTlYdr/Xi2JM5DBwSlT5uCnTx0Low+
-# mLdPWxRWWOMvAvu8kencyI2AxzuiBUi8uRJRYUqSMMqF31fbNVEZtCMzQrpn7qTw
-# vFBXpg3chUHdY85FJlMuigfdL5QOAW7dUF5+JGi7HzG7/BB80jJuGgZFAeeFjUKx
-# Dtmgt6PnAhFUa4yXooME6TTIyEvAGEyiopKVngpMNRly0uCCT+69ErE+YoUtfc3w
-# F233Kf7DdmZ5alYlrJ6Zm4q5CqJkwTS9Xetd7sGP47ynlTM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjE0MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIA3JxjPWm1mHGEswMTgKLtuEcsOFA3+upy8taeOWN9H+
+# MA0GCSqGSIb3DQEBAQUABIIBADpVdd0gIitQ+SStt7ONoUO/6+mlwrtvKdI8/gcY
+# OCiDsfJQcB6dWwi2WfKlr8oGwnP95WVkxhk1wcB/uQEnSVeId9zkvwKpW+1QBJDS
+# fB8UzA0HW2RMRkzds4lgVfSUxg/uepIjuY195929a36C0zi7JWfmDhoshU8VmunN
+# CUkIfBJ6I5Npn5YTUgkMlV10mPSdY2IUMK/1sE+R3bRJ834pcKv03vYbjJwFj8mG
+# Dr4Yllqh0Qe5g0WA7JO/+T7g0o7w4a7VH3qfwqEpJPHnEKu7eGGj5oDGRTTLzROH
+# j6VZ2EFHTxHgcbQ0D0tN8/3Icbc2V7ccWZtSwdgr/lvpVds=
 # SIG # End signature block
