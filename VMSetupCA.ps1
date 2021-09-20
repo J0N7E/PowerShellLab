@@ -75,9 +75,21 @@ Param
     [String]$CADistinguishedNameSuffix,
 
     # Policy OID
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$PolicyOID = '2.5.29.32.0',
 
     # Policy URL
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$PolicyURL,
 
     # Root CA certificate validity period units
@@ -101,10 +113,10 @@ Param
 
     # Subordinate CA parent CA common name
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$ParentCACommonName,
 
@@ -286,10 +298,10 @@ Param
 
     # DSConfigDN / DSDomainDN
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$AddDomainConfig,
 
@@ -300,12 +312,12 @@ Param
     [Switch]$UseDefaultSettings,
     [Switch]$UsePolicyNameConstraints,
 
-    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
     [Switch]$PublishTemplates,
 
     [Switch]$PublishCRL,
@@ -825,42 +837,43 @@ Begin
         # add oid parameter
 
         # Check if exist
-        if (-not $PolicyURL -and $DomainName)
+        if ($ParameterSetName -match 'Subordinate')
         {
-            Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps.pdf`" as PolicyURL."
+            if ($DomainName -and -not $PolicyURL)
+            {
+                Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps.pdf`" as PolicyURL."
 
-            # Add default AIA url
-            $PolicyURL = "http://pki.$DomainName/cps.pdf"
-        }
-        else
-        {
-            Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
+                # Add default AIA url
+                $PolicyURL = "http://pki.$DomainName/cps.pdf"
+            }
+            else
+            {
+                Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
+            }
         }
 
         ##################
         # Standalone Root
         ##################
 
-        $CAPolicy_StandaloneRootCA =
-@"
-[Version]
-Signature="`$Windows NT$"
+        $CAPolicy_StandaloneRootCA = @(
+            "[Version]",
+            "Signature=`"`$Windows NT$`"`n",
 
-[BasicConstraintsExtension]
-Critical=Yes
+            "[BasicConstraintsExtension]",
+            "Critical=Yes`n",
 
-[Certsrv_Server]
-RenewalKeyLength=$KeyLength
-AlternateSignatureAlgorithm=0
-"@
+            "[Certsrv_Server]",
+            "RenewalKeyLength=$KeyLength",
+            "AlternateSignatureAlgorithm=0"
+        )
 
         if (-not $UseDefaultSettings.IsPresent)
         {
-            $CAPolicy_StandaloneRootCA +=
-@"
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
-"@
+            $CAPolicy_StandaloneRootCA += @(
+                "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                "CRLDeltaPeriod=$CRLDeltaPeriod"
+            )
         }
 
         ##################
@@ -1764,8 +1777,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKHqlK/zjKzAPKjbOeCOCbugg
-# J/Cggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDtJ3KnpAF4qXnQER1PJA6wj4
+# nq6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1849,28 +1862,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURDeiy9iLpOjy7IWkYKVKsuhjQ2wwDQYJ
-# KoZIhvcNAQEBBQAEggIADjiT4VVX+OWQr+gM4MatL9RX4edSOtQ54sgmkPTqZaYK
-# /8tYlDfDOhXaed3Iw0Vfa8EfvVOjiuVL5fY7TARLyvzlQs2av8fHmzOaaoGEpjW9
-# Y9SyT4slKuEaxY2tMQcS7xdA+U3aPVBVX2CmLcBt1mhUc7mfojLxbISZ7HgikmKU
-# MHQ53+6MbwqD+GNkR6cxixsAio9L4PNNo2aKwC+NbgxRhJWjZOjjXnB2CX/pHCD7
-# tlc+hlHsTw6MeR1zZraTyrxOG/hf/8dpyGJg+B+gJjFQHQswyvqX7XPAZYhhonaq
-# dpLkTFtfFCcmBfAYhsTX108EYIXQjphBnnCrxcmaRxqhkwaivht8DyvHSVk9pdIH
-# LFnBzqYgSZLE2+0R5wQLIiB2GCF+btXZCdKv+WmGnNHlGw3cz+IWOv7eFo8x/xRn
-# 6grmSGcOW7ntYCHRYVpj3HgrH85lCIgxKb+SoemqCGIA0CfZ0LwMhm7hzxFifhaa
-# 8rYDMGAzRQHK6+5K5f8hekncMHHd0o7ou8fBY++M7YcImQAZXKBIn2QgthQI7Egi
-# Ww+Y06XSTWNf1kii5GxvRl4uNGD8YBkbb3fj1PcYqytedb80941fxNGPoMisNSI8
-# d+iFrfxFgs0B5RwFhwf4N8dVh3CVRixB5Sj78GL/SqqFBjlppOJFE4FxTJ8QfWih
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVXbEeRqmpKOpDfd90OZbxYs2yL8wDQYJ
+# KoZIhvcNAQEBBQAEggIAdrG5Vi3GiOgJjjSBZJsgmZ56yWI673JiBxqZ/jYXTefK
+# +qUKIf/OwJOMMrkkG9Tp39ee2o0hjrMCdQZIMhP7DlZL25RajuRWaGBIfPEG+1fD
+# 2Z9Cwlxq5R0vFrLBV/79avvTYK4JC0iE+SsxuAHJ+T0me0wmtLYB1D2Ow4KN9cH6
+# A5se98xRn35nivpkx0xL42tmVLTVqs8yBsutIzIuQPoA9ZC944Lzjtufhgo5ZGgJ
+# s5YJgpPY7O0cjMKerTrZCrZvPHXHejxRIJacmh7HNhnsUHzOmnw2cmrPjpWrxDxO
+# QfUsO3hV2eFrKChEnGvS71y0jPZ9RCzgKlpBe3b0A/VtbAZaGxQdZH0pqCfCdjFM
+# 3njmPq+QQGyXhRjV79J2xZSgcqGnZd4STMiJz5ohHfnE419gsw3Q73YkiykzX4Mj
+# srJJBhOlgNRRHUnl9/9p+IWC0QUNAbmCsOAIWASYOuTwuDfshSClFQ2T/7Jxb3ef
+# oKSMn7/MKkWuMGKxM56nw9T/mbJXChD+tpmIc0EVoB1fgZ3KpLB7+MO+/Cn/E5en
+# kl46nhz62+lcjyQThjHxGQwPSX2/58Z5uNW07fPVBu2N97RV/hGxc6+fsRDzrUfs
+# zje9p0J0z2EFDCTevEA/cahHQRA28NY66Tbzhzv/mAM5uxQO7I9sJwrjx6D2cOuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNTExMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIMetVUagufJEzQZ28pgQGceWH9GnnFTvARkW7iUh3PMi
-# MA0GCSqGSIb3DQEBAQUABIIBAAwd+DoVXsXTH4D3e3jZeecz0BZFJ7qX+3KBirgP
-# 8w4mymKICah4JhdzcwcwwjeRP8D+3zjjtX0zescxpSRNLoyCbgJ4RmwM5FHyO7gO
-# ERZHQBdInDtHF1eFsSXsO1AB8K436y+X30Pf+FdoR5dK4ZbCFc7fkqB+Rq8DJs4+
-# WjgF5I6JEl9JjBZoBfX3uKejtncbXk1u6EAyiADChEtawA82I54M9mllRHVzOz+Q
-# eJI+CJChzLC0EEJq44XPvqhiuCtUku8KSXPQbLfT7wArN/pPaYNz/EAxjn5Rvhsi
-# xO6ebtfIWYyg9fkx+qR7X4KDqmcJ5BSEvCOeIvWJefisGkI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMDE3MDAwMFow
+# LwYJKoZIhvcNAQkEMSIEIAG3WRD4yzxUTADs8kzBqEiJZo0yeyZWtX4dUv8I6VOX
+# MA0GCSqGSIb3DQEBAQUABIIBAJRuPL/rcEJ34Tx4Qw8vudhlW6VwSIOgAIf6XpmV
+# SMQDioPzBRv/0xM6hm44FqOCo7gjeFtGN8fd3rGAvdXlTc0jyswwTOjNKEe3iH0q
+# vVp/eZnGFPEWxerIfHXnjTIMS7wKQmbt/OZGsymgyUalxJRpWOpiTxWo7ZtS2VEG
+# LZ44+6HGPQwUM6QhP2RdPK2KxLwa2I13ONQvfGgGE2GmW2DYZsDkmAZyvSlvxVEa
+# pjwwQEleE79G2qlnRTdExKDooAH83eycF51alw8t9eaVRWfOgLATWLanyW10wUP7
+# kKdWqBzQlWa2yxTYn06mN7rysNuLSJ48+x91h05wbFZU9aI=
 # SIG # End signature block
