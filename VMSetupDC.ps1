@@ -604,59 +604,52 @@ Begin
             # ╚██████╔╝██║     ╚██████╔╝
             #  ╚═════╝ ╚═╝      ╚═════╝
 
-            # FIX
-            # read subdirs one level (base)
-
             # Directory names holding gpos
-            foreach($GpoDir in @('Gpo',
-                                 'Baseline\1809',
-                                 'Baseline\2004',
-                                 'Baseline\20H2',
-                                 'Baseline\21H1',
-                                 'Baseline\21H2'))
+            foreach($GpoDir in @((Get-Item -Path "$env:TEMP\Gpo" -ErrorAction SilentlyContinue),
+                                 (Get-ChildItem -Path "$env:TEMP\Baseline" -Directory -ErrorAction SilentlyContinue)))
             {
-                # Check if gpo set exist
-                if (Test-Path -Path "$env:TEMP\$GpoDir")
+                # Read gpos
+                foreach($Gpo in (Get-ChildItem -Path "$($GpoDir.FullName)" -Directory))
                 {
-                    # Read baseline gpos
-                    foreach($Gpo in (Get-ChildItem -Path "$($env:TEMP)\$GpoDir" -Directory))
+                    # Set gpreport filepath
+                    $GpReport = "$($Gpo.FullName)\gpreport.xml"
+
+                    # Get gpo name from xml
+                    $GpReportXmlName = (Select-Xml -Path $GpReport -XPath '/').Node.GPO.Name
+
+                    if (-not $GpReportXmlName.StartsWith('MSFT'))
                     {
-                        # Set gpreport filepath
-                        $GpReport = "$($Gpo.FullName)\gpreport.xml"
-
-                        # Get gpo name from xml
-                        $GpReportXmlName = (Select-Xml -Path $GpReport -XPath '/').Node.GPO.Name
-
-                        if (-not $GpReportXmlName.StartsWith('MSFT'))
+                        if (-not $GpReportXmlName.StartsWith($DomainPrefix))
                         {
-                            if (-not $GpReportXmlName.StartsWith($DomainPrefix))
-                            {
-                                $GpReportXmlName = "$DomainPrefix - $($GpReportXmlName.Remove(0, $GpReportXmlName.IndexOf('-') + 2))"
-                            }
-
-                            # Check if intranet gpo
-                            if ($GpReportXmlName -match 'Computer - Internet Explorer Site to Zone Assignment List')
-                            {
-                                ((Get-Content -Path $GpReport -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReport
-                            }
+                            $GpReportXmlName = "$DomainPrefix - $($GpReportXmlName.Remove(0, $GpReportXmlName.IndexOf('-') + 2))"
                         }
 
-                        # Check if gpo exist
-                        if (-not (Get-GPO -Name $GpReportXmlName -ErrorAction SilentlyContinue) -and
-                            (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportXmlName`"." @VerboseSplat))
+                        # Check if intranet gpo
+                        if ($GpReportXmlName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                         {
-                            Import-GPO -Path "$env:TEMP\$GpoDir" -BackupId $Gpo.Name -TargetName $GpReportXmlName -CreateIfNeeded > $null
+                            ((Get-Content -Path $GpReport -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReport
                         }
                     }
 
-                    Start-Sleep -Seconds 1
-                    Remove-Item -Path "$env:TEMP\$GpoDir" -Recurse -Force
+                    # Check if gpo exist
+                    if (-not (Get-GPO -Name $GpReportXmlName -ErrorAction SilentlyContinue) -and
+                        (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportXmlName`"." @VerboseSplat))
+                    {
+                        Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportXmlName -CreateIfNeeded > $null
+                    }
                 }
+
+                Start-Sleep -Seconds 1
+            }
+
+            if (Test-Path -Path "$env:TEMP\Gpo")
+            {
+                 Remove-Item -Path "$env:TEMP\Gpo" -Force
             }
 
             if (Test-Path -Path "$env:TEMP\Baseline")
             {
-                 Remove-Item -Path "$env:TEMP\BaseLine" -Force
+                 Remove-Item -Path "$env:TEMP\Baseline" -Force
             }
 
             ############
@@ -760,7 +753,7 @@ Begin
                             "MSFT Windows 10 $Version and Server $Version - Domain Security"
                             "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                             "MSFT Windows 10 $Version - Computer"
-                            "MSFT Internet Explorer 11 $Version - Computer"
+                            "MSFT Internet Explorer 11 $Version - Computer-"
                         )
                     )
 
@@ -769,19 +762,7 @@ Begin
                             "MSFT Windows 10 $Version and Server $Version - Domain Security"
                             "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
                             "MSFT Windows Server $Version - Member Server"
-                            "MSFT Internet Explorer 11 $Version - Computer"
-                        )
-                    )
-                }
-                # Baseline Windows 10
-                elseif ($Version -in @('21H1'))
-                {
-                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                            "MSFT Windows 10 $Version - Domain Security"
-                            "MSFT Windows 10 $Version - Defender Antivirus"
-                            "MSFT Windows 10 $Version - Computer"
-                            "MSFT Internet Explorer 11 $Version - Computer"
+                            "MSFT Internet Explorer 11 $Version - Computer-"
                         )
                     )
                 }
@@ -793,6 +774,18 @@ Begin
                             "MSFT Windows Server $Version - Domain Security"
                             "MSFT Windows Server $Version - Defender Antivirus"
                             "MSFT Windows Server $Version - Member Server"
+                            "MSFT Internet Explorer 11 $Version - Computer-"
+                        )
+                    )
+                }
+                # Baseline Windows 10
+                elseif ($Version -in @('21H1'))
+                {
+                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "MSFT Windows 10 $Version - Domain Security"
+                            "MSFT Windows 10 $Version - Defender Antivirus"
+                            "MSFT Windows 10 $Version - Computer"
                             "MSFT Internet Explorer 11 $Version - Computer"
                         )
                     )
@@ -1903,8 +1896,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKykyHhLQRD2F9Db7k8OfO8T7
-# Tp6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUV6L5J9UsksD+nBc6fcTxhogO
+# ONOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1988,28 +1981,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtfy0upATQu9zYNkwSpA1fmxCcKIwDQYJ
-# KoZIhvcNAQEBBQAEggIAW3yTVWuyy72a2wFyKJ5J6B9tJ8dxvSjymyJgVSlzxKdb
-# Opfb8HgQU9m3ckRA6HFxlmSNprvgeIiwqRIyjGx/WLMhQJfvdelt9A2NR/nYUCMy
-# 5I0UFBkxhMBZ9bf+p/JTuUk0S60bZLRPIbWRIlFsjTQovxBJC0NjJufS6d4cxqP6
-# VLFNPNNv05F2k9Cg56o4mVO2aYcUKM2WKdHecxlEpyTyZs71dwah+88jv22Z28iQ
-# qYavcB4nXgrtw25RaPpn/tyfmZtGVCcYlasFM6nnlGZRZHSZxcJwNQMuE0sDdBJ5
-# JFp99RIXJJGg3vHX83EBjczn16KBiKHCFvVsdl80PIOKjyQ8SK6A/8rrs4Qw4bRu
-# 7I/sRwAm5eJPqDN2rJkmeYxiLwXu6yo0O0VgQgujcFkx+uy7OQt2lNJ8Ik8a1B/j
-# bv5oaAF15CBCawr/0EuIB5ldfWopKIVKqPepaqeBfS09O5+6YGZYULjDCF/P/Mb6
-# OF29ihFwEl79+757909L8SqG4ngZIngYjbViwsu7ncRn+FD/ZZ9E3RyxxBqwiyVr
-# KL7NxGLKbz7pW5xqBsA/UVk7piH0P7ag85CJOhPJdZ2109ASbNHjv8hoWUOwLjDn
-# ATsryUnFWmu3NLqVEh40qfMm62+O9uPR7ljgG3MmLyABtJjJyc43n2GLanGw656h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0jPRDZ2yuOVmyjpQeuuz/B5i2P0wDQYJ
+# KoZIhvcNAQEBBQAEggIAmjpihBPiw2IhGotn9tTUmdXSEqxzRh1Mbrz4epEWt7tV
+# FFkwUvoQvqMSJa2+NXDSQod9jnt/bpl3IQDQe9xM3qzDp7J0VDNHKC7+wIArYOuY
+# MzRX+K307WpITwFWKvCIMr/ma1+B5YeyNUJx4WSkrb4rjE9fV4Wk+9h93+gGKHwT
+# ZRyKAxliKZW0QrDk5I9RzGfaS0CYG0p2q2aHikspS+z6TBkHmEoK4p6sKXC2EB6b
+# rC/XG9oZCt0nkQ8ZvlWfkaEQbFicjTI1zB5Uul/9yzwDsPEbIN82Ym+1V0mUJae6
+# kb0+CH6bYXpMD71vzQEYdzkaA1nLNrLIaSnhNwHM8hSzjR17NQvfizvWReNjEemJ
+# dyh3nndYOb5Z17x9ngenv+EGY4W8zGtpvFVOsd4P+7W2XF2So7V0Y6mQotlIrs49
+# pWwIg0KV6sogQLozZEvOq+ZMGbMi5MkJbB0TzdkU5xUb0Lh/WbKePZilIo2e+asx
+# NPjfp++ZKrObuhd93zWgBVymKBhiqNcxMjqGqPS2Phx2P0XoPNHrjMMSt7DAkMDB
+# ry6q/pL48x3BpgcYyg3AwQ4D/mp/M+tNfKcc2xpFO7GwgpS3CUXiguH2cCMmnUNY
+# whZcXmDb+OFvAC1lTOn97bhbQAEkMn/9NjGk0q/T+hotEaXFE+0CqL2+KjA3iOSh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMDExMDAwNlow
-# LwYJKoZIhvcNAQkEMSIEIPS7e2XWbLtnlXMj6wCIY3pD8IX/UOcYdDjAF1YeKuCn
-# MA0GCSqGSIb3DQEBAQUABIIBAFnCdFSud72EA+YU2IxA3XaFlyFovvL3jz3U/i/r
-# 2eDqj8keVnyvyP4+01oHFqzo4enRbGlnNzn68TXxvHjXa+e2CZOAfBaExu7xvWW1
-# KSTu5C8edt1inqh7H1DrF1pEHtRkkTqYY4eVAs1P5djLHSDGasgO1iZd3KvcsMf9
-# nlrBYrz3EselxDiwTOApphYVY4+f63BwkKK/b3u8XlY3Kxrdv/I9n6ONAmJbISkL
-# 4b8nrcich3Cf4S1bQdUAiITrja7n/zNj/A5LEG0c40u7N928HKEnfZDUGWrH9sDE
-# h+9yZmYAvx47JNMzKhcn09W0LjyhjHxYDisvWcD5TymvpGo=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMDE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIDIS9uBq/jhNIMm89BBgoNKll8kTXQ1LR59ckjL4vS2s
+# MA0GCSqGSIb3DQEBAQUABIIBAJZCpuRMKC23jTldJIQlyclSyVSg7et0WkJUrZeg
+# 0Jugzjwuo7wXUElViAnnUIdDdQxtVLHk8H88BMFvD/FY6zHSnX+sO+jcJmBX0UB7
+# KMum5sRrsAYAvGCZofPxnh9MJ99CmQ0uYobbMfIJ+f51QiZpUBQ48C3hKlg/95fa
+# THSTiqMeXSkYEzZv75y8wb2GcoF5SQfpPgEbWso5HkL1SGWPc3/9vyG7AXFYlBUz
+# eTTc7YP6kYwJ+98rAsHY1ySPn8rFaBHK8+89339vOTSltPWI55E3KBsT4hIuAnJx
+# RC1KZT9HZOIPkgU77LrGqz63LY06rzu/ruCr/QPAU408IDY=
 # SIG # End signature block
