@@ -252,12 +252,15 @@ Begin
                         }
                     }
 
+                    # Refresh
+                    Get-PAOrder -Refresh > $null
+
                     # Check certificate
                     if(-not (Get-PACertificate | Where-Object { $_.AllSANs -eq $Cert }) -and
                       (ShouldProcess @WhatIfSplat -Message "Getting certificate." @VerboseSplat))
                     {
                         # Install certificate
-                        New-PACertificate -AcceptTOS -Domain $MainDomain | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
+                        New-PACertificate -AcceptTOS -Domain $Cert | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
                     }
                 }
                 elseif($Order.Status -eq 'valid' -and $Order.CertExpires -le (get-date).AddDays(14).ToShortDateString())
@@ -272,7 +275,10 @@ Begin
         ##################
 
         $ADFSCertificate = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {
-            $_.DnsNameList.Contains("adfs.$DomainName") -and (
+            $_.DnsNameList.Contains("adfs.$DomainName") -and
+            $_.DnsNameList.Contains("certauth.adfs.$DomainName") -and
+            $_.DnsNameList.Contains("enterpriseregistration.$DomainName") -and
+            (
                 $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Server Authentication')
             )
         }
@@ -523,8 +529,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUdYo4TUa6MSE1BngMm42j0EM
-# qieggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+Md4H1ABi3kW+QmOvBxxfgBD
+# zwqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -608,28 +614,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUEppFzaj4p2AX8BJ87xyx9HvkoIowDQYJ
-# KoZIhvcNAQEBBQAEggIAkEc1ceranhgnWorNEvYDMO1q6dtRO07diyT35om7m9wR
-# mDOCy7IHqCL0tNIOvXn/jGBgOcLtwJyYkBW3v/MjnfEfGukklF3ZVYriTivHqjr0
-# RNuNWrXfzc9lda9LVsDFgw9bzxwMnhOcBHPvyuP/6goLqiLSkm2S1juiIGHG8FPP
-# nQLpjNhK4PvQM0bUFS+3bX0wl+0Ft3ubrUqJcZPTY38Lvt3eBmtTN1FFDE/PaGqT
-# AviNl9iC4McpVrvzNACd3gW4PMUOG5yUOhDYwzvbFurEjrsV/xR62ZZ8svixX9mG
-# x/P4l+HFXuZ2cekt/j52VxbnBPqYgvlMnyo68VuDkb+irxYKiJL6l/biaSwFKluQ
-# t4rYEQwjaWp6skhLcd3kC/ueub4OmaUlYz1cSQW0tu8gNVTiUsRWlTv5IZ1dF/nZ
-# q3HoD3ipF0gx8Zwlma2+5BChrK4QsXmE+3LwVrjnLD7a0B8qiO1YwhroNeIjKxxw
-# Urll7aTHmGu8bj0nnRzAuR/u7Qf+cS4+RvhBYUdj8X5d/hfAuaStA1Kx/lcmY+yo
-# Mk6p377XuPRw1Avl5VwatWSKoL4OUjo8mmf8W/PYnCjp3j7bcf3bhikFZ/T5NXcz
-# MRYPHqM/SG328iKBEotG+oWnmQNHluRgIY7q4qO9Zi4lUF1FXKDHaaJxh/+hYVqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULSmURjFbqP5hOEf03pUOlbNzFXAwDQYJ
+# KoZIhvcNAQEBBQAEggIAo4dFK6gkh3jkupYpi9o9/CcbllntPmy7Pq8eVmTwEl7L
+# etqT34IwWeuSh92n/gbEWh4dHrndEq3RYdqpaQozjLjKUb7Zs2YHK9O2qb9S3lSr
+# JPy0qY3tSniTjnHFZ7E2yN6BShkkfLHwwCqdHmn/Dt/4HP43CS4fv2E6PsgbqKQo
+# KCr0pq7p6kd8iwL3Tuw7INjmP2I095EPv/qUkzAB+sJ7UHyB3OA6ADwINGyPK4LI
+# W2PoLXwQW2NyVy5/qBD7Xf2+eFykKYSON4uyQkVUlrN893uECZhDlyHBuTsFqc94
+# h97kG5MDIQmNadpG2i1gDO5P59j7yD3xMDD2espTrlHuiEubbY7VbujWKIdDI1QI
+# EFpTi24wLmhUkEjzJlPuNcKF2pIronSlGuqbj/bOmPFnFJv1OEhu5iCsmgpFYNkm
+# Bhu2MoyI3ec2KddvT6z0TDUp4Hd4DwN8tMgItLPDcMCTI/v1FQ1pJjFpGzOTSsc6
+# VpUxJvjCa7cctWR7v84R8C1Ehep/XtGrWjR1OC7OZP1HREto7ZNGkwbci8BA4mRg
+# XwRqaPjqyvvIz0MLOvjVY9YjtFqjaI6qJHtg2Ps0u5F7/gd1mDTjuGiAnc2Z4jZA
+# sNWsKY9fQkChiNIL6LOicP6GCzLohI1OvC1OgLiehvHziOLZ3YxQRXBHPgfFOu2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMTE3MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIBNbDO0ozGo6GAVyY2D7cS5IPNt4IITe0+i2xpNojLrw
-# MA0GCSqGSIb3DQEBAQUABIIBACR0F3B3vBBUdDMak4eRJjdlflRK4kxFnll/EgW4
-# YcdfeZsAa5JHRQZVo+nr8SkD0OU3SuJAqvTDgTQ3b6GP6t77KESZBX1rf1UIwv2u
-# oHgGtmVqeB6DnE12fcg5wS1PThNTiuU7FbynsuBJSeq9bOS9qyPSv/LVD7ScWlqD
-# LIckl/Mn6Nv63deo3qHvoWrGZ4ARwI7fwYBKP5TSungwYCiLL9EcTTlTZ7Pqlaem
-# B7j+kzSNOVI3BlUcdKVYSB3a/N7msIk0Zz3vHv8+vmpWWKM6V48MbowLsqWzODPt
-# HFr3lek8vElSg0xqf1VppweZol88KSgf0oLfdps5G+BsxWM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMTIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIOLqVJGm7N/trpgNAs+w8Yi6HJ2E2d+/jf+WQaIsUafd
+# MA0GCSqGSIb3DQEBAQUABIIBALj0brvTSpte1Q6VxxgyTcZUKbwEP5MFSCMzTgs7
+# vEqUHCD6CJYl/GxXhcSY49vfkzugdQIVSD5Ccqs04Udji3MgqjMR6s8lhDL/2f67
+# l8SjxuSpfN6Qzao0gnQVTPWFwmPrtiQJr/vAmrdG0KPuaL4i0oofz7dddBz7MWJO
+# eBqWLEaS4y6twrgDM00eNB3AMrLYHP1IV3FgppZ9JLikSvK+lwEEecKtOzR7nH9q
+# 7akd/1lryqAbra1J6RQVVva7910vmNww9aODJDIoWWMD/jKIMU0rsFzV9vdUpjyL
+# bjOLj+xMeqTkKa9Nl6gF8/BksO2tz67OpmSR2CK8i3ZQjdU=
 # SIG # End signature block
