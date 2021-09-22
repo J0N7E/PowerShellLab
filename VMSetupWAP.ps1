@@ -145,7 +145,7 @@ Begin
               (ShouldProcess @WhatIfSplat -Message "Installing NuGet package provider." @VerboseSplat))
             {
                 # Install package provider
-                Install-PackageProvider -Name NuGet -Force -Confirm:$false > $null
+                Install-PackageProvider -Name NuGet -Force -ErrorAction Stop -Confirm:$false > $null
             }
 
             # Check module
@@ -153,7 +153,7 @@ Begin
               (ShouldProcess @WhatIfSplat -Message "Installing Posh-ACME module." @VerboseSplat))
             {
                 # Install module
-                Install-Module -Name Posh-ACME -Force -Confirm:$false > $null
+                Install-Module -Name Posh-ACME -Force -ErrorAction Stop -Confirm:$false > $null
             }
 
             # Check server
@@ -529,8 +529,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUX51GlWT5dLDyNaWvLl1iMZdh
-# bXqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkP9yejGdJy1vXfeUlVu/C3Qv
+# lOmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -614,28 +614,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUsnCWuPEPbQ20+nyCIXemf2UejHkwDQYJ
-# KoZIhvcNAQEBBQAEggIALELH5rZemrxt+1JOWHVdOzZ3/kd0Q3VB9j/qiTuvYJ/v
-# oas8s7IHL0JQm7aPm3BzaLyfVbSa6R4HXbxl1iwA5lTKG8JO1LgejjpcRpTLwyEA
-# yK9/Voc0byy8dKTo+I+qpq7YDEnxrx7ahF44TzvhulP5Zrom+pk0Y5CXc+tNGvbC
-# tqaql194K16bCuQ6p2qp82MUdAL+oOboULwyzMNZpoSMWsT/Teke/FPpPfuX6y4Z
-# cw1TYPEiG+f/2aLurBxwREcHYlZ0IFVfHZdBuwnpX3sQDXb2wY9i5jywBXYlWmry
-# JN9KG46rrJ2cVkUL24Dib28qTpIFsS5X0btTuq5GcFC4Fw6vwXuwW2BeqLXlGNyO
-# sm+5rq6RlP3+VZ78uE3rfy6az81KYa53Bsn85ZbOEo8W285SfrAGEVhP1t6FcUni
-# HMZjOUr1Eu5puNNjRFBWltrcxFpbURl0OthPUv8R7Vaa7TKr0WhOsLGb5PRp9mq+
-# OT56wT0sW5Z+3K39l6GPoEIhLP0+mFuUcyI5xo8sCG0DvlH2u3co20bBv4VgLDSM
-# Wm1JQHgXrDg4gC8QtRkLYbFludtjQSwVKnimav8ZjEQmPOizeP1pUkwuhEf8fPNZ
-# VxVYnIh/GcSq/RusFTeDiBddQmFKiFZI/zeX5Frvsi1f41DceCbeEreOCdlkGmqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6X5oBKrWd8h9uPJtVn3AicV9AwcwDQYJ
+# KoZIhvcNAQEBBQAEggIALfec/tdHJPZ6mPpZTI5FyhaOog6NMLidvc4GczTGZnGj
+# 2qkzOdH8T/unZOVjtZo2Q6VzXvcZtprg21YU57GSX13Eq4yMuPcADNh00xfJJxEM
+# vJ+Cq2cJqDMYhFlqUesnosPvpveSc2ZKjyE67xEGMtPTwokwqVbJ8kox4Vu31KNU
+# okwnju68hhNjN1dJF09egqSzfUk/qKfnEsuBigMN9qYZjWE0JNdRAugG4EAnlduO
+# b/zfdnj5BNJBP1rZts2M7XrB0of5uelz/g6pEYKZu2LgPonRmuug+UVUKEYjy2dU
+# Op7AtqOiDr9zXBsLkjJgXChYnMGad2/ERboKITtcnhoVUFxqGPwE/A6TmGfBTmBH
+# o2ugJmQzf9+XhrGELubd7N4IsoisZ5Wkj0qBGm2YBmsfY57hF2k7/M55m4qiUJdF
+# MPmRCrKy8luyXy8T8phM11lx8VsLg0dCsCyH5g2Jp6LH96LN4ebIO2G246d0fX/t
+# Pk/zyV3B5QSC1WRM/d9Uq+d144EGSyq5MyBslLCGJsWc6hB6Y+2R1knntJG0WSQY
+# /me4RitH0FS/j0qOem8RKxOkNjPJjY3sWVL3Te+ArN6CeKh3p7faNMd39Hko8XMi
+# tsvR3J50TMnofhDleKmfGkQevobHYsEpXpNkZCdt1+NQ9J9XmvkH2jWagqeniPKh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjExMDAwNlow
-# LwYJKoZIhvcNAQkEMSIEINNEDjQ7d/m8GApy2+fsJv8tswCj2VbgS7VceSWt3FTt
-# MA0GCSqGSIb3DQEBAQUABIIBAKjToU7wlwT7df0cIcSOgd+cg6BkBRIB+kA2j61p
-# T8EXGYUOQlPp2bFCCWxsW2se2mjbDnGXZ5j/xKMtl1qqK1YHEdidHOz1pH6/XQk8
-# x0WxbFzIhzXxXlFY5g3MQOvKYeNxXhzKeOAV3c88DkMvV7nFU1HDGmn1ABDm5hdX
-# MWGnqWER/MrR6PuzmDx1rZfjNi27KoAE9BUxAhpLFu4OPIkv7p8i0Yi9bsEgHjtK
-# vU1Ih7Ih7hgf8DzDjdbpZrsyEXSIp81Zny8VNvxbnlEldnyp/+DZou27FSQUdNkr
-# wKkD2tqkkVHxtcbIvjrgwH7J4ZNM5Bq0xMiAd7Xfn8dpYgw=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjIwMDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIOO96xkrnlgc516KuiUtUwuBTOnuYvkAgwry7S2BuKA3
+# MA0GCSqGSIb3DQEBAQUABIIBABODep4iviE38iNq9d+Wnb/Ocu28M2AsCAUjhb0S
+# qazILIaOGVfIP2TEGWurk3i4XcyXXr128aJZ/PdSFo9xGX+UThAjBlb7D1O+19S1
+# zSs7Jvxt23BYvH0etTfBcTvf0pR8H3UXrt8Dk3epfV4VHGOKsKbh95tqr9diF83Z
+# iSBDBiPDk9glsp1Iox2cFHZOSKc7ouhX8a9uQLQ2l9l/MdDCuvsqA6u2w35uFaW0
+# fGzbD8wA3dzHsAarj6rzxjrsov99dfZDhHvRIv+/9WT5+Rn/BGxrc/LovA0SoyGd
+# b89z7jhevzonKimvWyJBbGHjIKN9GjrV1de0abN4iGkOrCQ=
 # SIG # End signature block
