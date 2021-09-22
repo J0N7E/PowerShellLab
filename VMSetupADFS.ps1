@@ -153,7 +153,9 @@ Begin
 
         # Check certificate
         $ADFSCertificate = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {
-            $_.DnsNameList.Contains("$FederationServiceName") -and (
+            $_.DnsNameList.Contains("$FederationServiceName") -and
+            $_.DnsNameList.Contains("certauth.$FederationServiceName") -and
+            $_.DnsNameList.Contains("enterpriseregistration.$DomainName") -and (
                 $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Server Authentication')
             )
         }
@@ -355,9 +357,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # Check if ADFS is configured
         try
         {
-            Write-Verbose "ADFS configured as $((Get-AdfsSyncProperties).Role)" @VerboseSplat
-
-            #$Return.Add('AdfsRole', (Get-AdfsSyncProperties).Role)
+            Write-Verbose -Message "ADFS configured as $(Get-AdfsSyncProperties | Select-Object -ExpandProperty Role)" @VerboseSplat
         }
         catch
         {
@@ -416,6 +416,14 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # Set-AdfsEndpoint -TargetAddressPath /adfs/services/trust/2005/windowstransport -Proxy $false
         # Set-AdfsEndpoint -TargetAddressPath /adfs/services/trust/13/windowstransport -Proxy $false
 
+        # Check if restart
+        if ($Reboot -and
+            (ShouldProcess @WhatIfSplat -Message "Restarting ADFS." @VerboseSplat))
+        {
+            Restart-Computer -Force
+            break
+        }
+
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
         # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
         # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
@@ -446,14 +454,6 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
 
         # Return
         Write-Output -InputObject $Result
-
-        # Check if restart
-        if ($Reboot -eq $true -and
-            (ShouldProcess @WhatIfSplat -Message "Restarting ADFS." @VerboseSplat))
-        {
-            Restart-Computer -Timeout 3 -Force
-            break
-        }
     }
 }
 
@@ -465,6 +465,9 @@ Process
     # ██╔═══╝ ██╔══██╗██║   ██║██║     ██╔══╝  ╚════██║╚════██║
     # ██║     ██║  ██║╚██████╔╝╚██████╗███████╗███████║███████║
     # ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚══════╝
+
+    # Initialize
+    $Result = @{}
 
     # Load functions
     Invoke-Command -ScriptBlock `
@@ -481,6 +484,9 @@ Process
         }
 
     } -NoNewScope
+
+    # Initialize
+    $InvokeSplat = @{}
 
     # Remote
     if ($Session -and $Session.State -eq 'Opened')
@@ -511,8 +517,7 @@ Process
             $ExportCertificate = $Using:ExportCertificate
         }
 
-        # Run main
-        $Result = Invoke-Command -Session $Session -ScriptBlock $MainScriptBlock
+        $InvokeSplat.Add('Session', $Session)
     }
     else # Locally
     {
@@ -533,8 +538,20 @@ Process
 
         } -NoNewScope
 
+        $InvokeSplat.Add('NoNewScope', $true)
+    }
+
+    # Invoke
+    try
+    {
         # Run main
-        $Result = Invoke-Command -ScriptBlock $MainScriptBlock -NoNewScope
+        $Result += Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+        $Result.Add('ExecutedWithoutErrors', $true)
+    }
+    catch [Exception]
+    {
+        Write-Error $_
+        $Result.Add('ExecutedWithoutErrors', $false)
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -548,9 +565,15 @@ Process
     {
         if ($Result.GetType().Name -eq 'Hashtable')
         {
+            $ResultOutput = @{}
+
             foreach($item in $Result.GetEnumerator())
             {
-                if ($item.GetType() -eq 'FileInfo')
+                if ($item.Key.GetType().Name -eq 'String')
+                {
+                    $ResultOutput.Add($item.Key, $item.Value)
+                }
+                else
                 {
                     # Save in temp
                     Set-Content -Path "$env:TEMP\$($item.Key.Name)" -Value $item.Value
@@ -563,11 +586,9 @@ Process
                     # Move to script root if different
                     Copy-DifferentItem -SourcePath "$env:TEMP\$($item.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($item.Key.Name)" @VerboseSplat
                 }
-                else
-                {
-                    Write-Output -InputObject $item.Value
-                }
             }
+
+            Write-Output -InputObject $ResultOutput
         }
         else
         {
@@ -588,8 +609,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs1AJ1kAGDDhwMrSJrJulTYoQ
-# BuSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZwH8Z3irWNYT4gHaWRl3Asa1
+# A7Kggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -673,28 +694,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwsM9R+1S4spXkbAHXnHFFhU5BIkwDQYJ
-# KoZIhvcNAQEBBQAEggIAAz6y/oNf0B72bvYt6AxxHJ5lsQuS+z+f5i5pC5yveGtb
-# 7YJgtetcIuqeNt8OZIEddsbOEl1mthu2liEvrgdSJiNbtAqxMXo1X3ANBoBhcgZq
-# hVE9MptPy0RFruBBJFEn45lp9aONybRcZmCqUViHqcpe6yx7M7R1dS6qOjry7BUa
-# d8mIP0EQo/VYzWtOdKkjfv1c5uEvk0AH1z+gvoZCFjVHP6dVCJSTxTSXe0sFPdaa
-# JyZoijYGun+V7QrDMtiUArru+0RS3JBwVFc/MIrJZ5wY2+Lra2R7jDTKnWCzK2jC
-# bTw/GdWYk62bSDEKsFJ+8yGUFkhO0JA0boozufYAopMBPu1tG5NyKbrnb48RjzRk
-# YECP/wvSpcvQHhzXlU5+Zr1pYAqGmmFOLRustocZOvKS0p+Kk/BFOAa1oTz6+aIC
-# e7SzGLhsLtptARu8cvTj3ve5eXp2HBlMRVFs2w1QXV7PAqrcIBtMgBebDmA6yRVz
-# KWqMrQKO2p8UVaF4oKOyS7vptmiaSukXmwjuAMHGE/lQaJrhITJwUW5+1GshH1aH
-# DNeDMSPyyk9YxyElMSmm8oXNgSy18n/pzewTsOqZs/oIdZsyvC+buuwJ9VvgQDfh
-# 4tPzBEhiX4XWPY4/xmCEccfIRWT1NaOV3izeCOGglrTYNXDWKsSGLhk80WWkW5uh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGfBi77IZ4haOPTRyOusesSHpr9YwDQYJ
+# KoZIhvcNAQEBBQAEggIAn4X09n+zT274zLyDt/dIBHyX5HX6yt7Eph8mKX+MLAeF
+# GmMtzl4hMHu2kCFaXDB3QF7oqsgaoPLv9qeNHg8KxECoUAwfDGN9tGpaFVv8F0rY
+# OGVmDhe8rE99GGoVqN1Keinns9KDmC5nxN0rwMeyhtrBcw+6pQXg4UeMQ2efqxz9
+# g/f9Fgt1XxR4TRvqF6oRJcxUDtzO0MDKdEQeRWU/w/UPxYe4XFIRD7bo25GbbWi1
+# 9dbU0GcHkAbMcPF671k0oYWZGsAYzwIr0+Ddj8JdzCvH5NkAvvX+Swdl+ZU8n3Wn
+# P7FqJOWRNv7DMc5PM8sEYtl1QfJ+tYlPQrvY1tjMO0FiURZUCFQHd9eznj7ShHCZ
+# bSelJ1CyRFjWujMTwjdrg22fDd90U3fsj6Bi8GVkEL5Ogpd5dc8lSIGPa/BXyCGL
+# +IMkY7mIFUVdwOsLmvIAv+dgIMkKTil8jAqcrXG+lbNocN7y4RftkKNYceb7m/PI
+# S+Somwkp3Fms9YO5Trit4xv0L9kU2vLZOz4IvnezZrpZmd3e5ErlZjWDuAHqxvVT
+# 8e5EKb9gw/SXx2U38jri3Y+8XyvUXKWPVT5b8uKOWPSYZMVkTdScoaubDZEqPAwC
+# vuujRKq1Z4r0AvOC7KXV9OafaejnA9ZNJbXl1TVP2kioRNO9WlK70cedg+14lZOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjE0MDAwNVow
-# LwYJKoZIhvcNAQkEMSIEIBOKAYrFOp7lbhsR9tVxXo/vz/haJujlZxmbWlTeEQeK
-# MA0GCSqGSIb3DQEBAQUABIIBAJCD7nydXT/PWFaMhiIamxyjeA70ciXwulli/N8p
-# ns8xoHd5q7cHG/zlI12y0y/vLEVNqCbaeDJnhUpjnzGU9OqTzSXsNBGpZM+bhmAL
-# lvxVJbdeCG2bZvz6HPk4+iygQ5nxGKVKDmwlq8R1ziuWHjkU6m18BeAB4AfDYIT1
-# d5pmWJ4C51yc1tPqyKFY7k+oMEEXf17a2eaXf2h6V+p0M2an8CEFtUbkrBjkYdbM
-# uSV4VrgayizdehgwTgBqbmDDty72nS/YLshtXV4leszQB22IlmtaPOIzuTFbHLm3
-# bGhR6wXSOV/ZyCJuR3cHV1gstRfVMR0MmEnD3qmNr8l863M=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjE3MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIIcOe8olqFGuGAE2r++6J+RSCVWLCt1gT/OnYAOKd8bU
+# MA0GCSqGSIb3DQEBAQUABIIBAL5dNtuVnQc6gzTxNqNJimwC6/E7pOzJRC4nOspf
+# pmvGjPqbR8fojmsR+/d5dhpuyy0xKGvjdUxoCsxdd0pVCXLhxf8Z17gMaFkMXIur
+# M+uFExAaBQN8ueji6CC10P6vrLQ9/DQEXoqqk03JUnVD8OYy3A9Tvt7Qabcy3TBZ
+# G6bVuGrHk07bybwmwChn2q+51MMVhV6oKP4qeB55wIKIBGI+QthV9+o0gzaydjWa
+# dhxMcD7OuvdYJglyXsXWfvd0xnhGWOgfNnfxq9mTZrqwIGqGLmtAJ6Zh+G9E/LB5
+# BTNQxFfLxpwKYBok8gsNdguJJnwxVri5+aAaKN8mbb2gvTY=
 # SIG # End signature block

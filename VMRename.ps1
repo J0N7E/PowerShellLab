@@ -15,8 +15,6 @@ Param
     [String]$VMName,
     # Computer name
     [String]$ComputerName,
-    # No exit
-    [Switch]$NoExit,
     # Force
     [Switch]$Force,
 
@@ -90,9 +88,8 @@ Begin
 
     $MainScriptBlock =
     {
-        # Define flags
+        # Initialize
         $Reboot = $false
-        $Pause = $false
 
         # Setup splat if to rename computer
         if ($NewName -and $NewName -ne $env:COMPUTERNAME)
@@ -155,13 +152,9 @@ Begin
         }
 
         # Check if to reboot
-        if ($Reboot)
+        if ($Reboot -and
+            (ShouldProcess @WhatIfSplat -Message "Restarting computer." @VerboseSplat))
         {
-            if ($NoExit.IsPresent)
-            {
-                Read-Host "Press <enter> to reboot"
-            }
-
             Restart-Computer -Force
         }
     }
@@ -175,6 +168,9 @@ Process
     # ██╔═══╝ ██╔══██╗██║   ██║██║     ██╔══╝  ╚════██║╚════██║
     # ██║     ██║  ██║╚██████╔╝╚██████╗███████╗███████║███████║
     # ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚══════╝
+
+    # Initialize
+    $Result = @{}
 
     # Load functions
     Invoke-Command -ScriptBlock `
@@ -207,7 +203,6 @@ Process
             # Common
             $VerboseSplat = $Using:VerboseSplat
             $WhatIfSplat  = $Using:WhatIfSplat
-            $NoExit       = $Using:NoExit
             $Force        = $Using:Force
 
             # Mandatory parameters
@@ -244,16 +239,13 @@ Process
     try
     {
         # Run main
-        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+        Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+        $Result.Add('ExecutedWithoutErrors', $true)
     }
     catch [Exception]
     {
         Write-Error $_
-
-        if ($NoExit.IsPresent)
-        {
-            Read-Host "Press <enter> to continue"
-        }
+        $Result.Add('ExecutedWithoutErrors', $false)
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -267,10 +259,17 @@ Process
     {
         if ($Result.GetType().Name -eq 'Hashtable')
         {
-            foreach($Row in $Result.GetEnumerator())
+            $ResultOutput = @{}
+
+            foreach($item in $Result.GetEnumerator())
             {
-                Write-Host -Object "$($Row.Key) = $($Row.Value)"
+                if ($item.Key.GetType().Name -eq 'String')
+                {
+                    $ResultOutput.Add($item.Key, $item.Value)
+                }
             }
+
+            Write-Output -InputObject $ResultOutput
         }
         else
         {
@@ -279,11 +278,6 @@ Process
             foreach($row in $Result)
             {
                 Write-Host -Object $row
-            }
-
-            if ($NoExit.IsPresent)
-            {
-                Read-Host "Press <enter> to continue"
             }
         }
     }
@@ -296,8 +290,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURSQ2+FCp1/N3j2FJltD9M3Hk
-# Y7+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj95iDwuuBbnpzM+SrEQyHFV5
+# R9Oggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -381,28 +375,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQUXlTWg4YrO8wQSaFNXjQcubNzQwDQYJ
-# KoZIhvcNAQEBBQAEggIAiR2q2C/fN01HzBq3Iqa8GxhCEUpC5j/rHj6i+J2vusg5
-# C82k+DbbFFqi+g4wOGziSXQMp+Z5FpFTuCprTHUHFeIOgR8hdcoVFXjZhwoRgF2Z
-# AAwCTCz6kSt5ObkhI5UmQh06dQ0u//LzV08pwhjhOWMD5y90kxrrE2JAfdwbIVnI
-# 56P9yFopR4T9dkcIFaRBdtZ7Vf+IA+EALg1PW4lCsz/cZe92CNGr3yaF6PLey0sf
-# aJY5ztnYhbYAf+AUWuokoKsSiH28Rl90kOh4x9/lx/umf8DiWJRuybczvziVc7rq
-# lNlV9tiZ26+yTETVb+Fkim/Vg3U4z9ONQlDduPC2eBZBkz/J0IOKBXZjNWhk0TGY
-# lfE0znDRE3vnQb/WPeDOMFyudnJ9mR2T/r/moxTzuIpK2kmm3jAahb9JkgMoa68M
-# KG39thgh3uG8PVEYPZpI1ImOCS+mwY3O/aKzZXmQBokUmd0jSX4o75uIBo7PTxgk
-# BHdZDneTfzx5W1HeRZkBBJWfX3tIyKhgYlzueeEZWCK/LHgMJAhv9Z/bXiGC+eiS
-# P3ev7Fe7Trhc/B8n/7TroUHlFr1EPgz7lvEyWUUY2SgPeM/cSp2ynwYJkle780JS
-# 0GxQyJSUpQIKOciPh/YunjSsqBMSVhnDxfxJVTdpRqIG5lNIZ7GnCMp3BRwgGpeh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3zv0bekj87x8roHZgTyJ4JVW8rowDQYJ
+# KoZIhvcNAQEBBQAEggIAZcNvi1yPMK/5Fll8zdBPxKllj94EOfra4mJbuZoAzf7k
+# aMCPIxaziX1fYHYkxtaqiqpkw6xw0Qypm9CpWnLhvRCMMCRm4ff9y+jfbgeAKgLL
+# CbyppuscSZ+fDhZvJVZQPTOQ5s4fFGd87oyS0AWUax3/L9LtG5vkQk15yIqXn4R2
+# 0soClfQciaaMHa4zXx9UHydrrY3ALR701bqEGe2JrV5uulcBH1jSxSbGPV++zLu6
+# s2b6xrzJ0kpJc7q4pgiPJRGCfu3BHzj3MpjwGB97CPMRRkxeLPOs+90hFvIIa/qt
+# /YRIA1Pou17F1oh1GzkvtNCPkhIRhlXjbmCwb1hSoqKLZDDTULM3hnDwaM3IcPW9
+# sW/vmnT9t2fybangCGBwqDi/66z7+ptDZVWCHn9Okq4Lnm2hr0kyi01GIO87DLDy
+# o62LWntGhpfabg/hi1erG1mEVrDgtEIK12+MbABR/LOLGJa4Rni1I08ROVSNjIlB
+# XMuQKV3w+l6OeKuv2O/zgFlyug/jXT2D9GNbMhL5EllECPKNEXp1YYZR06DjJThQ
+# 5iRNEITpVv7a+gcEtrTlu3vbYn++Yf+27Le6CDL9xge5bcgP6+/+5M1dXLkMB0TC
+# /sMK2M8EaWagKMPWJ/yCGAendn6z1BGNAimaPe5S9l0uPkFkxAkJ8Txxye24PrCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIHI+PbInxct4AYhD5vmOViV/77y1TpGgzXlaOLYuGmWN
-# MA0GCSqGSIb3DQEBAQUABIIBAADyRJEPjkjInA61jaPuzXVL4wIOWwr1uZtXYci+
-# fRCtA0bGkq8AW2ntMhK4UE66Mx18eXHJK0bKMv2KotHzULjPIvW37GOVD0bo68Le
-# IGnaZ0aj9R/Bk9+l6qZj3mJAR2g1Vff13d/maVCqvmzu1QsW/z1JhTg06PE1uCn5
-# sQ7CItH5C9FA1sNNR/hwPe3bhPeD//jzlKcXOEEvK1mHAT5zNMCIVL1WdJgwFP8Q
-# 1VlSxUsO62tFObylnFAxQPUXmsUEhdqc9kJK8PhbOA/EWwZ6zP/Uxt6AKf/W5CVp
-# krUz2wiMh70JDSrEDDJDsfFzGPvQ01tXP4Z0wPuGMXoJsrI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjE3MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIJ/57XaReIKkrOp+UHg84bMzEDyrVsephK/27CEziszh
+# MA0GCSqGSIb3DQEBAQUABIIBAJhdxOnPDFZ8j+CXEIqhVBGxpBlrQMnkGRIDfWAg
+# GBB4HjZ95PaJj7b/IW2n6uuh8fRD7OlbUW+xoKcZ6V6+58ADgZj90q9Afg49eO2d
+# lzyFUTT8lbRcDKl3ZFTaj2ZggQxUE+v+MELr5ukKh+rn/IzeJUqoV1AFAJ3AkTMv
+# GWuUqMKnz3PLJv5h3J+256086zwjWWlNeRmdk5gwtYfPg3LPeXrOc4J0J273l08Q
+# MpEoxqRfzq1Y8cN4E0sOmYirBrh0/+7ZQ7V8bE3wdPOg7jyIJBowH19QXcagEhGQ
+# CkJmA2JLmW01i0s/wQVjyYn00icFqT5dg61pIN/F5nP4MUs=
 # SIG # End signature block
