@@ -90,6 +90,9 @@ Begin
 
     $MainScriptBlock =
     {
+        # Initialize result
+        $Result = @{}
+
         ###############
         # Check domain
         ###############
@@ -353,6 +356,8 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         try
         {
             Write-Verbose "ADFS configured as $((Get-AdfsSyncProperties).Role)" @VerboseSplat
+
+            #$Return.Add('AdfsRole', (Get-AdfsSyncProperties).Role)
         }
         catch
         {
@@ -418,9 +423,6 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
         # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 
-        # Initialize result
-        $Result = @{}
-
         if ($ExportCertificate)
         {
                 # Filename
@@ -446,10 +448,10 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         Write-Output -InputObject $Result
 
         # Check if restart
-        if ($Reboot -and
+        if ($Reboot -eq $true -and
             (ShouldProcess @WhatIfSplat -Message "Restarting ADFS." @VerboseSplat))
         {
-            Restart-Computer -Force
+            Restart-Computer -Timeout 3 -Force
             break
         }
     }
@@ -546,18 +548,25 @@ Process
     {
         if ($Result.GetType().Name -eq 'Hashtable')
         {
-            foreach($file in $Result.GetEnumerator())
+            foreach($item in $Result.GetEnumerator())
             {
-                # Save in temp
-                Set-Content -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value
+                if ($item.GetType() -eq 'FileInfo')
+                {
+                    # Save in temp
+                    Set-Content -Path "$env:TEMP\$($item.Key.Name)" -Value $item.Value
 
-                # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+                    # Set original timestamps
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name CreationTime -Value $item.Key.CreationTime
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name LastWriteTime -Value $item.Key.LastWriteTime
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name LastAccessTime -Value $item.Key.LastAccessTime
 
-                # Move to script root if different
-                Copy-DifferentItem -SourcePath "$env:TEMP\$($file.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($file.Key.Name)" @VerboseSplat
+                    # Move to script root if different
+                    Copy-DifferentItem -SourcePath "$env:TEMP\$($item.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($item.Key.Name)" @VerboseSplat
+                }
+                else
+                {
+                    Write-Output -InputObject $item.Value
+                }
             }
         }
         else
@@ -579,8 +588,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsYwbWK9BfbB8rJ8Uk0+8OyjC
-# fMSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs1AJ1kAGDDhwMrSJrJulTYoQ
+# BuSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -664,28 +673,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNKxmglboB/KNry0fLLYMTda7nfQwDQYJ
-# KoZIhvcNAQEBBQAEggIAefe+KYLiiKbGKf1H6jP6/RF26ML8sDb0sdI72+XBLqLW
-# MddkO5fqbgEwc53nZousy0BZSyjcMC9dwjlCTLCWPxvE68sWib6CCUGx54Yz9wgp
-# 9ZEH21A0pEmgTSLyR/8JLnUHLJT9vzBKAfyF2rN4G/IIcayYxS3Qs0kcbgMVQMob
-# XrjjIksvsglzX+4/GV0oxBYgWt0vAcU2Oi1cHvVDLu1LC24g1YQ5ludjWSEHgvKc
-# N9majAPDUjk3h4eFKkpXU4QK/6zsUJsC8H0FzVyqqTqIBCF9d/eoH11XI38ZoSYN
-# YDfkzhEm0Wm4pTHxssBlfHM2pxFISwrqOng6Z6WfNMDrNIjpTjXZTqOn4lmuEQfz
-# Uuc61xf/SU5nsH8DyIlAwG/SNq3FOEIBkV0z0SvAH4TUS7bzvrnZ7Y2ZPimIZwuh
-# bZACG1mb8fwQHpzpL2pTDZQ2H/7fegZNfcOjJ46ALvEF/5JsqAKq933b6f/kpFhO
-# WC1gAC57Vv2sY+HjFxK5SP18diTM8XSLl134KGbYE3Favf1Nxy4H7L1P4Az5DrC1
-# 9jBk/DcMpotWC9FXwdiCFgtYDMn04F97U+az86oEC67bkKBC/vytrQUuhxdS7cpa
-# UKw69oN+8H9JTa4KvUIkfTNUcQNeEYIBvVAhDK+EBnXDXKOhDvLCuE1e0OCkDe2h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwsM9R+1S4spXkbAHXnHFFhU5BIkwDQYJ
+# KoZIhvcNAQEBBQAEggIAAz6y/oNf0B72bvYt6AxxHJ5lsQuS+z+f5i5pC5yveGtb
+# 7YJgtetcIuqeNt8OZIEddsbOEl1mthu2liEvrgdSJiNbtAqxMXo1X3ANBoBhcgZq
+# hVE9MptPy0RFruBBJFEn45lp9aONybRcZmCqUViHqcpe6yx7M7R1dS6qOjry7BUa
+# d8mIP0EQo/VYzWtOdKkjfv1c5uEvk0AH1z+gvoZCFjVHP6dVCJSTxTSXe0sFPdaa
+# JyZoijYGun+V7QrDMtiUArru+0RS3JBwVFc/MIrJZ5wY2+Lra2R7jDTKnWCzK2jC
+# bTw/GdWYk62bSDEKsFJ+8yGUFkhO0JA0boozufYAopMBPu1tG5NyKbrnb48RjzRk
+# YECP/wvSpcvQHhzXlU5+Zr1pYAqGmmFOLRustocZOvKS0p+Kk/BFOAa1oTz6+aIC
+# e7SzGLhsLtptARu8cvTj3ve5eXp2HBlMRVFs2w1QXV7PAqrcIBtMgBebDmA6yRVz
+# KWqMrQKO2p8UVaF4oKOyS7vptmiaSukXmwjuAMHGE/lQaJrhITJwUW5+1GshH1aH
+# DNeDMSPyyk9YxyElMSmm8oXNgSy18n/pzewTsOqZs/oIdZsyvC+buuwJ9VvgQDfh
+# 4tPzBEhiX4XWPY4/xmCEccfIRWT1NaOV3izeCOGglrTYNXDWKsSGLhk80WWkW5uh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjExMDAwNlow
-# LwYJKoZIhvcNAQkEMSIEIP5e6HlxSXspE0cg8Xqtm5tkNOGL1pSU2oYvriFE0UUx
-# MA0GCSqGSIb3DQEBAQUABIIBAG6WnORQVp6uA8sMdOgoDiswNsOwD3rQ/X+nZsgd
-# XVCxnVpHJz7Pe24G+9TYBrwy2gSPX32BZBc4611iHDSUXGIEIncISzu7EgU1N/m6
-# JT3IkyuKmCLc7u/rVhODqpbBDx0+rgusYc33xFqOHE2qpTmIdRd8OPX0entHEC7c
-# 4iEgRxPfQ0yjLAOIegK22ARaqqyY3mds6kR63VMN4q/G/iO3Jz98CG6wKGsF57gD
-# NxwaxqEGu6FlieLUZWKCbQVdKrvVpo0BCAhWUxA6CjPM+TkF27r1/1QaUM1YR/CG
-# ffyODmYP/zcScqqgrKPNCur53bEfxiJs+bpW7CQ1BkpnkF8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjE0MDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIBOKAYrFOp7lbhsR9tVxXo/vz/haJujlZxmbWlTeEQeK
+# MA0GCSqGSIb3DQEBAQUABIIBAJCD7nydXT/PWFaMhiIamxyjeA70ciXwulli/N8p
+# ns8xoHd5q7cHG/zlI12y0y/vLEVNqCbaeDJnhUpjnzGU9OqTzSXsNBGpZM+bhmAL
+# lvxVJbdeCG2bZvz6HPk4+iygQ5nxGKVKDmwlq8R1ziuWHjkU6m18BeAB4AfDYIT1
+# d5pmWJ4C51yc1tPqyKFY7k+oMEEXf17a2eaXf2h6V+p0M2an8CEFtUbkrBjkYdbM
+# uSV4VrgayizdehgwTgBqbmDDty72nS/YLshtXV4leszQB22IlmtaPOIzuTFbHLm3
+# bGhR6wXSOV/ZyCJuR3cHV1gstRfVMR0MmEnD3qmNr8l863M=
 # SIG # End signature block
