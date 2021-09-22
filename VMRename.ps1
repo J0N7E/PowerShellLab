@@ -15,6 +15,8 @@ Param
     [String]$VMName,
     # Computer name
     [String]$ComputerName,
+    # No exit
+    [Switch]$NoExit,
     # Force
     [Switch]$Force,
 
@@ -124,8 +126,7 @@ Begin
                     }
                     catch [Exception]
                     {
-                        Write-Warning -Message $_
-                        $Pause = $true
+                        throw $_
                     }
                 }
 
@@ -149,19 +150,18 @@ Begin
             }
             catch [Exception]
             {
-                Write-Warning -Message $_
-                $Pause = $true
+                throw $_
             }
-        }
-
-        if ($Reboot -or $Pause)
-        {
-            Read-Host -Prompt "Press <enter> to continue"
         }
 
         # Check if to reboot
         if ($Reboot)
         {
+            if ($NoExit.IsPresent)
+            {
+                Read-Host "Press <enter> to reboot"
+            }
+
             Restart-Computer -Force
         }
     }
@@ -190,7 +190,10 @@ Process
 
     } -NoNewScope
 
-    # Remote
+    # Initialize
+    $InvokeSplat = @{}
+
+    # Setup remote
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
@@ -204,6 +207,7 @@ Process
             # Common
             $VerboseSplat = $Using:VerboseSplat
             $WhatIfSplat  = $Using:WhatIfSplat
+            $NoExit       = $Using:NoExit
             $Force        = $Using:Force
 
             # Mandatory parameters
@@ -212,10 +216,9 @@ Process
             $DomainCredential = $Using:DomainCredential
         }
 
-        # Run main
-        $Result = Invoke-Command -Session $Session -ScriptBlock $MainScriptBlock
+        $InvokeSplat.Add('Session', $Session)
     }
-    else # Locally
+    else # Setup Locally
     {
         Check-Continue -Message "Invoke locally?"
 
@@ -234,8 +237,23 @@ Process
 
         } -NoNewScope
 
+        $InvokeSplat.Add('NoNewScope', $true)
+    }
+
+    # Invoke
+    try
+    {
         # Run main
-        $Result = Invoke-Command -ScriptBlock $MainScriptBlock -NoNewScope
+        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+    }
+    catch [Exception]
+    {
+        Write-Error $_
+
+        if ($NoExit.IsPresent)
+        {
+            Read-Host "Press <enter> to continue"
+        }
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -262,6 +280,11 @@ Process
             {
                 Write-Host -Object $row
             }
+
+            if ($NoExit.IsPresent)
+            {
+                Read-Host "Press <enter> to continue"
+            }
         }
     }
 }
@@ -273,8 +296,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlHlv9XL8wXFF/WuzNGFxIjth
-# rR+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURSQ2+FCp1/N3j2FJltD9M3Hk
+# Y7+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -358,28 +381,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULR69PCh+840LhnWsUQm9lz/14McwDQYJ
-# KoZIhvcNAQEBBQAEggIAL2qCiJ/XXjN56XgC8MOYxw5l+QTE9gIh7lCd75vYVQ+0
-# qs/3SQrW02iAhQFbuPeubGUhu3D5XcrzMsrR8iHAsN1zhRhtuFu4ystjBSK8G5I2
-# FfX9mmun80pbrSE7aB6mgXinQe1gPu+TF3L/QZgAa3FS4bMfFkhvKsOSfPVoWKWF
-# R3fqvvBYi2OTW885mzVIS+JQ8L4nlhjEKUAviqfYmzeRqzNuESsniMQl0MhhNFOp
-# 4PgVlNCGPEt3PS66sDQIjCD1baecryJjgm3fVOrqF8S3QZnNO+APZtfjT6VbPj4C
-# YOhhIQfTtTudOUvzTBATN/QAHYgjC7Gcz6Qmdgpcfn176vlW8hNRittC/bY6TjDh
-# EDpp94QChrFJ3twQVRMGxfJijTbdy5bi06BZ/8YLi4b9nTzPIzCmzSlry6yQMMHQ
-# FaNPDArPvjc5J0Pfo8903NGPVHMg6JxDh26NyWeu97XuCnyUY4dStu29mPwZXpcb
-# OjQPIHzhXcvJaytssEdClv+LY5n/iLlihef98iJs1PcVFj1wnmXzv71HEP6cbCPO
-# J1eLfYLiNEwUE09vURufbelbwijfFJW31M7xEnWj/MpmyXHxO1C2XIlVY3fsZHq8
-# 0JSC8oIRtz37JEU7mW+I/JJn7wjpylLiT43y4tPkA8e5vNebDNd+F4KqOD4tyCqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQUXlTWg4YrO8wQSaFNXjQcubNzQwDQYJ
+# KoZIhvcNAQEBBQAEggIAiR2q2C/fN01HzBq3Iqa8GxhCEUpC5j/rHj6i+J2vusg5
+# C82k+DbbFFqi+g4wOGziSXQMp+Z5FpFTuCprTHUHFeIOgR8hdcoVFXjZhwoRgF2Z
+# AAwCTCz6kSt5ObkhI5UmQh06dQ0u//LzV08pwhjhOWMD5y90kxrrE2JAfdwbIVnI
+# 56P9yFopR4T9dkcIFaRBdtZ7Vf+IA+EALg1PW4lCsz/cZe92CNGr3yaF6PLey0sf
+# aJY5ztnYhbYAf+AUWuokoKsSiH28Rl90kOh4x9/lx/umf8DiWJRuybczvziVc7rq
+# lNlV9tiZ26+yTETVb+Fkim/Vg3U4z9ONQlDduPC2eBZBkz/J0IOKBXZjNWhk0TGY
+# lfE0znDRE3vnQb/WPeDOMFyudnJ9mR2T/r/moxTzuIpK2kmm3jAahb9JkgMoa68M
+# KG39thgh3uG8PVEYPZpI1ImOCS+mwY3O/aKzZXmQBokUmd0jSX4o75uIBo7PTxgk
+# BHdZDneTfzx5W1HeRZkBBJWfX3tIyKhgYlzueeEZWCK/LHgMJAhv9Z/bXiGC+eiS
+# P3ev7Fe7Trhc/B8n/7TroUHlFr1EPgz7lvEyWUUY2SgPeM/cSp2ynwYJkle780JS
+# 0GxQyJSUpQIKOciPh/YunjSsqBMSVhnDxfxJVTdpRqIG5lNIZ7GnCMp3BRwgGpeh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkxNjIwMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEINiLR/zJM104LqIQScTYGvT1ko4NNqZYgkk10D1dujgp
-# MA0GCSqGSIb3DQEBAQUABIIBAEW7XNzHSOvZYP0mjBSS1e22A9ON7G93c9MZJ3Xr
-# geeAr56yXpFQQl6+J2QOiohWNBDon/HJYzbpuF6Cw3M5kotnUo4I86zElcUAmz63
-# 5mXSY3iLtqaaehAo9gPrjDOEEkOK+PzeQvTfV63tkjCBuRo/aJMkIfOYoWxYkqOL
-# Br+v2098GUOjj+4SVAWiQrsA5nZaM8KUozHyVNSH3lVzSplGJ54Buxqna2s6W8kM
-# bxdRKNEPvb2LFr24d1VD3DIz61PWRBDUZ6RBPuulYsSIkH06gBvFG1m9aF3VQujV
-# Hy02xfyHnSPM3kvvayd7QKr0nlz+Y7FCE+ROJ5bzi9epSpQ=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjA4MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIHI+PbInxct4AYhD5vmOViV/77y1TpGgzXlaOLYuGmWN
+# MA0GCSqGSIb3DQEBAQUABIIBAADyRJEPjkjInA61jaPuzXVL4wIOWwr1uZtXYci+
+# fRCtA0bGkq8AW2ntMhK4UE66Mx18eXHJK0bKMv2KotHzULjPIvW37GOVD0bo68Le
+# IGnaZ0aj9R/Bk9+l6qZj3mJAR2g1Vff13d/maVCqvmzu1QsW/z1JhTg06PE1uCn5
+# sQ7CItH5C9FA1sNNR/hwPe3bhPeD//jzlKcXOEEvK1mHAT5zNMCIVL1WdJgwFP8Q
+# 1VlSxUsO62tFObylnFAxQPUXmsUEhdqc9kJK8PhbOA/EWwZ6zP/Uxt6AKf/W5CVp
+# krUz2wiMh70JDSrEDDJDsfFzGPvQ01tXP4Z0wPuGMXoJsrI=
 # SIG # End signature block
