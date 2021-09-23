@@ -235,6 +235,8 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
             # Submit
             #########
 
+            Write-host $env:temp
+
             if (-not (Test-Path -Path "$env:TEMP\ADFSCertificateRequest.rsp") -and
                 (ShouldProcess @WhatIfSplat -Message "Submitting certificate request to `"$CAConfig`"." @VerboseSplat))
             {
@@ -250,7 +252,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     # Save reqest id
                     Set-Content -Path "$env:TEMP\ADFSCertificateRequestId.txt" -Value $RequestId
 
-                    throw "Issue ADFS certificate on CA and rerun this script..."
+                    throw "Issue RequestId $RequestId on CA and rerun this script..."
                 }
                 elseif ((($Response) -join '') -match 'Certificate retrieved')
                 {
@@ -281,7 +283,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     }
                     elseif (($Response -join '') -match 'Taken Under Submission')
                     {
-                        throw "Certificate not issued, please issue ADFS certificate on CA and rerun this script..."
+                        throw "Certificate not issued, please issue RequestId $RequestId on CA and rerun this script..."
                     }
                     else
                     {
@@ -404,6 +406,20 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # brand
         # Set-AdfsWebTheme
 
+        # Get primary Intranet authentication providers
+        $PrimaryIntranetAuthenticationProviders = (Get-AdfsGlobalAuthenticationPolicy).PrimaryIntranetAuthenticationProvider
+
+        # Check if cert auth is present
+        if ('CertificateAuthentication' -notin $PrimaryIntranetAuthenticationProviders -and
+            (ShouldProcess @WhatIfSplat -Message "Adding Certificate Authentication to Intranet authentication provider." @VerboseSplat))
+        {
+            # Add cert auth
+            $PrimaryIntranetAuthenticationProviders.Add('CertificateAuthentication')
+
+            # Set auth policy
+            Set-AdfsGlobalAuthenticationPolicy -PrimaryIntranetAuthenticationProvider $PrimaryIntranetAuthenticationProviders
+        }
+
         # Get WIASupportedUserAgents
         $WIASupportedUserAgents = Get-ADFSProperties | Select-Object -ExpandProperty WIASupportedUserAgents
 
@@ -487,7 +503,7 @@ Process
     # Initialize
     $InvokeSplat = @{}
 
-    # Remote
+    # Setup remote
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
@@ -518,7 +534,7 @@ Process
 
         $InvokeSplat.Add('Session', $Session)
     }
-    else # Locally
+    else # Setup locally
     {
         Check-Continue -Message "Invoke locally?"
 
@@ -613,8 +629,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkkSJuF55nm8WcNN6ojCU3Kso
-# kVSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS8bC6KAFT6rXge6/ca4zIANg
+# t8yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -698,28 +714,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSmYsxGQ6Nx9cSzaXuKfejDCNlg4wDQYJ
-# KoZIhvcNAQEBBQAEggIAe7Fu7VY1abBQlxaQs559c6Jl+G3DfYTvn/5Cl4q+2oy6
-# IOZUBM1kOenUPTrvV1FP+TvekASDI4lazbEDSrNa5H9LJuhkJFd2MGwbWbQkjblU
-# 83If2vtmc6I7xsFnYg9zTW0KdqS3NotlcvZ6dDvf++k+bLA9+oPTpDiIPBcm9pSi
-# z9LHV5jt73YkFgP21FoPfbfoNZBWj0XjtOSBwDGvqhf92ka77PUb8LT60GnLOiqd
-# LdcpFtr7XIXgSYJNBT47vOI1gsG5Yq2hv6CmXvaTqyZBDro+6nsYgXumdMTaAbaK
-# kztwj6QLv+AzlZxFu5NKzZ/SdIl8pWlr3bqlMTPOpjWy08NqokNiQLEavOxy3r4N
-# xmNJGYNYpzBMiuAZTMjZILlpKR2W600CFmP4IZfEpG4I2CCP+1OCu8cAJYs2uw+E
-# jybcJMhFYy9mOkEqpd250PURxsawZcL+p1+lICk+A58KRaNVHS6vAni5rZpOtfmd
-# BINyou2vzwaq4bix9qpyGC7MH1JQMisLJmuDeMPTLTvbnuNjoNDE5csAZBVBXnxZ
-# pJJO7BaHYBCa+RMdubf7Xn+deva3x6umfl6h8VwpYBY3quPfxDATvdc6PVD2wTni
-# 7sYu33az5q+eetGiY+BnZJ2nSM6QWBepfwUc0kSlcRRgqBv232Wu5WR7tTPJqqSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZJ+4CXtEi0WStEj9LiRey0uKYDEwDQYJ
+# KoZIhvcNAQEBBQAEggIAM3D3hWPsWVd07UeuHSkmLPOV0kjKdWWBeC+aZzBYF7x7
+# P3udF63OBlDuRwf0S6CE3Oun9FwAtTHJ5Uns/7abcA0wtzpRErZpygw8QaWozjMH
+# /ewKVkh0Ev7tLNEHfLGm578btiiqdOMC9vXXWazOKiNsSbHcbIRgHTQDuVAtyLOD
+# D6FHVGcRvAZvgVTQkEQVBBMS4HxDfUD/CwGpeAagCs9ERvPH63Yvxyvu6ErNFFme
+# K2BhmGvcipwQeFxzWPke8o/7vANAN2coseJ5uGazzeZgrG+GkdjWL6DLhtMFncL1
+# KGEuR8Bl2em45NtLDG3TTAAI0HdcgO5p9LluHDZz8BZmtovitQfrpXTEu6cAPU+z
+# Mn4cPA2AJ/WJhi1W9f2SfWAmC/l3gaQck7k/xtt9V1yRwD/1U2anxfxOwZIfXWPg
+# e7HtTyqU19MrbYrERsWgnfR6tfEur1WkxUtJ3CYrGgmpOpMIQ3Smgd8ncnqI0PUX
+# acwa5xWe/s+EG+8A1cr5heh14y8RV0QjIDFp/8ZA4YZKB6BkjaT+Ahwgsn3vbis6
+# kp7fX0CG3M7ANN2Z2cs8Mja0VYMefMYKPIboEeP1VevwAWqhZLRP/G+qID98UYZR
+# MxpsiaEfWXaqTpShBIi5KZBbgaD1qpsph9BynYCUKbVimsmhyy4XRK8AC9NZQvyh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIOiaNzyGzOnFdwnyQD1t21MGU7laKuD5UTKL0QhKAmTf
-# MA0GCSqGSIb3DQEBAQUABIIBAJFBCxwYAUvolIZoHRc0xPOIol9NTy5VW9ODPoFA
-# lFE1N49mrPEFHlc1WopHnltDJndsU2wF42nvR0J/lhqmaT/ApBagVa4fdDWKlQ9k
-# VVfZEuUz9G3LCKWhW6BZYzKrEJIDX0bFL8pM5pTPZ4arM3Wb8cphKI/PO8u28687
-# cbJgOusKWmtXFFPqzy55izY3MYYbJkdx9a+G/pwrzkreq9q6qWUyAzjqEooSh6aT
-# lXlsJbYq9OP/vUQ2QYF2EawHuIS1NCn7/c9rBmsrbQAAkKOKNuhtySlvlwevh3aQ
-# hIefP3qu6xEiX7gpUhl4bSPvYTZ91itgiDy5BwhMZFOqnTc=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEILSAV6kioiRHoijLc9pZ5c1csWiensm+p9pYZ/XxuC4K
+# MA0GCSqGSIb3DQEBAQUABIIBAEqcIqBUumgxgigScFRjsk8WzuEDnb7r3xgs6cKW
+# 3xiwRgCifaPPsaFMQWRGm3Ld2d70o3lQQ2h7GcxlFdbMMOloAkAM0XKxZVc6JJoB
+# yA1OqH9DW65WTFOUE3OwTmp97ouNZrEG4uZ5hPc3uT0Iq7dGBgy/GGIg0rLlAZUD
+# yakn4kUYDzn1l6QifhCCVL2TyLD9zxRGJFuZKg+xiMyjHKsj2hR3fTN9TGOWxo7e
+# ngGvCHQJdmTLkCV/fHAS6WhNm/osaxFO0KXQJHqzTZwsbR4a/5zvqxuxMhnue47s
+# S4IfAWZWx3Azabe7Zo1hL+4jCsOn9GXzPSKbB9E6LBk0VCE=
 # SIG # End signature block
