@@ -226,10 +226,9 @@ Begin
                                -NoRebootOnCompletion `
                                -Force > $null
 
-            Write-Warning -Message "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup."
-            Read-Host -Prompt "Press <enter> to continue"
             Restart-Computer -Force
-            break
+
+            throw "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup..."
         }
         else
         {
@@ -600,6 +599,570 @@ Begin
                 }
             }
 
+            # ██╗   ██╗███████╗███████╗██████╗ ███████╗
+            # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
+            # ██║   ██║███████╗█████╗  ██████╔╝███████╗
+            # ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║
+            # ╚██████╔╝███████║███████╗██║  ██║███████║
+            #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
+
+            # FIX
+            # Add Path
+
+            $Users =
+            @(
+                @{ Name = 'Admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
+                @{ Name = 'User';             AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Alice';            AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Bob';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Eve';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
+
+                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
+            )
+
+            foreach ($User in $Users)
+            {
+                if (-not (Get-ADUser -SearchBase "OU=Users,OU=$DomainName,$BaseDN" -SearchScope Subtree -Filter "sAMAccountName -eq '$($User.Name)'" -ErrorAction SilentlyContinue) -and
+                   (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
+                {
+                    New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $true -Enabled $true -AccountNotDelegated $User.AccountNotDelegated
+
+                    if ($User.MemberOf)
+                    {
+                        Add-ADPrincipalGroupMembership -Identity $User.Name -MemberOf $User.MemberOf
+                    }
+                }
+            }
+
+            # ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
+            # ████╗ ████║██╔═══██╗██║   ██║██╔════╝
+            # ██╔████╔██║██║   ██║██║   ██║█████╗
+            # ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝
+            # ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
+            # ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
+
+            $MoveObjects =
+            @(
+                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "(Name -like 'RT*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+
+                @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'Svc*' -and ObjectClass -eq 'user'";        TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
+            )
+
+            foreach ($Obj in $MoveObjects)
+            {
+                # Set targetpath
+                $TargetPath = $Obj.TargetPath
+
+                # Get object
+                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope 'Subtree'
+
+                # Itterate if multiple results
+                foreach ($CurrentObj in $ADObjects)
+                {
+                    # Check if computer
+                    if ($CurrentObj.ObjectClass -eq 'computer')
+                    {
+                        # Set default build
+                        $Build = $($WinVer.Keys)[-1]
+
+                        # Get computer build
+                        $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
+                            $_ -match "\((\d+)\)"
+                        } | ForEach-Object { $Matches[1] }
+
+                        # Set targetpath with version
+                        $TargetPath = $Obj.TargetPath.Replace('%Version%', $WinVer[$Build])
+                    }
+
+                    # Check if object is in targetpath
+                    if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$TargetPath" -and
+                       (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$TargetPath`"." @VerboseSplat))
+                    {
+                        # Move object
+                        $CurrentObj | Move-ADObject -TargetPath $TargetPath
+                    }
+                }
+            }
+
+            #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
+            # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
+            # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
+            # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
+            # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
+            #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
+
+            $DomainGroups =
+            @(
+                # Name        : Name & display name
+                # Path        : OU location
+                # SearachBase : Where to look for members
+                # SearchScope : Base/OneLevel/Subtree to look for memebers
+                # Filter      : Filter to get members
+
+                @{
+                    Name        = 'Domain Servers'
+                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Domain Workstations'
+                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Delegate Create Child Computer'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
+                }
+
+                @{
+                    Name        = 'Delegate Install Certificate Authority'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Base'
+                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
+                }
+
+                @{
+                    Name        = 'Delegate AdSync Basic Read Permissions'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                }
+
+                @{
+                    Name        = 'Delegate AdSync Password Hash Sync Permissions'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                }
+
+                @{
+                    Name        = 'Delegate AdSync MsDs Consistency Guid Permissions'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                }
+
+                @{
+                    Name        = 'Template ADFS Service Communication'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Template NDES'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like 'MsaNdes'"
+                }
+
+                @{
+                    Name        = 'Template OCSP Response Signing'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Template Server'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
+                }
+            )
+
+            # Add local admin and rdp groups
+            foreach($Computer in (Get-ADObject -SearchBase "OU=Computers,OU=$DomainName,$BaseDN" -SearchScope 'Subtree' -Filter "Name -like '*' -and ObjectClass -eq 'computer'"))
+            {
+                $DomainGroups +=
+                @{
+                    Name        = "LocalAdmin-$($Computer.Name)"
+                    Path        = "OU=Local Administrators,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
+                }
+
+                $DomainGroups +=
+                @{
+                    Name        = "RDP-$($Computer.Name)"
+                    Path        = "OU=Remote Desktop Access,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
+                }
+            }
+
+            # Add computer groups
+            foreach ($Build in $WinVer.Keys)
+            {
+                if ($Build -notin @('19043')) #21H1
+                {
+                    $DomainGroups +=
+                    @{
+                        Name        = "Windows Server $($WinVer.Item($Build))"
+                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                    }
+                }
+
+                if ($Build -notin @('20348')) #21H2
+                {
+                    $DomainGroups +=
+                    @{
+                        Name        = "Windows 10 $($WinVer.Item($Build))"
+                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                    }
+                }
+            }
+
+            # Build groups
+            foreach($Group in $DomainGroups)
+            {
+                # Check if group exist
+                $ADGroup = Get-ADGroup -Filter "Name -eq '$($Group.Name)'" -Properties member
+
+                # Add group
+                if (-not $ADGroup -and
+                    (ShouldProcess @WhatIfSplat -Message "Creating `"$($Group.Name)`" group." @VerboseSplat))
+                {
+                    $ADGroup = New-ADGroup -Name $Group.Name -DisplayName $Group.Name -Path $Group.Path -GroupScope Global -GroupCategory Security -PassThru
+                }
+
+                # Get members
+                foreach($Obj in (Get-ADObject -Filter $Group.Filter -SearchScope $Group.SearchScope -SearchBase $Group.SearchBase))
+                {
+                    # Add member
+                    if (($ADGroup -and -not $ADGroup.Member.Where({ $_ -match $Obj.Name })) -and
+                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                    {
+                        Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($ADGroup.Name)")
+                    }
+                }
+            }
+
+            #  ██████╗ ███╗   ███╗███████╗ █████╗
+            # ██╔════╝ ████╗ ████║██╔════╝██╔══██╗
+            # ██║  ███╗██╔████╔██║███████╗███████║
+            # ██║   ██║██║╚██╔╝██║╚════██║██╔══██║
+            # ╚██████╔╝██║ ╚═╝ ██║███████║██║  ██║
+            #  ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
+
+            ##########
+            # Kds Key
+            ##########
+
+            if (-not (Get-KdsRootKey) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
+            {
+                # DC computer object must not be moved from OU=Domain Controllers
+                Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
+            }
+
+            $ServiceNames =
+            @(
+                # Name        : Name & sAMAccountName
+                # Path        : OU location
+                # SearachBase : Where to look for members
+                # SearchScope : Base/OneLevel/Subtree to look for memebers
+                # Filter      : Filter to get members
+
+                @{
+                    Name = 'Adfs'
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name = 'PowerShell'
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter = "Name -like '*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name = 'AzADSyncSrv'
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name = 'Ndes'
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                }
+            )
+
+            foreach ($Service in $ServiceNames)
+            {
+                # Check if group exist
+                $Gmsa = Get-ADGroup -Filter "Name -eq 'Gmsa $($Service.Name)'" -Properties member
+
+                # Add group
+                if (-not $Gmsa -and
+                    (ShouldProcess @WhatIfSplat -Message "Creating `"Gmsa$($Service.Name)`" group." @VerboseSplat))
+                {
+                    $Gmsa = New-ADGroup -Name "Gmsa $($Service.Name)" -sAMAccountName "Gmsa$($Service.Name)" -Path $Service.Path -GroupScope Global -GroupCategory Security -PassThru
+                }
+
+                # Get members
+                foreach($Obj in (Get-ADObject -Filter $Service.Filter -SearchScope $Service.SearchScope -SearchBase $Service.SearchBase))
+                {
+                    # Add member
+                    if (($Gmsa -and -not $Gmsa.Member.Where({ $_ -match $Obj.Name })) -and
+                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($Gmsa.Name)`"." @VerboseSplat))
+                    {
+                        Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($Gmsa.SamAccountName)")
+                    }
+                }
+
+                # Service account
+                if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Service.Name)'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Service.Name)`$`"." @VerboseSplat))
+                {
+                    New-ADServiceAccount -Name "Msa$($Service.Name)" -SamAccountName "Msa$($Service.Name)" -DNSHostName "Msa$($Service.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "Gmsa$($Service.Name)"
+                }
+            }
+
+            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
+            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
+            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
+            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
+            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
+            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+            $AccessRight = @{}
+            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectclass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
+
+            $SchemaID = @{}
+            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
+
+            ########################
+            # Create Child Computer
+            ########################
+
+            # FIX
+            # remove create all child objects
+
+            $CreateChildComputer =
+            @(
+                @{
+                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
+                   ActiveDirectoryRights    = 'CreateChild';
+                   AccessControlType        = 'Allow';
+                   ObjectType               = $SchemaID['computer'];
+                   InheritanceType          = 'All';
+                   InheritedObjectType      = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
+                   ActiveDirectoryRights    = 'CreateChild';
+                   AccessControlType        = 'Allow';
+                   ObjectType               = '00000000-0000-0000-0000-000000000000';
+                   InheritanceType          = 'Descendents';
+                   InheritedObjectType      = $SchemaID['computer'];
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Computers,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+
+            ################################
+            # Install Certificate Authority
+            ################################
+
+            $InstallCertificateAuthority =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                    ActiveDirectoryRights = 'GenericAll';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
+
+            $AddToGroup =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['member'];
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
+            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+            ################################
+            # AdSync Basic Read Permissions
+            ################################
+
+            $AdSyncBasicReadPermissions =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['contact'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['user'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['group'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['device'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['computer'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                    ActiveDirectoryRights = 'ReadProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+
+            ########################################
+            # AdSync Password Hash Sync Permissions
+            ########################################
+
+            $AdSyncPasswordHashSyncPermissions =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
+                    InheritanceType       = 'None';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $AccessRight['Replicating Directory Changes'];
+                    InheritanceType       = 'None';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+
+            ###########################################
+            # AdSync MsDs Consistency Guid Permissions
+            ###########################################
+
+            $AdSyncMsDsConsistencyGuidPermissions =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['user'];
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritanceType       = 'Descendents';
+                    InheritedObjectType   = $SchemaID['group'];
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+
             #  ██████╗ ██████╗  ██████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗
             # ██║  ███╗██████╔╝██║   ██║
@@ -903,9 +1466,9 @@ Begin
                 # Set groups
                 $GpoPermissionGroups =
                 @(
-                    @{ Name = "Domain Users";            Version = @('');     }
-                    @{ Name = "Windows 10 $Version";     Version = @('21H2'); }
-                    @{ Name = "Windows Server $Version"; Version = @('21H1'); }
+                    @{ Name = "Domain Users";            SkipVersion = @('');     }
+                    @{ Name = "Windows 10 $Version";     SkipVersion = @('21H2'); }
+                    @{ Name = "Windows Server $Version"; SkipVersion = @('21H1'); }
                 )
 
                 # Itterate group types
@@ -922,7 +1485,7 @@ Begin
                     $Permission = (Get-GPPermission -Name $GpoName -TargetName $Group.Name -TargetType Group -ErrorAction SilentlyContinue ).Permission
 
                     # Set permission
-                    if ($Version -notin $Group.Version -and
+                    if ($Version -notin $Group.SkipVersion -and
                         -not ($Group.Name -like '*Windows Server*' -and $GpoName -like '*Windows 10*') -and
                         $Permission -ne 'GpoApply' -and
                         (ShouldProcess @WhatIfSplat -Message "Setting `"$($Group.Name)`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
@@ -931,570 +1494,6 @@ Begin
                     }
                 }
             }
-
-            # ██╗   ██╗███████╗███████╗██████╗ ███████╗
-            # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
-            # ██║   ██║███████╗█████╗  ██████╔╝███████╗
-            # ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║
-            # ╚██████╔╝███████║███████╗██║  ██║███████║
-            #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
-
-            # FIX
-            # Add Path
-
-            $Users =
-            @(
-                @{ Name = 'Admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
-                @{ Name = 'User';             AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Alice';            AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Bob';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Eve';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
-
-                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
-            )
-
-            foreach ($User in $Users)
-            {
-                if (-not (Get-ADUser -SearchBase "OU=Users,OU=$DomainName,$BaseDN" -SearchScope Subtree -Filter "sAMAccountName -eq '$($User.Name)'" -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
-                {
-                    New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $true -Enabled $true -AccountNotDelegated $User.AccountNotDelegated
-
-                    if ($User.MemberOf)
-                    {
-                        Add-ADPrincipalGroupMembership -Identity $User.Name -MemberOf $User.MemberOf
-                    }
-                }
-            }
-
-            # ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
-            # ████╗ ████║██╔═══██╗██║   ██║██╔════╝
-            # ██╔████╔██║██║   ██║██║   ██║█████╗
-            # ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝
-            # ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
-            # ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
-
-            $MoveObjects =
-            @(
-                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "(Name -like 'RT*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-
-                @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'Svc*' -and ObjectClass -eq 'user'";        TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
-            )
-
-            foreach ($Obj in $MoveObjects)
-            {
-                # Set targetpath
-                $TargetPath = $Obj.TargetPath
-
-                # Get object
-                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope 'Subtree'
-
-                # Itterate if multiple results
-                foreach ($CurrentObj in $ADObjects)
-                {
-                    # Check if computer
-                    if ($CurrentObj.ObjectClass -eq 'computer')
-                    {
-                        # Set default build
-                        $Build = $($WinVer.Keys)[-1]
-
-                        # Get computer build
-                        $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
-                            $_ -match "\((\d+)\)"
-                        } | ForEach-Object { $Matches[1] }
-
-                        # Set targetpath with version
-                        $TargetPath = $Obj.TargetPath.Replace('%Version%', $WinVer[$Build])
-                    }
-
-                    # Check if object is in targetpath
-                    if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$TargetPath" -and
-                       (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$TargetPath`"." @VerboseSplat))
-                    {
-                        # Move object
-                        $CurrentObj | Move-ADObject -TargetPath $TargetPath
-                    }
-                }
-            }
-
-            #  ██████╗ ███╗   ███╗███████╗ █████╗
-            # ██╔════╝ ████╗ ████║██╔════╝██╔══██╗
-            # ██║  ███╗██╔████╔██║███████╗███████║
-            # ██║   ██║██║╚██╔╝██║╚════██║██╔══██║
-            # ╚██████╔╝██║ ╚═╝ ██║███████║██║  ██║
-            #  ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
-
-            ##########
-            # Kds Key
-            ##########
-
-            if (-not (Get-KdsRootKey) -and
-                (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
-            {
-                # DC computer object must not be moved from OU=Domain Controllers
-                Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
-            }
-
-            $ServiceNames =
-            @(
-                # Name        : Name & sAMAccountName
-                # Path        : OU location
-                # SearachBase : Where to look for members
-                # SearchScope : Base/OneLevel/Subtree to look for memebers
-                # Filter      : Filter to get members
-
-                @{
-                    Name = 'Adfs'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name = 'PowerShell'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter = "Name -like '*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name = 'AzADSyncSrv'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name = 'Ndes'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
-                }
-            )
-
-            foreach ($Service in $ServiceNames)
-            {
-                # Check if group exist
-                $Gmsa = Get-ADGroup -Filter "Name -eq 'Gmsa $($Service.Name)'" -Properties member
-
-                # Add group
-                if (-not $Gmsa -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating `"Gmsa$($Service.Name)`" group." @VerboseSplat))
-                {
-                    $Gmsa = New-ADGroup -Name "Gmsa $($Service.Name)" -sAMAccountName "Gmsa$($Service.Name)" -Path $Service.Path -GroupScope Global -GroupCategory Security -PassThru
-                }
-
-                # Get members
-                foreach($Obj in (Get-ADObject -Filter $Service.Filter -SearchScope $Service.SearchScope -SearchBase $Service.SearchBase))
-                {
-                    # Add member
-                    if (($Gmsa -and -not $Gmsa.Member.Where({ $_ -match $Obj.Name })) -and
-                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($Gmsa.Name)`"." @VerboseSplat))
-                    {
-                        Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($Gmsa.SamAccountName)")
-                    }
-                }
-
-                # Service account
-                if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Service.Name)'") -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Service.Name)`$`"." @VerboseSplat))
-                {
-                    New-ADServiceAccount -Name "Msa$($Service.Name)" -SamAccountName "Msa$($Service.Name)" -DNSHostName "Msa$($Service.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "Gmsa$($Service.Name)"
-                }
-            }
-
-            #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
-            # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
-            # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
-            # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
-            # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
-            #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
-
-            $DomainGroups =
-            @(
-                # Name        : Name & display name
-                # Path        : OU location
-                # SearachBase : Where to look for members
-                # SearchScope : Base/OneLevel/Subtree to look for memebers
-                # Filter      : Filter to get members
-
-                @{
-                    Name        = 'Domain Servers'
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name        = 'Domain Workstations'
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name        = 'Delegate Create Child Computer'
-                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
-                }
-
-                @{
-                    Name        = 'Delegate Install Certificate Authority'
-                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Base'
-                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
-                }
-
-                @{
-                    Name        = 'Delegate AdSync Basic Read Permissions'
-                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
-                }
-
-                @{
-                    Name        = 'Delegate AdSync Password Hash Sync Permissions'
-                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
-                }
-
-                @{
-                    Name        = 'Delegate AdSync MsDs Consistency Guid Permissions'
-                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
-                }
-
-                @{
-                    Name        = 'Template ADFS Service Communication'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name        = 'Template NDES'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like 'MsaNdes'"
-                }
-
-                @{
-                    Name        = 'Template OCSP Response Signing'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
-                }
-
-                @{
-                    Name        = 'Template Server'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
-                }
-            )
-
-            # Add local admin and rdp groups
-            foreach($Computer in (Get-ADObject -SearchBase "OU=Computers,OU=$DomainName,$BaseDN" -SearchScope 'Subtree' -Filter "Name -like '*' -and ObjectClass -eq 'computer'"))
-            {
-                $DomainGroups +=
-                @{
-                    Name        = "LocalAdmin-$($Computer.Name)"
-                    Path        = "OU=Local Administrators,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
-                }
-
-                $DomainGroups +=
-                @{
-                    Name        = "RDP-$($Computer.Name)"
-                    Path        = "OU=Remote Desktop Access,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
-                }
-            }
-
-            # Add computer groups
-            foreach ($Build in $WinVer.Keys)
-            {
-                if ($Build -notin @('19043')) #21H1
-                {
-                    $DomainGroups +=
-                    @{
-                        Name        = "Windows Server $($WinVer.Item($Build))"
-                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
-                    }
-                }
-
-                if ($Build -notin @('20348')) #21H2
-                {
-                    $DomainGroups +=
-                    @{
-                        Name        = "Windows 10 $($WinVer.Item($Build))"
-                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
-                    }
-                }
-            }
-
-            # Build groups
-            foreach($Group in $DomainGroups)
-            {
-                # Check if group exist
-                $ADGroup = Get-ADGroup -Filter "Name -eq '$($Group.Name)'" -Properties member
-
-                # Add group
-                if (-not $ADGroup -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating `"$($Group.Name)`" group." @VerboseSplat))
-                {
-                    $ADGroup = New-ADGroup -Name $Group.Name -DisplayName $Group.Name -Path $Group.Path -GroupScope Global -GroupCategory Security -PassThru
-                }
-
-                # Get members
-                foreach($Obj in (Get-ADObject -Filter $Group.Filter -SearchScope $Group.SearchScope -SearchBase $Group.SearchBase))
-                {
-                    # Add member
-                    if (($ADGroup -and -not $ADGroup.Member.Where({ $_ -match $Obj.Name })) -and
-                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
-                    {
-                        Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($ADGroup.Name)")
-                    }
-                }
-            }
-
-            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
-            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
-            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
-            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
-            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
-            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-            $AccessRight = @{}
-            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectclass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
-
-            $SchemaID = @{}
-            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
-
-            ########################
-            # Create Child Computer
-            ########################
-
-            # FIX
-            # remove create all child objects
-
-            $CreateChildComputer =
-            @(
-                @{
-                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
-                   ActiveDirectoryRights    = 'CreateChild';
-                   AccessControlType        = 'Allow';
-                   ObjectType               = $SchemaID['computer'];
-                   InheritanceType          = 'All';
-                   InheritedObjectType      = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
-                   ActiveDirectoryRights    = 'CreateChild';
-                   AccessControlType        = 'Allow';
-                   ObjectType               = '00000000-0000-0000-0000-000000000000';
-                   InheritanceType          = 'Descendents';
-                   InheritedObjectType      = $SchemaID['computer'];
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Computers,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
-
-            ################################
-            # Install Certificate Authority
-            ################################
-
-            $InstallCertificateAuthority =
-            @(
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                    ActiveDirectoryRights = 'GenericAll';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
-
-            $AddToGroup =
-            @(
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['member'];
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
-            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
-
-            ################################
-            # AdSync Basic Read Permissions
-            ################################
-
-            $AdSyncBasicReadPermissions =
-            @(
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['contact'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['user'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['group'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['device'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['computer'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                    ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
-
-            ########################################
-            # AdSync Password Hash Sync Permissions
-            ########################################
-
-            $AdSyncPasswordHashSyncPermissions =
-            @(
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
-                    InheritanceType       = 'None';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $AccessRight['Replicating Directory Changes'];
-                    InheritanceType       = 'None';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
-
-            ###########################################
-            # AdSync MsDs Consistency Guid Permissions
-            ###########################################
-
-            $AdSyncMsDsConsistencyGuidPermissions =
-            @(
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['user'];
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritanceType       = 'Descendents';
-                    InheritedObjectType   = $SchemaID['group'];
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
 
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
             # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -1817,7 +1816,10 @@ Process
 
     } -NoNewScope
 
-    # Remote
+    # Initialize
+    $InvokeSplat = @{}
+
+    # Setup remote
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
@@ -1862,10 +1864,9 @@ Process
             $BackupTemplates = $Using:BackupTemplates
         }
 
-        # Run main
-        Invoke-Command -Session $Session -ScriptBlock $MainScriptBlock
+        $InvokeSplat.Add('Session', $Session)
     }
-    else # Locally
+    else # Setup locally
     {
         Check-Continue -Message "Invoke locally?"
 
@@ -1886,8 +1887,59 @@ Process
 
         } -NoNewScope
 
+        $InvokeSplat.Add('NoNewScope', $true)
+    }
+
+    # Initialize
+    $Result = @{}
+
+    # Invoke
+    try
+    {
         # Run main
-        Invoke-Command -ScriptBlock $MainScriptBlock -NoNewScope
+        Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+
+        $Result.Add('Success', $true)
+    }
+    catch [Exception]
+    {
+        Write-Error $_
+
+        $Result.Add('Success', $false)
+    }
+
+    # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
+    # ██╔══██╗██╔════╝██╔════╝██║   ██║██║  ╚══██╔══╝
+    # ██████╔╝█████╗  ███████╗██║   ██║██║     ██║
+    # ██╔══██╗██╔══╝  ╚════██║██║   ██║██║     ██║
+    # ██║  ██║███████╗███████║╚██████╔╝███████╗██║
+    # ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝╚═╝
+
+    if ($Result)
+    {
+        if ($Result.GetType().Name -eq 'Hashtable')
+        {
+            $ResultOutput = @{}
+
+            foreach($item in $Result.GetEnumerator())
+            {
+                if ($item.Key.GetType().Name -eq 'String')
+                {
+                    $ResultOutput.Add($item.Key, $item.Value)
+                }
+            }
+
+            Write-Output -InputObject $ResultOutput
+        }
+        else
+        {
+            Write-Warning -Message 'Unexpected result:'
+
+            foreach($row in $Result)
+            {
+                Write-Host -Object $row
+            }
+        }
     }
 }
 
@@ -1898,8 +1950,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrr8qSylQJcn8sOatg8QbzMO6
-# +0qggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxde2cg0iqx0BanrL8MlbAjVw
+# P4Oggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1983,28 +2035,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaEzSTOTSls8MBQEOFYL4eWKVrU8wDQYJ
-# KoZIhvcNAQEBBQAEggIABUFBDjkYeW62zaPidUR8d6dPrgabThU0rco7LB/TaWVv
-# XHjJiCWXKH3heN6qnqjHgzjdkxEhZ2LJE00LPPOOVy3Is+E9gqvaoZE3RI3Kwkct
-# SsEKRp7peY+++75HAVXCtNYSW+GGccIA2HZmlDXC5AfyOs66ucfDHwMQdm/fXlgl
-# 2+h6SWIYmab1+EbX+o6zOD3gb1+8l3mwaamoOFyQcWcmdmG+UC0t0JWTqu2/Q8aF
-# zmv0YCX34KuZVbPUF68/fHM1gu18gLMZt4CKkT3WuMbys05P46YvFVHhH0s4jmq4
-# Ufd+8XiRC2KharqduITzgxkGhNyb5yLgXGWJM1/CFDlu23B3VUYwC37Q5vv/uBMO
-# 873zLkma4VVx+tA5EbDhv9roiMBzUiM2IMBYYoD/LeU4sBQ5+OqPNHN4C6Vd+Dwq
-# M0+lN2YSCgBfVxAO8+53pUA+SE9H9vF/0hhIzGnijyzWusdHnAzHDcVTRyOtfMvJ
-# isO363+bGPr7uwulxRMN+BKCgERN7HicPqaov0QWh9RPDy8s6jz/JSulyCZT8zVp
-# cNKdYxK5j//dzG3IJ9IMPbE5jaZTwr3g27xCZbd8scJuh+qbWJG3IWnIK4TCI/6N
-# KrzaaMzsJYIAcKSV3PVqxul1ssVRi1pBIkPjlJ+LxkFTbiqANPN2l6GQhd/WYd6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUU1P6AD7hQb91PNwYP94tqz3fAowDQYJ
+# KoZIhvcNAQEBBQAEggIAKSw172fsCuaSq9YJaodF+3cbEqjnqx/zKnGXmMot9jLj
+# nILTVsB5z60PPueIv9QvLlotY89N/ZrERbJfbjnGIADjFYEaqN78jVfocMaS5Qsn
+# 0/7ZAiIh7k3/ndk/+6cEiTclOneMpQCbz99kSBRLdYLBrZF1wGBLHxyvP4E4XIXu
+# twj6eFI/fK0tXGj8bbFfCS49n5vhu12zlHqy548aGwrXKhJ1+G609iccfgXFKiQ/
+# v+iA425upW6JZYw57IXDml+x7avbOQfsfyDG4gQu+8MNjoP8Ql67XRUb02K+SPZx
+# wD7idtxqjvpDmH2FXCIotDg2AHEZ5aR5cvisZab+S+8wLlMfidg+ZtHHBqhj/EFf
+# 9R767l9J/230NSxU2ulR8seBH+M8n+G1BvTE/nXd56rJKwmNxwc5Uw1KcOwlUeQ+
+# 0JmvWB3iCw/bYmsRzsReFiuY5BhGQKUWObFoyVevVefUJwxFpFoBsu7cyIllqf5W
+# lUvy4rwx48xPyt6U3M7pYHv/OXjxUOpxKxAiuytOcL97dsGZUDcjD025GTNr6lOd
+# MTK7mv+KHUFdR7G0qhF73oZfEJpL81ic4zxJjWHYWTHBa/+cIVzNDhRr3H6GvWMD
+# O2eLrx+qeWTVXWEIY55CcAHgETDOv2vvBTLXHYTJFy1+PHbaaLyD3lLsWEZ0EMWh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMjIzMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIPpNSgxIPJ4RAOBNmW9T0Wd55hiiHGJefTozFDhRFE1s
-# MA0GCSqGSIb3DQEBAQUABIIBAKCW7GfTH6/jXib3bBdket83L1zxoljSXExW0hvh
-# rw64pSCOiYD9LptVZR6C7FnI4mXQK0obnNNRLG4hswsjGVxhogRnyuIonj/tNw/y
-# 4pgtVSL69cg+R2v+tBGQgeClBNkbrdf7/PZw1+JcmipOsvJyfNKI20TMzhU0ehrL
-# Q2OQhBUiIeJfyStIDsw0ueDylXrzIrGVZRe55Lbzlc1uke+hc+0VU/syRC/QeZtv
-# BsmD3zsvnkJKvt7/GHya8zU5bFGRzU6s0xov/qiVIZ4tYdg2ugYUZFye7T4DFNtl
-# i2h2nE7TDOZXA1UPYp/VLMUiczzFhYx0XcQkX9clj1pyQoI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzE0MDAwNVow
+# LwYJKoZIhvcNAQkEMSIEIJe7zV5RunA3Df2tTUYeH+waOWgg9hLnthn1Puf6bAkM
+# MA0GCSqGSIb3DQEBAQUABIIBACpwiMQ7lvZgdo1tBy1WkaV32e6cvyrp364lhTLf
+# DRQHMmoSzN8QSBi52rgESeMYAuJqFhf8g/wAyc85pgLA32fZqfbod18LXB13aOmw
+# /0BLjEC7dWqptacZ/NNgU4i4zLVW5T78XRIBu2Z8+hh4mB9vQXePs4OzVwaDRSye
+# Egv0rCiuA/BTHcJ0dXsQDlmPyCJ914wUeq2e+YJfimXQuipm4H2UraXNAetMLDML
+# jBEaRt1AuHrjVbd3rq6o84iJ0cJD3BiTCagcqc0YCe1F5cpK2SdO4QhxfxdU/9gX
+# Zh1cDkJBpFeBdCNB/dzmfMbxQCV3QxbNTuPFTpWogUWX2iE=
 # SIG # End signature block

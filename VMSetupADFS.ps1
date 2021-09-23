@@ -252,7 +252,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     # Save reqest id
                     Set-Content -Path "$env:TEMP\ADFSCertificateRequestId.txt" -Value $RequestId
 
-                    throw "Issue RequestId $RequestId on CA and rerun this script..."
+                    throw "Issue RequestId $RequestId on CA, rerun this script to continue setup..."
                 }
                 elseif ((($Response) -join '') -match 'Certificate retrieved')
                 {
@@ -283,7 +283,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     }
                     elseif (($Response -join '') -match 'Taken Under Submission')
                     {
-                        throw "Certificate not issued, please issue RequestId $RequestId on CA and rerun this script..."
+                        throw "Certificate not issued, please issue RequestId $RequestId on CA. Rerun this script to continue setup..."
                     }
                     else
                     {
@@ -406,18 +406,35 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
         # brand
         # Set-AdfsWebTheme
 
-        # Get primary Intranet authentication providers
-        $PrimaryIntranetAuthenticationProviders = (Get-AdfsGlobalAuthenticationPolicy).PrimaryIntranetAuthenticationProvider
+        $Providers =
+        @(
+            'PrimaryIntranetAuthenticationProvider',
+            'PrimaryExtranetAuthenticationProvider'
+        )
 
-        # Check if cert auth is present
-        if ('CertificateAuthentication' -notin $PrimaryIntranetAuthenticationProviders -and
-            (ShouldProcess @WhatIfSplat -Message "Adding Certificate Authentication to Intranet authentication provider." @VerboseSplat))
+        foreach($Provider in $Providers)
         {
-            # Add cert auth
-            $PrimaryIntranetAuthenticationProviders.Add('CertificateAuthentication')
+            # Get authentication providers
+            $Authentications = Get-AdfsGlobalAuthenticationPolicy | Select-Object -ExpandProperty $Provider
 
-            # Set auth policy
-            Set-AdfsGlobalAuthenticationPolicy -PrimaryIntranetAuthenticationProvider $PrimaryIntranetAuthenticationProviders
+            # Check if cert auth is present
+            if ('CertificateAuthentication' -notin $Authentications -and
+                (ShouldProcess @WhatIfSplat -Message "Adding Certificate Authentication to $Provider." @VerboseSplat))
+            {
+                # Add cert auth
+                $Authentications.Add('CertificateAuthentication')
+
+                # Set parameters
+                $SetAdfsGlobAuthPolSplat =
+                @{
+                    $Provider = $Authentications
+                }
+
+                # Set auth policy
+                Set-AdfsGlobalAuthenticationPolicy @SetAdfsGlobAuthPolSplat
+            }
+
+
         }
 
         # Get WIASupportedUserAgents
@@ -468,7 +485,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
 
         # Check if restart
         if ($Reboot -and
-            (ShouldProcess @WhatIfSplat -Message "Restarting ADFS." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Restarting `"$ENV:ComputerName`"." @VerboseSplat))
         {
             Restart-Computer -Force
         }
@@ -629,8 +646,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS8bC6KAFT6rXge6/ca4zIANg
-# t8yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhYjS2QRodQImyFz/tTpPTxpI
+# WyWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -714,28 +731,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZJ+4CXtEi0WStEj9LiRey0uKYDEwDQYJ
-# KoZIhvcNAQEBBQAEggIAM3D3hWPsWVd07UeuHSkmLPOV0kjKdWWBeC+aZzBYF7x7
-# P3udF63OBlDuRwf0S6CE3Oun9FwAtTHJ5Uns/7abcA0wtzpRErZpygw8QaWozjMH
-# /ewKVkh0Ev7tLNEHfLGm578btiiqdOMC9vXXWazOKiNsSbHcbIRgHTQDuVAtyLOD
-# D6FHVGcRvAZvgVTQkEQVBBMS4HxDfUD/CwGpeAagCs9ERvPH63Yvxyvu6ErNFFme
-# K2BhmGvcipwQeFxzWPke8o/7vANAN2coseJ5uGazzeZgrG+GkdjWL6DLhtMFncL1
-# KGEuR8Bl2em45NtLDG3TTAAI0HdcgO5p9LluHDZz8BZmtovitQfrpXTEu6cAPU+z
-# Mn4cPA2AJ/WJhi1W9f2SfWAmC/l3gaQck7k/xtt9V1yRwD/1U2anxfxOwZIfXWPg
-# e7HtTyqU19MrbYrERsWgnfR6tfEur1WkxUtJ3CYrGgmpOpMIQ3Smgd8ncnqI0PUX
-# acwa5xWe/s+EG+8A1cr5heh14y8RV0QjIDFp/8ZA4YZKB6BkjaT+Ahwgsn3vbis6
-# kp7fX0CG3M7ANN2Z2cs8Mja0VYMefMYKPIboEeP1VevwAWqhZLRP/G+qID98UYZR
-# MxpsiaEfWXaqTpShBIi5KZBbgaD1qpsph9BynYCUKbVimsmhyy4XRK8AC9NZQvyh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDDs83XzVn59WXnbut+qdoAtU6NQwDQYJ
+# KoZIhvcNAQEBBQAEggIAf+QaVhWnLcTDEKxlx6zete5y94iq7D9uM3XL7wF5Bsl4
+# zcLMp7d4qEwo+BSm9PEsMhIQfJ5gvUMwpIFf6717ydUuJP9QLBHXepvXpeHZ4Nq6
+# q2XNvYnukaUhAFTZ3UdAZYCI56Vel4eGGvUmkEYR9io+DHb5XGpIoKu0+5zDSKDr
+# c2uJIkRpMzB5XHI86u75Pii2HbzLw+eKjAK5vdKOQMmfFwJLO45Camr7nyVPSDfN
+# gqTLGZpsiiqqvDj4XSHZjV4QnDhHWrbU8Pp1pE712oZyb3dfIihwYoPPGo1vV8bO
+# S2P5WSBz72/0rJZA2jtWj0bWA/aiKsHj+Vye9Sf9vH3wZx28Vox9e0hEOhntGGYz
+# ND+g0COtde6j5OJq+2NqfwEdDdu88304iRpkELFHmryM3zfR3076KeBSnYGtGNZ2
+# 7UemRC5HKzyRRA+XYQzSDvyMRy9iWQBuL6op8kNxUTJCspaYJSsijm3NRIstVyRn
+# DomfvYW660qsem+tMh4JApeA6IhWXWfz5yYqkUyToFcm7ogDhG8cYvqP5Xa/Ldu6
+# SGU4J6JM9s7bDtSNAQv1iEqvtakMrvvOWZsEQkWmlRNkC9Dq8RsFeERBaiUn35vN
+# 4kmYXWKUwJtvhl6M67tKmwBMB3xXF5UUn4QUjeGoFUBNcATqZWjjN6mzQ8cdqf6h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEILSAV6kioiRHoijLc9pZ5c1csWiensm+p9pYZ/XxuC4K
-# MA0GCSqGSIb3DQEBAQUABIIBAEqcIqBUumgxgigScFRjsk8WzuEDnb7r3xgs6cKW
-# 3xiwRgCifaPPsaFMQWRGm3Ld2d70o3lQQ2h7GcxlFdbMMOloAkAM0XKxZVc6JJoB
-# yA1OqH9DW65WTFOUE3OwTmp97ouNZrEG4uZ5hPc3uT0Iq7dGBgy/GGIg0rLlAZUD
-# yakn4kUYDzn1l6QifhCCVL2TyLD9zxRGJFuZKg+xiMyjHKsj2hR3fTN9TGOWxo7e
-# ngGvCHQJdmTLkCV/fHAS6WhNm/osaxFO0KXQJHqzTZwsbR4a/5zvqxuxMhnue47s
-# S4IfAWZWx3Azabe7Zo1hL+4jCsOn9GXzPSKbB9E6LBk0VCE=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzE0MDAwNVow
+# LwYJKoZIhvcNAQkEMSIEICUuPd1diIBTwYqqqojpXFvNW2rW/dyIGHW519BZadBJ
+# MA0GCSqGSIb3DQEBAQUABIIBAL3ukJoM2Pafq6Hmg7m+UieLX755g7nYFUAfG/Rg
+# BayRhrH4bgWfNpjCcFDvXAbKl3LONpJYOvZfIq/GGdWoZ9pBah3ps02EwiUAwQGu
+# vcfjQhk4Wgn/EcsD3+veglcBFHSSvRQO02FyY25hwxC9JU/PbOM3wOLc9Y/zHOLT
+# VLer0ge41q1XZblt6CCbTbHoh0r2dbK2pCn+rSEV0D/QEGHY3hL5PmakMBbsQtlZ
+# j1OnkDe/HQOzllwUpBy6u2wzdRiuZJdb9t9Uj7pJfM9E4TnVyVRLh2tZ9STc7n79
+# EqvqohWVgTyLfrV1QreiniiilrVPIDH2ehgGj84FUdsZ4Sg=
 # SIG # End signature block
