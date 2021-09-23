@@ -182,6 +182,10 @@ Begin
 
     $MainScriptBlock =
     {
+        # Initialize
+        $Result = @{}
+        $ComputersAddedToGroup = @{}
+
         # Get base DN
         $BaseDN = Get-BaseDn -DomainName $DomainName
 
@@ -866,6 +870,11 @@ Begin
                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
                     {
                         Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($ADGroup.Name)")
+
+                        if ($Obj.ObjectClass -eq 'computer' -and -not $ComputersAddedToGroup.ContainsKey($Obj.Name))
+                        {
+                            $ComputersAddedToGroup.Add($Obj.Name, $true)
+                        }
                     }
                 }
             }
@@ -949,6 +958,11 @@ Begin
                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($Gmsa.Name)`"." @VerboseSplat))
                     {
                         Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($Gmsa.SamAccountName)")
+
+                        if ($Obj.ObjectClass -eq 'computer' -and -not $ComputersAddedToGroup.ContainsKey($Obj.Name))
+                        {
+                            $ComputersAddedToGroup.Add($Obj.Name, $true)
+                        }
                     }
                 }
 
@@ -1766,7 +1780,7 @@ Begin
             # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║            ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
             # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝            ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 
-             if ($BackupTemplates.IsPresent -and
+            if ($BackupTemplates.IsPresent -and
                 (ShouldProcess @WhatIfSplat -Message "Backing up certificate templates to `"$env:TEMP\TemplatesBackup`"" @VerboseSplat))
             {
                 # Remove old directory
@@ -1789,6 +1803,23 @@ Begin
                     Get-Acl -Path "AD:$($Template.DistinguishedName)" | Select-Object -ExpandProperty Access | Select-Object -Property *, @{ n = 'IdentityReference'; e = { $_.IdentityReference.ToString().Replace($DomainNetbiosName, '%domain%') }} -ExcludeProperty 'IdentityReference' | ConvertTo-Csv | ConvertFrom-Csv | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_acl.json"
                 }
             }
+
+            # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
+            # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
+            # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
+            # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
+            # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
+            # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+
+            # Check size
+            if ($ComputersAddedToGroup.Count -gt 0)
+            {
+                # Add result
+                $Result.Add('ComputersAddedToGroup', $ComputersAddedToGroup)
+            }
+
+            # Return
+            Write-Output -InputObject $Result
         }
     }
 }
@@ -1897,7 +1928,7 @@ Process
     try
     {
         # Run main
-        Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
 
         $Result.Add('Success', $true)
     }
@@ -1950,8 +1981,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxde2cg0iqx0BanrL8MlbAjVw
-# P4Oggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBrNPENaTDIQ4hRwfLU/zJ7n8
+# Hleggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2035,28 +2066,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUU1P6AD7hQb91PNwYP94tqz3fAowDQYJ
-# KoZIhvcNAQEBBQAEggIAKSw172fsCuaSq9YJaodF+3cbEqjnqx/zKnGXmMot9jLj
-# nILTVsB5z60PPueIv9QvLlotY89N/ZrERbJfbjnGIADjFYEaqN78jVfocMaS5Qsn
-# 0/7ZAiIh7k3/ndk/+6cEiTclOneMpQCbz99kSBRLdYLBrZF1wGBLHxyvP4E4XIXu
-# twj6eFI/fK0tXGj8bbFfCS49n5vhu12zlHqy548aGwrXKhJ1+G609iccfgXFKiQ/
-# v+iA425upW6JZYw57IXDml+x7avbOQfsfyDG4gQu+8MNjoP8Ql67XRUb02K+SPZx
-# wD7idtxqjvpDmH2FXCIotDg2AHEZ5aR5cvisZab+S+8wLlMfidg+ZtHHBqhj/EFf
-# 9R767l9J/230NSxU2ulR8seBH+M8n+G1BvTE/nXd56rJKwmNxwc5Uw1KcOwlUeQ+
-# 0JmvWB3iCw/bYmsRzsReFiuY5BhGQKUWObFoyVevVefUJwxFpFoBsu7cyIllqf5W
-# lUvy4rwx48xPyt6U3M7pYHv/OXjxUOpxKxAiuytOcL97dsGZUDcjD025GTNr6lOd
-# MTK7mv+KHUFdR7G0qhF73oZfEJpL81ic4zxJjWHYWTHBa/+cIVzNDhRr3H6GvWMD
-# O2eLrx+qeWTVXWEIY55CcAHgETDOv2vvBTLXHYTJFy1+PHbaaLyD3lLsWEZ0EMWh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3VDUz6zhRjjUc5IC1DgEQtYDVDMwDQYJ
+# KoZIhvcNAQEBBQAEggIAbuwMPfb+DapKSacC2ALZUHhKKG+rsWwsmOrvwfX6G6ln
+# H9LrY7c0KYHoec47ybVFbwVQcaFCT7PUdGP5+ibN16NZxzrw7yzTM/T3cwGSEgAy
+# WWn2NNHTJxg3Lw/Jw3fCu+l8B/OYgSqQbO85eLx1nhz4P96foUtdEorgsMALpGSV
+# Kel2Szd+Zo/7UuGdjauaclvO/Iu6iLxcSZSyPm72EyTYhkgOGOd79BK9th2h8ThL
+# Rxqfn2/dT1u+gpPMXV7vzgaM9asgYe7Uq/pEgrmIfTZcWBthbBnWUmOOyJig2G0t
+# lbl7dkCWeIv34ASgCz2e3eACvHsq2s8oSmG9AZWouBFWZpdnKkmcVPV30/12BZgm
+# skX6AffjnDguZ3fnEJ7PyRF7zepubLLdEjz7TZpNupBCSoa+t21i44NfmI2TafEM
+# fnm79lUiKG2/3M2svd3i5ZrBhCJ6QOdNKiQjqsKGQSy0/RLw9YChD0tn2PhbVErk
+# tjYCRVIoyP41dD1fpyolu8FiqPvuNDmc+D2JGQ5fGsUwtUZeJDRfSlBtoAlVVEue
+# tlmsGLqhy9duwo7pB1dYDbBnQsGg895RcX5G+hQnL8csZQNtu1mMQZ9+Np5I3mYI
+# oa1XJUvZSTPpbKh7dFCZaceRhBKHQvXDzbb7DgAkRVNtvh66y3ejFe+oI6zC9q+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzE0MDAwNVow
-# LwYJKoZIhvcNAQkEMSIEIJe7zV5RunA3Df2tTUYeH+waOWgg9hLnthn1Puf6bAkM
-# MA0GCSqGSIb3DQEBAQUABIIBACpwiMQ7lvZgdo1tBy1WkaV32e6cvyrp364lhTLf
-# DRQHMmoSzN8QSBi52rgESeMYAuJqFhf8g/wAyc85pgLA32fZqfbod18LXB13aOmw
-# /0BLjEC7dWqptacZ/NNgU4i4zLVW5T78XRIBu2Z8+hh4mB9vQXePs4OzVwaDRSye
-# Egv0rCiuA/BTHcJ0dXsQDlmPyCJ914wUeq2e+YJfimXQuipm4H2UraXNAetMLDML
-# jBEaRt1AuHrjVbd3rq6o84iJ0cJD3BiTCagcqc0YCe1F5cpK2SdO4QhxfxdU/9gX
-# Zh1cDkJBpFeBdCNB/dzmfMbxQCV3QxbNTuPFTpWogUWX2iE=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMzIzMDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIMDQ08J81V7AkCpaFEYSWW4v+7hrfLMnQ38wOV7PLttu
+# MA0GCSqGSIb3DQEBAQUABIIBAD3UtzWAmn7zbmSK1cQq9tarxcGZ13SzFzkC08JE
+# Cqz/OvmA8hZ+WDR40KyWWad1Svuz84bWR/3OcrMDdvf3qbhC6mUseywYBj6dbGQx
+# ecpRY5zcvLOfLVoGVhxkvW35fUApFzcJ4DBfwe9BY2qscTWNZPT/7KkU4aADmPAM
+# HPv36dAf4QubCi3RMqsy8urM1LeLINre2crJXioA6X/5nnB7bBpq6oXxA1/jGF8c
+# Q1Z/AOBqb0jRJNEjCDB3rJ17W8ElLNb6+4QjLLvIFbey+MEKme54ekTGOO95G7ry
+# 9O9waGq8GU/ROoynKltjMCNRG3Lur3PDr7mOINb+t7unJm0=
 # SIG # End signature block
