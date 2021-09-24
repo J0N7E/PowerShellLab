@@ -79,8 +79,14 @@ Begin
     # Validate parameters
     ######################
 
-    if (-not $MacAddress)
+    if ($MacAddress)
     {
+        $MacAddressSpecified = $true
+    }
+    else
+    {
+        $MacAddressSpecified = $false
+
         if ($VMName)
         {
             $Adapter = Get-VMNetworkAdapter -VMName $VMName
@@ -111,14 +117,11 @@ Begin
     # ██║ ╚═╝ ██║██║  ██║██║██║ ╚████║
     # ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 
-    $MainScriptBlock2 =
-    {
-        # Return
-        Write-Host $MacAddress
-    }
-
     $MainScriptBlock =
     {
+        # Initialize
+        $Result = @{}
+
         ######################
         # Get Interface Index
         ######################
@@ -129,6 +132,12 @@ Begin
 
             $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
             $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
+
+            if ($MacAddressSpecified)
+            {
+                $Result.Add('IfIndex', $IfIndex)
+                $Result.Add('IfAlias', $IfAlias)
+            }
         }
         catch [Exception]
         {
@@ -239,6 +248,15 @@ Begin
             # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
         }
+
+        # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
+        # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
+        # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
+        # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
+        # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
+        # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+
+        Write-Output -InputObject $Result
     }
 }
 
@@ -265,7 +283,10 @@ Process
 
     } -NoNewScope
 
-    # Remote
+    # Initialize
+    $InvokeSplat = @{}
+
+    # Setup remote
     if ($Session)
     {
         # Load functions
@@ -282,16 +303,17 @@ Process
             $Force        = $Using:Force
 
             $MacAddress = $Using:MacAddress
+            $MacAddressSpecified = $Using:MacAddressSpecified
+
             $IPAddress = $Using:IPAddress
             $PrefixLength = $Using:PrefixLength
             $DefaultGateway = $Using:DefaultGateway
             $DNSServerAddresses = $Using:DNSServerAddresses
         }
 
-        # Run main
-        Invoke-Command -Session $Session -ScriptBlock $MainScriptBlock
+        $InvokeSplat.Add('Session', $Session)
     }
-    else # Locally
+    else # Setup locally
     {
         Check-Continue -Message "Invoke locally?"
 
@@ -310,8 +332,59 @@ Process
 
         } -NoNewScope
 
-        # Run main
-        Invoke-Command -ScriptBlock $MainScriptBlock -NoNewScope
+        $InvokeSplat.Add('NoNewScope', $true)
+    }
+
+    # Initialize
+    $Result = @{}
+
+    # Invoke
+    try
+    {
+        # Run main, get result if return in main
+        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+
+        $Result.Add('Success', $true)
+    }
+    catch [Exception]
+    {
+        Write-Error $_
+
+        $Result.Add('Success', $false)
+    }
+
+    # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
+    # ██╔══██╗██╔════╝██╔════╝██║   ██║██║  ╚══██╔══╝
+    # ██████╔╝█████╗  ███████╗██║   ██║██║     ██║
+    # ██╔══██╗██╔══╝  ╚════██║██║   ██║██║     ██║
+    # ██║  ██║███████╗███████║╚██████╔╝███████╗██║
+    # ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝╚═╝
+
+    if ($Result)
+    {
+        if ($Result.GetType().Name -eq 'Hashtable')
+        {
+            $ResultOutput = @{}
+
+            foreach($item in $Result.GetEnumerator())
+            {
+                if ($item.Key.GetType().Name -eq 'String')
+                {
+                    $ResultOutput.Add($item.Key, $item.Value)
+                }
+            }
+
+            Write-Output -InputObject $ResultOutput
+        }
+        else
+        {
+            Write-Warning -Message 'Unexpected result:'
+
+            foreach($row in $Result)
+            {
+                Write-Host -Object $row
+            }
+        }
     }
 }
 
@@ -322,8 +395,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUox+y5ge8pQGHxsaNQ6GlrzZ5
-# 3+Sggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPyhMwhOCXiGkrl+4MlD7sSHP
+# eT2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -407,28 +480,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrYkfZVrAd0aZySdjyl8+Dd4u89swDQYJ
-# KoZIhvcNAQEBBQAEggIAYLyltmQZ1gUWW7MPUJFUPykd4WbF9Y+1Rq/QYH3Ts6GT
-# MDPKJtvflUgF45HKiErY9lxpkssnH9Jh3zbtVkhbpn72f2VfChx/ZGbSSDOVdv95
-# p9TxK4W/8sZAEc4oNvrpLmOgXOhom3IXP7WBULWkoGEKJe6T42JIZJGrxtjqSAc4
-# J1gYlJj1m8C2i0u2AEd6PFgjwvifrceua6uXIJWLtp/ZA8XAtMdo72q/ANG02b6T
-# 6yLcQjOAWFvp0l1TXYU/+mj88xL60+8dYqYIk/4bjvQ+apjyCK9nzl/WeGEwQZSe
-# czjSE6zX6bewve1tM/iM3wqNECRWaWAcJzQzej0fA7l0IORUM4maW6ME9n1I7mgs
-# cvFchErVezWBK+DfG5lESCX566j3L60qLYnW/erCffu5fCHQyXslCDK0KlZschhK
-# 8GoHw1leTNw/U3xGqj9XCktGtd8f3qv+Tm+VwtojciAdyMGnO/xFQeFcMTH9wXRw
-# fExmGFOEKLOxJs2PScS79HRYtGXH7P9zO66IsqMdcW3VLDQ8jMkrxNyuIR016Lyl
-# JiEZfV37SfPwywZYgxbyp7MRYo35/wuT6Q+aHANFbDcllN+NnhFGCE0+AeTtNLFA
-# KPgjcqZcp5v2LWwzdsXkrhxqXnZmFVy/9j57Yx6wPivqQ/oXrMIEcJD19+F1My6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaZ12kajAsQ6Xgvu9aG4/LUvzkFcwDQYJ
+# KoZIhvcNAQEBBQAEggIAULMS90OeM7FT1Gy3yIM+wRLF2mz2xTcWFdw9PUNExWsK
+# KbsLWOqt7Bm+jmwtDZd5Au2vGlxUAdWCiRlHwOfhk7dO1GqOoQJKXVIwpfneSmBc
+# xrPWDJCjzE/+JfmXI6AXUVJs1KIdwRaaaLv2uKr3kwzZuaxu/vXvUcTKQR6Pekz3
+# KqVjtu0bngN2uAYQet/FxRV1d0fzur8lNZVce8X+XG7RStGqZzXVPaVdImBNt+G2
+# bbUp2yI4SqZh7j66GQFRA0OpRa+rfSkLeXbU/G/3qHiECnhB6McdXVXcj5LE0hD+
+# D4AMZKYJc5yyyf4xX1elP7ZgRuYSMQ89VGVikjwsJLgoIyiiFBMU4TtNEBI/533z
+# 628TAdMzTRwEMXB8jen0NMXI6K3cTYqNjM8itaIJngN3+uvF7AzptGDC0ZuDVdcL
+# oK34IwMlWJtMHR3NjeKrGN9uYulU1fdtBUFnM7pLiCdjnxba3J9FnLSAnTh7SxiY
+# +uz1rY87OkAHMWBGIEHigClS7Skz4ETIysQxllhV/S3/YYnGbMjarzqf5snP014y
+# ij8KGPMoeSY9Bs9fGkU3OhrY+8/UKJirn+b8dSlIqTmY5vzf3AF98uwYASUpQA9V
+# GT68ljIWdSgeAC8U9oxevYjLefGbUF4Ng2JWrtblIRANMs/Moj0JdWJ9QNXY76eh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDYwOTIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIAh8CSvqGgaxpcEgDEwFWNeaRDf5sFZB+/Kzqp0yDrDB
-# MA0GCSqGSIb3DQEBAQUABIIBAIbEWMaQIunzyQ7TNrkeLtw6K4wiG7XZ38swiMA8
-# 2aUQntBX+fLFJZX0ocSnYXeGZ+uMRpEXHgn6HP693MrlAUEKJOBc2wpaSLA40nwt
-# 74oSEvRAY18bt1YvYMTWYweKFflA+aBTyh9jEu/ZWYsJo7O9MkyYQbmY+06A1n0f
-# tvW757vulj+FGVZ3a93CC/J3uhfNAqVpgTaVtSKsnzRh+gBB6ZwIg5lTS4wG+hgU
-# dz8LctRGkMp/Fam8ilyU+n2x+iRs8aXT1NksecPTaKQVHuEH03BTnjmnh4Yh6+ib
-# JOElYkbx3igvmHwUqP492ZOo7G1hGPCOlYOl3gzmXB4GTPk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNDExMDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIJN16eo2Qq6x4/mx1PRixvbo1TtOtocWxm3/MEce4lqh
+# MA0GCSqGSIb3DQEBAQUABIIBACHqFw0fhgirfwrAMNZKqc41bO1r/mJ7j34ZMteQ
+# pExZ3HtJ9FlTlmhhPrGn2DkwVjNAcxUAnxSsqDz3XAh9+htLyww24jWPFbDeLfd6
+# KSLrydKZs4xx1YOZQPxTSjxUK1ymc3VyZFWpwljnoXgJk9sdSxjXQIGnz6Csbo1Q
+# T4YOtm2ChoD66gPZIwQW/sJ8EfhoZJZqha4dqSAtrkeF/NUGAiDvcyFF48dN1c2t
+# SiP4xGi5FgDXRkNhwYSxcn/zzzOeY30Nyc6s34PzKlXEK2maryi8oTWBj+K2kS1A
+# 2IWRL58FgtQJ3p22IroyXmea9v4/Wfy7QxrDXy17PsJ91GE=
 # SIG # End signature block

@@ -583,6 +583,9 @@ Begin
 
     $MainScriptBlock =
     {
+        # Initialize
+        $Result = @{}
+
         ##############
         # Check admin
         ##############
@@ -1324,7 +1327,13 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 {
                     # Output requestfile
                     Write-Request -FilePath "$CertEnrollDirectory\$CACommonName-Request.csr"
-                    return
+
+                    $Result.Add('WaitingForResponse', $true)
+
+                    # Result
+                    Write-Output -InputObject $Result
+
+                    break
                 }
             }
         }
@@ -1526,9 +1535,6 @@ CRLDeltaPeriod=$CRLDeltaPeriod
         # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
         # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 
-        # Initialize result
-        $Result = @{}
-
         # Itterate CA files under certenroll
         foreach($file in (Get-Item -Path "$CertEnrollDirectory\*$CACommonName*" -ErrorAction SilentlyContinue))
         {
@@ -1546,14 +1552,13 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             # Get p12
             $CACertificateP12 = Get-Item -Path "$env:TEMP\$CACommonName.p12"
 
-            # Add result
+            # Add p12
             $Result.Add($CACertificateP12, (Get-Content -Path $CACertificateP12.FullName -Raw))
 
             # Cleanup
             Remove-Item -Path "$env:TEMP\$CACommonName.p12"
         }
 
-        # Return
         Write-Output -InputObject $Result
     }
 }
@@ -1584,7 +1589,10 @@ Process
 
     } -NoNewScope
 
-    # Remote
+    # Initialize
+    $InvokeSplat = @{}
+
+    # Setup remote
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
@@ -1699,8 +1707,7 @@ Process
             $ExportCertificate = $Using:ExportCertificate
         }
 
-        # Run main
-        $Result = Invoke-Command -Session $Session -ScriptBlock $MainScriptBlock
+        $InvokeSplat.Add('Session', $Session)
     }
     else # Locally
     {
@@ -1723,8 +1730,25 @@ Process
 
         } -NoNewScope
 
-        # Run main
-        $Result = Invoke-Command -ScriptBlock $MainScriptBlock -NoNewScope
+        $InvokeSplat.Add('NoNewScope', $true)
+    }
+
+    # Initialize
+    $Result = @{}
+
+    # Invoke
+    try
+    {
+        # Run main, get result if return in main
+        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+
+        $Result.Add('Success', $true)
+    }
+    catch [Exception]
+    {
+        Write-Error $_
+
+        $Result.Add('Success', $false)
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -1738,25 +1762,36 @@ Process
     {
         if ($Result.GetType().Name -eq 'Hashtable')
         {
-            foreach($file in $Result.GetEnumerator())
+            $ResultOutput = @{}
+
+            foreach($item in $Result.GetEnumerator())
             {
-                # Save in temp
-                Set-Content -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value
-
-                if ($file.Key.Extension -eq '.crt' -or $file.Key.Extension -eq '.crl')
+                if ($item.Key.GetType().Name -eq 'String')
                 {
-                    # Convert to base 64
-                    TryCatch { certutil -f -encode "$env:TEMP\$($file.Key.Name)" "$env:TEMP\$($file.Key.Name)" } > $null
+                    $ResultOutput.Add($item.Key, $item.Value)
                 }
+                else
+                {
+                    # Save in temp
+                    Set-Content -Path "$env:TEMP\$($item.Key.Name)" -Value $item.Value
 
-                # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+                    if ($item.Key.Extension -eq '.crt' -or $item.Key.Extension -eq '.crl')
+                    {
+                        # Convert to base 64
+                        TryCatch { certutil -f -encode "$env:TEMP\$($item.Key.Name)" "$env:TEMP\$($item.Key.Name)" } > $null
+                    }
 
-                # Move to script root if different
-                Copy-DifferentItem -SourcePath "$env:TEMP\$($file.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($file.Key.Name)" @VerboseSplat
+                    # Set original timestamps
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name CreationTime -Value $item.Key.CreationTime
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name LastWriteTime -Value $item.Key.LastWriteTime
+                    Set-ItemProperty -Path "$env:TEMP\$($item.Key.Name)" -Name LastAccessTime -Value $item.Key.LastAccessTime
+
+                    # Move to script root if different
+                    Copy-DifferentItem -SourcePath "$env:TEMP\$($item.Key.Name)" -Delete -TargetPath "$PSScriptRoot\$($item.Key.Name)" @VerboseSplat
+                }
             }
+
+            Write-Output -InputObject $ResultOutput
         }
         else
         {
@@ -1777,8 +1812,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDtJ3KnpAF4qXnQER1PJA6wj4
-# nq6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCpNJIFU/3PfD56iMJ3L25KdU
+# 98eggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1862,28 +1897,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVXbEeRqmpKOpDfd90OZbxYs2yL8wDQYJ
-# KoZIhvcNAQEBBQAEggIAdrG5Vi3GiOgJjjSBZJsgmZ56yWI673JiBxqZ/jYXTefK
-# +qUKIf/OwJOMMrkkG9Tp39ee2o0hjrMCdQZIMhP7DlZL25RajuRWaGBIfPEG+1fD
-# 2Z9Cwlxq5R0vFrLBV/79avvTYK4JC0iE+SsxuAHJ+T0me0wmtLYB1D2Ow4KN9cH6
-# A5se98xRn35nivpkx0xL42tmVLTVqs8yBsutIzIuQPoA9ZC944Lzjtufhgo5ZGgJ
-# s5YJgpPY7O0cjMKerTrZCrZvPHXHejxRIJacmh7HNhnsUHzOmnw2cmrPjpWrxDxO
-# QfUsO3hV2eFrKChEnGvS71y0jPZ9RCzgKlpBe3b0A/VtbAZaGxQdZH0pqCfCdjFM
-# 3njmPq+QQGyXhRjV79J2xZSgcqGnZd4STMiJz5ohHfnE419gsw3Q73YkiykzX4Mj
-# srJJBhOlgNRRHUnl9/9p+IWC0QUNAbmCsOAIWASYOuTwuDfshSClFQ2T/7Jxb3ef
-# oKSMn7/MKkWuMGKxM56nw9T/mbJXChD+tpmIc0EVoB1fgZ3KpLB7+MO+/Cn/E5en
-# kl46nhz62+lcjyQThjHxGQwPSX2/58Z5uNW07fPVBu2N97RV/hGxc6+fsRDzrUfs
-# zje9p0J0z2EFDCTevEA/cahHQRA28NY66Tbzhzv/mAM5uxQO7I9sJwrjx6D2cOuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzAYaruWfHssGVeGWVN9osMoGedQwDQYJ
+# KoZIhvcNAQEBBQAEggIAWFBYn18H7FJ/NwR1l0rk98PNaAADCfm/xOsTae/17hn9
+# 9D9zyK+vu14vCRWrOSuDtbW22yQCPHDfE2+JJg7XmVOl9iwdTp0iRR3ng4fxuCcT
+# H8KSUNpZUbGvI0cLpkCehDEWyMHBnqxf2wg3mPkx0T4SFn4haQFqUa0tI8FPA6fM
+# eBJSkK41wMux1Tg/lA7buia92SJgVvrphQl8CdZiX+ctMmCtrgHzlme2ZcemzL6P
+# 0SSbC1vQMC4rh9Fnl6q3rViRXjVz2c2Pp0QApf4A1rYikR7Gv5VQfCHSJtjiTTyg
+# WJomoErhOJAHqBgOqfJEcaQvJHlsOowC9wKoY5a0AqYfAGEn0Bb8amDdALwOVvxh
+# DfSlrnVqEMySaCZ2y4Pi5n5ropb2mvwoqLVAXG2NJiQcQuX3UpMZ7sVGRFoBWNF0
+# nHrzvYurnDxNQxQ/GQg+i7z+0YWxIB4i5f4/VMuUMApqqszrjzs7zhLMqMenx1oY
+# uOHQk/MZt1JjOCnG9izs377gRZ7F2zBODJii/rcCa2TR1vJGC/IqvL9knFqvbLBz
+# KO5Bu41TBygUtZymZwxxybMG276ER4JQvJn2Ea5MgnPcuI7OOG4k3ESyshKeirmK
+# yfoEQMOSMxIMidLvcLqaduWCfS73GupOxJwaZ+toISC/45PO2sFweU0wxMUdn3mh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyMDE3MDAwMFow
-# LwYJKoZIhvcNAQkEMSIEIAG3WRD4yzxUTADs8kzBqEiJZo0yeyZWtX4dUv8I6VOX
-# MA0GCSqGSIb3DQEBAQUABIIBAJRuPL/rcEJ34Tx4Qw8vudhlW6VwSIOgAIf6XpmV
-# SMQDioPzBRv/0xM6hm44FqOCo7gjeFtGN8fd3rGAvdXlTc0jyswwTOjNKEe3iH0q
-# vVp/eZnGFPEWxerIfHXnjTIMS7wKQmbt/OZGsymgyUalxJRpWOpiTxWo7ZtS2VEG
-# LZ44+6HGPQwUM6QhP2RdPK2KxLwa2I13ONQvfGgGE2GmW2DYZsDkmAZyvSlvxVEa
-# pjwwQEleE79G2qlnRTdExKDooAH83eycF51alw8t9eaVRWfOgLATWLanyW10wUP7
-# kKdWqBzQlWa2yxTYn06mN7rysNuLSJ48+x91h05wbFZU9aI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNDExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIHVNkPXNrS68edApEEOGMSUIePfQTlXJigbCEdlzz8kQ
+# MA0GCSqGSIb3DQEBAQUABIIBAHSNVdeX3XcqksNncHiNg003Ju5BuUApQCSRe6hE
+# 1aRlQnWe/fTSZ9FtOkilrxSoOX5Ygm98axvMDdQRi568YfBD6HJEtwH3JVgqVoEX
+# aDFdzbqTZu2vrQJlYN4A0YtcwIKbe6zJZSSOdMQ87ew6kEYGjSpgFVamXMuQ0csU
+# l1WyTtK4MXi5BfXDhRlG9R/ggdYSGidU7ZjE1XRftoSYB8ISHZ93RmWdAI/wObJm
+# HC3ySNO0feaq+NkySGM7xRXWbTmWTDMC8W2HfSvFV7Sf90UB++HVSO8J4Wggsm+b
+# P5TzqLyn5FT4oGyEq1MFoHvNh0DlA8nTqcQY4Aw+kSwUyDQ=
 # SIG # End signature block
