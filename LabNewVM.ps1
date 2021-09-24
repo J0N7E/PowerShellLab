@@ -141,11 +141,7 @@ Process
         New-VM -Name $VMName @SwitchSplat -Path "$LabFolder" -Generation 2 > $null
         Set-VM -Name $VMName -AutomaticCheckpointsEnabled $false
 
-        if (-not $VMAdapters)
-        {
-            Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
-        }
-        else
+        if ($VMAdapters)
         {
             foreach($Adapter in $VMAdapters)
             {
@@ -164,12 +160,23 @@ Process
                 }
 
                 # Check if adapter exist
-                if (-not (Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}))
+                $CurrentAdapter = Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}
+
+                if ($CurrentAdapter)
+                {
+                    Write-TimeStamp -Message "Renaming network adapter to $Adapter..."
+                    $CurrentAdapter | Rename-VMNetworkAdapter -NewName $Adapter
+                }
+                else
                 {
                     Write-TimeStamp -Message "Adding network adapter $Adapter..."
-                    Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter
+                    Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter -Name $Adapter
                 }
             }
+        }
+        else
+        {
+            Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
         }
 
         New-Item -ItemType Directory -Path "$LabFolder\$VMName\Virtual Hard Disks" -ErrorAction SilentlyContinue > $null
@@ -178,7 +185,7 @@ Process
         {
             Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes $MemoryStartupBytes -ProcessorCount $ProcessorCount
             Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $false
-            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off
+            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off -DeviceNaming On
         }
         else
         {
@@ -190,7 +197,7 @@ Process
                 Add-VMNetworkAdapter -VMName $VMName -SwitchName $VMAdapters[0]
             }
 
-            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On
+            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On -DeviceNaming On
 
             for ($i = 1; $i -le $ClusterDisks; $i++)
             {
@@ -230,10 +237,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUrwYJKoZIhvcNAQcCoIIUoDCCFJwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQXf9UuyGrlTQqFb6btr3Hdei
-# Od+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUP51NBA4mQnHsN34RTvTM2H0l
+# kzWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -314,31 +321,31 @@ End
 # 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
 # U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
 # YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggTnMIIE4wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
+# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUecPOkfame3EjD5LvuOUJSS4cgD4wDQYJ
-# KoZIhvcNAQEBBQAEggIARb6Sg0xgeBmKQoJrgo7ky9W04Mxu1GmJs8xuOUO0mKAr
-# dwftFW/TgHppYV7wXP5+PuV10LGK89k8CI/RlyLMO6eALKLzdlgNw/WOBNskaLyv
-# D1/yQ7v2pqma1+KYUTFSFUEJb4HfRZ1y6wEyz3Xr7vpEiGbawD7cWQvpVLgPoUr/
-# YL/DI0igxNJVbE28OKAHgGHqmXzIJl/N35pz7jL8S8dvrkrPtk3o1XUQ2mM1xsFK
-# za5s2NlipJO/rza1m8xFNc8ikcMExEoUb5bHPQVI8QVW80cDZ1dTP1Y5M7Xf0ov1
-# y0h8StVmpb0kD1YrGgExkElujq3dzdKNCJhXAuloC0XC4ENw3o/CtGuMtTzF/Z8m
-# TONxIRoQCl6Ks8MlLuyM5EDPJto0BaeHv79hfeLyVVOy50pX/ntxP6nruQUW8qfT
-# /q2yf2rjFqP3s9xN3olsSdm7XlqJ/hpUrxvXqhhov0LOcQN7G7qbsEwOPD9+nAW/
-# e+ksXG6Xee4VGC0ZmvOe7FIB95N+WpRCHV+gIpPiufYZy5ihA/ZKv0THPMDNcqvJ
-# MX6p4wWfGCWxv8CLiERFcjjZieoR257YpldJsXhoXl/GVgP5MAHK4pXLr8mpVhQE
-# KeY6sMdDQbSHmiCqn88PQuYXypm+EJLdXcbzTUFb+WV8QUAeaWnQnyG1JsXySAqh
-# ggIgMIICHAYJKoZIhvcNAQkGMYICDTCCAgkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUER/8jhDfjDgPBjaqIDkA55ToS3IwDQYJ
+# KoZIhvcNAQEBBQAEggIAXM4aR6nWefsKXqYYu6nMEkd7LZvko7VKFZ4PZ2uVULd5
+# T/wG/oWCFHcQ8OyfHttf1dRSvStag32dRf9DPTVY/Nt95XEU/3MZdNtnQVJhL+39
+# 6mFtkyDCZe62rNuY5drIvpJLHY9Eyac9z7Hbm8owJWFcItVIypCCzS17v39d+wpK
+# XPJZ7mj6h3K/wd/hzmyu9bqErMsahHlDJjmDnXECv6nkiyIZPB+i57GWYUnUXcfO
+# BusYYOO/tacM2fBVYhe+D43GrhJdgqVd49UOLIONq0ZQTHAKpCh1hacFhbMsGuh6
+# 0C/uEvemlGPt1uTJ6olJnVPc+EfCmLPbDrYgVDl8Yo0ZIK+TkSKcZB53h1CRQtcs
+# NKhOOKTeA9F05RkMQ5DHaxS/T9LfNXOGWgRto7WlvMSkWghozpSBhRMAiR3blDT5
+# GA6P40hRY5wqIdyLyLaSz0biOA+96LBdbDf5+Ur2Li61wgXhUhCn0/YopkVI8zqE
+# RjiGeO5rerF0F+bdAVwzoLjBON7DjoRMbnGgvaJxEpi5m2Vt1tEJgpVodVErD4nR
+# 3Dd5DYmPJpLcAdsbcBFFCzDj632GSo2EF2Kx1MP02N7mGCY/bnaxGzuaoNZ6cyUw
+# /xWXjIEraKgHKxsKORyBm+XKSEl72Rg/yci+YWyqls23gt/OB2iyE33PbszJjGKh
+# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkD
-# MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwMjExMTcwMDAxWjAjBgkq
-# hkiG9w0BCQQxFgQUOMHin8J+7/+XyY7+eCYsF4leVi8wDQYJKoZIhvcNAQEBBQAE
-# ggEAIQPGdYmQK3/sk8uhqlDHIb9ZU+8kn3WVFuShmZkZI9rnPHLKHQPgMtv+HWXX
-# zu9CIAM0kR753vxOqohOPyV405vDTX8E4I6+cv3PWcwoVnuyq3i/vVHrswyjD2nY
-# kVNFE4crMzfAVKraVXdjpTzfBg4Ultac9xJ+eYI8aVWcVp1cvoo+W8GVzic7okuv
-# ZpiKpUetGRLimMhz32X4+/ZCGvB/8UoMhfHixf2ouOn7kTKtZV6O0dmC3tT2+99v
-# qkVEg+r1n52uJbrdj4k2p7r11wj7zaZIhy9VjrVi7d1B2AIL4XbnZQ6OrhJyzHw7
-# SmPgT8uVUnCb/C/49GXBiWlsyg==
+# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNDIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIOJ5DGWcxSsTfXzT4zurQ82pTGpzjojD5zbR9LTrTXzN
+# MA0GCSqGSIb3DQEBAQUABIIBAGAfyLESTAvWsXkPhKfhDKhmX27MUWyYJeA5fcVX
+# l5fVr3LXftKQuhLuaOctzUsMrmkZUVqm3EhJQ+iAr8J6SVFp0g1npO1KRfI1rjna
+# ICNLy/iBWVLSywCRs5038DQg39P2M5Z/ePi21u1U3rOmLBOLsI02P7URikXq+9Ss
+# NMItLSJX/xt1JR59/ifgFICfeZlS4JUMgrapXyfU8XMsaDqvbZlPSXksNG0DO9bY
+# UbODgFS7YPf0I/7/OjqdKO6wqIRoHhqYIIuC2Z83W+MkKrD8qzkCJ9kKggz+ExQ0
+# KzAY3Zs4qN9YCEnAjjfHs09atAsRBxxBnl5phEVRcUA96a0=
 # SIG # End signature block
