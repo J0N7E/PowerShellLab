@@ -235,8 +235,6 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
             # Submit
             #########
 
-            Write-host $env:temp
-
             if (-not (Test-Path -Path "$env:TEMP\ADFSCertificateRequest.rsp") -and
                 (ShouldProcess @WhatIfSplat -Message "Submitting certificate request to `"$CAConfig`"." @VerboseSplat))
             {
@@ -251,6 +249,12 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
 
                     # Save reqest id
                     Set-Content -Path "$env:TEMP\ADFSCertificateRequestId.txt" -Value $RequestId
+
+                    # Set result
+                    $Result.Add('WaitingForResponse', $RequestId)
+
+                    # Output result
+                    Write-Output -InputObject $Result
 
                     Write-Warning -Message "Issue RequestId $RequestId on CA, rerun this script to continue setup..."
 
@@ -285,7 +289,13 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     }
                     elseif (($Response -join '') -match 'Taken Under Submission')
                     {
-                        Write-Warning -Message "Certificate not issued, please issue RequestId $RequestId on CA. Rerun this script to continue setup..."
+                        # Set result
+                        $Result.Add('WaitingForResponse', $RequestId)
+
+                        # Output result
+                        Write-Output -InputObject $Result
+
+                        Write-Warning -Message "Certificate not issued, issue RequestId $RequestId on CA. Rerun this script to continue setup..."
 
                         return
                     }
@@ -358,6 +368,8 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
             }
         }
 
+        return
+
         # Check if ADFS is configured
         try
         {
@@ -374,7 +386,7 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
 
                 try
                 {
-                    Install-AdfsFarm @ADFSParams -OverwriteConfiguration > $null
+                    Install-AdfsFarm @ADFSParams -OverwriteConfiguration
                 }
                 catch [Exception]
                 {
@@ -589,7 +601,7 @@ Process
     }
     catch [Exception]
     {
-        Write-Error $_
+        Write-Error "$_ $( $_.ScriptStackTrace)"
 
         $Result.Add('Success', $false)
     }
@@ -649,8 +661,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZG+gFagKX3A8r5vPG6w0G6JM
-# rqSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbZwLSezNnpDShq95XQ7fz2Y1
+# wNOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -734,28 +746,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURoRJiNdsQxzGUrR76dWC8zLGwuowDQYJ
-# KoZIhvcNAQEBBQAEggIAQTfV7gCsJDBG21VkTHtfpSdXLYbB9iA3L8MqrgZBMjO2
-# rcwSjT8nlnI3xOnUEyVe4R4ET04x62EtHKisDLcpSPOuhU/LrxRO/akvK8QLQ+9T
-# M7wWDbAe1ARmvsTwv5vRvAaT01B1D7miHxBN0ra544eKBSrEhnHxAt8BoKnp8QAX
-# CS+uTe5ZP1z7in6x5BMZVLqAsHIz7rV4T24ARYT78EkpNLoONFjZoQGeuZSL7tWz
-# /l00lsiCATzh0SwQ49exGVMOxsVNANJzpnDSlPETCOLhOYjQXJCfrb8g2gmX7B6P
-# VHrFwvjc+/tNEWjzUdLdIz2zlvxOapGd6OjUjFC8EUc73hU4rxUjctHIY1RaEC8H
-# Dpn9i1of823Jf899GUATPW9HsslZJbvxVh4OBJcH/8TsRH+Ww7UKaF0SZRRpJU2a
-# 6CzcqQ4EHBC+YL8xjEcNqRacLF47vTq8V/pWnARtUZWzxsrpp+HNIMI3dyDaTplD
-# aWTn9Bnk+skA6ClCmb4aqPklIVUxthbUWcqHK5tAggif6b5UdBj5XUF0KVHuPJwy
-# orYSVLJm7Sr9eIbBgbLNoZDEeQn39Trmr6eKFBO4tJMP4drrOE9KswHdc/IHkC/Q
-# yYg0r74idJmDGhCrQOy2A12GKhJrw15Sn5bWYXIhMhdvhtOOAXw0dNOVN67OTu+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUR98pKY+tUibpaAosPjbQKScq/UowDQYJ
+# KoZIhvcNAQEBBQAEggIARgosYWY5MLGAAWvWd8cQw5kE+sR3EPDRPpnY2Uh3RY4t
+# bD4tteLJmRdgZHUEYPwKK07jWEd2GooecHCwKSsKCZbtGETR9CQa5uF5TF7j6gge
+# h1EytLzrtw2Wja/c0Dxf8ATYVn05ycDB5jW3i1o1pA1PFX0gM3/3Qv/9Rtn4fg+K
+# LBIwI2i2byuQqH6aNGVSFjyjgI/6EG5lR21YX3ueG4YSfs9bhHv6k+oZDmOdroxX
+# JChV9DhGUMAErZqukGOtlgOZ3lcCl31EyJaGRufovb5zXA5u9cxJCaqoRFf/L/sv
+# AdQ5DSKkleUPZ9pjLtT6+6HEhd7AHshTJGYaxVJwdasIVU37e5RO+9L+uzSrMuuC
+# mlbobIPlwfcUkC0SBh765JHFO8qcJQOHrHiPLOK2Fq8kjNf+wm+9KF+8LxBVJKkp
+# QywqSjje6YSXj0amYU+JltGltVaax8RPYH7C98xy72LnE7R1YUrWRyvXY216qAs1
+# 1sDBhb6Lq+XCFRXnlQW2u/yk2LF+8tWL5hsfQrKt9zS/GvDsK3g/KTdF98KjWXrX
+# nw/L+qleZZ+0fAWA12ePp4e33zQUsDfJSQdejs8ODStiBqEq47CAOkLWoUp33VVe
+# ECR5eXBsUMq3gk6pIKIJl077s+vHqVzUj04ZkN0KIyhifiKfQxH9G1+z2wycLYmh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNTExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIO57qu4zz7JDq4nJjizc3y4hBRENdKla7ldcy+MrztZk
-# MA0GCSqGSIb3DQEBAQUABIIBAIx841sbh8eVL7mc3x3jHADk3kGoec9iPd75COVr
-# WLlK3S39TBScktrtKPUREPhXh/RtX2gMghGGP0M/ICycv7UC/IfaDSFS8xa3gvYu
-# JvWlGPQyJsiOMaORDvEMOYMb1ul1nbwcI72JPr5VO++SoHsk2HwdQpRwn1GS+oRi
-# SVsoJMttPjdhjBcGpku3BeHbxh3J/Mk+VCe7YY6loZoah3Bz5pNsZjl2myh6OQ6I
-# EINSk+gwWJXb8mLNXwotEXIWn/DMBr4o/4qFIBSM5qbs4Z1YcfVHHHlVCKN7hLET
-# 97cc6sTwErrvSBrvG2akF4H5lClZeJVEl5TeKF8CcVNZsLA=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNTIzMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIIO6P03jTtiLwX/bn324rAVY/Qa4BMipvXR2CjmPwK+u
+# MA0GCSqGSIb3DQEBAQUABIIBAIi+aVYNN1cYE5vFKFNbTTwmL0/tR8vB9bG0vW6D
+# w2yxf/xzShF4rDBJv0lo0Anw/pnIa/IqtIn/BP70XZzsQMuCNv4Q84IzYRitfl1I
+# o2qwQM9NoKXJ99BquXi8C5dVU8Al1EVppQlOKwo7NjpsNou3RkJzLI40U3Sjx6vR
+# q2K6DwGkCmkf7dS0vHs9Bf7X1HXoLcICxcYrerO3Ug0x0kb0N2mqlTzJSuuVLoq0
+# evyl4jMMoyRwpUmptiWwqbeODH/e47eN7Cx4hqkiNkIuNrAUfVjCTInnjJvk7DD4
+# YUrXCxvmiZQMDRGP5y72Cjp52SkP965E/W0H7ImkbpxeEjo=
 # SIG # End signature block
