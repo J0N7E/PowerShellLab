@@ -252,10 +252,9 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     # Save reqest id
                     Set-Content -Path "$env:TEMP\ADFSCertificateRequestId.txt" -Value $RequestId
 
-                    # FIX
-                    # change to Write-Warning & break/return
+                    Write-Warning -Message "Issue RequestId $RequestId on CA, rerun this script to continue setup..."
 
-                    throw "Issue RequestId $RequestId on CA, rerun this script to continue setup..."
+                    return
                 }
                 elseif ((($Response) -join '') -match 'Certificate retrieved')
                 {
@@ -286,11 +285,9 @@ _continue_ = "DNS=enterpriseregistration.$DomainName&"
                     }
                     elseif (($Response -join '') -match 'Taken Under Submission')
                     {
+                        Write-Warning -Message "Certificate not issued, please issue RequestId $RequestId on CA. Rerun this script to continue setup..."
 
-                        # FIX
-                        # change to Write-Warning & break/return
-
-                        throw "Certificate not issued, please issue RequestId $RequestId on CA. Rerun this script to continue setup..."
+                        return
                     }
                     else
                     {
@@ -652,8 +649,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsUR2W/Pj0fGD6RLgkXLLUD2/
-# LLuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZG+gFagKX3A8r5vPG6w0G6JM
+# rqSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -737,28 +734,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUduxZ4wZCT/VvVkKZMsPA8ugE43AwDQYJ
-# KoZIhvcNAQEBBQAEggIAXxX+7Tc5V2DISZXdjqLPvEwot4gDIUEwxGiJlMhh+5gF
-# 7kDR2L6wWCsIqiLCUg0M2d5McSHttGaBX+hu5X5/uvDFmXCKfiFFtRw8H7s5vmsd
-# 2uwdDaZWTiM58Cmcdpv/NEGoJF29OqhNWwmlGvacLCFX0gMvXPH/VRrwFoyRPcEH
-# J6x2wGylnxsyVpkaeC2wzGjkJ8radQE8c58xCCkCOYgspK8bRG1zdesxCiFbk6/3
-# nnqT64dQQL3BDvzYHR3oa+xfrXjI3X9wLYAiulcNrGAhISyvoTMiKeYzSqH4fGOb
-# huIs6JffYXD7d4PNX4WlZTKI1e4wZ5cKLy6Vco5fw9FFL64gccrfzEdqIWp1yD0/
-# Kx7ZuothtAgyf4wDobOinUgF2x+8jP9xmfzZa1CV7hx2G/B7hmAr/57y+4Zv7cZy
-# yuTlzA127T7bpbPuMTtP9cYYgwq9kwfJF5mfY++1hN70nJ3ABOVxd5E2ILmrtVCQ
-# H6hjN3jyboIXAg3A7MmYc74yLlcSd14h2MQEeLUi+o/K7YubEfoIFS8VgdV3ks9C
-# CbsTqgWcwz/NnU4rV0uVQi840G4IxVKvn6mu+JRMNCeOGOljZZhW/Z75mZMGKFb2
-# ve+Qx1ioO4lY+wS46szODe43VBoZeRxpr/X1giFr0CKX5uO+1LzkkPA4eT2ngUuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURoRJiNdsQxzGUrR76dWC8zLGwuowDQYJ
+# KoZIhvcNAQEBBQAEggIAQTfV7gCsJDBG21VkTHtfpSdXLYbB9iA3L8MqrgZBMjO2
+# rcwSjT8nlnI3xOnUEyVe4R4ET04x62EtHKisDLcpSPOuhU/LrxRO/akvK8QLQ+9T
+# M7wWDbAe1ARmvsTwv5vRvAaT01B1D7miHxBN0ra544eKBSrEhnHxAt8BoKnp8QAX
+# CS+uTe5ZP1z7in6x5BMZVLqAsHIz7rV4T24ARYT78EkpNLoONFjZoQGeuZSL7tWz
+# /l00lsiCATzh0SwQ49exGVMOxsVNANJzpnDSlPETCOLhOYjQXJCfrb8g2gmX7B6P
+# VHrFwvjc+/tNEWjzUdLdIz2zlvxOapGd6OjUjFC8EUc73hU4rxUjctHIY1RaEC8H
+# Dpn9i1of823Jf899GUATPW9HsslZJbvxVh4OBJcH/8TsRH+Ww7UKaF0SZRRpJU2a
+# 6CzcqQ4EHBC+YL8xjEcNqRacLF47vTq8V/pWnARtUZWzxsrpp+HNIMI3dyDaTplD
+# aWTn9Bnk+skA6ClCmb4aqPklIVUxthbUWcqHK5tAggif6b5UdBj5XUF0KVHuPJwy
+# orYSVLJm7Sr9eIbBgbLNoZDEeQn39Trmr6eKFBO4tJMP4drrOE9KswHdc/IHkC/Q
+# yYg0r74idJmDGhCrQOy2A12GKhJrw15Sn5bWYXIhMhdvhtOOAXw0dNOVN67OTu+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNDE0MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIGOXWlIQnQecAH2XPh1nULo7lZATuDMP9YFrwxvDDDDV
-# MA0GCSqGSIb3DQEBAQUABIIBAG9c2BNzeht1zG2/8o4JuCaTMTlZxOUoREBIrRfW
-# qN/WxfF89vWx+Wb/IUjvw3k81QlJeXe67RncsqB9YjFhxdwyTLng0fbLNKMHQ6Wn
-# vTXQ8v5kRXdH460RY864apgKTkOJnbCf8UG9pTOp/jk0PcSfHf/5YI9VMbDltatP
-# v+E86zy3KoAcviBmeErGTXofL9To6ktqcYX11IF19GYp0n6Y+DN2rfQEl8PqgqRp
-# b0bes+qzEMYrgXIeCaWfkvBvTrNc9yzqJvmthI8wdkQ0UBou4yU3O32iT2tLQ+4T
-# QYCLUS4cBUJQ19CwcOJPDidEdZXlixG2Y+ndqGVxgQQw6Qg=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNTExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIO57qu4zz7JDq4nJjizc3y4hBRENdKla7ldcy+MrztZk
+# MA0GCSqGSIb3DQEBAQUABIIBAIx841sbh8eVL7mc3x3jHADk3kGoec9iPd75COVr
+# WLlK3S39TBScktrtKPUREPhXh/RtX2gMghGGP0M/ICycv7UC/IfaDSFS8xa3gvYu
+# JvWlGPQyJsiOMaORDvEMOYMb1ul1nbwcI72JPr5VO++SoHsk2HwdQpRwn1GS+oRi
+# SVsoJMttPjdhjBcGpku3BeHbxh3J/Mk+VCe7YY6loZoah3Bz5pNsZjl2myh6OQ6I
+# EINSk+gwWJXb8mLNXwotEXIWn/DMBr4o/4qFIBSM5qbs4Z1YcfVHHHlVCKN7hLET
+# 97cc6sTwErrvSBrvG2akF4H5lClZeJVEl5TeKF8CcVNZsLA=
 # SIG # End signature block

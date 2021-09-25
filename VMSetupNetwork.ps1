@@ -112,7 +112,7 @@ Begin
         ##################
 
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty TcpipNetbiosOptions) -ne 2 -and
-            (ShouldProcess @WhatIfSplat -Message "Disabling Netbios on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Disabling Netbios on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             $Win32NetAdapterConfig.SetTcpipNetbios('2') > $null
         }
@@ -122,7 +122,7 @@ Begin
         ########################
 
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty WINSEnableLMHostsLookup) -eq 'True' -and
-            (ShouldProcess @WhatIfSplat -Message "Disabling LMHost lookup on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Disabling LMHost lookup on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             $Win32NetAdapterConfList = Get-WmiObject -List Win32_NetworkAdapterConfiguration
             $Win32NetAdapterConfList.EnableWINS($false,$false) > $null
@@ -136,7 +136,7 @@ Begin
         if ($IPAddress -eq 'DHCP')
         {
             if ((Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
-                (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Remove all ip addresses on interface
                 Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
@@ -147,7 +147,7 @@ Begin
         }
         # Compare ip addresses
         elseif (-not (Get-NetIPAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $IPAddress }) -and
-               (ShouldProcess @WhatIfSplat -Message "Adding IP address $IPAddress/$PrefixLength to if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+               (ShouldProcess @WhatIfSplat -Message "Adding IP address $IPAddress/$PrefixLength to if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Remove all ip addresses on interface
             Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
@@ -167,7 +167,7 @@ Begin
         if (-not $DNSServerAddresses)
         {
             if ($CurrentDNSServerAddresses -and
-                (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Set interface to "Obtain DNS server address automatically"
                 Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
@@ -175,7 +175,7 @@ Begin
         }
         # Compare dns client server addresses
         elseif (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
-               (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+               (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set dns server addresses
             Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ServerAddresses $DNSServerAddresses
@@ -192,7 +192,7 @@ Begin
         if ($DefaultGateway -eq 'DHCP')
         {
             if ($CurrentGateway -and
-                (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Remove gateway
                 $CurrentGateway | Remove-NetRoute -Confirm:$false
@@ -200,7 +200,7 @@ Begin
         }
         # Compare gateways
         elseif ($DefaultGateway -and $CurrentGateway.NextHop -ne $DefaultGateway -and
-               (ShouldProcess @WhatIfSplat -Message "Adding gateway $DefaultGateway to if $IfIndex `"$IfAlias`" ($MacAddress)." @VerboseSplat))
+               (ShouldProcess @WhatIfSplat -Message "Adding gateway $DefaultGateway to if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
@@ -341,8 +341,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvixha3pMJMqHQgqP3GfFSsUI
-# 3f+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8ZE+d6obByjAcggJfDUr3QBo
+# kHqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -426,28 +426,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDgdA+1IJz51J+0/fg/A30GQt6SwwDQYJ
-# KoZIhvcNAQEBBQAEggIAOJ1dkrWyKVkU/m6H72oRCIFfOxoRAboWUtuifCnPk6Tz
-# +xIaM+nc01pq5t7Mc9FkcojQAK4v1rpgWlIgBRoXFao15677nqGp1HdepA7P4D4J
-# OHI8iGrww8SE4TPnXHQwH0c9Uxz4+0vHpRV42nP46RsF2F2vRI85ZB6mJJ0bUayt
-# MeMqUP82Ef4dulJFC+lbYO85XJd/DaKM/Xv8PfEEolsDbbm7fhII6iQnlkK/C7Rc
-# Syx0kqO585LXuGhHxaXv2MMmwL5PmyhM+56HZ7nDZ298C6jclwlpEarq8jte4p5s
-# bjWRZaXT58NXYrxweD1e1+6DbDtGjX0O7JKzm+7Y+4U4o+3YHF0Xl9O7m91jEfW7
-# oIrts+xyPhTGbH+eyYyu3d4gf77ojso25eIqMYF+xQJ7ZtsUGEYLLae3ppggmTkb
-# Kn/+B52L7Th7I4+U5UK0IzFqq4jEOP8NZvt7F+2pGdsm74+SO+yMroAQEhLujAyw
-# iqP8lhVlwEY4Dg7CquBjIQOhF/HezqlyJ4ruGXX0ZmmFthiL4aL8XRZlPY8kSGxf
-# vI/rVIS+rKOu7jrpeDlIC7zr+gZK1NofxkNN87brYs5Kz9FPIMbxJJL/P12AHI+i
-# FPvCYMqu0r9HYc6iMkbNYXU5lUM9aXhY3SvOAeBPb94FlkAujeOX+uNa5BefBauh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwMDOGr6McA3QlJ6xdo1/rYhk9ucwDQYJ
+# KoZIhvcNAQEBBQAEggIArJprorwzsKZi1YHdPbt7psOV2vIXFxX3a85VhR2IsGB9
+# 5NU/H7I4B2HeIZ8ZbbfcOiggrXXjTaf87iwmRjUEs/cJg/82c5gNSBXbIJQpi3z6
+# IhxJFk7I+s9QrKCprVvhSA+qCrcstD2pG2tQz4QhxEO7gBwd1z0rtQvlsDq6uWCR
+# hLuIkpaKBOcjvDqjdCQmaJnk64wyyjhsVvWWfxftsCq9zAxY+bN1W98rwmXLlhy+
+# woj8qcX3zElzaDqqvicrV8oVf6f6V4ylRy/rraktrH8m5Pp5bcK9Z0kS/dj8Ubyn
+# u8n9JRflZi+6+mv8F0XwyxiONERXMG0NNGgpFukFD4dL6lMvlUwNXAASorafLCFh
+# IToO7NHVBazdVfIws/M7iaJjaQr0yPzWx1UBqB4hGQruZIBdZWfLY74EePkqd7LS
+# EBVmhMAPD2mfXVMCi1Bf0Jtqk7WV7jx+aJoASJUPDg/1V3MuxwNdJyB/4qqmTUXc
+# 7yeST+WfpXYlMzRdOzqmHj/3QMQwMf2CnFl32VSLhA4WR3kJjNfKttyV9PMA/UbM
+# d3dp/ZtKLzUt5PnaXAtNd9Tees62lLKDwrpOkGDudRhscsoqi6/HgmLZNKsWpH5O
+# or53AAaR+3I0V6FcvcaO309vFEentZm+Qdvy758Ny1zJ76mo6WLpm4tgdJTVppmh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNDIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEINVGCUvOPhk/nEeZ6iymJgyMt9ziip6cPZrRBfm2qxMM
-# MA0GCSqGSIb3DQEBAQUABIIBAErcF34Dy6cEH/BSjCHzgEYamSZJJZBN57DThtxd
-# 3a3Pi/BWDCMDDEs6sCMZHslDSbgzRpcv8mAS7a5gELH0RCBeuFwGI6KtwpcffLl1
-# 1ImM18E5g3nfgolnf3J5BkduOdQGLxlcDsV78GPkvrzpY3kyksdzpyaOMREoMxoO
-# WV+kjpJxNhZW1mMufmRCs2dlTVDxfnizvzRrJFXvRlDb6Bas9988F8b9iUWr/drj
-# rT+cD0YTws/u4zYxqOM41CBwVeG2D/7JoX7aEaXAS8hwOKWS4ZHJEgPS6aacALpY
-# 1MVrDnIew5SwKLOAdKX+v+tYNueJk1x3yFUnFQL9dAOvuDU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNTExMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIFRcJMvmgQxIkHazah7xqXvm3oT4BnbGFlfaAujAbCpj
+# MA0GCSqGSIb3DQEBAQUABIIBAAU9Nop0q7tTaP8dKtIRC0qjXkY9Wsp6SANCPVoy
+# l/Dkcfy+I1oS4RHkvlLpnpL+SvZ4vyIBVIDd5IbrLd7fZ0cRZ8AP+yyteia6K/KV
+# /zG6v/s9s42w2S0OYI3SEugSNgdn6HPBiJ8HcFPvaBzn8A/MGmVXvVVZaVGHSv/a
+# ULhnFc1SJW/6DvZIhXZbBG2nw4E+dRT7cvnZR9M/DM/jsiNemDYOgM3qqf3mf8D+
+# cBUXd010wDOfN1g/71IWrGiQtK2xmwwOtrE8c/WEEzlV00E3xMVPsG1vO/oji4ql
+# BjX3ynWC0yjNfQqEPeTqTxq0ADHOU1MsPkwa6WuxDxYaHqY=
 # SIG # End signature block
