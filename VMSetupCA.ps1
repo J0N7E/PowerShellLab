@@ -437,17 +437,22 @@ Begin
                 $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
             }
 
-            # Check issuer
-            if ($CACommonName -eq ($CertutilDump | Where-Object {
-                    $_ -match "Subject:\r\n.*CN=(.*)\r\n"
-                } | ForEach-Object { "$($Matches[1])" }) -and
-
-                $ParentCACommonName -eq ($CertutilDump | Where-Object {
-                    $_ -match "Issuer:\r\n.*CN=(.*)\r\n"
-                } | ForEach-Object { "$($Matches[1])" }))
+            if ((Test-Path -Path "$PSScriptRoot\$CACommonName-Request.csr") -and
+                $file.BaseName -eq "$CACommonName-Response")
             {
-                # Get file content
-                $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+                # Check issuer
+                if ($CACommonName -eq ($CertutilDump | Where-Object {
+                        $_ -match "Subject:\r\n.*CN=(.*)\r\n"
+                    } | ForEach-Object { "$($Matches[1])" }) -and
+
+                    $ParentCACommonName -eq ($CertutilDump | Where-Object {
+                        $_ -match "Issuer:\r\n.*CN=(.*)\r\n"
+                    } | ForEach-Object { "$($Matches[1])" }))
+                {
+                    # Get file content
+                    $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+                }
+
             }
         }
 
@@ -1272,9 +1277,6 @@ CRLDeltaPeriod=$CRLDeltaPeriod
 
         if ($ParameterSetName -match 'NewKey.*Subordinate')
         {
-            # FIX
-            # bug if multiple csr
-
             $CsrfilePath = "$CertEnrollDirectory\$CACommonName-Request.csr"
 
             # Check if parent CA certificate request exist
@@ -1434,21 +1436,6 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_ENABLEOCSPREVNOCHECK' -InputFlag $Restart
                 }
             }
-
-            ##########
-            # Restart
-            ##########
-
-            # Check if running
-            if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
-            {
-                $Restart = $true
-            }
-
-            if ($Restart)
-            {
-                Restart-CertSvc
-            }
         }
 
         ######################
@@ -1564,6 +1551,21 @@ CRLDeltaPeriod=$CRLDeltaPeriod
         }
 
         Write-Output -InputObject $Result
+
+        ##########
+        # Restart
+        ##########
+
+        # Check if running
+        if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
+        {
+            $Restart = $true
+        }
+
+        if ($Restart)
+        {
+            Restart-CertSvc
+        }
     }
 }
 
@@ -1743,7 +1745,7 @@ Process
     # Invoke
     try
     {
-        # Run main, get result if return in main
+        # Run main
         $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
 
         $Result.Add('Success', $true)
@@ -1820,8 +1822,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdBl5RosdKdX5fm84JbGI1MpD
-# Z6Sggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+mcFIFZSmBfFtJDM9BqA6i6O
+# kpqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1905,28 +1907,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDa/hBO4KWQQxTJMY5GRR2c7gCEowDQYJ
-# KoZIhvcNAQEBBQAEggIAIl1mh8nEJPNOrerJxoM+EJF9zhMo3cugtNXJqGUuk9N/
-# b/xGmXSsWmg7q5oPfdIwKFVXrtz8MLN+VoHer3UEw4YVEZ/8F6baecuB3tcFBYYJ
-# gPyV8+KwrAT+EQKVA0fC/v6Qin6ves6H17nUsql/3eN8biq7UqILIkN5LXTzXwXW
-# ArJtVbgK/fxB/xB+vQE/iSdXk79QWYDz6KxdtWMXrdNgVScoejNXxHb5MklQpQLy
-# SYSo5Ibuzu89qyDLGk9DoQgSIL0UvGlV4zyBvd/TPJRvcMWAKz7E65BRvFP2pGJ7
-# nbHx2bx0Zfg4FQMaaYU0jkOQXHq0DDtNdilYOIqHUM6w9mpjcL31q8JDjAu8iknH
-# LxMWUehbgPMBs37rovf3uaAmxl+J91fcp0L6MhEjTL6wNXLIPFRXTVQ4UvTD5UTH
-# P1WkYKV/kaqofPPUDI6YOZ0tcIrYOroepvFX1oWkbgtMgeGWyvry0TOhfgLETxYG
-# 3I8va77H4PgDCAJJ11i9d0tG7Ld1slHY0ZLyNe/C3iA4YGF2WJa2UFxtSpj+kwX5
-# GTYPqD16NKhklLVFyyCX324QfV8FLJAez+HZeJkMvD/PJy9Yq6PDRSRTxb0f/K0w
-# iLe5/9552bi0UlF/hMrsYgXXlB/av3cq1RiVQIyxBahqGCxjqHsZWCNotUhiiZ+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUlCHn9dpqa8TVisKwrhbWc9AS9/0wDQYJ
+# KoZIhvcNAQEBBQAEggIATWY7qmISIwhM1lFvv74iJHTjKIbRqfL9XWYrQsI8aCM4
+# gb/XuDjjOcJ5ONSW2r+hFet1kjVBAlPQ1fmSQZEniZz2jQCYKGJe0hnKTT6arpfy
+# awVUmCEuvbFfxIwgUvXa/n8GzHulN/ndIJLB4SgIQDZCIuHB3dV23LrfBjnAYs/J
+# u0ExeOrm+bU4PRHgMdU+b2LDlz+/v7uWF3CIpsd9m0OBUTBvp/lnmm2VXT9efcMw
+# wMQuH09AtNBhvkkAZJsbFmzpXmFkNFLgJq1ia7Ds7sDbWUtgtmgt9Hn0E6+XS7jC
+# R86QIpSg912G9L+aZkVFDPH6fkBJwKEKj1W2QCa1Kt9zSKsgrYsLr/kZaSJrq2uF
+# lmPBVYqvVmED01FLofzRxdr7+SZLSmTMh5D2qkjRqDyz/gaKZh3zQVbdL1c+rN9z
+# 4FRh6zMHvynLSVFoed05AhkcP0MI8ukXyaIREz+OFxng9o8Tqt97/kThrJRJPhPN
+# c0tLy9WkR+NsWg9VPh2ImWsnhzWrqNoO21ut5GJJp491i8hQ8ZvH85TCiqV1JuWm
+# kfEY+xQ2/1JpLG29GpCmCSZlc3mx+R72CX5GR3nDMhY+rzSjGPibCwLSxm15plMc
+# Q58CotxwaN3cTJxwpqq+/NpAS2bGFmvkrZUWJGw8lrKwheL+KcLJAFjGEK1lfW2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEILQ2hYu3ZITq9E0GeQfKMkREXI8AC9ibtkb/r0P98vIN
-# MA0GCSqGSIb3DQEBAQUABIIBAA81PEinzlpLYXLAlxFf+LDxN6XSkolMGW4Kc1U1
-# nEHBwCjeDnmA1vdwwg5x76DNxIoD8XRRSEPIWQTl7T6mJTr60pKDFiLjgGqM9A3i
-# HyJVIGzTEPKj8Afbd11eUbDbCS674JZcNxH3McaQ85FKZiKYbHGfTVaYtSa6dFY3
-# qgeRnzGkYYsY1rcdWrdMlAV/AG9Q/7SKg2Zj/kHSTnX6ePIJE0XsoNqFmXJqrI1s
-# a/PTsOaQqFE+Ytu0eERxA7s3MhjjWVjX43WqIfKdjtr4Dn8EtK2Ncxh9w4Ti02tU
-# b4Qr7Ib1RuXv87l+HjpAxrMsQ5YvYKFAMWF/FzDXAXTa0Wc=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNzE0MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIN4Tzxc0fKrCYMmesrW49QyI9Jt2UXlVXULdKW7D6mgG
+# MA0GCSqGSIb3DQEBAQUABIIBALRXccMGM7cHiPkZvv7kgFEJBKHmmkWUaOfiVLHS
+# +Xir80IRdliSE90XdwUH4PP+AZutjJN63u/DkmK13OPUee/ekWCPvnCu4isQvxJm
+# P+X6h9kmVpVNfPWJjGqhKT2Jq1bhq4XaMwvVjjh65ceqmeBR5FusuFcjzrC/4Auf
+# wQVNKBM3kCfE1bQnlipUMDZ2H70u/2yN2QXf3MLDOAHP0YN/b9yXC+R/Q4iCpCem
+# nrLPOVwFvW8TI3O4oD6kVdLBpygCTwiXspm4j6rGXbrOtI5FrfGTUZLik0PuyXfo
+# y5jHckAuDUam7pJjF5rcEvU6RX2qjeQxglnIb2HrOEcvpak=
 # SIG # End signature block
