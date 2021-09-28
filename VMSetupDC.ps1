@@ -184,7 +184,7 @@ Begin
     {
         # Initialize
         $Result = @{}
-        $ComputersAddedToGroup = @{}
+        $UpdatedObjects = @{}
 
         # Get base DN
         $BaseDN = Get-BaseDn -DomainName $DomainName
@@ -508,11 +508,15 @@ Begin
                                (ShouldProcess @WhatIfSplat -Message "Updating DHCP reservation `"$($ReservationName)`" `"$($Reservation.IPAddress)`" to ($ClientID)." @VerboseSplat))
                             {
                                 Set-DhcpServerv4Reservation -Name $ReservationName -IPAddress $Reservation.IPAddress -ClientId $ClientID
+
+                                $UpdatedObjects.Add($Server.Item($Reservation.Name), $true)
                             }
                         }
                         elseif (ShouldProcess @WhatIfSplat -Message "Adding DHCP reservation `"$($ReservationName)`" `"$($Reservation.IPAddress)`" for ($ClientId)." @VerboseSplat)
                         {
                             Add-DhcpServerv4Reservation -ScopeId $DHCPScope -Name $ReservationName -IPAddress $Reservation.IPAddress -ClientId $ClientID
+
+                            $UpdatedObjects.Add($Server.Item($Reservation.Name), $true)
                         }
                     }
                 }
@@ -879,9 +883,9 @@ Begin
                     {
                         Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($ADGroup.Name)")
 
-                        if ($Obj.ObjectClass -eq 'computer' -and -not $ComputersAddedToGroup.ContainsKey($Obj.Name))
+                        if ($Obj.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Obj.Name))
                         {
-                            $ComputersAddedToGroup.Add($Obj.Name, $true)
+                            $UpdatedObjects.Add($Obj.Name, $true)
                         }
                     }
                 }
@@ -967,9 +971,9 @@ Begin
                     {
                         Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($Gmsa.SamAccountName)")
 
-                        if ($Obj.ObjectClass -eq 'computer' -and -not $ComputersAddedToGroup.ContainsKey($Obj.Name))
+                        if ($Obj.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Obj.Name))
                         {
-                            $ComputersAddedToGroup.Add($Obj.Name, $true)
+                            $UpdatedObjects.Add($Obj.Name, $true)
                         }
                     }
                 }
@@ -1820,9 +1824,9 @@ Begin
             # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 
             # Check size
-            if ($ComputersAddedToGroup.Count -gt 0)
+            if ($UpdatedObjects.Count -gt 0)
             {
-                $Result.Add('ComputersAddedToGroup', $ComputersAddedToGroup)
+                $Result.Add('ComputersAddedToGroup', $UpdatedObjects)
             }
 
             Write-Output -InputObject $Result
@@ -1991,8 +1995,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdXhVU53aj6BacFSkub5OinHn
-# 9faggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrdkbNiB51/hVp2aq2IoTIpm6
+# XxSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2076,28 +2080,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJnnfDS3hyrIOmMJPjVhcMg6Frl0wDQYJ
-# KoZIhvcNAQEBBQAEggIAczpmJU30bvL81sTuIdXqErBO4zcfAI1r2Lbs0tnOJMCD
-# whHHHSOjrERrjocqYlK4io86wpBcm9fvWURs923lX2v/ZMkRtTkS8s+xnUKyAPtc
-# Wv0f3QQwypXRPjdRpk5JQhFtDoMbaIEEc4bPN+DZWctmuACWwVuADjHRVjij7ygG
-# xkRdpxhu7vgi40wBqulm27jm5C798DYGUhC5PkNUr1U9ccuj8573Rqy7QMMuN4Hv
-# HByLmoji4ftFunkMvT7G5rKrwEYzzVw4EWt0WtEYaUpEL4RXt0XVeTT7KkZGcVTr
-# W/beEzQFgBId3riHSLQMBItBYJX1KjmwVsIGO8XMP83CY1s4y8yncRx/c8x6aUvQ
-# 2e1lIhQ2b5bvyX7RIKdGmJd+2sf1RrF8hLZyjlDozNzdTVVxMh7pz1wY01DuJlSw
-# 8DkjqzHZ9j74hI15C1u02g7M4Rv0rUz3E9Jf/88WR7paxE/K0fPeTEOFyAj37MYY
-# rdD7xym7D51X8586331YSlHiiWudrU7FJH+7/09ObLBvKIr/QwzsMQTPKOTZkCMC
-# /Ft3SD9Az0dj9g+pgXH8DhfmX5UVOWubImIPWhXjJqLV8KxlOOPtn7wbEY5+qvNv
-# oNu2zmSDWWkCyMdvlVXGJjwaSa1Akwyh8NITj6VZV6XTWO9w/dwcbKcwbz7jlz6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWMWAtzUJvAYzBDOCWVsFOZQ0QiUwDQYJ
+# KoZIhvcNAQEBBQAEggIAZY30atuB/DFyowcExVp7DvQMlrLXI0A3TG6ag/GOVzIi
+# RBqwcbkddsDV0RVCYuqRR6LiK5MR3WQVVoObNN+1OUJGvgMmjpQ9rawfmREEpaFy
+# HnJRd+LNLcS/QIzvOlKprnhw85Ix9dSE6mOAplF+plHoOn5pwPIMbU22MkxRjL36
+# lVlOOOpD4ua4YWwzIYTyiqWHOd0Z7j1PkXB5xAeZ5x+pEFtnrUZTWObxT0ejtZPQ
+# EO6S6o6t2wWI4WBzZWL+2YSrW9QJBPpbf6QPTlMkyqsqiQ1ggz9KMHYwk3xW5STc
+# AJq18NEYelVuIkGmgp0JZBIXhq+vug3/qDfM0mlF4PavD1PKNHGXS2JN03g+TXSL
+# Q4hDUJcqwuw9/v9TD1c4vQJd6Be08MghEXm+VtsFYAv+o/0hB5hdCqAnBU8AmgDt
+# xbMKtOOWcF5ik4YJYft/tRgpaK1sC3kZE6nt3AgHP51S8PycsLiRRQSFe5DTpJiv
+# JGNi1YdBTzEIMI8hHbnnTNexzyjqA0xDcALYi6n2X74qt6Bt0blQfi9VYBFw+SD/
+# /sCEzZ7saCcI/a//mC0z3tErbbg5YVvHPAxbv/SVkAywNNoxgfJJ0t+jJT26z4Ny
+# 8Tx9+Nsrq3JwKfKhS8fo7+pP/eL8gzAWxbLdfy0yFuMv+EajQpIwPuOHCJGY/72h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNzIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIFMeTWRJ6HyvrDp4ifsZHRe1MjUFZRVVDxrcPJBT2eaI
-# MA0GCSqGSIb3DQEBAQUABIIBAFHRCBG97aF/PQonWcA0h1WBnZPCxLoFSS3h4IG8
-# 0EYAmgP9mSB1KlpDKhwT42auwoqHHa5hniLg0CVEpRqQHuWIBZUwfAp38CgW5gjD
-# D9yy+HYGdP7fK4w1W7rso64jQu52/lN9nk+hAQRpGfxYUU1HGdvmFSg2p6j5z0hm
-# P28YqeMjj0nppIzH036sWvDlod2RHPoU1r2i0SNb0PZX+mYZ/nCz/vkO8WIj5a8Z
-# rrqVtqy243LUNOdFPg3fxjtn89Ebw9Ym6+A2X7UyR8VYE+5Id81qLCU7EfYjMPwR
-# NI+EbZv7xyM+13Y7q2n9TGHzD+JNWYBp01BFl6xYZLcybWI=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyODA4MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIIDt/cmShLZvomeDoZkRaaZz562GsKkHn9iFDcZMIW+/
+# MA0GCSqGSIb3DQEBAQUABIIBAHARqA3GQMnwYDsUQ0Bvc/mm0oQW1wce+FhvUjjl
+# yd2yDKh3XvUr/Yhjou92Uw03NZDtNIzYFWR2cOa1bzET4UgmPEcN74rUFnnEEDP4
+# WspyzB8ME2FndeER7tJSfMtKN4aiLXkSr/BQIs91vAaRb5vDMFA0h9AtAB4z3tty
+# gBCG4B9XrKk2OJzIKGMZTR55BQ2pw5YoNBbWyRDVpuvkRebLdypLJ08KoKB20vk3
+# QaXH7L88+R9Y3KwzkpDvNOixfr2cxkXSWucbC1Jw9um14yf/yT72UqSPZM9gCtyG
+# nmv3U19Sg8y8f23YZ6I6/1sjfgYYFFJS+0w+aUQE2974paE=
 # SIG # End signature block
