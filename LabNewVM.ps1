@@ -115,77 +115,21 @@ Process
     # ██║     ██║  ██║╚██████╔╝╚██████╗███████╗███████║███████║
     # ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚══════╝
 
+    $NewVM = $false
+
     # Check if vm exist
     if (-not (Get-VM -Name $VMName -ErrorAction SilentlyContinue))
     {
-        $SwitchSplat = @{}
-
-        if ($VMAdapters)
-        {
-            $SwitchSplat.Add('Switch', $VMAdapters[0])
-        }
-
         Write-Verbose -Message "Adding vm $VMName..." @VerboseSplat
-        New-VM -Name $VMName @SwitchSplat -Path "$LabFolder" -Generation 2 > $null
+        New-VM -Name $VMName -Path "$LabFolder" -Generation 2 > $null
         Set-VM -Name $VMName -AutomaticCheckpointsEnabled $false
-
-        if ($VMAdapters)
-        {
-            foreach($Adapter in $VMAdapters)
-            {
-                # Check if switch exist
-                if (-not (Get-VMSwitch -Name $Adapter -ErrorAction SilentlyContinue))
-                {
-                    $SwitchType = 'Private'
-
-                    if ($Adapter -match 'Dmz')
-                    {
-                        $SwitchType = 'Internal'
-                    }
-
-                    Write-Verbose -Message "Adding $SwitchType switch $Adapter..." @VerboseSplat
-                    New-VMSwitch -SwitchType $SwitchType -Name $Adapter > $null
-                }
-
-                # Check if adapter exist
-                $CurrentAdapter = Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}
-
-                if ($CurrentAdapter)
-                {
-                    Write-Verbose -Message "Renaming network adapter to $Adapter..." @VerboseSplat
-                    $CurrentAdapter | Rename-VMNetworkAdapter -NewName $Adapter
-                }
-                else
-                {
-                    Write-Verbose -Message "Adding network adapter $Adapter..." @VerboseSplat
-                    Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter -Name $Adapter
-                }
-            }
-        }
-        else
-        {
-            Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
-        }
 
         New-Item -ItemType Directory -Path "$LabFolder\$VMName\Virtual Hard Disks" -ErrorAction SilentlyContinue > $null
 
-        if (-not $Cluster.IsPresent)
-        {
-            Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes $MemoryStartupBytes -ProcessorCount $ProcessorCount
-            Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $false
-            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off -DeviceNaming On
-        }
-        else
+        if ($Cluster.IsPresent)
         {
             Set-VM -Name $VMName -StaticMemory -MemoryStartupBytes $ClusterMemoryStartupBytes -ProcessorCount $ClusterProcessorCount
             Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $true
-
-            if ($VMAdapters)
-            {
-                Add-VMNetworkAdapter -VMName $VMName -SwitchName $VMAdapters[0]
-            }
-
-            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On -DeviceNaming On
 
             for ($i = 1; $i -le $ClusterDisks; $i++)
             {
@@ -195,6 +139,14 @@ Process
                 Add-VMHardDiskDrive -VMName $VMName -Path $VHDPath
             }
         }
+        else
+        {
+            Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes $MemoryStartupBytes -ProcessorCount $ProcessorCount
+            Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $false
+            Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off -DeviceNaming On
+        }
+
+        $NewVM = $true
     }
 
     # Copy vhdx
@@ -214,10 +166,52 @@ Process
         Write-Output -InputObject $VMName
     }
 
-    # Start vm
-    if ($Start.IsPresent -and (Get-VM -Name $VMName).State -eq 'Off')
+    # Adapters
+    if ($VMAdapters)
     {
-        Write-Verbose -Message "Starting vm..." @VerboseSplat
+        foreach($Adapter in $VMAdapters)
+        {
+            # Check if switch exist
+            if (-not (Get-VMSwitch -Name $Adapter -ErrorAction SilentlyContinue))
+            {
+                $SwitchType = 'Private'
+
+                if ($Adapter -match 'Dmz')
+                {
+                    $SwitchType = 'Internal'
+                }
+
+                Write-Verbose -Message "Adding $SwitchType switch $Adapter..." @VerboseSplat
+                New-VMSwitch -SwitchType $SwitchType -Name $Adapter > $null
+            }
+
+            # Check if adapter exist
+            if (-not (Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}))
+            {
+                Write-Verbose -Message "Adding network adapter $Adapter..." @VerboseSplat
+                Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter -Name $Adapter
+
+                if ($SwitchType -eq 'Internal')
+                {
+                    Get-NetAdapter -Name 'vEthernet ($Adapter)' | Rename-NetAdapter -NewName $Adapter
+                }
+            }
+
+            if ($Cluster.IsPresent)
+            {
+                #Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On -DeviceNaming On
+            }
+        }
+    }
+    else
+    {
+        Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
+    }
+
+    # Start vm
+    if ($NewVM -and $Start.IsPresent -and (Get-VM -Name $VMName).State -eq 'Off')
+    {
+        Write-Verbose -Message "Starting vm $VMName..." @VerboseSplat
         Start-VM -VMName $VMName > $null
     }
 }
@@ -229,8 +223,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5J9NaQLw70vkRaJ8E2BZKQJa
-# Hlyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAH/aQaReasCgA48E+FdVzH4V
+# tDOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -314,28 +308,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUieVxnVTTtpIjdSdgZmCUxsAHJ64wDQYJ
-# KoZIhvcNAQEBBQAEggIAUhCHNteur2lUlx98HZgwz0jNbTo6gNSkZJuwopFHgGq3
-# LySvra3K8Jjy5JcwVmI7I/1akEEltx3deKWzs1ZO+QnejmKt4Up+ZuzNGIHWkU0W
-# lf8a26VjFgcdEZsQMptMHm5cKZD2CleeXEl3aITt1uqnLwZ4wrOz45/BPjA8LdvN
-# II336P+I8mWp/rH3x0V5BrbMEX+/ls88EUuXnKKmulPAwYT3D9m/Ynn5MPdz4yeF
-# bVATWjQ7wcgNmFmYTBgIKdoNwC27pb2PuOTSgOJsy9Nl+LbnIvK0d4JTvzgOGHXg
-# U0n22hjtC3pWtxyWxgEwzVG/0RAGOCnHXa//SHJX1I+JHqVOEg0tpJKKFRuCgjeb
-# guAofWRNQ/wr63Sk8FvXknnsXDm+axE30e9WsGqVkLq0bpfwUvhc9iCircEbK4E/
-# ATgM/xnSfy2c2IR27Cvkll36SwfuFEhQKx66THhv6IHkFGWuNDMQScddtU3rJt01
-# 4EMModf7BHgJgX7im5Hle3zV9W7khGW3Dye2jH+HNKuNk/Ry1Fw6kG7jCs0/yYJp
-# 56L45nTd5f68MO4chqPmwIDznmQVOWst+k0bRbGiABlMHgcQPuofrsTKhnmdWp+n
-# 9/UpIG91svEy2m9MZpT5B+CmTsCSTZcruYD8Ls2rNpmmQ3HVHPUa2oW6Qj8CA6uh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqe8KWsjfREvJ9Kx1AfyyvNnoeP0wDQYJ
+# KoZIhvcNAQEBBQAEggIAKjulWuh93Vdd7mPhY88pNFEThK8ZIA6G6ES5AsP1TVZm
+# Sp2c0cDkuITbAeFwXGZbHOtYIPhLuwM6S3jkglbQTkT97EDVkmAcq1ujEYZ3hT+m
+# CwzSzLFA6hE3UKaHwnge8Imwrfe6QwBU3V6dnHEjfZOW1U1ViaPLrNO5R9wwDJSs
+# 9SmTaOJi7e2RH2hUZleBH9uu0mR8q8/fg8uTasQsVm5eBVrPoCtmHwUDXXki54cn
+# BxvsTLxHCcPM0NzzN4S1P/q53zn48IK9CSfAkp+ycNcZiay4XT0qy3WOEz4aaWO6
+# xJxTcIczavQPxuRzPZljz/wqSsShj3rVqtQX7gX02U19rzkXi2QeNZRqm1is7zpk
+# kU2bJyEKll+ca7tkxEavB/LI/xftfoGOCDpnMS69KMg2clyMYKh5d0KT92pRWZ67
+# rmvEgETIKPEHbyNXxmMzYxEooOrTovA00+wU2jsWOhBBFBh3tgN5YwNrvlGLcyhP
+# q2KfLAuCSLUi4rKr4hEQiKpeMI1GIy/47ij+m7cUgaUt7sfg9lSB6dSA485yJxLQ
+# DAcRfnQXVs257t1EnxLS3Y7w39oP9ddbm+ZzS4F6nRa9x0z4pyKZpEEo561ZVfGu
+# uaMjrsPJeKPpSDGO70Pt0mPOlI7HV//vTkMcHfiw+Yw+YJkLfvOcAkMi0Cc6CaCh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyNTIzMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIPrgE4sqQaBh7BGvYJmnHrNpyhBjYk/vLcasnN8KGNLM
-# MA0GCSqGSIb3DQEBAQUABIIBABKCNxqtnta/qeAXNG3TUr7RdIFmuqutwoZbTXdb
-# q6YcaRe6cRQqjsrqbA7L79lQtae0Y2sNNeMhoC7i+tnkXJ6de3iLjRcG9f1lfSPQ
-# RKW6NwUf1/1iaak4d7RwF0GPn8LVkipIV1LpGWHVKGzPttDcs4I6rlBSJFOK7wOA
-# 4l+vNLz0yLMUCTDs3tgfcZh4FWtjgXB4SIqfeeDNjCnJwqb9wKDnQ1c3EVN3lhK9
-# FVJ/FiDfYr4CuCbZSE7al5T2cN59pdFgs+/wMt+WjGVPUSwzW71otfj4IWeIO9a0
-# lanXph7WMHP7SYcySG+7Qz2nem2uUwKJ1FMVBNOtP4jhGDU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTAxMDIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIKZ7s79C8J65Y3dk2U1b+blPfR3CoEhWBjcmkiPyDLzD
+# MA0GCSqGSIb3DQEBAQUABIIBAIfb9vkR0jL0NgxnLaIIk+D3U11OlSgB0iBPHlMU
+# bYskd+LD26o173TrVFtW5fbCnxM8tIB5JDry0eFptfD/vqz7srE4SIufbJyqrZlx
+# /9MV1OgLKp5Zr+WNcfZHO65BnOrr7wmpwxaHLuVoVJcG507INNgfvP/dllm+ehL9
+# ccj0Y8/sJDnbaEqS/Uf3rJsfKuFbJ3kPacMbRaJEO3+YyDWuwdVYZpOI4+v4cve9
+# ieyvv86R/hNnYscEJqaP/BsPuVxYAXxtAtwIm1VOt5NkJKbD9Uc/eQQ4whQHyEkQ
+# UGthtlKaJM7t9IOqN1Ms4O2BlohIyG1XIMw0vMj/D3vOkkY=
 # SIG # End signature block

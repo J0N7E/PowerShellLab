@@ -1439,6 +1439,28 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             }
         }
 
+        ##########
+        # Restart
+        ##########
+
+        # Check if running
+        if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
+        {
+            Write-Warning -Message "CA not running..."
+            $Restart = $true
+        }
+
+        if ($Restart)
+        {
+            Restart-CertSvc
+
+            if ($Result.Contains('CertificateInstalled'))
+            {
+                Write-Warning -Message "Waiting a bit extra for CA."
+                Start-Sleep -Seconds 10
+            }
+        }
+
         ######################
         # Standalone Auditing
         ######################
@@ -1451,43 +1473,6 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             {
                 TryCatch { auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable } > $null
             }
-        }
-
-        #######################
-        # Enterprise Templates
-        #######################
-
-        if ($ParameterSetName -match 'Enterprise' -and $PublishTemplates.IsPresent)
-        {
-            # Get AD templates
-            $ADTemplates = TryCatch { certutil -ADTemplate } -ErrorAction SilentlyContinue | Where-Object {
-                $_ -match "^($DomainNetbiosName.*?):.*"
-            } | ForEach-Object { "$($Matches[1])" }
-
-            # Get CA templates
-            $CATemplates = (Get-CATemplate).Name
-
-            foreach($Template in $ADTemplates)
-            {
-                if ($Template -notin $CATemplates -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding template `"$Template`" to issue." @VerboseSplat))
-                {
-                    Add-CATemplate -Name $Template -Confirm:$false
-                }
-            }
-        }
-
-        # ██████╗ ██╗   ██╗██████╗ ██╗     ██╗███████╗██╗  ██╗
-        # ██╔══██╗██║   ██║██╔══██╗██║     ██║██╔════╝██║  ██║
-        # ██████╔╝██║   ██║██████╔╝██║     ██║███████╗███████║
-        # ██╔═══╝ ██║   ██║██╔══██╗██║     ██║╚════██║██╔══██║
-        # ██║     ╚██████╔╝██████╔╝███████╗██║███████║██║  ██║
-        # ╚═╝      ╚═════╝ ╚═════╝ ╚══════╝╚═╝╚══════╝╚═╝  ╚═╝
-
-        if ($PublishCRL.IsPresent -and
-            (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
-        {
-            TryCatch { certutil -crl } > $null
         }
 
         #  ██████╗███████╗██████╗ ████████╗███████╗███╗   ██╗██████╗  ██████╗ ██╗     ██╗
@@ -1517,6 +1502,45 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 }
 
                 Copy-DifferentItem -SourcePath $file.FullName -TargetPath "$CertEnrollDirectory\$FileName" @VerboseSplat
+            }
+        }
+
+        # ██████╗ ██╗   ██╗██████╗ ██╗     ██╗███████╗██╗  ██╗
+        # ██╔══██╗██║   ██║██╔══██╗██║     ██║██╔════╝██║  ██║
+        # ██████╔╝██║   ██║██████╔╝██║     ██║███████╗███████║
+        # ██╔═══╝ ██║   ██║██╔══██╗██║     ██║╚════██║██╔══██║
+        # ██║     ╚██████╔╝██████╔╝███████╗██║███████║██║  ██║
+        # ╚═╝      ╚═════╝ ╚═════╝ ╚══════╝╚═╝╚══════╝╚═╝  ╚═╝
+
+        if ($PublishCRL.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
+        {
+            TryCatch { certutil -crl } > $null
+        }
+
+        #######################
+        # Enterprise Templates
+        #######################
+
+        if ($ParameterSetName -match 'Enterprise' -and $PublishTemplates.IsPresent)
+        {
+            # Get AD templates
+            $ADTemplates = TryCatch { certutil -ADTemplate } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "^($DomainNetbiosName.*?):.*"
+            } | ForEach-Object { "$($Matches[1])" }
+
+            # Get CA templates
+            $CATemplates = TryCatch { certutil -CATemplates } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "^(.*?):.*"
+            } | ForEach-Object { "$($Matches[1])" }
+
+            foreach($Template in $ADTemplates)
+            {
+                if ($Template -notin $CATemplates -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding template `"$Template`" to issue." @VerboseSplat))
+                {
+                    TryCatch { certutil -SetCATemplates "+$Template" } > $null
+                }
             }
         }
 
@@ -1552,21 +1576,6 @@ CRLDeltaPeriod=$CRLDeltaPeriod
         }
 
         Write-Output -InputObject $Result
-
-        ##########
-        # Restart
-        ##########
-
-        # Check if running
-        if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
-        {
-            $Restart = $true
-        }
-
-        if ($Restart)
-        {
-            Restart-CertSvc
-        }
     }
 }
 
@@ -1823,8 +1832,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHLrW8jhiSaTNB+AffMCBq6uW
-# ZWmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxTo4ODNqM0iGIOeMjs1Lmhup
+# Bw6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1908,28 +1917,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUfnMfoF4kY2bx9igyswonkzYGJKwwDQYJ
-# KoZIhvcNAQEBBQAEggIAo8TgEw7j2fP8nXOoRRYvovN4Ez776AZHQqSHJfTgQE65
-# izsLHUNf3WhXcHEO9aEdXmLOOI1X7GYlcxHdL4eFGd3YjaBceAZEXEHltVmKYFMk
-# AePD0RoeCjDV8D5yO+4eiesISJdtKEOQhkNghnZKIjOyEwVysZzLp3DgcZWbKzcO
-# emyTbxlISvWV4uOY4eOneSfSii3pMaA5Zi/SnxSXcWpFUhbWNnow3BPr/aQfKE5w
-# n74PPkv+SmR6QBlkbJ2hpORF5UBzApyfQQQaQpEKG+5kt59A380pe1VPEkvv1Aoc
-# htbRDUUSBppIolODruaFGQfGw4Ug/ArnrV0scbJw6LommAtFjNz/pK6+VjzXGp2L
-# V1y9JHB/TOR7rSB3Vq9xnKqQq4dL2pu2qtD6sro41deeptawP/d9O2K+xsvYY35J
-# GV3PcEG+2wKiswwibrQ9No8wXPsMcILFsARS61/5OYVatm4krHJUNCJ4gTNqY1iu
-# zPTBzGK6ETnKgdw8afcrf07uQeFfAPRCIoqTTWtrWlLYx/CK5NftjWTLgeizpWMp
-# 5rFycxgLu67qz4T8S1y26kzdG4We7v3kGHIVAEY6e2EKltMypdWEY9v96q/C0GJm
-# Rp/i/nTgD8pl/LU9X4CnZzBLLQA0U/MuyTWDQRU+lUP93HCtW7IsyggIcUTQoZeh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGop5H4cG57mVGFO/UE/dHAfyx8MwDQYJ
+# KoZIhvcNAQEBBQAEggIAlmgVU+fQZqmkeSgNQBgAcGUD3tPQR5dlUEw7+DL1iiXD
+# QJoIR9PUz/IU4Um+iTORdKK3SmLOZ9/nsoClAniFZ6bnUq70sBzVosYydNZw64sB
+# zPDzKFMBYXn1mkKifp0itQu6PWPOYNa0G5Mo97Qj2XF6LqEfPgavCKuVDjkfCDJW
+# emz5tyTEE7aN3Ya2A9KfOi1042C6VtExYf2Y7uleEZwRh1OmsDG8e9ZdDXQs3QsV
+# 1xvLvDx5c0KbjpKgNmEDdZMbzLwkIhP0ZiImRUT4gAGB7b99o7E2RDw41xgByGIh
+# rEylvPGimzceECLt9xZOw8wUIbmB0C6VcN9sCKnvHrpqV2SjDjh6PH0nfrMkmpaH
+# odd6zvi5IyyXjf5FFsY9LxwjDTeTdVjtmUhS695AlPYG1dyG96TjzANojpSCfhcb
+# 3gtwaggvSuY8YVhC0Ir/1FfjFdadeKeILiaMzbEqX8zUMaXRsLYsOQi7rPfNsAXe
+# tqWJhY0jR/AOLaSxhY+zlcDRCSUamHjIem+UuOFoPSaPNCcdTOAFQurm+X3bmzhk
+# NoqYcNz7PniSyBNOfDxxZ/Imc0erL6l03pTxBgsRJ1adgtNeF3JDM07pDPzl6YXN
+# ddOb9887rolf2ateERLluRDv2uQqvycsS39LldN0HrQAaddQDQn7lcJH6e4ppkah
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyODA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIKxLWxOfT8OaU/OSGpi2lGz3F31k+vcJCa+Jr2LVbB5d
-# MA0GCSqGSIb3DQEBAQUABIIBAIT1bNFhwj0rPKrYLf9LFbX4I+u8U+/LBSeBPvBH
-# 1eYoTcPEm089pA4zxFf8j0W+E90yL2F2ckGpvJZ3U8agfqXg6b5Sze66uyBhOBi5
-# xMsghq1gcyhMHhwPLmr5LBUfDzRCDpqicDC2QixPCBqAHrMweyjX8EwGlgMqKgAL
-# HxWw3tvKtuZJoqXUZM/EQcPPQwSEUiUxjjq9YwKsvaAEBpvynLgePD5UHpiGDjfZ
-# kF9G7SlWcVauR271rcOgmJBQXV0dM7aIuz2l+57z59mlLSfsly28VMp3Va1AfcZx
-# d8Jwowi92GESGykUVTz01NWzcemiIJ4POKOUdN2TjVvxatM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTAwODE0MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIG1QWMm9OwVls+piI90dFUs3gAZUJ4rJfRphoguK0HXz
+# MA0GCSqGSIb3DQEBAQUABIIBAJ2uUZgmITLqYgS9RUDnbFgIJG/W2jTYGqmKEn74
+# YYocwvBjkNZUFANezJHo5IoAyqFGxgiL79gKoT0K6Up7ti90aNxNNu3mkOYKVUS9
+# QTixIE2HN9SdnuxrCjtGBe/NGTYvN/AE0XybNzFsh/OSfeYUijn/HTXt9X+E1upG
+# +OXNCazbH8MGETWDAgDXlp7m1qXJLVzutt+/AC49TRkKe3WzilNAYAqZJUAKiiEI
+# TG1hZ43gzV3rWRqV8ybi3N86Hk0F/1m2+k80/gI+S50uXHKRD4Rnujwuw9gKFjN/
+# s1PuZo4qwEHhc/JWXFVz/7I9RpAUUn9FSaoYjDL7rmS5ywE=
 # SIG # End signature block

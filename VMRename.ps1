@@ -25,8 +25,12 @@ Param
 
     # New name to set
     [String]$NewName,
+
     # Name of domain to join
-    [String]$JoinDomainName
+    [String]$JoinDomainName,
+
+    # Restart
+    [Switch]$Restart
 )
 
 Begin
@@ -90,7 +94,7 @@ Begin
     {
         # Initialize
         $Result = @{}
-        $Reboot = $false
+        $NeedRestart = $false
         $RenameComputerSplat = @{}
 
         # Setup splat if to rename computer
@@ -110,7 +114,9 @@ Begin
             {
                 Rename-Computer @RenameComputerSplat -ErrorAction Stop
                 Start-Sleep -Seconds 3
-                $Reboot = $true
+
+                $Result.Add('Renamed', $NewName)
+                $NeedRestart = $true
             }
             catch [Exception]
             {
@@ -136,8 +142,10 @@ Begin
                 {
                     try
                     {
-                        Add-Computer @RenameComputerSplat -DomainName $JoinDomainName -Credential $DomainCredential -ErrorAction Stop
-                        $Reboot = $true
+                        Add-Computer -DomainName $JoinDomainName -Credential $DomainCredential -Options JoinWithNewName,AccountCreate -Force -ErrorAction Stop
+
+                        $Result.Add('JoinedDomain', $NewName)
+                        $NeedRestart = $true
                     }
                     catch [Exception]
                     {
@@ -158,12 +166,10 @@ Begin
 
         }
 
-        # Check if to reboot
-        if ($Reboot -and
+        # Check if to restart
+        if ($Restart.IsPresent -and $NeedRestart -and
             (ShouldProcess @WhatIfSplat -Message "Restarting `"$ENV:ComputerName`"." @VerboseSplat))
         {
-            $Result.Add('WaitingForReboot', $NewName)
-
             Restart-Computer -Force
         }
 
@@ -224,6 +230,7 @@ Process
             $NewName = $Using:NewName
             $JoinDomainName = $Using:JoinDomainName
             $DomainCredential = $Using:DomainCredential
+            $Restart = $Using:Restart
         }
 
         $InvokeSplat.Add('Session', $Session)
@@ -263,7 +270,7 @@ Process
     }
     catch [Exception]
     {
-        Write-Error "$_ $( $_.ScriptStackTrace)"
+        Write-Error "$_ $($_.ScriptStackTrace)"
 
         $Result.Add('Success', $false)
     }
@@ -314,8 +321,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUP8q+seImT+6ytxRMtVEKY9eh
-# jzKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpXGpzEUoM24vRAzxBO8QBFZj
+# gJyggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -399,28 +406,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUPXFztySmbc9OJ1VtaqJw0JhsZrEwDQYJ
-# KoZIhvcNAQEBBQAEggIAelFssviuVbUlbEhx5Un87NOkAGUWg4dKHCkmTG+1HIiW
-# JV3Ae2XUT4WtW6nAtZng04VLKmHa/TgouuLnkvvlcEEct2QcaV4LcbcglO4i0Pw5
-# HIxv54wB350XdZBbBtY7Vl4KAaglRd9LmW/IqPydkZD1z6VGuRkk/5e2sggFENlV
-# 2FgG3VNL1nMdOy80vxaZzs6lDwXJiCutoLaFRneO+4IMTjnG9KpC/wuhlT5eZBCu
-# bK5oPZFC08NQauf4bVpuXCOXz/0XqkW9UumcCghv9Ciu2ZMcF1M+5EFb9/i/vCMm
-# mulxpahI7lP/UeAwSJ4xkce/CtGYPzsrgJ+OmGg0EVaYLxt7G84jvE4Y1SrNrlKs
-# yVIqkRCAdo3x2JK4luk5eae0/SFO1wIiCbS8ZnDP8IN5UH0ZlAf469HrKRbj+g/C
-# D6FppNWUFHZrjaN62/m/zv8d0w2qog1/JuYcDe/nuCRACMbmgcD4E4YjTO2FKcLB
-# dh25EUtFbYhuOqgQG1tobi8YOuGD8CidnGC1m8vroGVNlP12Jt57FY08WybrW2JH
-# WoQMqoxPk4iLTfNF2McH1/cmkn6Ua6phogesdgsJKqRJ0VcxcPbveYUD7qnCpJcC
-# ofMoFchkPYh3FsZ41IN3BwYn6EZ/OsaO5teIjrgzSbWQUsjl+TbjFUoZoYIcVhWh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXH4K9Yy4bklVmZmCJtNoruo2wVYwDQYJ
+# KoZIhvcNAQEBBQAEggIAWl9KHvwxB4NjHzDU0sPILyVXuvXgrpzvZxP8JB6CzNIs
+# Q5Y28fEHi86itKySJwQwo8n8QiwS5Fgd/lAc1pjsQoSojOKNrKnhPAFpfBve9BBw
+# iN/P0fSXPh6kqWSye8rnjqqCSjrtLYdULb0FTw0UwG3d1VWjAmLj/xjnrkrc8Bzu
+# UcBqaf8Oq6REh+VhpLkMy+a6NVOBuT639MphgfsK65EA25ibvLB9ciJdAH18+YHr
+# l1WHRFDIHu8rCO6bbn2vfatZB41Bjuo8/DHIa6eoD2f25Nk9IKhTx00dxgnw7FRA
+# Mt4R508nIJfmDHBYUJVmlZy5khkZWIdEWIqvmlbCX3f2rbs6etLVwh9oRjL2o4Yy
+# P7Wiq2xeJBzLYnCp0yHyTLL9766cBR2UxnxtXHkaEdCuJP47/rL/C6A1U9NIevt7
+# fl7jJB3hpQ8Sc4Eh34N9Apex/+yMXishEu5GV1XwU5E9imUqqX0nJdpUoP+jRH8I
+# CDDgR/b7zHToORHzM8tXolwk3hl7ZQLzmDwnDj+972apDeZv4hGuBcbYrsMKRzw6
+# hFkHeGvjNssxvdHr3ZW3I4F/cdz69ihYIkTaI6buPNIxA/6QzMNsWUgBo7zC7w8q
+# 3v6gQN3+d0NAXQo8YblQuScT7YbUXDp1OQFMjh5Xkt/c++3plBzmuUvaHIBWT8ah
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyODA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEID+p7CY34VtzinSzaiTGD6MLql5WDAxTQN1P2Lg28Ngb
-# MA0GCSqGSIb3DQEBAQUABIIBAHXnAaR7vVlnmZvZImRZH75lFznPsei1DWbmAtMM
-# c6xOEt7YWRSa5OK7YHh98y6TtgO4Ms9ijfL5hg51oq4rhHMSGnXCb0U1ZCftcsv9
-# +IqMyrPJ/exQs6AJp+hQK4QSEEbvuS2V2jUAD/QZq4/nql1b+RS5jsMZLqCpDN4A
-# D1Ic5bM4BmSIa1WpE49gD9/9yleqE/Rge8i6TNMSw2NlUzZWkFhej7CATpvr52m5
-# hIwvRZek86Y+uSnMhBeyxDufgRxyp28v1uti9b9w6XP1W2iLLh6Au68cIPHhW5p3
-# m2TXEtsYsXndMrueossRjaDveIaxA3zC+uGiRH8gHQ33aVY=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkzMDIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIOvefZxvh1zdyn88oE/y/44858G4zD+ZVymOVcGLK7p9
+# MA0GCSqGSIb3DQEBAQUABIIBAGmccc+vSJP4n0l8GVA6vSN/QZwsiRw2NTNyaEKk
+# rjwBcPgxQUFsVE8BWRLOLi75e8gpBHMY5fCidZLjrTtiXUBTXku3dwRkkHnBDkCI
+# o7WnN6b/aiAxhX8RZRrZQuGMb8WUEIxWg4f1FmFZRNLbxH6ooRM3ZK3KRjPXMzjy
+# EhGQSJu8qo3PFUi7kZoCeBoZ/8FYtjHQA4Nc6gK9+CfaJNtt9IQ4LMDCIEnaMNyY
+# AF/Xdl7tnckeJnkcIyRymZigc0c3s02LT5yIKgdYoxDTO+WhTbEUoXKaSSW/DyTT
+# Bm5SPgmB5QIgCjXl3hZ6+7iTaRyPg7Eoj8DnqikvOrUTHCI=
 # SIG # End signature block

@@ -328,7 +328,7 @@ Begin
                 $Server = @{}
 
                 # Define server records to get
-                $ServerNames = @('ADFS', 'AS', 'WAP')
+                $ServerNames = @('ADFS', 'AS', 'WAP', 'UBU')
 
                 foreach ($Name in $ServerNames)
                 {
@@ -347,21 +347,28 @@ Begin
                 # Check if AS server exist
                 if ($Server.AS)
                 {
-                    $DnsRecords += @{ Name = 'pki';  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
+                    $DnsRecords += @{ Name = 'pki';                    Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
+                    $DnsRecords += @{ Name = 'oauth';                  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
                 }
 
                 # Check if ADFS server exist
                 if ($Server.ADFS)
                 {
-                    $DnsRecords += @{ Name = 'adfs';                   Type = 'A';   Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'certauth.adfs';          Type = 'A';   Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'enterpriseregistration'; Type = 'A';   Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'adfs';                   Type = 'A';      Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'certauth.adfs';          Type = 'A';      Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'enterpriseregistration'; Type = 'A';      Data = "$DomainNetworkId.150" }
                 }
 
                 # Check if WAP server exist
                 if ($Server.WAP)
                 {
-                    $DnsRecords += @{ Name = 'wap';  Type = 'A';      Data = "$DomainNetworkId.100" }
+                    $DnsRecords += @{ Name = 'wap';                    Type = 'A';      Data = "$DomainNetworkId.100" }
+                }
+
+                # Check if UBU server exist
+                if ($Server.UBU)
+                {
+                    $DnsRecords += @{ Name = 'curity';                 Type = 'A';      Data = "$DomainNetworkId.250" }
                 }
 
                 foreach($Rec in $DnsRecords)
@@ -487,6 +494,7 @@ Begin
                 @(
                     @{ Name = "ADFS";  IPAddress = "$DomainNetworkId.150"; }
                     @{ Name = "AS";    IPAddress = "$DomainNetworkId.200"; }
+                    @{ Name = "UBU";   IPAddress = "$DomainNetworkId.250"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)
@@ -529,14 +537,205 @@ Begin
             # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
             #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
+            $WinBuilds =
+            [ordered]@{
+               # Build
+                '17763' =
+                @{
+                    Version = '1809'
+                    Name = 'Windows 1809 (Build 17763)'
+                    Server = 'Windows Server 1809 (2019)'
+                    Workstation = 'Windows 10 1809'
+                    Baseline =
+                    @(
+                        'MSFT Windows 10 1809 and Server 2019 - Domain Security'
+                        'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 1809 - Computer'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2019 - Domain Controller'
+                    )
+                    ServerBaseLine =
+                    @(
+                        'MSFT Windows Server 2019 - Member Server'
+                    )
+                    ComputerBaseline=
+                    @(
+                        'MSFT Windows 10 1809 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 1809 - User'
+                        'MSFT Windows 10 1809 - User'
+                    )
+                }
+                '18363' =
+                @{
+                    Version = '1909'
+                    Name = 'Windows 1909 (Build 18363)'
+                    Server = 'Windows Server 1909'
+                    Workstation = 'Windows 10 1909'
+                    Baseline =
+                    @(
+                        'MSFT Windows 10 1909 and Server 1909 - Domain Security'
+                        'MSFT Windows 10 1909 and Server 1909 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 1909 - Computer'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 1909 - Domain Controller'
+                    )
+                    ServerBaseLine =
+                    @(
+                        'MSFT Windows Server 1909 - Member Server'
+                    )
+                    ComputerBaseline=
+                    @(
+                        'MSFT Windows 10 1909 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 1909 - User'
+                        'MSFT Windows 10 1909 - User'
+                    )
+                }
+                '19041' =
+                @{
+                    Version = '2004'
+                    Name = 'Windows 2004 (Build 19041)'
+                    Server = 'Windows Server 2004'
+                    Workstation = 'Windows 10 2004'
+                    Baseline =
+                    @(
+                        'MSFT Windows 10 2004 and Server 2004 - Domain Security'
+                        'MSFT Windows 10 2004 and Server 2004 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 2004 - Computer'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2004 - Domain Controller'
+                    )
+                    ServerBaseLine =
+                    @(
+                        'MSFT Windows Server 2004 - Member Server'
+                    )
+                    ComputerBaseline=
+                    @(
+                        'MSFT Windows 10 2004 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 2004 - User'
+                        'MSFT Windows 10 2004 - User'
+                    )
+                }
+                '19042' =
+                @{
+                    Version = '20H2'
+                    Name = 'Windows 20H2 (Build 19042)'
+                    Server = 'Windows Server 20H2'
+                    Workstation = 'Windows 10 20H2'
+                    Baseline =
+                    @(
+                        'MSFT Windows 10 20H2 and Server 20H2 - Domain Security'
+                        'MSFT Windows 10 20H2 and Server 20H2 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 20H2 - Computer'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 20H2 - Domain Controller'
+                    )
+                    ServerBaseLine =
+                    @(
+                        'MSFT Windows Server 20H2 - Member Server'
+                    )
+                    ComputerBaseline=
+                    @(
+                        'MSFT Windows 10 20H2 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 20H2 - User'
+                        'MSFT Windows 10 20H2 - User'
+                    )
+                }
+                '19043' = # 21H1 Windows 10
+                @{
+                    Version = '21H1'
+                    Name = 'Windows 21H1 (Build 19043)'
+                    Workstation = 'Windows 10 21H1'
+                    Baseline =
+                    @(
+                        'MSFT Windows 10 21H1 - Domain Security'
+                        'MSFT Windows 10 21H1 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 21H1 (Windows 10) - Computer'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 21H1 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 21H1 (Windows 10) - User'
+                        'MSFT Windows 10 21H1 - User'
+                    )
+                }
+                '20348' =
+                @{
+                    Version = '21H1'
+                    Name = 'Windows 21H1 (Build 20348)'
+                    Server = 'Windows Server 21H1 (2022)'
+                    Baseline =
+                    @(
+                        'MSFT Windows Server 2022 - Domain Security'
+                        'MSFT Windows Server 2022 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - Computer'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2022 - Domain Controller'
+                    )
+                    ServerBaseLine =
+                    @(
+                        'MSFT Windows Server 2022 - Member Server'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - User'
+                    )
+                }
+                '22000' = # 21H2 Windows 11
+                @{
+                    Version = '21H2'
+                    Name = 'Windows 21H2 (Build 22000)'
+                    Workstation = 'Windows 11 21H2'
+                    Baseline =
+                    @(
+                        'MSFT Windows 11 - Domain Security'
+                        'MSFT Windows 11 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 Windows 11 - Computer'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 11 - Computer'
+                    )
+                    UserBaseLine =
+                    @(
+                        'MSFT Internet Explorer 11 Windows 11 - User'
+                        'MSFT Windows 11 - User'
+                    )
+                }
+            }
+
             $WinVer =
             [ordered]@{
                # build  = version
-                '17763' = '1809'
-                '19041' = '2004'
-                '19042' = '20H2'
-                '19043' = '21H1'
-                '20348' = '21H2'
+                '17763' = 'Windows 10 1809'
+                '19041' = 'Windows 10 2004'
+                '19042' = 'Windows 10 20H2'
+                '19043' = 'Windows 10 21H1'
+                '22000' = 'Windows 11 21H2'
             }
 
             #  ██████╗ ██╗   ██╗
@@ -550,49 +749,52 @@ Begin
             @(
                 #  Name = Name of OU                            Path = Where to create OU
 
-                @{ Name = $DomainName;                          Path = $BaseDN; }
+                @{ Name = $DomainName;                                                    Path = $BaseDN; }
 
-                @{  Name = 'Computers';                         Path = "OU=$DomainName,$BaseDN"; }
-                @{   Name = 'Servers';                          Path = "OU=Computers,OU=$DomainName,$BaseDN"; }
-                @{   Name = 'Workstations';                     Path = "OU=Computers,OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Computers';                                   Path = "OU=$DomainName,$BaseDN"; }
 
-                @{  Name = 'Groups';                            Path = "OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Groups';                                      Path = "OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Access Control';                   Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Computers';                        Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Certificate Authority Templates';  Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Group Managed Service Accounts';   Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Local Administrators';             Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Remote Desktop Access';            Path = "OU=Groups,OU=$DomainName,$BaseDN"; }
 
-                @{  Name = 'Users';                             Path = "OU=$DomainName,$BaseDN"; }
-                @{   Name = 'Employees';                        Path = "OU=Users,OU=$DomainName,$BaseDN"; }
-                @{   Name = 'Protected Users';                  Path = "OU=Users,OU=$DomainName,$BaseDN"; }
-                @{   Name = 'Service Accounts';                 Path = "OU=Users,OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Users';                                       Path = "OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Employees';                         Path = "OU=Users,OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Protected Users';                   Path = "OU=Users,OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Service Accounts';                  Path = "OU=Users,OU=$DomainName,$BaseDN"; }
             )
 
-            foreach ($Version in $WinVer.Values)
+            foreach ($Build in $WinBuilds.GetEnumerator())
             {
-                # Server
-                if ($Version -notin @('21H1'))
+                $BuildName = $Build.Value.Name
+
+                $OrganizationalUnits     += @{ Name = $BuildName;                                               Path = "OU=Computers,OU=$DomainName,$BaseDN"; }
+
+                if ($Build.Value.Server)
                 {
-                    $OrganizationalUnits += @{ Name = "Windows Server $Version";   Path = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Routing and Remote Access'; Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $ServerName = $Build.Value.Server
+
+                    $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=$ServerName,OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=$ServerName,OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Routing and Remote Access'; Path = "OU=$ServerName,OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
                 }
 
-                # Workstation
-                if ($Version -notin @('21H2'))
+                if ($Build.Value.Workstation)
                 {
-                    $OrganizationalUnits += @{ Name = "Windows 10 $Version";       Path = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;                   Path = "OU=$BuildName,OU=Computers,OU=$DomainName,$BaseDN"; }
                 }
             }
 
             foreach($Ou in $OrganizationalUnits)
             {
                 # Check if OU exist
-                if (-not (Get-ADOrganizationalUnit -SearchBase $Ou.Path -Filter "Name -like '$($Ou.Name)'" -ErrorAction SilentlyContinue) -and
+                if (-not (Get-ADOrganizationalUnit -SearchBase $Ou.Path -Filter "Name -like '$($Ou.Name)'" -SearchScope OneLevel -ErrorAction SilentlyContinue) -and
                     (ShouldProcess @WhatIfSplat -Message "Creating OU=$($Ou.Name)" @VerboseSplat))
                 {
                     # Create OU
@@ -623,7 +825,7 @@ Begin
             #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
 
             # FIX
-            # Add Path
+            # Add path to user location
 
             $Users =
             @(
@@ -659,12 +861,13 @@ Begin
 
             $MoveObjects =
             @(
-                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Windows 10 %Version%,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
-                @{ Filter = "(Name -like 'RT*' -or Name -like 'R*') -and ObjectClass -eq 'computer'";   TargetPath = "OU=Routing and Remote Access,OU=Windows Server %Version%,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'RTR*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Routing and Remote Access,%ServerPath%,OU=Computers,OU=$DomainName,$BaseDN" }
+
+                @{ Filter = "Name -like 'WIN*' -and ObjectClass -eq 'computer'";    TargetPath = "%WorkstationPath%,OU=Computers,OU=$DomainName,$BaseDN" }
 
                 @{ Filter = "Name -like 'Admin' -and ObjectClass -eq 'user'";       TargetPath = "OU=Protected Users,OU=Users,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Users,OU=$DomainName,$BaseDN" }
@@ -685,16 +888,29 @@ Begin
                     # Check if computer
                     if ($CurrentObj.ObjectClass -eq 'computer')
                     {
-                        # Set default build
-                        $Build = $($WinVer.Keys)[-1]
-
                         # Get computer build
                         $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
                             $_ -match "\((\d+)\)"
                         } | ForEach-Object { $Matches[1] }
 
-                        # Set targetpath with version
-                        $TargetPath = $Obj.TargetPath.Replace('%Version%', $WinVer[$Build])
+                        if (-not $Build)
+                        {
+                            # Skip move
+                            Write-Warning -Message "Did'nt find build for $($CurrentObj.Name), skiping move."
+                            continue
+                        }
+
+                        # Set targetpath with server version
+                        if ($Obj.TargetPath -match '%ServerPath%')
+                        {
+                            $TargetPath = $Obj.TargetPath.Replace('%ServerPath%', "OU=$($WinBuilds.Item($Build).Server),OU=$($WinBuilds.Item($Build).Name)")
+                        }
+
+                        # Set targetpath with windows version
+                        if ($Obj.TargetPath -match '%WorkstationPath%')
+                        {
+                            $TargetPath = $Obj.TargetPath.Replace('%WorkstationPath%', "OU=$($WinBuilds.Item($Build).Workstation),OU=$($WinBuilds.Item($Build).Name)")
+                        }
                     }
 
                     # Check if object is in targetpath
@@ -724,18 +940,18 @@ Begin
 
                 @{
                     Name        = 'Domain Servers'
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
                 }
 
                 @{
                     Name        = 'Domain Workstations'
-                    Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*'"
                 }
 
                 @{
@@ -781,7 +997,7 @@ Begin
                 @{
                     Name        = 'Template ADFS Service Communication'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
@@ -797,7 +1013,7 @@ Begin
                 @{
                     Name        = 'Template OCSP Response Signing'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
@@ -805,9 +1021,17 @@ Begin
                 @{
                     Name        = 'Template Server'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
+                }
+
+                @{
+                    Name        = 'Template SSL'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
             )
 
@@ -834,29 +1058,29 @@ Begin
             }
 
             # Add computer groups
-            foreach ($Build in $WinVer.Keys)
+            foreach ($Build in $WinBuilds.GetEnumerator())
             {
-                if ($Build -notin @('19043')) #21H1
+                if ($Build.Value.Server)
                 {
                     $DomainGroups +=
                     @{
-                        Name        = "Windows Server $($WinVer.Item($Build))"
-                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                        Name        = $Build.Value.Server
+                        Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
-                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
                     }
                 }
 
-                if ($Build -notin @('20348')) #21H2
+                if ($Build.Value.Workstation)
                 {
                     $DomainGroups +=
                     @{
-                        Name        = "Windows 10 $($WinVer.Item($Build))"
-                        Path        = "OU=Groups,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN"
+                        Name        = $Build.Value.Workstation
+                        Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
-                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystemVersion -like '*$Build*'"
+                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
                     }
                 }
             }
@@ -920,7 +1144,7 @@ Begin
                 @{
                     Name = 'Adfs'
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
@@ -928,7 +1152,7 @@ Begin
                 @{
                     Name = 'PowerShell'
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like '*' -and ObjectClass -eq 'computer'"
                 }
@@ -936,7 +1160,7 @@ Begin
                 @{
                     Name = 'AzADSyncSrv'
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
@@ -944,7 +1168,7 @@ Begin
                 @{
                     Name = 'Ndes'
                     Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
@@ -1240,17 +1464,20 @@ Begin
 
             if (Test-Path -Path "$env:TEMP\Gpo")
             {
-                 Remove-Item -Path "$env:TEMP\Gpo" -Force -Recurse
+                Remove-Item -Path "$env:TEMP\Gpo" -Force -Recurse
             }
 
             if (Test-Path -Path "$env:TEMP\Baseline")
             {
-                 Remove-Item -Path "$env:TEMP\Baseline" -Force -Recurse
+                #Remove-Item -Path "$env:TEMP\Baseline" -Force -Recurse
             }
 
             ############
             # Link GPOs
             ############
+
+            # Get DC build
+            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
             # Enforced if ending with +
             # Disabled if ending with -
@@ -1284,10 +1511,10 @@ Begin
                     "$DomainPrefix - Computer - Sec - Block Untrusted Fonts"
                     "$DomainPrefix - Computer - Windows Update"
                     "$DomainPrefix - Computer - Display Settings"
-                    'MSFT Windows Server 2022 - Domain Controller'
-                    'MSFT Windows Server 2022 - Domain Security'
-                    'MSFT Windows Server 2022 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 2022 - Computer'
+                ) +
+                $WinBuilds.Item($DCBuild).DCBaseline +
+                $WinBuilds.Item($DCBuild).BaseLine +
+                @(
                     'Default Domain Controllers Policy'
                 )
 
@@ -1312,6 +1539,8 @@ Begin
                     "$DomainPrefix - Computer - Display Settings+"
                 )
 
+                # FIX
+                # move to servers loop
                 "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - Computer - Sec - Disable Spooler+"
@@ -1326,102 +1555,70 @@ Begin
             }
 
             # Initialize
-            $AllUserBaseline = @()
+            $UserBaseline = @()
 
             # Get baseline for all versions
-            foreach($Version in $WinVer.Values)
+            foreach($Build in $WinBuilds.Values)
             {
-                $AllUserBaseline += @(
-
-                    "MSFT Internet Explorer 11 $Version - User"
-                    "MSFT Windows 10 $Version - User"
-                )
+                if ($Build.UserBaseline)
+                {
+                    $UserBaseline += $Build.UserBaseline
+                }
             }
 
             # Employees
-            $GPOLinks.Add("OU=Employees,OU=Users,OU=$DomainName,$BaseDN", $AllUserBaseline)
+            $GPOLinks.Add("OU=Employees,OU=Users,OU=$DomainName,$BaseDN", $UserBaseline)
 
             # Add gpo links for each version
-            foreach($Version in $WinVer.Values)
+            foreach($Build in $WinBuilds.Values)
             {
-                # Baseline older
-                if ($Version -notin @('21H1', '21H2'))
-                {
-                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
+                # Add baseline
+                $GPOLinks.Add("OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", $Build.Baseline)
 
-                            "MSFT Windows 10 $Version and Server $Version - Domain Security"
-                            "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
-                            "MSFT Windows 10 $Version - Computer"
-                            "MSFT Internet Explorer 11 $Version - Computer-"
+                # Check member server baseline
+                if ($Build.Server)
+                {
+                    $GPOLinks.Add("OU=$($Build.Server),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", $Build.ServerBaseline)
+
+                    # Certificate Authorities
+                    $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Auditing - Certification Services"
                         )
                     )
 
-                    $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
+                    # Federation Services
+                    $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                            "MSFT Windows 10 $Version and Server $Version - Domain Security"
-                            "MSFT Windows 10 $Version and Server $Version - Defender Antivirus"
-                            "MSFT Windows Server $Version - Member Server"
-                            "MSFT Internet Explorer 11 $Version - Computer-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
                         )
                     )
-                }
-                # Baseline Server 2022
-                elseif ($Version -in @('21H2'))
-                {
-                    $GPOLinks.Add("OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                            "MSFT Windows Server $Version - Domain Security"
-                            "MSFT Windows Server $Version - Defender Antivirus"
-                            "MSFT Windows Server $Version - Member Server"
-                            "MSFT Internet Explorer 11 $Version - Computer-"
+                    # Web Application Proxy
+                    $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
                         )
                     )
-                }
-                # Baseline Windows 10
-                elseif ($Version -in @('21H1'))
-                {
-                    $GPOLinks.Add("OU=Windows 10 $Version,OU=Workstations,OU=Computers,OU=$DomainName,$BaseDN", @(
 
-                            "MSFT Windows 10 $Version - Domain Security"
-                            "MSFT Windows 10 $Version - Defender Antivirus"
-                            "MSFT Windows 10 $Version - Computer"
-                            "MSFT Internet Explorer 11 $Version - Computer"
+                    # Web Servers
+                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - User Rights Assignment - Web Server"
+                            "$DomainPrefix - Computer - Firewall - Web Server"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
                         )
                     )
                 }
 
-                # Certificate Authorities
-                $GPOLinks.Add("OU=Certificate Authorities,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                        "$DomainPrefix - Computer - Auditing - Certification Services"
-                    )
-                )
-
-                # Federation Services
-                $GPOLinks.Add("OU=Federation Services,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                        "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                        "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                    )
-                )
-
-                # Web Application Proxy
-                $GPOLinks.Add("OU=Web Application Proxy,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                        "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
-                        "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
-                    )
-                )
-
-                # Web Servers
-                $GPOLinks.Add("OU=Web Servers,OU=Windows Server $Version,OU=Servers,OU=Computers,OU=$DomainName,$BaseDN", @(
-
-                        "$DomainPrefix - Computer - User Rights Assignment - Web Server"
-                        "$DomainPrefix - Computer - Firewall - Web Server"
-                        "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                        "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                    )
-                )
+                # Check computer baseline
+                if ($Build.Workstation)
+                {
+                    $GPOLinks.Add("OU=$($Build.Workstation),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", $Build.ComputerBaseline)
+                }
             }
 
             # Itterate targets
@@ -1480,6 +1677,8 @@ Begin
                     }
                 }
             }
+
+            exit
 
             # Set gp permissions on user policy
             foreach ($GpoName in (Get-GPInheritance -Target "OU=Employees,OU=Users,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
@@ -1940,13 +2139,22 @@ Process
         # Run main
         $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
 
-        $Result.Add('Success', $true)
+        $Success = $true
     }
     catch [Exception]
     {
         Write-Error "$_ $( $_.ScriptStackTrace)"
 
-        $Result.Add('Success', $false)
+        $Success = $false
+    }
+
+    if ($Result)
+    {
+        $Result.Add('Success', $Success)
+    }
+    else
+    {
+        $Result = @{ Success = $Success }
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -1995,8 +2203,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrdkbNiB51/hVp2aq2IoTIpm6
-# XxSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULDpFIw4gqrKXQyWfCo1Fpzrv
+# E+Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2080,28 +2288,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWMWAtzUJvAYzBDOCWVsFOZQ0QiUwDQYJ
-# KoZIhvcNAQEBBQAEggIAZY30atuB/DFyowcExVp7DvQMlrLXI0A3TG6ag/GOVzIi
-# RBqwcbkddsDV0RVCYuqRR6LiK5MR3WQVVoObNN+1OUJGvgMmjpQ9rawfmREEpaFy
-# HnJRd+LNLcS/QIzvOlKprnhw85Ix9dSE6mOAplF+plHoOn5pwPIMbU22MkxRjL36
-# lVlOOOpD4ua4YWwzIYTyiqWHOd0Z7j1PkXB5xAeZ5x+pEFtnrUZTWObxT0ejtZPQ
-# EO6S6o6t2wWI4WBzZWL+2YSrW9QJBPpbf6QPTlMkyqsqiQ1ggz9KMHYwk3xW5STc
-# AJq18NEYelVuIkGmgp0JZBIXhq+vug3/qDfM0mlF4PavD1PKNHGXS2JN03g+TXSL
-# Q4hDUJcqwuw9/v9TD1c4vQJd6Be08MghEXm+VtsFYAv+o/0hB5hdCqAnBU8AmgDt
-# xbMKtOOWcF5ik4YJYft/tRgpaK1sC3kZE6nt3AgHP51S8PycsLiRRQSFe5DTpJiv
-# JGNi1YdBTzEIMI8hHbnnTNexzyjqA0xDcALYi6n2X74qt6Bt0blQfi9VYBFw+SD/
-# /sCEzZ7saCcI/a//mC0z3tErbbg5YVvHPAxbv/SVkAywNNoxgfJJ0t+jJT26z4Ny
-# 8Tx9+Nsrq3JwKfKhS8fo7+pP/eL8gzAWxbLdfy0yFuMv+EajQpIwPuOHCJGY/72h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6FZeLhkDwMFh1l0yn/seZcropbQwDQYJ
+# KoZIhvcNAQEBBQAEggIACx5Mrn+z1M6KcTvoYmOxDlMepw34ZAokBWT5y9wPP/2o
+# qg8zke3euboXPMFJlXqjBRl3TwATRYNY8XA2cH0AJL7UbWtwGJBIWLFxr2J8VcsG
+# 8JIuEzneHT6hoT88WwESbNgxAUWYQWNuSG0HDVphGk+s9YZVjv8b+RrVCIzHNNqd
+# GfMeyl3R0BfaWcWG0UGAB/maOEaNZK+7ao6O8yiEvVcoCmBJMZfC72mNVKarhRQ9
+# kpGlxEsQCPvGLhjm+lZ2kE6e/Jcni/4Mh11tTRf72GDNj3IofXdoBveEE1SAMiHz
+# R1KqUeUSzZ/znBxyGQjREGVgaXRvkILEm7KHd61UK8w9M+THJ+OZATUfqNS1cvce
+# sx42QQutv+GFoWpCtBkSerb9U30RRWHCqRYlji7GQT6a8MOwS9MwaREklcEq0CLq
+# LzKLbXwkRXIBkPW2iSIrg0bnnAwoyQ06cLoVCxW6e5WiTMKl48SVnJeOMrYEshEs
+# KZwhfHX8xmfEN3wdkrXgBPdAKMEEgGn/pRFXSkbWaMb0FZUctkLM9w+ff1Bq70Q4
+# 0XfCa5wo7JZv+XGcqJohs1Z9TecQYYfTi6QlWfcoSTUGodQY1cGPBvb7OrOeHYYq
+# O7GFkt15AnIX4uTW33RZfeZAXLMN76Vn1OgIJvi6ge2plA03/AMPJ7v8oq2N/TOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMDkyODA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIIDt/cmShLZvomeDoZkRaaZz562GsKkHn9iFDcZMIW+/
-# MA0GCSqGSIb3DQEBAQUABIIBAHARqA3GQMnwYDsUQ0Bvc/mm0oQW1wce+FhvUjjl
-# yd2yDKh3XvUr/Yhjou92Uw03NZDtNIzYFWR2cOa1bzET4UgmPEcN74rUFnnEEDP4
-# WspyzB8ME2FndeER7tJSfMtKN4aiLXkSr/BQIs91vAaRb5vDMFA0h9AtAB4z3tty
-# gBCG4B9XrKk2OJzIKGMZTR55BQ2pw5YoNBbWyRDVpuvkRebLdypLJ08KoKB20vk3
-# QaXH7L88+R9Y3KwzkpDvNOixfr2cxkXSWucbC1Jw9um14yf/yT72UqSPZM9gCtyG
-# nmv3U19Sg8y8f23YZ6I6/1sjfgYYFFJS+0w+aUQE2974paE=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTExMzE3MDAwMVow
+# LwYJKoZIhvcNAQkEMSIEIACnuBXmq610A4p/ExCzakB0OhE6LxDhu5IYHd20Krka
+# MA0GCSqGSIb3DQEBAQUABIIBAGGRoHs8fVy4T4BpetfbvBMeLns3FilGyKPQ/zqI
+# EjHqR3V0dVWMwOxi3rLRZ+zUrr4g9dLVy2Ym/LKbjimadCKmKuLhJZ+1af1D8Jam
+# QqBWvkVACHR/jTBYT8lZGa6WKqJ7m+tGqZIGqyEHHHfN6BuUhlr2j4VLQal9l5ev
+# /Qw0J8gU04mnrOIfpUAYMvg2YmoeKKqIaRrMkSTJQXM/WfNSAOLChtjD4sy2QouP
+# 23jPX2d33MwD1jnMfwXLCVHZJPOpfduRNgV30esR2q9WJF0UaGIzlbBqZPrF0a8W
+# Zt+YsIBU/hHNrPCWsQW1wSJqIzbQ9FFfcJMnCYWf+pNefUk=
 # SIG # End signature block
