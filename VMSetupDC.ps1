@@ -150,25 +150,33 @@ Begin
 
     if ($Session)
     {
+        $Paths =
+        @(
+            @{ Name = 'Certificate Templates';  Source = $TemplatePath;  Destination = 'Templates' }
+            @{ Name = 'Group Policy Objects';   Source = $GpoPath;       Destination = 'Gpo' }
+            @{ Name = 'MSFT Baselines';         Source = $BaselinePath;  Destination = 'Baseline' }
+        )
+
         $DCTemp = Invoke-Command -Session $Session -ScriptBlock {
+
+            foreach ($Path in $Using:Paths)
+            {
+                if ($Path.Source -and (Test-Path -Path "$env:TEMP\$($Path.Destination)"))
+                {
+                    Remove-Item -Path "$env:TEMP\$($Path.Destination)" -Recurse -Force
+                }
+            }
 
             Write-Output -InputObject $env:TEMP
         }
-
-        $Paths =
-        @(
-            @{ Name = 'Gpos';                   Source = $GpoPath;       Destination = "$DCTemp\Gpo" }
-            @{ Name = 'Baseline gpos';          Source = $BaselinePath;  Destination = "$DCTemp\Baseline" }
-            @{ Name = 'Certificate templates';  Source = $TemplatePath;  Destination = "$DCTemp\Templates" }
-        )
 
         foreach ($Path in $Paths)
         {
             # Check if source exist
             if ($Path.Source -and (Test-Path -Path $Path.Source) -and
-                (ShouldProcess @WhatIfSplat -Message "Copying `"$($Path.Name)`" to `"$($Path.Destination)`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Copying `"$($Path.Name)`" to `"$DCTemp\$($Path.Destination)`"." @VerboseSplat))
             {
-                Copy-Item -ToSession $Session -Path $Path.Source -Destination $Path.Destination -Recurse -Force -ErrorAction SilentlyContinue
+                Copy-Item -ToSession $Session -Path $Path.Source -Destination "$DCTemp\$($Path.Destination)" -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
     }
@@ -540,7 +548,7 @@ Begin
             $WinBuilds =
             [ordered]@{
                # Build
-                '17763' =
+                '17763' = # Windows 10 / Windows Server 2019
                 @{
                     Version = '1809'
                     Name = 'Windows 1809 (Build 17763)'
@@ -552,22 +560,22 @@ Begin
                         'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
                         'MSFT Internet Explorer 11 1809 - Computer'
                     )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2019 - Domain Controller'
-                    )
-                    ServerBaseLine =
-                    @(
-                        'MSFT Windows Server 2019 - Member Server'
-                    )
-                    ComputerBaseline=
-                    @(
-                        'MSFT Windows 10 1809 - Computer'
-                    )
-                    UserBaseLine =
+                    UserBaseline =
                     @(
                         'MSFT Internet Explorer 11 1809 - User'
                         'MSFT Windows 10 1809 - User'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 1809 - Computer'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 2019 - Member Server'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2019 - Domain Controller'
                     )
                 }
                 '18363' =
@@ -582,22 +590,22 @@ Begin
                         'MSFT Windows 10 1909 and Server 1909 - Defender Antivirus'
                         'MSFT Internet Explorer 11 1909 - Computer'
                     )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 1909 - Domain Controller'
-                    )
-                    ServerBaseLine =
-                    @(
-                        'MSFT Windows Server 1909 - Member Server'
-                    )
-                    ComputerBaseline=
-                    @(
-                        'MSFT Windows 10 1909 - Computer'
-                    )
-                    UserBaseLine =
+                    UserBaseline =
                     @(
                         'MSFT Internet Explorer 11 1909 - User'
                         'MSFT Windows 10 1909 - User'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 1909 - Computer'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 1909 - Member Server'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 1909 - Domain Controller'
                     )
                 }
                 '19041' =
@@ -612,22 +620,22 @@ Begin
                         'MSFT Windows 10 2004 and Server 2004 - Defender Antivirus'
                         'MSFT Internet Explorer 11 2004 - Computer'
                     )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2004 - Domain Controller'
-                    )
-                    ServerBaseLine =
-                    @(
-                        'MSFT Windows Server 2004 - Member Server'
-                    )
-                    ComputerBaseline=
-                    @(
-                        'MSFT Windows 10 2004 - Computer'
-                    )
-                    UserBaseLine =
+                    UserBaseline =
                     @(
                         'MSFT Internet Explorer 11 2004 - User'
                         'MSFT Windows 10 2004 - User'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 2004 - Computer'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 2004 - Member Server'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2004 - Domain Controller'
                     )
                 }
                 '19042' =
@@ -642,25 +650,25 @@ Begin
                         'MSFT Windows 10 20H2 and Server 20H2 - Defender Antivirus'
                         'MSFT Internet Explorer 11 20H2 - Computer'
                     )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 20H2 - Domain Controller'
-                    )
-                    ServerBaseLine =
-                    @(
-                        'MSFT Windows Server 20H2 - Member Server'
-                    )
-                    ComputerBaseline=
-                    @(
-                        'MSFT Windows 10 20H2 - Computer'
-                    )
-                    UserBaseLine =
+                    UserBaseline =
                     @(
                         'MSFT Internet Explorer 11 20H2 - User'
                         'MSFT Windows 10 20H2 - User'
                     )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 20H2 - Computer'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 20H2 - Member Server'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 20H2 - Domain Controller'
+                    )
                 }
-                '19043' = # 21H1 Windows 10
+                '19043' = # Windows 10
                 @{
                     Version = '21H1'
                     Name = 'Windows 21H1 (Build 19043)'
@@ -671,17 +679,23 @@ Begin
                         'MSFT Windows 10 21H1 - Defender Antivirus'
                         'MSFT Internet Explorer 11 21H1 (Windows 10) - Computer'
                     )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 10 21H1 - Computer'
-                    )
-                    UserBaseLine =
+                    UserBaseline =
                     @(
                         'MSFT Internet Explorer 11 21H1 (Windows 10) - User'
                         'MSFT Windows 10 21H1 - User'
                     )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 10 21H1 - Computer'
+                    )
                 }
-                '20348' =
+                '19044' = # Windows 10
+                @{
+                    Version = '21H2'
+                    Name = 'Windows 21H2 (Build 19044)'
+                    Workstation = 'Windows 10 21H2'
+                }
+                '20348' = # Windows Server 2022
                 @{
                     Version = '21H1'
                     Name = 'Windows 21H1 (Build 20348)'
@@ -692,20 +706,20 @@ Begin
                         'MSFT Windows Server 2022 - Defender Antivirus'
                         'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - Computer'
                     )
+                    UserBaseline =
+                    @(
+                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - User'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 2022 - Member Server'
+                    )
                     DCBaseline =
                     @(
                         'MSFT Windows Server 2022 - Domain Controller'
                     )
-                    ServerBaseLine =
-                    @(
-                        'MSFT Windows Server 2022 - Member Server'
-                    )
-                    UserBaseLine =
-                    @(
-                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - User'
-                    )
                 }
-                '22000' = # 21H2 Windows 11
+                '22000' = # Windows 11
                 @{
                     Version = '21H2'
                     Name = 'Windows 21H2 (Build 22000)'
@@ -714,28 +728,18 @@ Begin
                     @(
                         'MSFT Windows 11 - Domain Security'
                         'MSFT Windows 11 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 Windows 11 - Computer'
+                        'MSFT Internet Explorer 11 21H2 - Computer'
+                    )
+                    UserBaseline =
+                    @(
+                        'MSFT Internet Explorer 11 21H2 - User'
+                        'MSFT Windows 11 - User'
                     )
                     ComputerBaseline =
                     @(
                         'MSFT Windows 11 - Computer'
                     )
-                    UserBaseLine =
-                    @(
-                        'MSFT Internet Explorer 11 Windows 11 - User'
-                        'MSFT Windows 11 - User'
-                    )
                 }
-            }
-
-            $WinVer =
-            [ordered]@{
-               # build  = version
-                '17763' = 'Windows 10 1809'
-                '19041' = 'Windows 10 2004'
-                '19042' = 'Windows 10 20H2'
-                '19043' = 'Windows 10 21H1'
-                '22000' = 'Windows 11 21H2'
             }
 
             #  ██████╗ ██╗   ██╗
@@ -1023,7 +1027,7 @@ Begin
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and Name -notlike 'DC*' -and ObjectClass -eq 'computer'"
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*' -and Name -notlike 'DC*'"
                 }
 
                 @{
@@ -1462,16 +1466,6 @@ Begin
                 Start-Sleep -Seconds 1
             }
 
-            if (Test-Path -Path "$env:TEMP\Gpo")
-            {
-                Remove-Item -Path "$env:TEMP\Gpo" -Force -Recurse
-            }
-
-            if (Test-Path -Path "$env:TEMP\Baseline")
-            {
-                #Remove-Item -Path "$env:TEMP\Baseline" -Force -Recurse
-            }
-
             ############
             # Link GPOs
             ############
@@ -1678,27 +1672,28 @@ Begin
                 }
             }
 
-            exit
-
-            # Set gp permissions on user policy
+            # Set permissions on user policy
             foreach ($GpoName in (Get-GPInheritance -Target "OU=Employees,OU=Users,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
             {
-                # Get version
-                $Version = $GpoName | Where-Object {
-                    $_ -match "(.{4}) - User"
-                } | ForEach-Object { $Matches[1] }
+                $Build = ($WinBuilds.GetEnumerator() | Where-Object { $GpoName -in $_.Value.UserBaseline }).Key
 
-                # Set groups
-                $GpoPermissionGroups =
-                @(
-                    @{ Name = "Domain Users";            SkipVersion = @('');     }
-                    @{ Name = "Windows 10 $Version";     SkipVersion = @('21H2'); }
-                    @{ Name = "Windows Server $Version"; SkipVersion = @('21H1'); }
-                )
-
-                # Itterate group types
-                foreach ($Group in $GpoPermissionGroups)
+                if ($Build)
                 {
+                    # Set groups
+                    $GpoPermissionGroups = @('Domain Users')
+
+                    # Add workstation
+                    if ($WinBuilds.Item($Build).Workstation)
+                    {
+                        $GpoPermissionGroups += $WinBuilds.Item($Build).Workstation
+                    }
+
+                    # Add server
+                    if ($WinBuilds.Item($Build).Server -and $GpoName -match 'Internet Explorer')
+                    {
+                        $GpoPermissionGroups += $WinBuilds.Item($Build).Server
+                    }
+
                     # Remove authenticated user
                     if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
@@ -1706,16 +1701,15 @@ Begin
                         Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None > $nul
                     }
 
-                    # Get permission
-                    $Permission = (Get-GPPermission -Name $GpoName -TargetName $Group.Name -TargetType Group -ErrorAction SilentlyContinue ).Permission
-
-                    # Set permission
-                    if ($Version -notin $Group.SkipVersion -and
-                        -not ($Group.Name -like '*Windows Server*' -and $GpoName -like '*Windows 10*') -and
-                        $Permission -ne 'GpoApply' -and
-                        (ShouldProcess @WhatIfSplat -Message "Setting `"$($Group.Name)`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
+                    # Itterate groups
+                    foreach ($Group in $GpoPermissionGroups)
                     {
-                        Set-GPPermission -Name $GpoName -TargetName $Group.Name -TargetType Group -PermissionLevel GpoApply > $nul
+                        # Set permission
+                        if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
+                            (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
+                        {
+                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $nul
+                        }
                     }
                 }
             }
@@ -2130,31 +2124,15 @@ Process
         $InvokeSplat.Add('NoNewScope', $true)
     }
 
-    # Initialize
-    $Result = @{}
-
     # Invoke
     try
     {
         # Run main
         $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
-
-        $Success = $true
     }
     catch [Exception]
     {
         Write-Error "$_ $( $_.ScriptStackTrace)"
-
-        $Success = $false
-    }
-
-    if ($Result)
-    {
-        $Result.Add('Success', $Success)
-    }
-    else
-    {
-        $Result = @{ Success = $Success }
     }
 
     # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
@@ -2196,15 +2174,15 @@ End
 {
     if ($Session)
     {
-        $Session | Remove-PSSession
+        $Session | Remove-PSSession -ErrorAction SilentlyContinue
     }
 }
 
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULDpFIw4gqrKXQyWfCo1Fpzrv
-# E+Gggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPDaAvUi0lUB/19UTC7Hy0rTM
+# 8Cmggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2288,28 +2266,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6FZeLhkDwMFh1l0yn/seZcropbQwDQYJ
-# KoZIhvcNAQEBBQAEggIACx5Mrn+z1M6KcTvoYmOxDlMepw34ZAokBWT5y9wPP/2o
-# qg8zke3euboXPMFJlXqjBRl3TwATRYNY8XA2cH0AJL7UbWtwGJBIWLFxr2J8VcsG
-# 8JIuEzneHT6hoT88WwESbNgxAUWYQWNuSG0HDVphGk+s9YZVjv8b+RrVCIzHNNqd
-# GfMeyl3R0BfaWcWG0UGAB/maOEaNZK+7ao6O8yiEvVcoCmBJMZfC72mNVKarhRQ9
-# kpGlxEsQCPvGLhjm+lZ2kE6e/Jcni/4Mh11tTRf72GDNj3IofXdoBveEE1SAMiHz
-# R1KqUeUSzZ/znBxyGQjREGVgaXRvkILEm7KHd61UK8w9M+THJ+OZATUfqNS1cvce
-# sx42QQutv+GFoWpCtBkSerb9U30RRWHCqRYlji7GQT6a8MOwS9MwaREklcEq0CLq
-# LzKLbXwkRXIBkPW2iSIrg0bnnAwoyQ06cLoVCxW6e5WiTMKl48SVnJeOMrYEshEs
-# KZwhfHX8xmfEN3wdkrXgBPdAKMEEgGn/pRFXSkbWaMb0FZUctkLM9w+ff1Bq70Q4
-# 0XfCa5wo7JZv+XGcqJohs1Z9TecQYYfTi6QlWfcoSTUGodQY1cGPBvb7OrOeHYYq
-# O7GFkt15AnIX4uTW33RZfeZAXLMN76Vn1OgIJvi6ge2plA03/AMPJ7v8oq2N/TOh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJbymuOUrciEh2g27g6tUv2hhCaYwDQYJ
+# KoZIhvcNAQEBBQAEggIAWZB6JBs+uFxhi3N+Ms/Nj6Xk1L9XWfdmgitbST/JF+bJ
+# mypyiCLB4Ko8ROyxiqbxSSLmu3KqR25y2iK41q+RpWpHFYo6m+sgDQ3KQi4tl453
+# 9fR8FnZED8mcwMT8kvB3dBKqbXXTljEsa90OT0lkfABknCTHy+uEyd/J03vV8sCt
+# uWvmogB9bJfNUhV2tLku/FwLj33iZFlFg57TF6PUr6BAqh5aa9124tj/JbwW4vKC
+# lxvcorkPmooUuU3723SGgDAdcl61+IUgcHx/8/H4ql+WyuqMh+RHyBtxtdPtc4gM
+# hAopqRz1xO9XwOeEpbVmc/KrHTGBtT3aGoiJGJbumUopv1I3gcygglJqjXLDXCFw
+# EcLvNPk6hZEDJhikXqB4mLg5kz6uNa9pXPOWr8H64qwsbGYGTL67cfJeCLVoLCcp
+# sEyesjTQjxmumtFsMwJps10rlgZqCA4XIvu1bCyjmBdPObmv/1gQ2iRcejT9S44k
+# Jbis/bFDWgNU3j6kTCV6bEIqm20QmoKVc0y8nioP/O8qLKFv5WyoGK6xfIxTJ5MJ
+# kVC+sZXTs3NVQRdhO0m+jKX2chw3i8ZznlLDTqSW3SyCMZZQg8bFJK5ZbOhgb8WK
+# uBx70GzwwtyXgCO5z+HqT2z/3b3gIJ36QlArcEyVW41JpKDrTN0vmi9PLzJ1Y1mh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTExMzE3MDAwMVow
-# LwYJKoZIhvcNAQkEMSIEIACnuBXmq610A4p/ExCzakB0OhE6LxDhu5IYHd20Krka
-# MA0GCSqGSIb3DQEBAQUABIIBAGGRoHs8fVy4T4BpetfbvBMeLns3FilGyKPQ/zqI
-# EjHqR3V0dVWMwOxi3rLRZ+zUrr4g9dLVy2Ym/LKbjimadCKmKuLhJZ+1af1D8Jam
-# QqBWvkVACHR/jTBYT8lZGa6WKqJ7m+tGqZIGqyEHHHfN6BuUhlr2j4VLQal9l5ev
-# /Qw0J8gU04mnrOIfpUAYMvg2YmoeKKqIaRrMkSTJQXM/WfNSAOLChtjD4sy2QouP
-# 23jPX2d33MwD1jnMfwXLCVHZJPOpfduRNgV30esR2q9WJF0UaGIzlbBqZPrF0a8W
-# Zt+YsIBU/hHNrPCWsQW1wSJqIzbQ9FFfcJMnCYWf+pNefUk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTEyNzExMDkwN1ow
+# LwYJKoZIhvcNAQkEMSIEIDaGtT/nn7WsSRU7qsHx2Vy6GchpqcUkN89PJi/4K0V5
+# MA0GCSqGSIb3DQEBAQUABIIBAE/LUOwDCGhqcQy4+tGUp3xcOwfjcWpc+ccKJsSD
+# L7g9pfNg4bL39Kj7LPMEsySTyP3YkNWG38Uijbvfr4KyoNpJRLPsl+oW9Nb43vd0
+# eay44qLiFvDuWrwnWm2lbENvEgOaj75M2pd6wO5CC99GiQbzU7UNQ41k7SZjGY0i
+# 8CtKq+LwCabet6a4rNxhwG2w7N2rJSZ2gdiryw65yQ1oTcLM/xmONorcQ+9C4H4R
+# /JElwGGbj7BRekZc6m4Fe1hK/C4RrQeyIKQMjt3zD5eYllxXl7XhkW50CidXNTyZ
+# riZw2prF3RXhBtuy4ANGcCSy1+PnX+PLX8cBNgbzhN/TQWA=
 # SIG # End signature block
