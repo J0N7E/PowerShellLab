@@ -958,6 +958,10 @@ Begin
                     Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*'"
                 }
 
+                ###########
+                # Delegate
+                ###########
+
                 @{
                     Name        = 'Delegate Create Child Computer'
                     Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
@@ -991,12 +995,24 @@ Begin
                 }
 
                 @{
-                    Name        = 'Delegate AdSync MsDs Consistency Guid Permissions'
+                    Name        = 'Delegate AdSync msDS Consistency Guid Permissions'
                     Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
                 }
+
+                @{
+                    Name        = 'Delegate WHFB msDS Key Crendential Link Permissions'
+                    Path        = "OU=Access Control,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    SearchScope = 'OneLevel'
+                    Filter      = "Name -like 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                }
+
+                ###########
+                # TEMPLATE
+                ###########
 
                 @{
                     Name        = 'Template ADFS Service Communication'
@@ -1010,8 +1026,8 @@ Begin
                     Name        = 'Template NDES'
                     Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
                     SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like 'MsaNdes'"
+                    SearchScope = 'OneLevel'
+                    Filter      = "Name -like 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
                 }
 
                 @{
@@ -1028,6 +1044,35 @@ Begin
                     SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                }
+
+
+                ################
+                # Windows Hello
+                ################
+
+                @{
+                    Name        = 'Template WHFB Enrollment Agent'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    SearchScope = 'OneLevel'
+                    Filter      = "Name -like 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                }
+
+                @{
+                    Name        = 'Template WHFB Authentication'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    SearchScope = 'OneLevel'
+                    Filter      = "Name -like 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                }
+
+                @{
+                    Name        = 'Template WHFB Authentication'
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "CN=Users,$BaseDN"
+                    SearchScope = 'OneLevel'
+                    Filter      = "Name -like 'Domain Users' -and ObjectClass -eq 'group'"
                 }
             )
 
@@ -2173,8 +2218,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUn2SOnSa620riLErEiVqCc9fm
-# /gqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNc4Se2ecLPLH78hl449a59kT
+# W0Kggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2258,28 +2303,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9bI8iQOPYbLNLd2Z9UlH6tGbb94wDQYJ
-# KoZIhvcNAQEBBQAEggIAH6qW7PHz2c98/CpHfmFsCkPZILhv/isJTbIvsa/y9RPB
-# zGFPnI0ToAtKBCz4YJAKE1geNfhvSN5266qAQYS4MP2diWfyyoVJkbxWKvfJGYz+
-# aYo1tIYdYAdyxmDklj32tJz7jcMEPchgbqdOd4TyXXEVCJuxkSpuUtYPeR7lvqK2
-# uwtjCwvFGbmPOBsnYUoWHN6lPnl5xhnGZYEib/RZ+kXCstbZCNpNOVOKTY1V9plN
-# IKlBq6k/AIqe8xG0AFnsElbqYUvGG1gNJzFSR9xOO7RLTRK+PRfZKyynifZhGfPs
-# SxyCIFsD97a3Vz+kR3aCgnNlj3D1BhyIFlvPzDThh3DnJ3iIfL2QwTiKfQtVtzsh
-# VYrFGUshqHoko9m7WhrxsNdzpoR/xKuIla0iN+Wy3JMdf0nGUF/QbneU64wrMImS
-# ViabwXCPsbOFsO9QoxrOkedCKMvFDvYWDVS8QajNCG+wu0y72mXtDxit87u1Mt3V
-# RpBlp7RQmYhOIpaxUd1f9gfuF2K2X9y7vU5FJM6fH3KQL5Fn7NBT+5Yk76VeJ8Cl
-# Aohus8cBfjawxluEm+Ew/xebUf1yX+OsAce/fTQvG3cWceCgY428e3anagSIwFAG
-# A9lg3rxO1x5l3gixDCoPGJrvZ7/SJHIGOKU++zn0uhs8RJ1PsBeSlL4rb2S7WaOh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmjmTpQv0xMdjnebDT52DGabzlPowDQYJ
+# KoZIhvcNAQEBBQAEggIAqxg7RdLfq1AOjwMzeiIo2mjaGvxDcgLISfMSksxlSzbI
+# Y9SwC/GNJOUoHBiysejmBJuhAWBTiQMTkhhzhmK3H1iTZ995G8oYfaYVDEFzerJF
+# BNiU9MxSQ8OrGLbME3rvtZpEZ8vVrSEHZNtUl83pxiPuryaZ/j4m2F4yhiVNl/P7
+# OjRYjoegLkHPr3wLmI1bDtTzvBcUGzcgeilelLqlU3NoBTs9GI5var03hTVbh+dv
+# /dqsl3efL10AhVTww+xRB6O5L5sXJEXrlD84umOO/a0ASs+HshGLovZdpSsiy4Io
+# 9hizWgkwKrTumfQ7IfjV8m7FZAEWwyckrk9+ub4/YhtwAj1isC7PXDFbkASQVDB8
+# 7dyz7aa+PJwcY/ddvWgv+LzStEMx8hfw0MfM5xWTVQmr6svEcYYn+dC5ZHWyBn5q
+# +d+hN5H6c7u6bECzeL2zubkTROCCHsLKCG8eLPsuJqXEq89f59QMKkJf8ANgJYbA
+# TFjpVHAj+BV03tE+ELxU0adKkxCJd/SvTXsK7xBcMGvusCIuOIMisLNZklVfUzBG
+# eJtrd1Bbvvs4hoqEkWpvPpzDTmRbMtceT01zlVSUnHS7FV72ePkk6ecI53CBr0K9
+# EBJoBSQxuYdYICm0xUYzybcVf7PoJvzHCbPE5yzg0+1QNCHuGg55jQp23SQGw2Sh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTIwODE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIFldtm5RjJMaplY1cS2g5o0kSjVFKB2Py29Ri5oKGU8B
-# MA0GCSqGSIb3DQEBAQUABIIBAFH2ytXav0OmT/9DwDiigwo1TwwBQGh46ORKiytD
-# 9jcjumGbNnD3HWBTJXxUE+/GK1K0VCytGrdC3HKzCW1ORBX/fLyuLZIj5cJuukD8
-# T6R+3pC7zok83lXWzBIv2DhtZ7o7pAy3DyJ4cmQs3qYdoMEU8rkMGonWOm+xoGLg
-# lvL3hwJHv2x9owXwoc0Qr8d/HjMDnU0ladFku+IrHoDKuePm+rH6AfEys1JbAkWk
-# NumCQkYksK30VYwEkUMw19JEc/XdWrMjeS2H77jxbcuEm4ImS38G2xzRav57YvAw
-# PzOdfN0pKodADqaAO7erjMxP52Hl2ukQJGarmyzY4KurId4=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIxMTIxMTE3MDAwNFow
+# LwYJKoZIhvcNAQkEMSIEIIoi2J9aWR7ghUZiQkY2Oo6+XY8iVD6D61Un0eQzSVoG
+# MA0GCSqGSIb3DQEBAQUABIIBAKBchXjEFqS6ps0pAnvgjofxnhfV/Qm1mdm8zgAP
+# VOuD4VO4+U8Ihwq8NmnfJjtnpK3VeqtUx3A5hf6kUjA0LC4l6mpgqSO7IVDdhC6m
+# +3aOB/9eCB+Abo6PyQed05JCKVv6eUdXugRcdNIdAMSYo2O7ozHo+djRRVkgXjW2
+# Ob7lVVbggl70fW3HnDPe3nyO3oDt74ob4NGzHY0ogex1WkiGnG4BPUxLsWCswb7f
+# fmQfIQ+NJQI+4+mmwKlNJsx5LJ0l9cnc8D9yhiEIQg/stHHdPlu2hYQuvqsg+tR6
+# Uvf4Lo60lomYjXKYQMFtSyBUZP1PYsY9rgdSoKknihtK/L0=
 # SIG # End signature block
