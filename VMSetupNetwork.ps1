@@ -85,27 +85,23 @@ Begin
 
     $MainScriptBlock =
     {
-        ######################
-        # Get Interface Index
-        ######################
-
-        $Adapter = Get-NetAdapter -Name $AdapterName
-
-        if ($Adapter)
+        ##############
+        # Get adapter
+        ##############
+        try
         {
+            $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction Stop
+
             $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
             $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
+
+            $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
         }
-        else
+        catch
         {
-            throw "Adapter `"$AdapterName`" not found..."
+            Write-Warning "Adapter `"$AdapterName`" not found..."
+            return
         }
-
-        ########################################
-        # Get Win32_NetworkAdapterConfiguration
-        ########################################
-
-        $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
 
         ##################
         # Disable Netbios
@@ -338,8 +334,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQKvq4yxz8rZEZh//cQ1uQyDB
-# FWqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUitMXdAlyyXf0lEoge2IsI6Fc
+# D76ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -423,28 +419,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUY8V6cVaQABbHf+MOJ5bNlC3rCokwDQYJ
-# KoZIhvcNAQEBBQAEggIAoIQC8zBikSADSogzlMmhWq6nvh1HWWE8BFbgy700LqGr
-# /fDWEhHRbmKhpycDmttwEhMxUOrlsWdxWKEygvbBtzJJttwy/2B+1U9K5pkU7PiK
-# rLhgrHMvVaNcvw77MM4INux5oWGlHF39Qal0z6OxY4nUf0C28b+3ziqWU8a2c/P+
-# 0Wl0hC4V7aVhStRxjddy0nbBttj0bmp6+Gd7ioQs9Zvnp7L5pNe5r2FKt5nWo44m
-# Ai4epIgp+GKeeDkA7PJ8BN1SHwoSayLo/nKO264xhRNBaNNNF4VX9xVOkIJMmVbV
-# nL7OrIEU6MrP9zNvBXQy+6ONsEnX2qfTfTeY+5QMkb0jB8Aqub9/CzVSCm1lkaG3
-# QgNKczwTQ5rZ8Hu9O8H0nllz4FYUM5/rd1plkX8ShJOKuVCQBmTZ/xJbY4xtii0X
-# YciwP2A5NRNLGTIQqXKpC/JmlyU+YitP7hyAwN9obg4HnTmrQT48RT+Jj9OB2ITk
-# Mbve8YHHPJTVhVCRS2B+9BTnOXLtAOzLAhp+rUrUfuGtJcDOTofRxm01TJn+PoyY
-# 1k57S/ffgx9aykKKnUa73HSSdNm8fJV5lpxkZ6Ho76elXEMZ2elUR2g145xPvCTC
-# C2yT+olquM3CYnetLb+J7XEXszQ7gaewCc8GnzIvYCO9C8SsUIYzZ/aYqJIDk+6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUTZHT5PAu3jUnpxxRE4NTocZMiMkwDQYJ
+# KoZIhvcNAQEBBQAEggIALSvRTirF9UKgk6+4dquBz7GyM7ovY6PvS5Z8RGo2wgH1
+# hwStaegzScH4MJ5zyUsWgUmkwcpOM0XdX7kW7GCk4mA9bwplYzVQnUA0wb9kkHTX
+# smcSWX7g3DcSxGuq2ZswJj02k/uw58EdK+pr3v+9k/f0UlJ/InLhtQ8kaPwXUz9T
+# NV9ovUGsXYWjE5IGvp84HFANoTB/nv/j3v/k9Vl4qrX+L/X2wCpRfM5QOqYVWxt5
+# hwe3I0E8CAT1XGWlB+E9HkIr0VeIgra1Iig0ubOqFmvpckZ7BiwQ2ogTBgdB3wqo
+# t9TLB+Sl2qlyCKzdhlBSAcFPWpUk0AGcUuaGOrZFeogLl5o6bXpJKVQu0thpzwtk
+# DEKn4CS9QiB8pNRESJQxjzTP5gCXkjcSFUU1VHNdAY/6R0zwLkcu1JMqwl3mbdeD
+# 0+cu0vPE6JIEObqgULX5pZTDZao84PgIEiWlxhKXwvDqHiaflHw33ZS/vDydb3Zf
+# 7ffc+dRO2YN01ZswhfLS+Ee0gpKi6OqByaYFM11MCusZl88tl+ETpixhogNZjOwr
+# 7VwpRe7Zipr8pAibAJy9ysV06MlF6Ob5/h8qomeYcvdiO3daYdD7osNrlRERNa9R
+# V1zwAAVRfAdgkZTzah2HOt+NfAmO89srpuu7ee4/uM2YfydkuTS9daeZBSFzbTOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDEzMTIwMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIHyCBDt+rdrpBsXb8cpIBY97zFCBSy9wa09k6LFgCACo
-# MA0GCSqGSIb3DQEBAQUABIIBAJFk90ijQguRf47HAFig+ATYNmXT6QYYQ3y0bpou
-# 4/yXXeZigwBB66xegcyNyW4L0om8vmEYxbBw05Knssx2FgsXu+happ0/7Mrp1TCp
-# vtxxdHNB1uS37atnGJZm+yh4YwR/ONnzu5xq/aBRpfIDBLEaLLUz4NuS2nLA4CiZ
-# bsbM5GZhR7ZFmhJUotCTcxmwDrVUSa/blBiqlGBG4kEZ+0f8yxuVqznVBj5Y63eS
-# Xqia5efWWgAn9D8YDxKAPp5I6VAxUX/huKaFBLf2pESdjlFc/IziqvmgLr/GFl8K
-# e3aQG2L+MNEAzLxAtVM8pCGjrOZMURzr49D4Yat29B7ov8E=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDIwMTE0MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIAnywyRkAdz2KNhHinqlo0MsslgxerGR5CakDc4vwyDw
+# MA0GCSqGSIb3DQEBAQUABIIBAG+DbPtyKsSJvG6W/mR3og9IWZmOGG9+U9E4MYMC
+# Wwo1W/EeIdBF8IQSjssnRD9WhBHhYVph8hq+lKdfO0tSXLm6zDFdGx1XqAHFvFpU
+# xf5gfc1vU2XvOUMci/4ePed3ktu1TOtfWnMvf+OcLwu2k4BApgc/IkU2QiJXqct4
+# 2BRlL+TKdNIWsqCUi+UjySUpK7jG8nR7iRx/uNzu2f/BBtduJVcFAdH6FzLcM6su
+# ngcRyAUYU2ShMHWCVtKYOClX6RvZ7eEjt2UOkrXCUy/eS9JOW7V/nN9XwLLVNYTf
+# 1K2CtN6rpwV+wTgZuSWN0Bs2jKpfU2qLOv1wbqIQTsglnGA=
 # SIG # End signature block
