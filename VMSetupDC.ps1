@@ -802,20 +802,24 @@ Begin
                     # Create OU
                     New-ADOrganizationalUnit -Name $Ou.Name -Path $Ou.Path
 
-                    # Set default user and computer OU
-                    switch($Ou.Name)
+                    if ($Ou.Path -eq "OU=$DomainName,$BaseDN")
                     {
-                        'Computers'
+                        # Set default user and computer OU
+                        switch($Ou.Path)
                         {
-                            Write-Verbose -Message "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
-                            redircmp "OU=$($Ou.Name),$($Ou.Path)" > $null
-                        }
-                        'Users'
-                        {
-                            Write-Verbose -Message "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
-                            redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
+                            "ComputersOU=$DomainName,$BaseDN"
+                            {
+                                Write-Verbose -Message "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
+                                redircmp "OU=$($Ou.Name),$($Ou.Path)" > $null
+                            }
+                            'Users'
+                            {
+                                Write-Verbose -Message "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
+                                redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
+                            }
                         }
                     }
+
                 }
             }
 
@@ -2207,8 +2211,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9l6xo6W/g7yP9QZsSHhYvdFV
-# wm2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMksORCYb7M/Ylo+thowvXRHh
+# QW+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2292,28 +2296,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2Ur/WQSSYsPmacScxCO6EplJ/l0wDQYJ
-# KoZIhvcNAQEBBQAEggIAMX7OqJv1uHxsRBGw/gLCevNa6wNMrQyi7UGcHQtopNhs
-# 7V2JqyhHXx7pFK+BFltoWQmiAv+q2aKSFg7DYZfkhnw2Mlu1q0S6JuJaLzOF6p+j
-# WxXzCtuD9qncJMGR9Nl4uoxwkgF0MzTGMD2HQv7vVeER4uKQ+o6Au+jknQpP8OLK
-# k+NyGfRW1LQpWe3x9Kksi2/0AR3h3vwhHh6tuyZLFUFMqqz3YrJJSt2I0DvjtaJa
-# eUhS4lx7VzB8XU9mENh25Pn3v6bGuvwjcLYf9YS7swG8ZqoAc0kx9M1K8w/DSm1y
-# 1YIyOyntsCR+EUD0mC8bmR8oWD8A3TGWWDAYVQpWkjm9Ov4tvyBqTUXeSLgVBjBV
-# E1RW0bJkgTXUB1kK5AZ0Pcffe8r4l5fUytmMvErNgh0J8/RBLnCXT/uBdGQ37V8A
-# 997KZBL2fa/o66GCkSDt1wNSPQ7VMqWshdFy4r9H8+rSvxvERQA7Dbdew3GrFOkB
-# v6vSizBoHVcbKa1YMLkQXseD4StchYok/6Xrj8XlrG8GeUFt9BA7jAqUyl0V2lQn
-# auEdj3UQR6t71IWs0iIXBfMgDruEb3przLkDH8AbLvpoJsePtlsiqv/n6ncovVhx
-# 53Hm3iyMhCUPwWZVWI+N1UctB8GGCmeli4JwEpUV5DQ14RQ0U1TuTSdcYjYWUeSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHHdXgbLZY9ziLZ1w0IYGRfKLy5owDQYJ
+# KoZIhvcNAQEBBQAEggIACpkrOo8LLaQEL9TxuPcnuJ7jHiXJI3O1YA6lk1e+IqXx
+# smW2N1Hlg3ThN1QqClq0QI6/BntYYZW+dBAfZXZyb0gZJQkpXhZEzOxVTjfx2Aqg
+# wOzscsA4nBYPUoqBBztmcTaw0D9dmeC01+fvn79XZiwbWZIJ1HRl/pIBwqGmo0T5
+# nk4Qi/8/pB+CZjW9AWJRotnqetelrjW1XQjA8JKs9yJdrrtxYiLtThr9CJYoPbI8
+# NBbpX0jY0SxZUfu5sldpOqjqjdHyJ39lsLF9MMmk9gEH+NWtEgXC043lvprK+28i
+# u/pfKOlavEoId8Nt7XkACVWVwtyKzGc4nrW6ZdIaUMYp8IK4TuprIuEVSHl06zxv
+# Z9zcf+Fj5RBeJtyPRcVAErOOYgOLd0oA7892D1dTcSEKAg6I712wsPesZQWSmRek
+# 9CwcHgtnhifQ7yP2DhDE0bIgDffvBig+yKWb4I2rDMJa0KPZkdnhgyL1Ee1jQcLS
+# nBGc7U51qAnP+iwAOXcjVX8Zgbvx1XPw9JQeZ/DZyG7KgEA1t/jHWJuiptq8l3UQ
+# uuQGO53m9GdUSIvfrFnT315t+qKdppnHDSz2F3PpE5sgTaaKZ8bmOcL0GJxi2Aqg
+# GEXgN/BGEJ4dHw3OoSCOAHJgx4UrkT+CCBHAfgFgJYi4WA0+KC0btJWlvUiKDIqh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDIxMTE0MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIEkR30X9ktq2TlqX64B0DChhOvGwMzReNYQ+u9GOdwLT
-# MA0GCSqGSIb3DQEBAQUABIIBACZvWer5Gr/9ls4P0w30BAPNWYQd+HJnGRsnoLY3
-# q86jbMyn5Buxpd63f6QuTps+kJbeEvqelVyWl6uw6obFi1xtUMYaDOrKRV4Z+fpV
-# GueWtPYbsCy6Qd0sgnkG6qRm9PzwtqggdPXHCRgUtHozGXW+gXNOLdXcx22RWFAx
-# hFiCM+SRe7iDZM2oHDbO1KKJMq7GjYhXwMDxGakdNaAOGllOAFi7MBMsMv64UeT2
-# t9JVcyEo0m1F83+Vk6yxJkcbvz4vUyStFuyiZKqxatGJiTjL8O91RUIv6ITOTcMo
-# ZMFhpjcN2OO80etE3ZbTmU3ydjLhfR6dsdgnQzpCbJe4XFo=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDIxNjE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIG8SzoPxPFtutfEV3pKeIg3h5g63gBZU9tmnFXQF4TGY
+# MA0GCSqGSIb3DQEBAQUABIIBAInZ70J0LD0fQDI70uotNQkWqs/K7KEepjgdhwdY
+# +glIysxS/ZJAtxHzfGqOdZuWyRCox8Jdtp83Vq/DMnCe/I2jSAcHIgR7pPUhvkIs
+# m0+rKtEB5l8iyZu9z/C+/05pKtCz1c5xHjBJ3ymUifHReYLFUCDPaSFpVeiizCN3
+# UIMl9CkSw8zQZddM0CPhEkLeRuCfbzEyiL5VTZ0h0eJvwd8ALRKs9uYOcjafUfMG
+# v2VUqrA/rd2GRcmv6HkfH194GoXpy+d1YS0iqGsHeBKiag5viUUPT8QiP96ppd8m
+# wE+tJMRON5atrCEhNKUWCIUwSFt9cStJdQMK2vZiXs+Npkg=
 # SIG # End signature block
