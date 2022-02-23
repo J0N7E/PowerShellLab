@@ -144,22 +144,53 @@ Begin
         }
     }
 
-    ##################
-    # Copy to session
-    ##################
+    #######
+    # Copy
+    #######
 
-    if ($Session)
+    $Paths = @()
+
+    if ($BaselinePath)
     {
-        $Paths =
-        @(
-            @{ Name = 'Certificate Templates';  Source = $TemplatePath;  Destination = 'Templates' }
-            @{ Name = 'Group Policy Objects';   Source = $GpoPath;       Destination = 'Gpo' }
-            @{ Name = 'MSFT Baselines';         Source = $BaselinePath;  Destination = 'Baseline' }
-        )
+        $Paths += @{ Name = 'MSFT Baselines';         Source = $BaselinePath;  Destination = 'Baseline' }
+    }
 
-        $DCTemp = Invoke-Command -Session $Session -ScriptBlock {
+    if ($GpoPath)
+    {
+        $Paths += @{ Name = 'Group Policy Objects';   Source = $GpoPath;       Destination = 'Gpo' }
+    }
 
-            foreach ($Path in $Using:Paths)
+    if ($TemplatePath)
+    {
+        $Paths += @{ Name = 'Certificate Templates';  Source = $TemplatePath;  Destination = 'Templates' }
+    }
+
+    if ($Paths.Count -ne 0)
+    {
+        # Initialize
+        $SessionSplat = @{}
+        $ToSessionSplat = @{}
+
+        # Check session
+        if ($Session -and $Session.State -eq 'Opened')
+        {
+            # Set session splats
+            $SessionSplat.Add('Session', $Session)
+            $ToSessionSplat.Add('ToSession', $Session)
+        }
+
+        $DCTemp = Invoke-Command @SessionSplat -ScriptBlock {
+
+            if ($Host.Name -eq 'ServerRemoteHost')
+            {
+                $UsingPaths = $Using:Paths
+            }
+            else
+            {
+                $UsingPaths = $Paths
+            }
+
+            foreach ($Path in $UsingPaths)
             {
                 if ($Path.Source -and (Test-Path -Path "$env:TEMP\$($Path.Destination)"))
                 {
@@ -176,7 +207,7 @@ Begin
             if ($Path.Source -and (Test-Path -Path $Path.Source) -and
                 (ShouldProcess @WhatIfSplat -Message "Copying `"$($Path.Name)`" to `"$DCTemp\$($Path.Destination)`"." @VerboseSplat))
             {
-                Copy-Item -ToSession $Session -Path $Path.Source -Destination "$DCTemp\$($Path.Destination)" -Recurse -Force -ErrorAction SilentlyContinue
+                Copy-Item @ToSessionSplat -Path $Path.Source -Destination "$DCTemp\$($Path.Destination)" -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
     }
@@ -809,7 +840,7 @@ Begin
                     if ($Ou.Path -eq "OU=$DomainName,$BaseDN")
                     {
                         # Set default user and computer OU
-                        switch($Ou.Path)
+                        switch($Ou.Name)
                         {
                             'Computers'
                             {
@@ -850,7 +881,7 @@ Begin
 
             foreach ($User in $Users)
             {
-                if (-not (Get-ADUser -SearchBase "OU=Users,OU=$DomainName,$BaseDN" -SearchScope Subtree -Filter "sAMAccountName -eq '$($User.Name)'" -ErrorAction SilentlyContinue) -and
+                if (-not (Get-ADUser -SearchBase "$BaseDN" -SearchScope Subtree -Filter "sAMAccountName -eq '$($User.Name)'" -ErrorAction SilentlyContinue) -and
                    (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
                 {
                     New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $true -Enabled $true -AccountNotDelegated $User.AccountNotDelegated
@@ -2215,8 +2246,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULuVurEWurhizB2IMbrFWHBZB
-# BF2ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPQAlBPAK0ZlWzsXS2w8YApJb
+# uIqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2300,28 +2331,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyly07Y+m59a09AVyh5nn2NKnT4UwDQYJ
-# KoZIhvcNAQEBBQAEggIABqSiZJRRPwMDy08Soz2sI5LRMjXN6auj8pxEc/x1fV2W
-# azXqXmVu1TGyN0j4a2p7GTeBv0k9rEUlPOeoYFGWH0r9chcseS5U9hwGZREsHzwm
-# DpxM2O05z7FtHtkRSR5bJ6hWkDrnqrUnYH619UT84t6F6c8uuFfiYCFaMqUpXznV
-# MoXBmOGykoETLrWXTMIv5HTjD5BQaj+mMiKR0TR9Q7XITWYZxH44VC2s80lyvFmv
-# qUo0fQacxMwQ4/8tSVoOtAw+h7YH7EMUv51Vca08LxyzcPyCBWi685Hp1A6VVHWz
-# YJ+UwLIKoAtR1QCdv4c9m2BJ593s3TryeXsz3sf7hJxN1KAMqP1cI73JbsDgqrIn
-# Gv6E+pYJfAaSNF7MBcOFvchCrsJlldWHc9nX928/bSevioYM/pkEouFkeY8pnMj9
-# u+6be+kxMgpXrS+VMB8YZT8diBKdtwO/m4TmscBTWnAG12cl8mY4UtyIBKkVrc4Y
-# l3uY8O6mc+zfPF2z/AqDiwB0dE68EGpfHw3UWS3D8i0FhGAuGVzP0TL99PgduekQ
-# tg8L1UM3PmBTobZ8xaGEOzObch7mjo36mR5H4h+8gupXzEyvHq7c/JGWm5OdUGnP
-# bjARDLhhCe6098TZlFc4QRp+fQBwEN5Cqu57fcyoTWjm70xRwFBmnKpCg50QlXyh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFYQ6yN2VYQ1ainUadWmcX0zkrMQwDQYJ
+# KoZIhvcNAQEBBQAEggIAqUiYQQTpuQRpnPfwtdjkKoOfjJVP7quzvoauzcKaVFxU
+# lFyVJZXdkm3NSpKiTkw6WDTbiYO9n9K/SVx65ebj/Jbl8lmt1G7kMflQWMPrW7ej
+# MlJLggEvX5pOYagLQZzcIcSVXOljbK5B3kx8qr2dAep4KNpkiZEBvV8n+ezLlX93
+# 7UZeyw5URi/vXTtcOXv3SjEhhFV5bc3ILutiYkShU5cFfEO+u9W28D9EA/uccbds
+# F0H5DVA6SGh4XLRWA/piiAcdrsfxPe8k0hSL67DEr6xjZskJAPPhqA0KNcRNi7Ei
+# tghyQsrxQParUypz/z0AGfNU/gWcLH9cy+N0IvnotfFYgxPWkYXh7TtZn+vuev8Z
+# nHs4kVrFnOjgUIMHdm1ghDvou3Riw7hoAgVRQ3YAL3DB4aatnushACFSdtXlsXRr
+# 1cFsOA4AbMq20m5cAg/QlnKDt8Uhe89B5hLRxq7iDDNc77SZ0zodi5EyvUgbhGpQ
+# Kn+tihE6Ezvr3asOYHFziFjymv4slln/CQeIe18Z6oYpPEKJUOce8HVTNaaEwukq
+# mMog8hvXheMoTeoyvhhT+vvIlORbTbTNcHx0Sd/NITz2KjA+ryNsvNPfGzUp4eSC
+# +i1l3xegqky/5HqskRvE9oVf1Kb1VGzGzpHQZ9Zj9dPO73F0G9hZhXWMYdzZ/t+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDIyMjIwMDAwNVow
-# LwYJKoZIhvcNAQkEMSIEIEzm1eRoxQBCiSI6dKgMjSbYmmH9MAcmZgK02RtLsfF2
-# MA0GCSqGSIb3DQEBAQUABIIBAD4Vp7QDLaoR6qvJ1uuLyH/tC7sVeE+hmH0mWWvE
-# VGm4AhtmI3GDIeMRWBR4GPaY4zIIguchE/hvhHd+M8fF0jQuZxzOwcFRK8/wlNQ0
-# RpUPotDIxPxtO3oOhykEYRZYvExeY3ZhR2YhGFiGyCrY4dM33OYmxYT77buh+rjJ
-# AM1opLqtSTpK/5EHjwKQxUlLyLrF47zVAktxZftAu7Pa7C88MzrLLE9HdreMG+kP
-# rcUG1USMcInBzWq6qPQXustiam9OopOwDqbM4vZCxkYnByMzwo6N4Dm/l0TMhVyL
-# LsTpZGmxMxLaCuRHNDGyF8Z++BcuulICse7vDzmDGmNDTZA=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDIyMzExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIPypYPndjMRERneNa8BwBDjF48DbSNay5BDFB6++4wu6
+# MA0GCSqGSIb3DQEBAQUABIIBAB0tiYGrduPy/3XuWhhop+OQCLFoJEm707Yrsgoz
+# 4msBaV9QAiOLraSvookcSb886HoDq2pf6PKcC6aEe6ivIkwEFpdt5X33HulpPuAg
+# t2jzpkVL3zGgT824E/GOKeXR4ZZEl0jq1vpDClnwIG2r7bubrARls/0Y7bGCke3y
+# hJ2iKU85j3xQNLRcgONNZF87fNUMwsCghCdcOt9VUOnjQ9z1WlunDTAjIIq8C4zo
+# hCuqE7Vv/3Jszw+T/PDwsy9Sz0NYZbKO8VuPbC04fOqAKP0AnEitPwyZsNrOSmZ3
+# T+9uHhZ4v2wO2Pneoly+fOO4WchZ3X3BbrYaoLzcmx0J3mo=
 # SIG # End signature block
