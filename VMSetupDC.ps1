@@ -823,7 +823,7 @@ Begin
                 @{   Name = 'Local Administrators';             Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Remote Desktop Access';            Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 @{  Name = 'Service Accounts';                            Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                @{  Name = 'Computers';                                     Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Computers';                                   Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
 
 
                 @{ Name = 'Tier 1';                                                 Path = "OU=$DomainName,$BaseDN"; }
@@ -831,21 +831,23 @@ Begin
                 @{  Name = 'Groups';                                      Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Access Control';                   Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Computers';                        Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Certificate Authority Templates';  Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Group Managed Service Accounts';   Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Local Administrators';             Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Remote Desktop Access';            Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 @{  Name = 'Service Accounts';                            Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                @{  Name = 'Computers';                                     Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Computers';                                   Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
 
                 @{ Name = 'Tier 2';                                                 Path = "OU=$DomainName,$BaseDN"; }
                 @{  Name = 'Administrators';                              Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{  Name = 'Groups';                                      Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Access Control';                   Path = "OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Computers';                        Path = "OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"; }
+                @{   Name = 'Certificate Authority Templates';  Path = "OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Local Administrators';             Path = "OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{   Name = 'Remote Desktop Access';            Path = "OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 @{  Name = 'Users';                                       Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
-                @{  Name = 'Computers';                                Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
+                @{  Name = 'Computers';                                   Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
 
                 @{ Name = $RedirUsr;                                                Path = "OU=$DomainName,$BaseDN"; }
                 @{ Name = $RedirCmp;                                                Path = "OU=$DomainName,$BaseDN"; }
@@ -864,6 +866,7 @@ Begin
                     $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                     $OrganizationalUnits += @{ Name = 'Routing and Remote Access'; Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                     $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 }
             }
 
@@ -957,7 +960,7 @@ Begin
                 @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
                 @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
                 @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
-                @{ Name = 'User';             AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'JoinDomain';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Alice';            AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Bob';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Eve';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
@@ -992,6 +995,7 @@ Begin
                 @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'RTR*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Routing and Remote Access,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 0 service accounts
@@ -1002,7 +1006,6 @@ Begin
                 @{ Filter = "Name -like 'Tier0Admin' -and ObjectClass -eq 'user'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 1 servers
-                @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
                 # Tier 1 admins
                 @{ Filter = "Name -like 'Tier1Admin' -and ObjectClass -eq 'user'";  TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" }
@@ -1090,23 +1093,23 @@ Begin
                 @{
                     Name        = 'Delegate Create Child Computer'
                     Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
+                    Filter      = "Name -eq 'JoinDomain' -and ObjectClass -eq 'person'"
                 }
 
                 @{
                     Name        = 'Delegate Install Certificate Authority'
                     Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Base'
-                    Filter      = "Name -eq 'User' -and ObjectClass -eq 'person'"
+                    Filter      = "Name -eq 'JoinDomain' -and ObjectClass -eq 'person'"
                 }
 
                 @{
                     Name        = 'Delegate AdSync Basic Read Permissions'
                     Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
                 }
@@ -1114,7 +1117,7 @@ Begin
                 @{
                     Name        = 'Delegate AdSync Password Hash Sync Permissions'
                     Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
                 }
@@ -1122,7 +1125,7 @@ Begin
                 @{
                     Name        = 'Delegate AdSync msDS Consistency Guid Permissions'
                     Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
                 }
@@ -1131,15 +1134,15 @@ Begin
 
                 @{
                     Name        = 'Template ADFS Service Communication'
-                    Path        = "OU=Certificate Authority Templates,OU=Tier 0,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
                     Name        = 'Template NDES'
-                    Path        = "OU=Certificate Authority Templates,OU=Tier 0,OU=Groups,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchBase  = "CN=Managed Service Accounts,$BaseDN"
                     SearchScope = 'OneLevel'
                     Filter      = "Name -like 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
@@ -1147,16 +1150,16 @@ Begin
 
                 @{
                     Name        = 'Template OCSP Response Signing'
-                    Path        = "OU=Certificate Authority Templates,OU=Tier 0,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
                     Name        = 'Template SSL'
-                    Path        = "OU=Certificate Authority Templates,OU=Tier 0,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
@@ -1185,7 +1188,7 @@ Begin
 
                 @{
                     Name        = 'Template WHFB Authentication'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=$DomainName,$BaseDN"
+                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
                     SearchBase  = "CN=Users,$BaseDN"
                     SearchScope = 'OneLevel'
                     Filter      = "Name -like 'Domain Users' -and ObjectClass -eq 'group'"
@@ -1201,23 +1204,23 @@ Begin
                     @{
                         Name        = "LocalAdmin-$($Computer.Name)"
                         Path        = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
-                        Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
+                        Filter      = "Name -like '*Admin*' -and ObjectClass -eq 'person'"
                     }
 
                     $DomainGroups +=
                     @{
                         Name        = "RDP-$($Computer.Name)"
                         Path        = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Users,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
-                        Filter      = "Name -eq 'Admin' -and ObjectClass -eq 'person'"
+                        Filter      = "Name -like '*Admin*' -and ObjectClass -eq 'person'"
                     }
                 }
             }
 
-            # Add servers to groups for tier 1 & 2
+            # Add servers to groups for tier 0 & 1
             foreach($Tier in @(0, 1))
             {
                 foreach ($Build in $WinBuilds.GetEnumerator())
@@ -1236,7 +1239,7 @@ Begin
                 }
             }
 
-            # Add workstations to groups for tier 3
+            # Add workstations to groups for tier 2
             foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 if ($Build.Value.Workstation)
@@ -1286,7 +1289,6 @@ Begin
             {
                 # Check if group exist
                 $ADGroup = Get-ADGroup -Filter "Name -eq '$($Group.Name)'" -Properties member
-
                 # Add group
                 if (-not $ADGroup -and
                     (ShouldProcess @WhatIfSplat -Message "Creating `"$($Group.Name)`" group." @VerboseSplat))
@@ -1310,8 +1312,6 @@ Begin
                     }
                 }
             }
-
-            return
 
             #  ██████╗ ███╗   ███╗███████╗ █████╗
             # ██╔════╝ ████╗ ████║██╔════╝██╔══██╗
@@ -1341,32 +1341,32 @@ Begin
 
                 @{
                     Name = 'Adfs'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
                     Name = 'PowerShell'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like '*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
                     Name = 'AzADSyncSrv'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
 
                 @{
                     Name = 'Ndes'
-                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=$DomainName,$BaseDN"
-                    SearchBase = "OU=Computers,OU=$DomainName,$BaseDN"
+                    Path = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchBase = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                     SearchScope = 'Subtree'
                     Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
                 }
@@ -1449,7 +1449,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "OU=Computers,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
 
             ################################
             # Install Certificate Authority
@@ -1554,7 +1554,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
 
             ########################################
             # AdSync Password Hash Sync Permissions
@@ -1581,7 +1581,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
 
             ###########################################
             # AdSync MsDs Consistency Guid Permissions
@@ -1608,7 +1608,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "OU=Users,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
             Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
 
             #  ██████╗ ██████╗  ██████╗
@@ -1664,6 +1664,18 @@ Begin
             # Link GPOs
             ############
 
+            # Initialize
+            $UserBaseline = @()
+
+            # Get baseline for all versions
+            foreach($Build in $WinBuilds.Values)
+            {
+                if ($Build.Workstation -and $Build.UserBaseline)
+                {
+                    $UserBaseline += $Build.UserBaseline
+                }
+            }
+
             # Get DC build
             $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
@@ -1706,6 +1718,7 @@ Begin
                     'Default Domain Controllers Policy'
                 )
 
+                <#
                 "OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - Computer - Firewall - Basic Rules+"
@@ -1726,36 +1739,26 @@ Begin
                     "$DomainPrefix - Computer - Local Users and Groups+"
                     "$DomainPrefix - Computer - Display Settings+"
                 )
+                #>
 
+                <#
                 # FIX
                 # move to servers loop
                 "OU=Servers,OU=Computers,OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - Computer - Sec - Disable Spooler+"
                 )
+                #>
 
-                "OU=Users,OU=$DomainName,$BaseDN" =
+                "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - User - Display Settings"
                     "$DomainPrefix - User - Disable WPAD"
                     "$DomainPrefix - User - Disable WSH-"
-                )
+                ) + $UserBaseline
             }
 
-            # Initialize
-            $UserBaseline = @()
-
-            # Get baseline for all versions
-            foreach($Build in $WinBuilds.Values)
-            {
-                if ($Build.UserBaseline)
-                {
-                    $UserBaseline += $Build.UserBaseline
-                }
-            }
-
-            # Employees
-            $GPOLinks.Add("OU=Employees,OU=Users,OU=$DomainName,$BaseDN", $UserBaseline)
+            <#
 
             # Add gpo links for each version
             foreach($Build in $WinBuilds.Values)
@@ -1808,6 +1811,7 @@ Begin
                     $GPOLinks.Add("OU=$($Build.Workstation),OU=$($Build.Name),OU=Computers,OU=$DomainName,$BaseDN", $Build.ComputerBaseline)
                 }
             }
+#>
 
             # Itterate targets
             foreach ($Target in $GPOLinks.Keys)
@@ -1867,7 +1871,7 @@ Begin
             }
 
             # Set permissions on user policy
-            foreach ($GpoName in (Get-GPInheritance -Target "OU=Employees,OU=Users,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
+            foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
             {
                 $Build = ($WinBuilds.GetEnumerator() | Where-Object { $GpoName -in $_.Value.UserBaseline }).Key
 
@@ -1879,15 +1883,16 @@ Begin
                     # Add workstation
                     if ($WinBuilds.Item($Build).Workstation)
                     {
-                        $GpoPermissionGroups += $WinBuilds.Item($Build).Workstation
+                        $GpoPermissionGroups += "Tier 2 - $($WinBuilds.Item($Build).Workstation)"
                     }
+<# FIX
 
                     # Add server
                     if ($WinBuilds.Item($Build).Server -and $GpoName -match 'Internet Explorer')
                     {
                         $GpoPermissionGroups += $WinBuilds.Item($Build).Server
                     }
-
+#>
                     # Remove authenticated user
                     if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
@@ -1907,6 +1912,8 @@ Begin
                     }
                 }
             }
+
+            return
 
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
             # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -2376,8 +2383,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSmZQ8qocOZu815sntnhiCnMO
-# iHOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtt7dhfEIK+uBdXLlB/ROWS5P
+# e3yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2461,28 +2468,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQpLjToGBQ2kHulLcAGwqkS5j040wDQYJ
-# KoZIhvcNAQEBBQAEggIAp32bfuS32HnejNCpmShWN7T8lm2ZictX/TU+X4tynjXi
-# VB/DbJswswhiB4reM1vp0I8jYHIB73fmvf5SBJ8/osy0U8HlPi073oJ0Uyb7cByk
-# RPl4/ViiiFUyg8II/B2fJ1FYdn1tY/xHlclueQju65aN10meW458yH/mXyk0uX6i
-# yOb5iLRNSn+N01j1HVnSQ8l/T1xgoep2VNEjM3s/qwnnqez6i0YTzAx9RvUMISD3
-# 00Lmf0pIalr6xpJkl4XiOGtUe5ITvT2kWrrFdwv/Flrif8RtoF43HwcaRptkQ/8T
-# kFazU1gvEw4v5j2NcD7RvzI/IQdRv+SzmcfuJdneqvEi4ElAyN0mFJdz8+YK4Gcq
-# uL5+xyHko0VAeCVVHbSxPLfhfgU8q4nf01DagieRn+HXYuvbjk6tug1cNyus7sty
-# tyFTzVUOOVJ6uOJoMiMaScPOpfHlq/IeGquRSmbLpHPQgmdNakByLQIOc00zrRq4
-# 3kzDsb0rguBDgDeKekd/gDbm0ENvzRbYLShW0xmtrnjYX9P7iPypDkbg8jZ0v0c9
-# o2PRjT06rm3srEGd5Z/OJHvPr45ryvQOG/AHqJTQPjxN3KwhhNOGMLOSbJTMgwZW
-# SliLjx/gc8vdRQthkPGV0KHlrX+rzcvXPnh/jFzfafGn4HYkOMZDzUCTdhCTkU6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUO1+vmc5wRde/iwSeStSXCHps1v4wDQYJ
+# KoZIhvcNAQEBBQAEggIAjDQ7P/gliaX2MZXmQbRbkjwAwlQor/W8ohkmOn5K8Q9y
+# CKe+Wr2A0vHl9Ewhyem88HOmuqOace5n4X1cEo1V3dYYlolqomT8/TMeXgwSoCbg
+# k3xL9SrM+IAwZQBMix31/XXhtDZh0RIsiNooYYQnL2FXk8xBuCnpHyVjcQCrqpvh
+# xKdeL8K/dZI0bm/LOLtYdsFKpjoK2QA/rVSdg89WCl7z5FA4Td0kmey5btK3q3pD
+# AsVLQ+nFlsvMksBXH4i0Qi7Gbv/kGKAxF3hy6GjsZHYTjY2UithcEijoGOf1xNEA
+# hssOYU+LOlCTxXChTo/GTE2kujMhvxbnY/FBX/bTB/zSyu/xcNUr57le3/vRmhLG
+# bl+RQKbuefaQqxnYFAVr2ESht8KvGJlovzrygSsmk1qXAH6jFJYHC4G3+6OrJP+P
+# mCYIXxnsFaCXaOX6aKmxnFm4I5KbpiXB0Fq+3PXetqWWby4bdguo4OGCCQvuwSbo
+# JPRLFTbxp1t3a6909bBnFVLqrp/O7poSK3VXlD1RR083nLqhZoJ0HHx5X0vJfaup
+# 5N9td4ElxYtsXZk1CbuxVZpaI9LRWnp8ONW0l/RHQT4xpBQT1YF/WAqtuagSfRll
+# JiIlk1NH2T0u1ejZdnghkrY0Bbqf8Hiizv+NHD9XrXrpz8zAOm9JkfE4Z/e+Ph2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMwOTE3MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIB2nxlrMD/sZssD8V7YoFZZqwwWrUe0sj8AaBpCINMc9
-# MA0GCSqGSIb3DQEBAQUABIIBAIlvSJWgTOKQHZqNPtEo1kMXECmwf/CXkyY8HboH
-# 7MVFd6EQ7rvW+aX3zsH4SktF+a1RyAvav96N2GGO22z0xiE1V4Uk/DG+vezrXWaF
-# 7JFtGNZbNQAZw/0T6AtbxmWboWAc6uqe7JD1LRP6LOVqAU+lu+4zsF++zpo/KLBe
-# mAvbGkFdO6lBkroBIQv3Kg6hZco0GRUp/Y99zjXl//FGbLAKLCWxOkkpGSWUVEUQ
-# xlili4V74tdzNES9YgFi8HpKRSz/y8dOD4I0hcNR5+aD30q0eB8u4oN/UPI3imxz
-# xmm6oIdH8nGDA4A9C2O4q9HbqB2sNmYpkO6emvkBIxMEHMU=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMDE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIMT/iAPQFG1BOfoAgg1Hcvd7sKnyWXibiykwSabkhAmf
+# MA0GCSqGSIb3DQEBAQUABIIBABuBElUE1lsISUkldETK048gvTkYiXVaO+osakxi
+# b6Y9NzuG+vhrU5Mr32VIrW+pE/uJK7LwOy6DupL1s+f83aIOgxuZfNwJ7WgdUUXP
+# dLncdJGqgpO+Jh65TGirG6Qkhp+9AyXqBCj8lR7T86YHyIJ3eDCRx672jJ0YvVJa
+# 0isRN0YSnQ3HwjatvXWQkrtQReDZZuC/wxmK3aFdG+Z648Q22ssDudocdkT5sZEF
+# pSP/i+MF/L+b8wS3ThUb923AWTlO/6mqkZbjCTFMhRWr3KAKtWtoiJsWvH9fuAVC
+# yR6e52FnpFDMfZecIH9m83JCY/VFgR92E9ISOOXzq3e4h4s=
 # SIG # End signature block
