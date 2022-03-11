@@ -1083,6 +1083,25 @@ Begin
                 # Filter      : Filter to get members
 
 
+                # FIX
+                # move / remove
+
+                @{
+                    Name        = 'Domain Servers'
+                    Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
+                }
+
+                @{
+                    Name        = 'Domain Workstations'
+                    Path        = "OU=Computers,OU=Groups,OU=$DomainName,$BaseDN"
+                    SearchBase  = "OU=Computers,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*'"
+                }
+
                 #########
                 # Tier 0
                 #########
@@ -2004,7 +2023,6 @@ Begin
                     {
                         # Generate new template oid and cn
                         do
-                        {
                            $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
                            $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
                            $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
@@ -2418,8 +2436,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZ0wgGag4Jge9U4/vgfDUC/a+
-# EEqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy1c/MSQxKMf7jbeajkNbYR57
+# xEOggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2503,28 +2521,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+UhfTsrHno4Cwdglh3Xy86DZcngwDQYJ
-# KoZIhvcNAQEBBQAEggIApTgNWhZCnVqE1AVSRYSwAvNbBWlcUAReU+lL2KVeF+MI
-# EuImkv/e605v83M6XJeoSePuSstpHhRQHaMpzdFbHEG+V5KapE7kJlmBz9acV/Yp
-# a/YlgKBd8ILAO2ZxA4J6rS3cyPbZd028iSvL6/9WXVlUxZYd/b8SHHSp74kx03A2
-# PyviBno0vRegf9tKTNXXXSyzDqFCh0cOdw9O7nl7WRU/B+R4ySIkpvZpomu2tppi
-# NU+tA0SZKKrg6paOF/Xq/0Ya4xn2VUckD9BP5E14wssMBag/yf+VCRVScEQrbhWa
-# 1eZglN/NW9jI2AIL0D2dWagmM3xq5FlcP15wHj+TjkUg5qYMa2k1dKQTlOuKCqIq
-# j2zz3D6EtT6GBildKmbyySzwwu8AKswSL8F60nAr9WaGagFZL2g5eKfRAA6c/Pt+
-# SACCFYey3DDsZgD7VEPri6nJHY1T/B7/4iwVsLC3+LfRrh1x4vwP3M/nvRv0LmEk
-# kTRsYEqnxPNN7C9q26eeyPacY+fPVAJyocMAqY5NKFq7Km09PcgkJNmE2mQt3P8v
-# 4xPbxrYx4wsLJF7Crt+B3s5NYOMg+JPMCvpN3sNFx4BXHI68xUYq7FjrhhXpZgim
-# MY1x/laqknfHkjecUn5iFE312rz00YTRtGVAosYtUcu36EBGpeCdEUCh70mh6w6h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzOsRDwWHJgqsXpb8g3ckWGaa3I8wDQYJ
+# KoZIhvcNAQEBBQAEggIAKwgmy5FNro6uk0/kFD/Jhff03WmbNJkgY2QE1VxuQudw
+# dZUg5MlHj5tu67cbSTRG3wFKQ+T7bpZsGz9TJomdV1tRYo/XjLoqXzcZ1RYOFrWY
+# yS27vEtr9RI4HML6JjRqQHBYNdLGasxJg1TDADDH8B6E+ojKfPVJ6aYavHkz0XYN
+# /q5FsBQNYXQglaAf/ddhsGUXZ/4qtU3jsqV0yuiMyIMXJsYp2HvSfPC6KghWj52k
+# 3TLtu/pWvlMcPs7IkJft/bOehRgpJjJShMdDyknLJzNM1lx8kETioh5M1P4OrznL
+# u9o7ykWjO7FxHCfAR4WSBDQhxSQPDGeDbgIVsCqrZ0K3fUmyUAlYSJyXTOoa8/LY
+# Ue6FipMbVtV3b/rIZTLdTxDcFVlCw03J0kkck6sRUMtA3GWXAIiJwe+gqpciiCUh
+# GcCWpFnlJJvQkTxMQSN+f6t+usHgcG2cezpVP33HTpVmVlh1rKp3a3H9Bzb8+RFt
+# NmzUvfjYwoh8NsqFwhkYhYkfoqchoo8xa28B4r4EHTMQkrWy4vf/eykjgdmj73YN
+# 8q5p2OhXiIHLe8qo9rB3s+raCm8QXaaxxQ5cd1a1bAN52/S55rzIs2UgaQJbh3h0
+# RS8XHzQM9O0rTUC2Gnd9jRm/r6VR5m862pPeyug2NxOO3C3DV2bc36ojbiyVs0eh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMTA4MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIKsyaYHTKJr551WvQyVxWotjozy9vPGBO04E3WYeLMUO
-# MA0GCSqGSIb3DQEBAQUABIIBAHB/6L7bj0t3ZYu4DJKXP6okGaXrjr+G8WJdWuPa
-# eo7gE9GhQXu4teLG9cPYbIu38607rqiA3P+pvdQRuatFie0dpjSq9LTLRe5Iz7x/
-# hXxxddZ+9Dgz9taddOo+FNwfvv++TpL77WvcZ+lhMV8G+WwjNeytdjlku7Tjdcmz
-# KUid6PwO5V24ioiXJZ5MFrOXza/n3qXS+JJY/a1JSbccLh5oQRfMg8warkUb9sET
-# IwU2Eec5MsFR+jW4MAj7hJ4cf2XELQW5RuWZa90cRwBN+yZP4HIDMKatCF0xUQI4
-# DjJejFSKKTI84OZXRNBSwvkw1EiLZ5qhZvR6y+dZvtUHowk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMTEyMDAwMFow
+# LwYJKoZIhvcNAQkEMSIEIKDkWpd/Sr4zp2N4hiSBxp1o91eFCy6O5O8EtipgIjTE
+# MA0GCSqGSIb3DQEBAQUABIIBAKxnxAbMJgNxJU84XWBwNzC/9tMDsL+itDYrRjOZ
+# yvea9Se0e5nRO9dCiexwmgTsBVzn+rO8bXgVHliFwVUyKvbo+4Utbl/+WNrq28hb
+# DTlYT2AZ6p2bllycffSWbiKum8vi+prVdZOZ0nheB9zCPbqtylZpXobqUGZg+cA/
+# 9iaBzNL3qvz9sQrpxj0XDvwQHOF3MSWlTB84JLd9gDB9+8uOnrz1fW03FWqoImPi
+# 9lIaC9kctBHlZMH8wmhbStL6MMKmpjUJ9vgVgIX+Jyfy0H6QJ+suUK3kXWhYe5CS
+# 6jbf/n8ki6v3oqSgBSKrcUm8wvAERGit56QEOEeDe/qLj1g=
 # SIG # End signature block
