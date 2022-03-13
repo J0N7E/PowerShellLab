@@ -117,15 +117,34 @@ Begin
         if ($JoinDomain -and $DomainCredential)
         {
             $Win32ComputerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
+            #$NetDomFailed = -not (TryCatch { netdom verify $NewName /domain $JoinDomain /userO:$($DomainCredential.UserName) /passwordO:$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($DomainCredential.Password))) } -ErrorAction SilentlyContinue | Where-Object { $_ -match 'The command completed successfully.' })
+            $NetDomFailed = -not (Test-ComputerSecureChannel -Credential $DomainCredential)
 
-            # Check if to leave domain
-            if (($Win32ComputerSystem.Domain -ne $JoinDomain) -and
-                (ShouldProcess @WhatIfSplat -Message "Removing `"$ENV:ComputerName`" from domain `"$($Win32ComputerSystem.Domain)`"." @VerboseSplat))
+            if ($Win32ComputerSystem.PartOfDomain -eq 'True')
             {
-                Remove-Computer -WorkgroupName 'WORKGROUP' -Force
+                if ($NetDomFailed -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$ENV:ComputerName`" to `"WORKGROUP`"." @VerboseSplat))
+                {
+                    $InvokeCimParams =
+                    @{
+                        MethodName = 'UnjoinDomainOrWorkGroup'
+                        Arguments =
+                        @{
+                            FUnjoinOptions=0
+                        }
+                    }
+
+                    $Win32ComputerSystem | Invoke-CimMethod @InvokeCimParams > $null
+                }
+                # Check if to leave another domain
+                elseif (($Win32ComputerSystem.Domain -ne $JoinDomain) -and
+                    (ShouldProcess @WhatIfSplat -Message "Removing `"$ENV:ComputerName`" from domain `"$($Win32ComputerSystem.Domain)`"." @VerboseSplat))
+                {
+                    Remove-Computer -WorkgroupName 'WORKGROUP' -Force
+                }
             }
 
-            if (-not (TryCatch { netdom verify $NewName } -ErrorAction SilentlyContinue | Where-Object { $_ -match 'The command completed successfully.' }) -and
+            if ($NetDomFailed -and
                 (ShouldProcess @WhatIfSplat -Message "Adding `"$ENV:ComputerName`" to domain `"$JoinDomain`"." @VerboseSplat))
             {
                 try
@@ -302,8 +321,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZogFvKURMkvXHqcFljajOFdP
-# vWWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUklsUI7Oz/kb/SxeICxteCQUe
+# 80yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -387,28 +406,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtYyfCYSdYYnfVh371kKo+QPsZHQwDQYJ
-# KoZIhvcNAQEBBQAEggIAeQz5XNPoX+UXQUcgDKasnE7b0hRcZELrsM378BAq3xIj
-# Yk1hpfwiJkkaheFqkxNPMT2ZIHGjlIjeGGA++Owh18bHYNb9E1AWjz0pkpB/ILYC
-# 9SQpBV5VTEBfpvHCmQCqfsiRKFHrdB6GmxVl82DtKlu3gV/ygXPyTe0oLtkLrzxH
-# 2VNVcwacbO7LGeVoCRpKC8P0crRaaTlDHVcN8eqe22cyuSWg7lWheaiBF3oys4E1
-# IWvXysf8vW67ituiZm1eXSLLoiuMEUjfRb4UNoEz1j/BOD8PLt11DImP3MiZmGxF
-# hP0AIQ8MBHOyz/tSujyVwCDYA3M/iFxM75NvrPONxD6q2ccKmf6GBT/Vluu7/Lo9
-# UdZDh1zx+JFGy0zl6HHFN6wrI+sLgVqMy3Dn2XkGEpJ+LOlCWo6NNqy+P86dYsN4
-# gZMFgbHVuVd+WErKq4fsB7MPiOJYypRbFgYHGmt/GzrLcdLuTpaZIQ3hr2HGmv/P
-# tZdLEefLTH0el0okbj00K1hubRuHkjkpAy8byQmQUWJpOvlRazujxnZWgrZ05zX+
-# WK31P/hDyNFpio6ol9WozVikP3d9CTuRn00r2w9jNHT+HICZ9+N9xuFFv32QQ1JV
-# BOncQ4B9acXcsb///kBP/iEJv1x+YfkZMBY7VJxgSnJtMdEa4pifVdVRtbcbKuSh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaeun2EkNuhdGw5TfESHyrZEaiE8wDQYJ
+# KoZIhvcNAQEBBQAEggIABC1GHoqDubfO0imgfrgrBMeD0fbk1ZZnITc/de5ciMbh
+# IFlqnABrkRlRmw5EFEUOCg5daiVuLyJsNWzPBuxJf2oIxTX+GsTV4grYjkDImvKZ
+# WeLj3L3VLwysTY5CzrQpmFVtRH82kSZRQzUqNBdtH+nJ7niy/xybKNp/K3R8yvJG
+# 7zGzPOSUO3c+QUEj9KGIWAFac0KUJ8HCq3e1VZCaG9NiizYZrtdNPwJG9yjHpusJ
+# 6B1FKkDONX8t8lDCd9TabVkiwhb3zY8CTEaO/Y9o9LWjFtZ/XU2i/LhoRp37h9Bu
+# fZX/IfmBZpeSXnPXFILe9cjsIB9+6GRpwSmsfllkue04fDyr2AoZFMbKUcBRjwg+
+# QMuO5eSewDZs9iK1BDyzkyfL7G6Pq0H8K0N+87T5haD/Xgbdn4JsAhBU3ynhTvwO
+# uThPmW6jSiSEosxTr+dUTC869cY5OwjT3OVDsXHOozqauHgqfo/5Ott47w/a6e3G
+# FsB83Wr4ASqsydnFbtgEnuqDvXgPVs1FIxN7WyZNm3/rj9tgD9Ly4HVKiZxQNDs5
+# EWrijcnPQ5WyIeakD/AbjuE8z8NYE9hiGpF8LgAdy9Sonya3C3bXQ/n+5c8KqT+p
+# 4QlJpVAHakGjh25K2cjCC7ui3SA27Z6IafcmqJzhhPd7RfOLAII3dyxowhHfhTuh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzIwMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEICVU8tpNe/quAqaIO+gefPtczba3h+8AmCL6WqsbcGXs
-# MA0GCSqGSIb3DQEBAQUABIIBABCigfV9eGr2TGOW9Zb7TvGX/1Jvf+bShfqx/aNx
-# ByqhbWKh/OguioFO0Qvj7k8t3cekYcWAbOLVmNokW4Z+NzLCpqqmL2ewbt4+FCzh
-# dBN2etEJejiBN2ZTGz94cR/OMP6aLbBaqpzR09GTwnT20+YaHzWR0xw+jWtRztMg
-# Qlbq/jTbIUWnxoj71XFfkqMXIFPcH4SiaB41LGzWehSjJF2lgm5ZRijwP4CraIY0
-# NnyIXurdrQmh8RPD0bZKANguNyVfvyrwouuw6b49pfAofXAPjx0YMxTQfXNMNlmk
-# mPjeDH1EHnT/k8rOMZVXX0K7Sn+2rhR+DACGi4gPzH0r1Yk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIGzEMermvZVwgTcArSNcJRW5QgiiLjR8oZPz7CeHfrtw
+# MA0GCSqGSIb3DQEBAQUABIIBAKYxoDNTsIqkx+YoMnS1/+cdhY7KUHiVBNeGQgzN
+# 8EjJe/tayXlnyENhh20WSZ3sAnaOvTiCffsCqulzqr3UdwcRnwPFSlALcvNo5ZjX
+# ehKYXlT3VpGiVfKWiK85W4GKIC7vsq3RNZ8rNLVf6bczxaqWlogeP+MerJwyzRla
+# rmyOaTyeBe9lRe98mawOhaX47dJQj2fofPiMIvj+sN3/uUFekd4H6kctja+5yoeu
+# cNvoblWH5wYjveNOepQWZrcq2PRLh3ndBf+uaJG1SxJwpkz0E+ZRbVP/FSb5JMbK
+# LpjduMfzVxdF/hOwmKS5Ckwwii2wvdNZojcvIkZRR9OW64k=
 # SIG # End signature block
