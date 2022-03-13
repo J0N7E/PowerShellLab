@@ -1163,10 +1163,9 @@ Begin
                 Filter      = "Name -like 'DC*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
             }
 
-            # Add servers to groups for tier 0 & 1
             foreach($Tier in @(0, 1))
             {
-                # Add servers to group for tier 0 & 1
+                # Add all servers to groups for tier 0 & 1
                 $DomainGroups +=
                 @{
                     Name        = "Tier $Tier - Servers"
@@ -1193,7 +1192,7 @@ Begin
                 }
             }
 
-            # Add workstations to group for tier 2
+            # Add all workstations to group for tier 2
             $DomainGroups +=
             @{
                 Name        = 'Tier 2 - Workstations'
@@ -2378,8 +2377,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy1cuzvbgRtOnKhjDZmzvHgV2
-# qg6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcwgN29fusWnrTec6U/CtjQ+4
+# 8aeggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2463,28 +2462,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCX7bN1Gx/hqinEzyk5/hoojhB+kwDQYJ
-# KoZIhvcNAQEBBQAEggIAVnAgtXvOKR0VETDGvZYnRdD6x2FROHDuoDiFNJ2GYKSV
-# 6+R0vwl1/FE45b4KBcZq3zYRpBXkCZ3czSpXuxfV4wcdg2hWJ3LRbCzCloGG0nBP
-# OJgHpMIMwq+NAQ+fs9wvqySgo0gcLSBzRhwxJyP7R6em0XxL7Myf8L9lITlrU+u4
-# Dou0nWYZC0aDU8b4REjW5g81ihqZ9zmJs5otmvw2kTVf1oNZIPexmtdsqtO8uGyZ
-# vYp+FHGoBlOsXo6Po5zfL1ljmxzqTJdvduCr0gK5Z77Tj6qNjtemT3A+xDozt+AI
-# 1tiUhGHemY8L2A/y/7yadOq5h1CWL6cG3jgbdXKhyV32w44AQBnaQKpeee+zMrAS
-# Bb5/VF5H7L0n5o/d9mg++q7tkisuGtHwon0NX+OtRpTdqxNMzf3F2r3mdKmnBeCy
-# tQesf0LTB1QaMmXuX4ip1qBJ7lZt1fJ9g5/VQmujrBT73Dpwllnok5HsPmlpSiSj
-# EB5IKscB+TDfYASWWEu8CZWbzKeuSeU7qn16vsDoDYlvHx0/1K+vyGt4yFZGwtXm
-# X+YHrVWwXrH+mh1ANja90IAfFTvcNdAuGHdy7p3OM1mYMJOSDmLQRrkHn+SQxiyu
-# l/xwoVPN86JoyzLSXbtlxueYHpIhh6NIWdhdPqC7Qx62PyABBKAkcTZVFDLKEyOh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUI8E7ULafVk+D9glIaLyua+2YFXYwDQYJ
+# KoZIhvcNAQEBBQAEggIADZaKskLwTAj9ECwMrruhb6YrN9tz+8+llh3b5LTukm4V
+# fsCE2SoCFX2szcNhHF4IpNU5aebTA9G+pZIjiQlu8ZXRcwP1K/ImFuqOb8soFtWc
+# 9HuGIwoNR2aAioWRDGBFEfXiluWaF54yfGIxyzegClT+Vf8HeZTI0iGS5g8k37QS
+# XR/XyR4bVvfw0aD0D85q/iazvvu+hhsGZfwWRizRykOlFyWTpB5L/1iwSoMxE7Nu
+# KyXIFa5S8K8HrYv6makbGebv5eSaaBZAusxY7+Ier6myxD41u54oYZWRkXF5lM8V
+# E10n7DVKkGdnJH8hG/LEaAeBDPfy8DXqgMy2i8ddhE234Al5fFK5BgKxe0VLLa9X
+# cqZplaWObG0/XRwwfZOHoS7NfjD2CoNFotbXR1RV489UhSjIWZxs4svlwjz5tpdI
+# gBJgHmcjFmdjv+K/o0dVNlwVtAUTAem3EMHf158QS8AhEGYLuqmIpFL+8jemuA6C
+# 8+B9plIqYnslkpzXILdPS7DFigc2h45xkAPHYZ9MzJB6/WhYiX6IMoMW+kSgHl5C
+# jl2esZj4TfauRkD5Y7bAczGAyAmyMNYRn5xeN6JCpuO+NJMQhamMhzlRwVe6dmS1
+# fJcFhbjRUpx7XxgPJ/Jb7uMvmV973ABQZiUMzb1s+C4PGB28irjd1h8Foi01LyGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMjIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIG/XU231sTdaxxL7IKyq08uqMgEQpk33DR4HhqcZtplW
-# MA0GCSqGSIb3DQEBAQUABIIBAKpwcfPs8e8PHQSDfvJj68U1+oZ0SdaXSHzkqBcY
-# GSLgbuEwsTkXOnR1NIl2YHHkvkexsN8BjuNVe35aOfTIMLTjTBHyvTdo8dGeFmBT
-# GlvbQzMTLpx3XjO/FJlZeYz9Sz0LeaHbNIDw7M/vZc28ZAQDMz6g9HAFOHU/Sdui
-# uIJqP51ZDzqmQAo9PX6Fcuxb0jYirFBEhQFMnP3Uj2B3tDamUWggK2eI4RAcHwNz
-# HZ5y87+ed+KdB6MTjoNTcm3nYMnblIiDkJ9yb38eWvjjhuplryCyTGoWsssIGflT
-# ZkRcuBVnYvYadaUtZbbdDThqPzH+fO2lOTlwsdcGcyoutxs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzAyMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIIxtpiwPat2zB6AEB8d9fjbb+JJ2FqEVWIJHclrQh5Qc
+# MA0GCSqGSIb3DQEBAQUABIIBABNJFohfvMA/Fa3EIJn2vcamupLNLn6j9ZE0yT4v
+# 3SxfDGjVbzhEEc8xESMqKYvYwuVWryc56sYZamrngEfJ1uw+ME7Mt3rSoFAJfHFQ
+# 727mDsINM9G57R9EfcRAouypa1FEfrqdUPJW64Twa67fuhbOwW9cfNP+Iu9b18jP
+# rKshuhzQQBuzia55s3vZXtrHmnmcCiLr+YLbbLBrV5Wy5seF6e3y5CqsrLZAb55S
+# FLq7KYG30roRAkdi/1XwijSn7dPrmv4tDOwLZL+ETdPuNOlQWcbiShsUkD04IpwM
+# yeYotRWXePhTK4jkjMyb0eSC2kOs3RyzcwvMssHHlMD8Xhk=
 # SIG # End signature block
