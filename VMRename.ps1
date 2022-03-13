@@ -114,32 +114,30 @@ Begin
         }
 
         # Check if domain credentials exist
-        if ($DomainCredential)
+        if ($JoinDomain -and $DomainCredential)
         {
             $Win32ComputerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
 
-            # Check if to join domain
-            if ($JoinDomain -and $Win32ComputerSystem.Domain -ne $JoinDomain)
+            # Check if to leave domain
+            if (($Win32ComputerSystem.Domain -ne $JoinDomain) -and
+                (ShouldProcess @WhatIfSplat -Message "Removing `"$ENV:ComputerName`" from domain `"$($Win32ComputerSystem.Domain)`"." @VerboseSplat))
             {
-                if ($Win32ComputerSystem.PartOfDomain -and
-                    (ShouldProcess @WhatIfSplat -Message "Removing `"$ENV:ComputerName`" from domain `"$($Win32ComputerSystem.Domain)`"." @VerboseSplat))
+                Remove-Computer -WorkgroupName 'WORKGROUP' -Force
+            }
+
+            if (-not (TryCatch { netdom verify $NewName } -ErrorAction SilentlyContinue | Where-Object { $_ -match 'The command completed successfully.' }) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$ENV:ComputerName`" to domain `"$JoinDomain`"." @VerboseSplat))
+            {
+                try
                 {
-                    Remove-Computer -WorkgroupName 'WORKGROUP' -Force
+                    Add-Computer -DomainName $JoinDomain -Credential $DomainCredential -Options JoinWithNewName,AccountCreate -Force
+
+                    $Result.Add('JoinedDomain', $NewName)
+                    $NeedRestart = $true
                 }
-
-                if (ShouldProcess @WhatIfSplat -Message "Adding `"$ENV:ComputerName`" to domain `"$JoinDomain`"." @VerboseSplat)
+                catch [Exception]
                 {
-                    try
-                    {
-                        Add-Computer -DomainName $JoinDomain -Credential $DomainCredential -Options JoinWithNewName,AccountCreate -Force
-
-                        $Result.Add('JoinedDomain', $NewName)
-                        $NeedRestart = $true
-                    }
-                    catch [Exception]
-                    {
-                        throw $_
-                    }
+                    throw $_
                 }
             }
         }
@@ -304,8 +302,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6/6SFbqlibUhbuYscW99W350
-# Klqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZogFvKURMkvXHqcFljajOFdP
+# vWWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -389,28 +387,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHEnrI1V+axXXLlS/MDoZyIftCYMwDQYJ
-# KoZIhvcNAQEBBQAEggIAjEVgUGCuNSmlSuLFV0Hz7oloq4KLqRW9VLNyTQRHOm7K
-# BXOTOtUQBKbObQ42krBxAzeS+0pRa53ASmQGNPkfLDKb8fvKPMdCLofaJIhjbwdj
-# UMQbf3qPUeddBOsrSfvwtch+5wdU6RfDhmP4a1r/QJMQB26WRMKmEXMwd/BxTXLT
-# u7yD3R1PGWawFsLC1GAgZUd9Bwj6+oQ2RlVfXc/shQ4kNCqN4qVO5fe9g8mInFGu
-# oOrc0pCMV0piZDiokiR0rlG+vNvX5Xvl1ySpnH23wl8dFnJJ5VIodLK9zRpj8pYp
-# nc1j+OKl/PrNPJqBlUb3XIVOrXR6jDaeZx8e1j5cizp6GpbFvoi8QoWQQGks5Gy0
-# kkjjx1T4UkRZTIIXNJ/spIDR55YNc9rSLk8yAA0yAAbOl+6Sq9+2SpDDTE+W4rUk
-# 90RzxI7oM5VipBz3/4zAXJ3VBHH4lx/UfLTR5fT+6lcmW6Ax+1aBm7tHz4F/uD+r
-# QNMmm3ptkLguwKgaU1GgQoLSrtUmqkY0+r3CUf1SDJxVgxxmglBcP6itMhxw3for
-# LS4S8RNbJC/2NYlJAnLazJ+/QKOZ8r4hQGcOQMzrkA3psZR3bi5nx51zjelYeRDA
-# tYalQK7lelPZFzuQ3Qg04lzD0LJjwji+qvL5LDV/tUBLnRrASR/Ln12jbYxha4eh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtYyfCYSdYYnfVh371kKo+QPsZHQwDQYJ
+# KoZIhvcNAQEBBQAEggIAeQz5XNPoX+UXQUcgDKasnE7b0hRcZELrsM378BAq3xIj
+# Yk1hpfwiJkkaheFqkxNPMT2ZIHGjlIjeGGA++Owh18bHYNb9E1AWjz0pkpB/ILYC
+# 9SQpBV5VTEBfpvHCmQCqfsiRKFHrdB6GmxVl82DtKlu3gV/ygXPyTe0oLtkLrzxH
+# 2VNVcwacbO7LGeVoCRpKC8P0crRaaTlDHVcN8eqe22cyuSWg7lWheaiBF3oys4E1
+# IWvXysf8vW67ituiZm1eXSLLoiuMEUjfRb4UNoEz1j/BOD8PLt11DImP3MiZmGxF
+# hP0AIQ8MBHOyz/tSujyVwCDYA3M/iFxM75NvrPONxD6q2ccKmf6GBT/Vluu7/Lo9
+# UdZDh1zx+JFGy0zl6HHFN6wrI+sLgVqMy3Dn2XkGEpJ+LOlCWo6NNqy+P86dYsN4
+# gZMFgbHVuVd+WErKq4fsB7MPiOJYypRbFgYHGmt/GzrLcdLuTpaZIQ3hr2HGmv/P
+# tZdLEefLTH0el0okbj00K1hubRuHkjkpAy8byQmQUWJpOvlRazujxnZWgrZ05zX+
+# WK31P/hDyNFpio6ol9WozVikP3d9CTuRn00r2w9jNHT+HICZ9+N9xuFFv32QQ1JV
+# BOncQ4B9acXcsb///kBP/iEJv1x+YfkZMBY7VJxgSnJtMdEa4pifVdVRtbcbKuSh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMwNzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEICptlkwFRWKh5ms9y3ny61MnLMIt69FaQRTZg2BnNlyf
-# MA0GCSqGSIb3DQEBAQUABIIBAETcQhg994OBv9xzwhuBWxrBZdjQIaR1EEXwflir
-# UlV2Y9IVW688xo5t+eV+lb6heMzrNpIeoBzxeNs6VRVgonGkqWXkPb0eMaYeFFpt
-# saPtpe43WY+pLmGhM0TBPwr9L4IkNdPBLuIXZYLJ+A3iLI+z3YQE4nOcNoWbkcFW
-# 2hKO7u5SNbj2S1ZLOS2nw2lWa0J/c5/oLFTn/+NcXfKUMRdTld83LX1koEQhmKfH
-# +chvDJaHkFEFaFoQiPwHHmV6HiAkREMRxNwTLAXwXtKfsUzh+RSbh+j1LAYfrdt5
-# vxA7Thahk+glQ1/+CjKFwd60baD+iZdbIa7nYslL7ZCcF6w=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEICVU8tpNe/quAqaIO+gefPtczba3h+8AmCL6WqsbcGXs
+# MA0GCSqGSIb3DQEBAQUABIIBABCigfV9eGr2TGOW9Zb7TvGX/1Jvf+bShfqx/aNx
+# ByqhbWKh/OguioFO0Qvj7k8t3cekYcWAbOLVmNokW4Z+NzLCpqqmL2ewbt4+FCzh
+# dBN2etEJejiBN2ZTGz94cR/OMP6aLbBaqpzR09GTwnT20+YaHzWR0xw+jWtRztMg
+# Qlbq/jTbIUWnxoj71XFfkqMXIFPcH4SiaB41LGzWehSjJF2lgm5ZRijwP4CraIY0
+# NnyIXurdrQmh8RPD0bZKANguNyVfvyrwouuw6b49pfAofXAPjx0YMxTQfXNMNlmk
+# mPjeDH1EHnT/k8rOMZVXX0K7Sn+2rhR+DACGi4gPzH0r1Yk=
 # SIG # End signature block

@@ -1018,12 +1018,12 @@ Begin
             # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
             #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
 
-            # Name        : Name & display name
-            # Path        : OU location
-            # SearachBase : Where to look for members
-            # SearchScope : Base/OneLevel/Subtree to look for members
-            # Filter      : Filter to get members
-            # MemberOf    : Member of these groups
+            # Name              : Name & display name
+            # Path              : OU location
+            # MemberFilter      : Filter to get members
+            # MemberSearachBase : Where to look for members
+            # MemberSearchScope : Base/OneLevel/Subtree to look for members
+            # MemberOf          : Member of these groups
 
             # Initialize
             $DomainGroups = @()
@@ -1039,24 +1039,24 @@ Begin
             # Administrators
             $DomainGroups +=
             @{
-                Name        = "Tier $Tier - Administrators"
-                Scope       = 'Global'
-                Path        = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                SearchScope = 'Subtree'
-                Filter      = "Name -like '*' -and ObjectClass -eq 'person'"
-                MemberOf    = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Schema Admins', 'Protected Users')
+                Name              = "Tier 0 - Administrators"
+                Scope             = 'Global'
+                Path              = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                MemberFilter      = "Name -like '*' -and ObjectClass -eq 'person'"
+                MemberSearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
+                MemberSearchScope = 'Subtree'
+                MemberOf          = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Schema Admins', 'Protected Users')
             }
 
             # Add DCs to tier 0 servers
             $DomainGroups +=
             @{
-                Name        = "Tier 0 - Servers"
-                Scope       = 'Global'
-                Path        = "OU=Computers,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                SearchBase  = "OU=Domain Controllers,$BaseDN"
-                SearchScope = 'Subtree'
-                Filter      = "Name -like 'DC*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
+                Name              = "Tier 0 - Servers"
+                Scope             = 'Global'
+                Path              = "OU=Computers,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                MemberFilter      = "Name -like 'DC*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
+                MemberSearchBase  = "OU=Domain Controllers,$BaseDN"
+                MemberSearchScope = 'Subtree'
             }
 
             #############
@@ -1068,12 +1068,12 @@ Begin
                 # Add all servers to groups
                 $DomainGroups +=
                 @{
-                    Name        = "Tier $Tier - Servers"
-                    Scope       = 'Global'
-                    Path        = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
+                    Name              = "Tier $Tier - Servers"
+                    Scope             = 'Global'
+                    Path              = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*'"
+                    MemberSearchBase  = "OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 # Add servers to group by build
@@ -1083,12 +1083,12 @@ Begin
                     {
                         $DomainGroups +=
                         @{
-                            Name        = "Tier $Tier - $($Build.Value.Server)"
-                            Scope       = 'Global'
-                            Path        = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                            Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                            Name              = "Tier $Tier - $($Build.Value.Server)"
+                            Scope             = 'Global'
+                            Path              = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                            MemberFilter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                            MemberSearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                            MemberSearchScope = 'Subtree'
                         }
                     }
                 }
@@ -1103,13 +1103,13 @@ Begin
                 # Administrators
                 $DomainGroups +=
                 @{
-                    Name        = "Tier $Tier - Administrators"
-                    Scope       = 'Global'
-                    Path        = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*' -and ObjectClass -eq 'person'"
-                    MemberOf    = @('Protected Users')
+                    Name              = "Tier $Tier - Administrators"
+                    Scope             = 'Global'
+                    Path              = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like '*' -and ObjectClass -eq 'person'"
+                    MemberSearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                    MemberOf          = @('Protected Users')
                 }
             }
 
@@ -1120,12 +1120,12 @@ Begin
             # Add all workstations to group
             $DomainGroups +=
             @{
-                Name        = 'Tier 2 - Workstations'
-                Scope       = 'Global'
-                Path        = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                SearchBase  = "OU=Tier 2,OU=$DomainName,$BaseDN"
-                SearchScope = 'Subtree'
-                Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*'"
+                Name              = 'Tier 2 - Workstations'
+                Scope             = 'Global'
+                Path              = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                MemberFilter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*'"
+                MemberSearchBase  = "OU=Tier 2,OU=$DomainName,$BaseDN"
+                MemberSearchScope = 'Subtree'
             }
 
 
@@ -1136,12 +1136,12 @@ Begin
                 {
                     $DomainGroups +=
                     @{
-                        Name        = "Tier 2 - $($Build.Value.Workstation)"
-                        Scope       = 'Global'
-                        Path        = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                        Filter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                        Name              = "Tier 2 - $($Build.Value.Workstation)"
+                        Scope             = 'Global'
+                        Path              = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                        MemberFilter      = "Name -like '*' -and ObjectClass -eq 'computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                        MemberSearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
+                        MemberSearchScope = 'Subtree'
                     }
                 }
             }
@@ -1157,22 +1157,22 @@ Begin
                 {
                     $DomainGroups +=
                     @{
-                        Name        = "LocalAdmin-$($Computer.Name)"
-                        Scope       = 'DomainLocal'
-                        Path        = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                        Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectClass -eq 'group'"
+                        Name              = "LocalAdmin-$($Computer.Name)"
+                        Scope             = 'DomainLocal'
+                        Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberFilter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectClass -eq 'group'"
+                        MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberSearchScope = 'Subtree'
                     }
 
                     $DomainGroups +=
                     @{
-                        Name        = "RDP-$($Computer.Name)"
-                        Scope       = 'DomainLocal'
-                        Path        = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                        Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectClass -eq 'group'"
+                        Name              = "RDP-$($Computer.Name)"
+                        Scope             = 'DomainLocal'
+                        Path              = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberFilter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectClass -eq 'group'"
+                        MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberSearchScope = 'Subtree'
                     }
                 }
             }
@@ -1186,30 +1186,30 @@ Begin
                 # Access Control
 
                 @{
-                    Name        = 'Delegate Tier 1 Admin Rights'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'Tier 1 - Administrators' -and ObjectClass -eq 'group'"
+                    Name              = 'Delegate Tier 1 Admin Rights'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 1 - Administrators' -and ObjectClass -eq 'group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
-                    Name        = 'Delegate Tier 2 Admin Rights'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -eq 'Tier 2 - Administrators' -and ObjectClass -eq 'group'"
+                    Name              = 'Delegate Tier 2 Admin Rights'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 2 - Administrators' -and ObjectClass -eq 'group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
-                    Name        = 'Delegate Create Child Computer'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'JoinDomain' -and ObjectClass -eq 'person'"
+                    Name              = 'Delegate Create Child Computer'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'JoinDomain' -and ObjectClass -eq 'person'"
+                    MemberSearchBase  = "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
@@ -1219,95 +1219,95 @@ Begin
                 }
 
                 @{
-                    Name        = 'Delegate AdSync Basic Read Permissions'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    Name              = 'Delegate AdSync Basic Read Permissions'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    MemberSearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name        = 'Delegate AdSync Password Hash Sync Permissions'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    Name              = 'Delegate AdSync Password Hash Sync Permissions'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    MemberSearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name        = 'Delegate AdSync msDS Consistency Guid Permissions'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    Name              = 'Delegate AdSync msDS Consistency Guid Permissions'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'AzADDSConnector' -and ObjectClass -eq 'person'"
+                    MemberSearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 # Certificate Authority Templates
 
                 @{
-                    Name        = 'Template ADFS Service Communication'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                    Name              = 'Template ADFS Service Communication'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
-                    Name        = 'Template NDES'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -like 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    Name              = 'Template NDES'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    MemberSearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name        = 'Template OCSP Response Signing'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    Name              = 'Template OCSP Response Signing'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
-                    Name        = 'Template SSL'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'Subtree'
-                    Filter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    Name              = 'Template SSL'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
-                    Name        = 'Template WHFB Enrollment Agent'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    Name              = 'Template WHFB Enrollment Agent'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    MemberSearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name        = 'Template WHFB Authentication'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    Name              = 'Template WHFB Authentication'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    MemberSearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name        = 'Template WHFB Authentication'
-                    Scope       = 'DomainLocal'
-                    Path        = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchBase  = "CN=Users,$BaseDN"
-                    SearchScope = 'OneLevel'
-                    Filter      = "Name -eq 'Domain Users' -and ObjectClass -eq 'group'"
+                    Name              = 'Template WHFB Authentication'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Domain Users' -and ObjectClass -eq 'group'"
+                    MemberSearchBase  = "CN=Users,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
                 }
 
                 #########
@@ -1337,37 +1337,43 @@ Begin
 
                 if ($ADGroup)
                 {
-                    if ($Group.Filter -and $Group.SearchScope -and $Group.SearchBase)
+                    if ($Group.MemberFilter -and $Group.MemberSearchScope -and $Group.MemberSearchBase)
                     {
                         # Get members
-                        foreach($Obj in (TryCatch { Get-ADObject -Filter $Group.Filter -SearchScope $Group.SearchScope -SearchBase $Group.SearchBase } -ErrorAction SilentlyContinue))
+                        foreach($Member in (TryCatch { Get-ADObject -Filter $Group.MemberFilter -SearchScope $Group.MemberSearchScope -SearchBase $Group.MemberSearchBase } -ErrorAction SilentlyContinue))
                         {
-                            # Check if member of
-                            if ((-not $ADGroup.Member.Where({ $_ -match $Obj.Name })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Obj.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                            # Check if member of group
+                            if ((-not $ADGroup.Member.Where({ $_ -match $Member.Name })) -and
+                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Member.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
                             {
                                 # Add Member
-                                Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($ADGroup.Name)")
+                                Add-ADPrincipalGroupMembership -Identity $Member -MemberOf @("$($ADGroup.Name)")
 
                                 # Remember computer objects added to group
-                                if ($Obj.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Obj.Name))
+                                if ($Member.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Member.Name))
                                 {
-                                    $UpdatedObjects.Add($Obj.Name, $true)
+                                    $UpdatedObjects.Add($Member.Name, $true)
                                 }
                             }
                         }
                     }
 
+                    # Check if group should be member of other groups
                     if ($Group.MemberOf)
                     {
-                        #
-                        foreach($Member in $Group.MemberOf)
+                        # Itterate other groups
+                        foreach($Name in $Group.MemberOf)
                         {
-                            # Check if member of
-                            if ((-not $ADGroup.Member.Where({ $_ -match $Member })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$($Member)`"." @VerboseSplat))
-                            {
+                            # Get other group
+                            $OtherGroup = TryCatch { Get-ADGroup -Filter "Name -eq '$Name'" -Properties Member } -ErrorAction SilentlyContinue
 
+                            # Check if member of other group
+                            if (($OtherGroup -and -not $OtherGroup.Member.Where({ $_ -match $ADGroup.Name })) -and
+                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$Name`"." @VerboseSplat))
+                            {
+                                # Add group to othergroup
+                                Add-ADPrincipalGroupMembership -Identity $ADGroup -MemberOf @("$Name")
+                            }
                         }
                     }
                 }
@@ -2502,8 +2508,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUw4fgsS+8BX8xgZ6noEnA75WR
-# emKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUI/d1TC8xJaiVEAtWcKUz1tB4
+# jOqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2587,28 +2593,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUybhUP0iDd+p6G1FvCFevV+ALXB8wDQYJ
-# KoZIhvcNAQEBBQAEggIAFRxwOySDwKoIk2fJbzlDnv5xV5kJ5Cwfnf4C+u6gJSHg
-# IE/y03/6j/XPcJFHzHYcIh8knjEkc4kP+tD8ihFVfDU4uwp7B+M9MDpONGSdcafS
-# Vzz7lteZJiA6tQ/UN4RUQttSZZ46DrcfFWI43awhH2AoKzDnU8H3ueKP3H/ogv+1
-# HSt/JskRaujyDQ69d7viBZyR3PGpP/t51aIpWVZLHXVdpMB/ADAF+lOwN9kGniL0
-# uc5Ia1WZ4vHd1RIwG0bEGYLG2X/3lqyvBYe61Ft54LA6oh8AUhge66m+L2R5oE7G
-# 7WjgQb7X4n4FDz1PS+Hhr4vRiN0Ou2s5x94p4zR+YcneU5Xo5B02oqLP4I5wgaru
-# aZ38N7fBO7fKQ1ZdXlrs8bfPkfSDriyRyR4QpTbsJSyHVodmQE5WHOzT9fAnyU5m
-# wJZ4R2fhfLeyJV95MzJKXowA9qS4HoRWF0/JFrfnuL4Sm0d29TOb3BSV1vd5KZ9M
-# 33fH7irC43ogzucMiPtQ1MuJvLc699W1DwQNRYCrDx9cNvebK3bQr60FvLL6qI9m
-# i0Mg7Py85JIJTd1dqIsvgLbHO1rl3EGPIurkxcd0Isv9vJnQ/DPT+go0YlycMCIV
-# ZoyZQX7TWFHv+ruHvelLT8K758ygXkkwsp3d8cRVGzQGK1V0Ta6gzy6zrM/3J+2h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUA+EegBSyyCTqYoG2XWe5Y0Cp4/cwDQYJ
+# KoZIhvcNAQEBBQAEggIAKlsa4Lk50xeSe2rvhWGSYi5FhVEdgqVCSOs6v7UDCkjK
+# VT0rqeSWZIbIIVaS9vzYmDPjgx2G4hxqTnW8u4l5cp+N3BgDMMKbbsgelJIt8pHs
+# b78lem8bY6rWIhbf6urAdAA21eSimygEHieg7NZwVGJ7Rz6GWBL73l4WRVVLrS3+
+# NfnQoglroIkmLUdqOE5akBIMnE165bebXMKPOEerT9nmUbSDnVUK4J/N+LlWSVjU
+# UukvwiFsE9cB/+YR1+uLjBu+Q0dRUEFriWkzmnBerdSY1B0skDvG8EbQXvz9RbW8
+# pZTGuGrwVCgCC5cJ9sYe7cJ1+povjaAJ8D4xBcIVEy2fgBO0OhkXE05lJaucjl0W
+# 2agnWIZm5kBKUCQ4IbRe/NcI3g3dLb4Q445vE+0FxzpEQOHRPuthJbHJTbIvaB5d
+# 9yvvcVTW5m8NI5zVWBHcAmPECUhCH5CQFyc+SBcNhVWv/sUMIR1EsmNG6KXLPadK
+# YSrq2F1/S7nXURuabmEvXqx++pZp60bIpyDvQnOSUW2F7Xm+B1UfmMvlHfFPCCG0
+# QT/mScnM3jBTS8h+ugE6FaHBFBttRkdmtiS2SRTlPys7rn5ODMUe83tl8IzJgoRd
+# 6D9bDIlaUglJ/sX8Zxuck/oHDrwvCNHZB1ExS50S17yHRuYmdNFMaBCKs1VUs7Sh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzE3MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIOlB1EWnvZj5Fe0JAYR24/FwCeAHdEjkIasXFvtDe0fP
-# MA0GCSqGSIb3DQEBAQUABIIBACCfDa+oGSI0X6AnB0qq7NwxkUAKBoDn0j6KoiYx
-# fWaFd6cjdXbt3biuL06RQNf+zp19YX9mtrOTORX4SdAYsNV7vBz/W5Ao274zNOlm
-# LfVUZ8DG3DGL1QpQCnFApMgkI7NYEM905wjfGoBLA89OJO7L3H1TIiPs/IaeQehx
-# oRiitOcdIvkgnJREHuwaXmTJEC7GNqWzL0aDg889FCkCZvkF81m1HzlOtRGZk/0b
-# EFISyf0zqbCoduMkZLw/8GW+Eyva5iTsgzQ+N0Oi2LpaCIo+HJYuse4eIMlue/fA
-# 6Tpz0TqHgsCElMnKYuZV4BwRDKFv/iqPoccvwTQwNuoNQT4=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEILyiSvQqJppMBwFPvVD8pSzWMdMYPWAVjPp104HF9klo
+# MA0GCSqGSIb3DQEBAQUABIIBABG4D6+j0e8giHqY12WpNkNUcvU9sd4GEwAcAW1z
+# yKTHUELrweCHVhrzNB9tFc/NuMZocuR19hMYCTf8KOwdY8eKUeYhz/CpFeXMKJTS
+# yPTPo13FeOZOudTlrpToCDXigTHY+bhUWwT2vu36vqt0M6d080JxXcStgv5v4Ypj
+# X3F0UWn4VBHQmMN8hZvDA4XcSz5HwSrE1SXCzpQ7cl3NAKbkRm9PyICihEUR9PaT
+# JNm6M5TH6f8Pr1DZBihdUDkpzpsyeeaQ/2HtJJhUMaqKfTCaXfe+BM1wYwQdaHg+
+# Cq22yyH3vczDyHfnXrFIQ2RYsW0N8oe4JoAP0HVtgEAm1jI=
 # SIG # End signature block
