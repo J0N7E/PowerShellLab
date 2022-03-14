@@ -187,9 +187,7 @@ Begin
 
             $Certificates =
             @(
-                @("adfs.$DomainName", "certauth.adfs.$DomainName", "enterpriseregistration.$DomainName"),
                 @("*.$DomainName")
-
             )
 
             ##########
@@ -198,88 +196,32 @@ Begin
 
             foreach ($Cert in $Certificates)
             {
-                if ($Cert.GetType().Name -eq 'object[]')
-                {
-                    $MainDomain = $Cert[0]
-                }
-                else
-                {
-                    $MainDomain = $Cert
-                }
-
-                # Get order
-                $Order = Get-PAOrder -List | Where-Object { $_.MainDomain -eq $MainDomain }
-
-                # Check order
-                if(-not $Order -and
-                  (Check-Continue -Message "Adding order for `"$MainDomain`""))
-                {
-                    # Adding order
-                    $Order = New-PAOrder -Domain $Cert
-                }
+                $PACertificate = Get-PACertificate -List | Where-Object { @(Compare-Object $_.AllSANs $Cert -SyncWindow 0).Length -eq 0 }
 
                 # Check order status
-                if($Order.Status -eq 'pending')
+                if(-not $PACertificate)
                 {
-                    # Get authorizations
-                    $Authorizations = $Order | Get-PAAuthorizations
+                    $PACertificate = New-PACertificate -Domain $Cert -AcceptTOS -DNSSleep 20
 
-                    foreach ($Auth in $Authorizations)
+                }
+                if($PACertificate.NotAfter -le (get-date).AddDays(14).ToShortDateString())
+                {
+                    # Remove old cert
+                    Remove-Item -Path "Cert:\LocalMachine\My\$($PACertificate.Thumbprint)" -DeleteKey -ErrorAction SilentlyContinue
+
+                    if ($Cert.GetType().Name -eq 'object[]')
                     {
-                        if ($Auth.DNS01Status -eq 'pending')
-                        {
-                            # Get token
-                            $Token = Get-KeyAuthorization -ForDNS -Token $Auth.DNS01Token
-
-                            # Prompt
-                            Write-Host -Object "Add TXT record '_acme-challenge.$($Auth.DNSId)' with value '$Token'"
-
-                            do
-                            {
-                                Read-Host  -Prompt "Press <Enter> to resolve dns"
-                                Clear-DnsClientCache
-
-                                # Resolve
-                                $TXTRecord = Resolve-DnsName -Name "_acme-challenge.$($Auth.DNSId)" -Type TXT -Server 8.8.8.8 -ErrorAction SilentlyContinue
-                                $TXTRecordMatch = $TXTRecord | Where-Object { $_.Strings -eq $Token }
-
-                                # Check dns
-                                if($TXTRecordMatch -and
-                                  (ShouldProcess @WhatIfSplat -Message "Sending challenge." @VerboseSplat))
-                                {
-                                    Send-ChallengeAck -ChallengeUrl $Auth.DNS01Url
-                                }
-                                elseif ($TXTRecord)
-                                {
-                                    Write-Warning -Message "TXT record value '$($TXTRecord | Select-Object -ExpandProperty Strings)' differs from token '$Token'"
-                                }
-                                else
-                                {
-                                    Write-Warning -Message "Couldn't resolve TXT record _acme-challenge.$($Auth.DNSId)"
-                                }
-                            }
-                            until ($TXTRecordMatch)
-                        }
+                        $MainDomain = $Cert[0]
+                    }
+                    else
+                    {
+                        $MainDomain = $Cert
                     }
 
-                    # Wait
-                    Start-Sleep -Sconds 3
-
-                    # Refresh
-                    Get-PAOrder -Refresh > $null
-
-                    # Check certificate
-                    if(-not (Get-PACertificate | Where-Object { $_.AllSANs -eq $Cert }) -and
-                      (ShouldProcess @WhatIfSplat -Message "Getting certificate." @VerboseSplat))
-                    {
-                        # Install certificate
-                        New-PACertificate -AcceptTOS -Domain $Cert -DNSSleep 20 | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
-                    }
+                    $PACertificate = Submit-Renewal -MainDomain $MainDomain -NoSkipManualDns
                 }
-                elseif($Order.Status -eq 'valid' -and $Order.CertExpires -le (get-date).AddDays(14).ToShortDateString())
-                {
-                    Submit-Renewal -MainDomain $Order.MainDomain -NoSkipManualDns
-                }
+
+                $PACertificate | Install-PACertificate -StoreLocation LocalMachine -StoreName My -NotExportable
             }
         }
 
@@ -455,15 +397,51 @@ Begin
 
         $WAPApplications =
         @(
-            @{ Name = "pki.$DomainName"; Url = "http://pki.$DomainName"; Auth = 'PassThrough'; }
+            @{ Name = "pki.$DomainName";    Url = "http://pki.$DomainName"; Auth = 'PassThrough'; }
+            @{ Name = "curity.$DomainName"; Url = "https://curity.$DomainName"; Auth = 'PassThrough'; }
         )
+
+        $WildcardCertificate = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {
+            $_.DnsNameList.Contains("*.$DomainName") -and
+            (
+                $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Server Authentication')
+            )
+        }
 
         foreach ($App in $WAPApplications)
         {
-            if (-not (Get-WebApplicationProxyApplication | Where-Object { $_.Name -eq $App.Name }) -and
+            # Initialize
+            $CertificateSplat = @{}
+
+            # Check if certificate is needed
+            if ($App.Url -match 'https')
+            {
+                if (-not $WildcardCertificate)
+                {
+                    Write-Warning -Message "No certificate found for '$($App.Url)'."
+                    continue
+                }
+
+                $CertificateSplat +=
+                @{
+                    ExternalCertificateThumbprint = $WildcardCertificate.Thumbprint
+                }
+            }
+
+            # Check WAP application
+            $WapApp = Get-WebApplicationProxyApplication | Where-Object { $_.Name -eq $App.Name }
+
+            # Add new
+            if (-not $WapApp -and
                 (ShouldProcess @WhatIfSplat -Message "Adding $($App.Name)" @VerboseSplat))
             {
-                Add-WebApplicationProxyApplication -Name $App.Name -ExternalPreauthentication $App.Auth -ExternalUrl $App.Url -BackendServerUrl $App.Url
+                Add-WebApplicationProxyApplication @CertificateSplat -Name $App.Name -ExternalPreauthentication $App.Auth -ExternalUrl $App.Url -BackendServerUrl $App.Url
+            }
+            # Update certificate
+            elseif (($WapApp.ExternalCertificateThumbprint -and $WapApp.ExternalCertificateThumbprint -ne $WildcardCertificate.Thumbprint) -and
+                    (ShouldProcess @WhatIfSplat -Message "Updating $($App.Name) certificate." @VerboseSplat))
+            {
+                Set-WebApplicationProxyApplication @CertificateSplat -Id $WapApp.Id
             }
         }
 
@@ -609,8 +587,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3UEtqPtSfwRl3Xvs5QwJKNGG
-# zoSggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA2fy6vbYNow7k1jq2hQCBdXP
+# /auggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -694,28 +672,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU80SdWD/CJ7/h/aLswZbXEZZ8b+4wDQYJ
-# KoZIhvcNAQEBBQAEggIAVBrgpzv6xCkWDgoLs8n6zCK4dS8j9ts564asaVE1dQZH
-# lPgXEWiFctHvGOIqVpRSfio0eOfCkr81AajHN3grJu+k1SiSnQxGXJe0iVr+y30n
-# Fy7IBFu8rxdrikijz+nDAFK7dP8raYb8kyT4NaeLkoU+eXfmNiHgG1DXG397yQqY
-# ni+balcLq549yLq0WCxuPqEBm0Oi8KRt31XS7wkJvg8e0a2otj4P6IzAV/w7y2KE
-# QoyldFiiSQX1sXzZHpm433kFDQOJlVLmJGEEUFLAd+gvlFvIyb66bW6O0gKypLww
-# kgsm3pRj1PkV5oMW2Ayzdf8vLarj/RtRMbvCmkUIhPJm6u5qyt1njsRgrpcmjkYV
-# naPlAI3gHvsLz/HiKkbzKPLm+iH+QaNK7kfjcv1EXU+/2rqmxuAuZNjIgFfKM8Ze
-# COab3Ov9x0JcjPqb92f/M9iGRXiVNxzLs7MY93xKuD+iOEWqwADg16wvudVhwTu+
-# 2UIPSIIxWISLSWtWpgfSfPxL4q9M+/tVzyAJClp/LhacO6TzSQUIGu47CXX6Aj/Y
-# LTsCdhGCxWewu7OhXYC5oG/Ym4rPLLeb2jN2PTpswIJae6MbCNIhNZras67x25Sa
-# Wt38gOH15zMk59nT5+03DB/WQ87JxXmIV5FG6xIacGXoMh9rjWufGJ3cH3cukSeh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiTj0xaor4vm4Zoom3CBxVOJOWcUwDQYJ
+# KoZIhvcNAQEBBQAEggIAoAliJjiJ9jATsx5Czl3Lcq8fGXmhGUCMHeW4PgVqgrB6
+# AJC73RKA8sttO+oVboUuz5PB9GiCNaryFy0QZIy8m+jef157dGU1ZkEJKziOSloT
+# t1Hy5PkfWEnO97gfXtJZGfik0xLAiNixRuz1GqVsWJdQsv1ANyRndlYBdspI1Kod
+# sN4xwJwHPwlgbMRPNnJG21/zm/DBwET8sbecuNQYYZUsWqld0BqoUJVlyA606UKB
+# Zu/0YwFpd2RuoQnpL6wgx99pdssIYIYAXDIckfssBt3oShTbUaOsNUqgzXTNOwqv
+# 6SQvqCkRyW/ZEnYxmbPizG6J5M1Fiwm16lmdpbtUVQDGW/rjjbR/E52LChY4n/Lj
+# j15WZ+PQ3rUN4veGbHvYkbnjmlTbwzx0VBTFXXSAZBJ2c4Bx9Z3/dYd12+jTmahl
+# uq3TR0KiTnTVp11ZAX04bzEZpER73bPYJlzWOlx6B8JUcfIM77ZbIUOendB/QbNL
+# bKbd63N6sc9lups0DmGfHLU31a4/MjrLUu5Oc15aOM3eHucwW7GxWc43enrApqIP
+# 985Up7QXPXepEcdm4J0GENSVVGDSSHqLH54eqa1xIAXVzYBqcAzUVCZ5zzMD9Voy
+# Qs5GGyJxcGlPO2qCYNzycswOTY5BlFnUk0CgPRB6obnRefWkynER+lvHajnKX9Wh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIHHIVqz8atymyuAzd0UEjktZfdI8CZi2c3A3qpxumosw
-# MA0GCSqGSIb3DQEBAQUABIIBAGWK4l3awlQx5189K+sm8AoKYCoEFD0VFYwiHyB5
-# tiwnr6hOuW+N+esFv5PdqSxawyZmJVU6t57t6hjr5DHnpUGDdxeArDTK+7xFToB/
-# gHswF8kJhLjThbTRPV5lNWQ1BhLZwLWpgWg8UPy14Nw+h2PY3bctTJMibDeDU347
-# K1eXjCxlZP3V9Tsby9SnqEcDuR698kw0GaHxhVOjx3SWp4AyrUHA0aVvb7AAXufl
-# DR0Z1TtpP17OLxEKfsFRB/2M0o8lA/DYHM3DZKCXocgjsXRgDMwG3jqrcAmRKmbt
-# SNoJsNAvO4NtvC2Hdfcf7H/8VWC30ahw3v4oS5Cy0gYJrt8=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDE0MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIE1oStcGPyAmFF9Yp7oGoW7YRJW2DN8YcH3R343+f+Ty
+# MA0GCSqGSIb3DQEBAQUABIIBAFrTk5ZtPLv6FR0mPo0G+W7kT29DYCf8qC60SnOm
+# WR0R/pP5CrPBZEHsXX8s5LwAEbVwtYS1rfovVJRDO4hyhXPdHiV5JEmb8vtFYUwY
+# R9FMxE5uoyIZ3K4hQ6a9WhmtO33mGBFIJ3gVTzlbXyPYPjEbYM7pTyH11Kz0ssou
+# Ccim5A6mALnac8zE/4TOz/+ALhQ0LKuqR/FcfZN/VrOxd1Ha+X7i97kwmwplm8Zr
+# jfvlAbwzrLgIt1Wa5hQFFi9DsxezNJIRnRZ9y9UNVjAYEz+nRxZyI5d/OJtMp2iC
+# 5gE4f05rLZOnfFAT64NzqzCBolnUd12mxfRaFnF93nO2SkQ=
 # SIG # End signature block
