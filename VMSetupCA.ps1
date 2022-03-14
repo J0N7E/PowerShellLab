@@ -258,17 +258,17 @@ Param
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$ValidityPeriod,
 
-    # Set uri for OCSP
-    [String]$OCSPUri,
+    # Set host for OCSP
+    [String]$OCSPHost,
 
-    # Set uri for AIA
-    [String]$AIAUri,
+    # Set host for AIA
+    [String]$AIAHost,
 
     # Crl publish uris
     [Array]$CRLPublishURIs,
 
-    # Set uri for CDP
-    [String]$CDPUri,
+    # Set host for CDP
+    [String]$CDPHost,
 
     # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
@@ -702,41 +702,41 @@ Begin
             $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
 
             # Check if exist
-            if ($AIAUri)
+            if ($AIAHost)
             {
                 # Add AIA url
-                $CACertPublicationURLs += "\n2:http://$AIAUri/%3%4.crt"
+                $CACertPublicationURLs += "\n2:http://$AIAHost/%3%4.crt"
             }
             elseif ($DomainName)
             {
-                Check-Continue -Message "-AIAUri parameter not specified, using `"pki.$DomainName`" as AIAUri."
+                Check-Continue -Message "-AIAHost parameter not specified, using `"pki.$DomainName`" as AIAHost."
 
                 # Add default AIA url
                 $CACertPublicationURLs += "\n2:http://pki.$DomainName/%3%4.crt"
             }
             else
             {
-                Check-Continue -Message "-AIAUri parameter not specified, no AIA will be used."
+                Check-Continue -Message "-AIAHost parameter not specified, no AIA will be used."
             }
 
             # Check if exist
-            if ($OCSPUri)
+            if ($OCSPHost)
             {
                 # Add OCSP url
-                $CACertPublicationURLs += "\n32:http://$OCSPUri"
+                $CACertPublicationURLs += "\n32:http://$OCSPHost/oscp"
             }
             elseif ($ParameterSetName -match 'Subordinate')
             {
                 if ($DomainName)
                 {
-                    Check-Continue -Message "-OCSPUri parameter not specified, using `"pki.$DomainName/ocsp`" as OCSPUri."
+                    Check-Continue -Message "-OCSPHost parameter not specified, using `"pki.$DomainName/ocsp`" as OCSPHost."
 
                     # Add default OCSP url
                     $CACertPublicationURLs += "\n32:http://pki.$DomainName/ocsp"
                 }
                 else
                 {
-                    Check-Continue -Message "-OCSPUri parameter not specified, no OCSP will be used."
+                    Check-Continue -Message "-OCSPHost parameter not specified, no OCSP will be used."
                 }
             }
         }
@@ -811,21 +811,21 @@ Begin
             }
 
             # Check if exist
-            if ($CDPUri)
+            if ($CDPHost)
             {
                 # Add CDP url
-                $CRLPublicationURLs += "\n$($AddTo):http://$CDPUri/%3%8%9.crl"
+                $CRLPublicationURLs += "\n$($AddTo):http://$CDPHost/%3%8%9.crl"
             }
             elseif ($DomainName)
             {
-                Check-Continue -Message "-CDPUri parameter not specified, using `"pki.$DomainName`" as CDPUri."
+                Check-Continue -Message "-CDPHost parameter not specified, using `"pki.$DomainName`" as CDPHost."
 
                 # Add default CDP url
                 $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
             }
             else
             {
-                Check-Continue -Message "-CDPUri parameter not specified, no CDP will be used."
+                Check-Continue -Message "-CDPHost parameter not specified, no CDP will be used."
             }
         }
 
@@ -1428,7 +1428,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Remove -InputFlag $Restart
                 }
 
-                if ($ParameterSetName -match 'Subordinate' -or $OCSPUri)
+                if ($ParameterSetName -match 'Subordinate' -or $OCSPHost)
                 {
                     # Enable ocsp extension requests
                     $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
@@ -1679,13 +1679,13 @@ Process
             $ValidityPeriod = $Using:ValidityPeriod
 
             # Set uri for OCSP
-            $OCSPUri = $Using:OCSPUri
+            $OCSPHost = $Using:OCSPHost
 
             # Set uri for AIA
-            $AIAUri = $Using:AIAUri
+            $AIAHost = $Using:AIAHost
 
             # Set uri for CDP
-            $CDPUri = $Using:CDPUri
+            $CDPHost = $Using:CDPHost
 
             # Crl publish uris
             $CRLPublishURIs = $Using:CRLPublishURIs
@@ -1825,8 +1825,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDasJgOHUPRTQjG+t+KiC6vG5
-# CJWggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaJCb7z7KD24ejWuemdADxCqC
+# 6R+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1910,28 +1910,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUvg0F2HwZd6veBgLjdc/tHEUXnlIwDQYJ
-# KoZIhvcNAQEBBQAEggIAFSiW7atWpYc19ikoW+MQI7YWpPSUDoa7rMFMY3h8J/vF
-# hsNF296/WCXHxQIuv3nJFfdJpCC3EX7sENPgm5IvFjMge0LgAEZTJqmfWvVLo8BJ
-# 40me+vGR2BHnZpPCHnOsh+zyOfR3il0wHK6JElhnlcoBqBdh9QnXe1BPsolJnDd8
-# uSv5FnR543XevyF4W4XRzdD42jE298OcU+fR2/sSw4eCsXdi0ufT0/zsP2f3HrG9
-# b01eqH0ZViSsZBxlpsNHQ9LQHHU0Z/cY/4Ju13w8gVgjf4kSEzuXd2QAHd0U0kLj
-# dODc3+9vuoga+5oUSOIsODTBccd+K2uMJNHa7zem/ikN1xS08HwT/NuV8FVCeGPr
-# hotEAiSgVQM+Oh6HHcyYk8SbYlsHGgJ03lpXax561L4/DwWJvNEflHfXvHebHfcR
-# Yf9CJj//Wmf+/MgGZvR27b+C3eXe6mokNBa96ID8DiwWEkmiuEprg1uoZQOCYBVB
-# z2Uw3Yz7ZSToL6qyqipubYaQXsvTLzlmmNyXZPIKt9MOQ7DOzg1kFD40sx65+QpO
-# G1G77QgKrvTy4vsgmJtU1oeofMMlUdd8KXLStJOxsKl8eAOhVg8e/0YvLbFnXY9q
-# rINnfSq76rusqJqx3HMS0ygtR9uY0Z/ELUL0am5ZKTy/iCejRQlpAxmcECZgNBuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+5OvOWBNcE4iAeQDm2Jdy51WBIIwDQYJ
+# KoZIhvcNAQEBBQAEggIAIa22yI1GEYPLiKdm0WmMAbe4nEvXkzUpGynBmrQ1u3Ue
+# 8SuYGOKIXPn76GvJMnMUXs5FVs2w7KhmpRFZ5SwNIJYRduwzBGbeJfVnRx8rihRZ
+# Xxy75V629AVhEwvrAhur4gwRP87gkCWV8LmHcCRZ8Y6vlPh6icYROo73tjqNIolQ
+# LdCuAfk/cN9mM3IeeRyMsy7Vxl8HnZ33zlJ1gez+zdj69n6EUc15rakYAApRlAmz
+# rwnBWGxMfMZpWvpGsgyJrVcgTSJYW/8jcmjk9s2YXKqrhk0++1jqXidBBibF1Cy1
+# HX0crPILAQOSHDGMVqZmPbwYUiAQzzjG3Am+LeLJxPckQeTvEFlSxL4Vk42P5fSE
+# kgYrV99erryIu7B7KG42YQMrNiJi4rhdI1DQ6h6o5w9cGNCZp4fNXd8mInUBPrH3
+# FJNV680Fas177MBmJKzjKHQhpnG+mvBZ8NK3uvNji6FCn+JcW8gbBq/TRgcvWLX4
+# gnUVHOv9QmgU25qIW9ZIyQ8hihhtwTZxDmx1tORs9Wds8c+q4Ij68v00dsyu1CBl
+# bYbm9QNz8zh2WE3dlrx6cwMO1TdIjUieBoATi3B0rU3LQ3usDv16aHClAfvome3O
+# 7FEPoesLmvjf1qxBU6c76aewN5Fq/EKRb19uiLu5u+BisklLUd3heOJLUglaINSh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDEzMTIwMDAwNFow
-# LwYJKoZIhvcNAQkEMSIEIBoYH03pFXzbwv8Fb0Pmx/KuaW3RTDgrNXfUV/jMxeYY
-# MA0GCSqGSIb3DQEBAQUABIIBAGb0HqsR7Bcv4RMqRfKlEgHxZHbFsrmftGMgia+a
-# CMuSi5fJc31W5/OZAIQxLqFXEBiYhku4X2h1kw7KcXrqAkOejdyWavfyfwYRMv60
-# QMsTUDE4MM0qKzEqiuQ+rKOVyFAGZcQrWuitvh2A00NUZSizdcamjGqdsHeZOU2r
-# c/AJn8PnYcgIZRjEFzUJrMiNMSsH58dSljE56nhAAAJAiwNCfjKS/12MFlnrOnpI
-# 9b/9Eypdv1kq65DhoKA+EEj2FRoVu4dOxG4ZoBO0bDS2WMcNfLH4PE7cJRGTwh9x
-# xwBBt6yY2u4MEQvgDZS/KUIx/AIXb/7Piew+YcnMAdUZaIk=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIEa4qbF7IdAQ/8aVGjNCbao90lueM8RfaPIEVzxT7Efn
+# MA0GCSqGSIb3DQEBAQUABIIBAIMq9s6kakujQsZIL8yoheyKQwNBugYiezp8ovYK
+# k6oKHSVoLg3V5LSWuDStrkHScLKEeKpfsO+jgKXc+9uEBp0CRZc/TRKrX0V5z4c3
+# ZMWVqXYQuuJCSAhxLq3Grfys3a6agZFl5uIb+Rk9Mf8MZTd0mzLDz8khsg62qYCM
+# SZeoBj7GAkVH5MM7fbJRVhqsiEq8VLQjNokDGqT8u46baqUGsuEyR0sxrL/MrSdt
+# KAoF513dCFd2TDfrK47omgeWnunjl23pfWfWlJ+xtjf6kaAExTTYE1glDIyDSHKU
+# w3vX0vsaayBg/UnEyZy00OTAUcIxRnfmWwsPXoLxYd9CrJI=
 # SIG # End signature block

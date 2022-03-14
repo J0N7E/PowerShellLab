@@ -1452,6 +1452,13 @@ Begin
                     $Gmsa = New-ADGroup -Name "Gmsa $($Service.Name)" -sAMAccountName "Gmsa$($Service.Name)" -Path $Service.Path -GroupScope Global -GroupCategory Security -PassThru
                 }
 
+                # Service account
+                if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Service.Name)'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Service.Name)`$`"." @VerboseSplat))
+                {
+                    New-ADServiceAccount -Name "Msa$($Service.Name)" -SamAccountName "Msa$($Service.Name)" -DNSHostName "Msa$($Service.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "Gmsa$($Service.Name)"
+                }
+
                 # Get members
                 foreach($Obj in (Get-ADObject -Filter $Service.Filter -SearchScope $Service.SearchScope -SearchBase $Service.SearchBase))
                 {
@@ -1461,18 +1468,12 @@ Begin
                     {
                         Add-ADPrincipalGroupMembership -Identity $Obj -MemberOf @("$($Gmsa.SamAccountName)")
 
+                        # Remember computer objects added to group
                         if ($Obj.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Obj.Name))
                         {
                             $UpdatedObjects.Add($Obj.Name, $true)
                         }
                     }
-                }
-
-                # Service account
-                if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Service.Name)'") -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Service.Name)`$`"." @VerboseSplat))
-                {
-                    New-ADServiceAccount -Name "Msa$($Service.Name)" -SamAccountName "Msa$($Service.Name)" -DNSHostName "Msa$($Service.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "Gmsa$($Service.Name)"
                 }
             }
 
@@ -2510,8 +2511,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGnHGn8ILw5GJwDOCGti1r2sB
-# LmGggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/L/gHx/Gjx6VB5Vu7qH0Rnlk
+# HViggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2595,28 +2596,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7n1kUJDospspJCqO2p+OVGig3ScwDQYJ
-# KoZIhvcNAQEBBQAEggIAMN1xBQJnXsM/Ke5N/v+1fXIM2GhvRjy7FPjIJw4OsEtd
-# pkQPabi/n7VgnTf8DBswrVtHAtiuPgC/u3GcpF0AZPi67tkOxtLJLyGEJV00v/4B
-# JP8tF+cVipmT5Nq/hWAg9nvf7a0MRiYaIedODkQtVcKpYv/EwWxLOrWWV0eVe3ii
-# AUiRlNosGI6Unqjdhxt/pF69dkvfaYDKWZhHb1GwX1/imwUVZGajj82KhXj7qoIq
-# qrLDXtfASkmHwVz7WqdDies4+xT/oTQ0mOQGhrKFFmaE50H8YkuwP3N0R/OrjivT
-# kDjNg5dESKt77NHbOm2Wy5cD9Q4HVQ+QnqFQ4reEJHU9iwL1m7DWIKBH6f+0bpSM
-# aic4j7kYaXybaTKO6foP2EO8ju5ea1UteSai1qKtAtGk213+3lmftuYcbWZoNXw/
-# fF479T19lx9tVecPMc6Nc/6/Wmb8/9xlSCIA7ioBUTdnmzJ2cA1FxYmOFzpVeIF1
-# 8mNBj53KKVHprxh5awX0XzyPf9JK9vFZ34eZ2BuEk7bCNis0yuoa4udBrnjeGyaU
-# LKV9+W2zwBTEAQa44dSpB+g3Enp9sSZH4zOeaGd7EPF92HuI6OgSCTHY93npDOmm
-# NbIR1ektoJy/i7N2kEnSuyHk+Jnh1q0lI0UWaA0kAjAMMpKVUt5Y0+GiqCdjdHCh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUifKMVtcW92DyXY0bN3qnFMVdfYAwDQYJ
+# KoZIhvcNAQEBBQAEggIAri2PCmoDXz4eVStqtjXMc7JLPKvdKY9vx27qApR+1l3u
+# Z+fWCLvI/5anBBMuTQ2cYPEyXGnhL4rwi+fE7SAXVZUjYnHQVttfycs1mtSLdO8/
+# EctLdt92jeZfVx0ILiNQGd2jsdueA5hwR008OQegRES/mvxIE7z9Qu0Y3VPMX/gn
+# YhShq4auKzV84kjbXaz2TQAesWF/sRnbTxroCYPNyLoTayOJRUADQA8FsDI9itm1
+# Nx+D4k2oAk81gtEGdftib0hy8LEXISfggcuMgWGk0qquUvxWyiVNW1zoN4mwijLt
+# PQRaA0x++8ks9NPrUI4k5FqCaoQOW6mqeOoRwZKX74qrDtt9hKnEtACeHI8BpuhT
+# cRNNtsEQOfeEngwg8MXJuf0YDa38ZhixNBNVxoaXGqj6CApF43WjGmHK2pb3/nxM
+# 6rto+h6uZ1Vjh5ba3HqDuuG+xl0ZbqI28YoOotSVb8mGaUm/GiBY8dOTgP1NgRZm
+# UXLNF0YTHmrURGQhhzufh/PXP7BmSqB2EoLlr9GFMPqT5XV0JqlL49ynNoTwzna+
+# 9r68rOoRG5Xy+WAsVJ0CHtJSSGLhxJ9AkG4HWhLcei1VA0zr6KvPWMNUtTBzeRkj
+# rgmeC755cll2SxFK5iZ5gaknGHaF83ixfRE5e8jcJ8R+O8kvr8d3RurLvSdFOF+h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIK3U6Ay4S/f5IhEaob9zUL3ZU8QRqTfiJ9J+mThvtazi
-# MA0GCSqGSIb3DQEBAQUABIIBAIfnceFwNYGRaXwtWiNHOw/XPecRA9rn1ppvnTpu
-# rjogg3NRtFqEdIJZmSuuKmTKJIOu3pNlav1YjgpNJ7H1wA9OcEdTHN3lrk+6DxLA
-# bBHj+xFe3EK40YzaxkZliiQ+IwjPTcYGOwRIWsgpM2eRfrau3RfED+Y7uTjwEYu/
-# 2/0sHQk5sAQd+TBz7FkjQ94qX+jRBBrbGLe5o4ChqB7ykKbAgpmy4++JT2wUZP1i
-# 0a7kQqDKS+PJ8S/JoXxCn7WTWQJtyEcLQIXauXs0Vfz7F3sYZ+8ALGFrQQMIaYqU
-# YkwA0ASEpIrG31MrXYpbq0X4pfH2HwYUGNfWoOxr7ovtAsg=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIGjivYrnXu/42RqONJ35Px5FJ7Kr+qUaUX9lcFlAHP+L
+# MA0GCSqGSIb3DQEBAQUABIIBAIlzF+MMuw4gDN6qD26elHX0shvNCStS1GK8zzBj
+# UHUMUk8Y4DfrIr1hbBpm2WjPtD2uwKZq3OjL/36dUk0rIht1qUT40YG3Yg9ocN1k
+# nEX3H7rCajPTImslNkZBBb28S4TawWH+5APXWTGGNnJV7p49rJJerSZM5gPSjwFG
+# 08R8DNLAeEjL9G3oIxCC6DQBS3aho/sDnm7Adl4fdp8I3Q1fXFN0qPOJs74RbjbN
+# 6i5x6qeIq1vKRZhdGIDTlgl97O7jyta1337B50cog1b9ueKqs5VLWOJqFHNbWq1v
+# PpqBl7EVydnhbbSdNXRBSgxjiyYz9NtgW0AxsNfYlpJmpw0=
 # SIG # End signature block
