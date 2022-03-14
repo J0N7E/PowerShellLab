@@ -117,13 +117,12 @@ Begin
         if ($JoinDomain -and $DomainCredential)
         {
             $Win32ComputerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
-            #$NetDomFailed = -not (TryCatch { netdom verify $NewName /domain $JoinDomain /userO:$($DomainCredential.UserName) /passwordO:$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($DomainCredential.Password))) } -ErrorAction SilentlyContinue | Where-Object { $_ -match 'The command completed successfully.' })
             $NetDomFailed = -not (Test-ComputerSecureChannel -Credential $DomainCredential)
 
             if ($Win32ComputerSystem.PartOfDomain -eq 'True')
             {
                 if ($NetDomFailed -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$ENV:ComputerName`" to `"WORKGROUP`"." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Unjoining `"$ENV:ComputerName`" from `"$($Win32ComputerSystem.Domain)`"." @VerboseSplat))
                 {
                     $InvokeCimParams =
                     @{
@@ -321,8 +320,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUklsUI7Oz/kb/SxeICxteCQUe
-# 80yggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZWe1Q8xWQZ27DoLcbmdjxOdz
+# yPuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -406,28 +405,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUaeun2EkNuhdGw5TfESHyrZEaiE8wDQYJ
-# KoZIhvcNAQEBBQAEggIABC1GHoqDubfO0imgfrgrBMeD0fbk1ZZnITc/de5ciMbh
-# IFlqnABrkRlRmw5EFEUOCg5daiVuLyJsNWzPBuxJf2oIxTX+GsTV4grYjkDImvKZ
-# WeLj3L3VLwysTY5CzrQpmFVtRH82kSZRQzUqNBdtH+nJ7niy/xybKNp/K3R8yvJG
-# 7zGzPOSUO3c+QUEj9KGIWAFac0KUJ8HCq3e1VZCaG9NiizYZrtdNPwJG9yjHpusJ
-# 6B1FKkDONX8t8lDCd9TabVkiwhb3zY8CTEaO/Y9o9LWjFtZ/XU2i/LhoRp37h9Bu
-# fZX/IfmBZpeSXnPXFILe9cjsIB9+6GRpwSmsfllkue04fDyr2AoZFMbKUcBRjwg+
-# QMuO5eSewDZs9iK1BDyzkyfL7G6Pq0H8K0N+87T5haD/Xgbdn4JsAhBU3ynhTvwO
-# uThPmW6jSiSEosxTr+dUTC869cY5OwjT3OVDsXHOozqauHgqfo/5Ott47w/a6e3G
-# FsB83Wr4ASqsydnFbtgEnuqDvXgPVs1FIxN7WyZNm3/rj9tgD9Ly4HVKiZxQNDs5
-# EWrijcnPQ5WyIeakD/AbjuE8z8NYE9hiGpF8LgAdy9Sonya3C3bXQ/n+5c8KqT+p
-# 4QlJpVAHakGjh25K2cjCC7ui3SA27Z6IafcmqJzhhPd7RfOLAII3dyxowhHfhTuh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU20DfopIP7ZKHiFgYG2+C5SsGuqgwDQYJ
+# KoZIhvcNAQEBBQAEggIAcy8FSYD63vwtypS+L3mmdM8m3R61PHPGQ/gt0zq5CQv0
+# 8eDqAWX10eYFQ/2lVGPJSxX7Ee36bxYMM5iUDUU/ILRdisxaFUcOuFpaMGTKr3ST
+# pSprkSciMOfdezAuj6aGg964+UrQuhfrgJg/y1UHUsfM4ByIKRFyCcJo2CMdpKOc
+# 87ORYykVl7dQAICG0YNNQAMjhDzEWq+yTKHo/SMfNEVicev6oqAjgYAQMP+gjp18
+# mWqgjv3Dp96dqvzzceCiY/FtHZHPHQI+1VQZhmDW49IhApOoH8SmBO8KnitKmQ+Q
+# xTlmTHlwsLQIJElD6IKGFJjYO816P9hHtX/IosJ9ILTbOGs7tlnc8TeruEWq5JR4
+# XmYaqPyiEPjCvIRf2EUst6r50znJy7WaTRlkDN6zRQ2mUdxqz0cpR8vK6WKh7qBZ
+# ZxAnVDaD9oyGXF4YQGLFJlt7IzSHqwo1NLtAkoCakmh+PQTNQ+DA18ZXHZ8qB15r
+# J90iTZ+f7FzbNTa6HGbmVBIHLKaqDk44eMNys0EEAMDxsQ678t/JzocxIhfVmfLf
+# Iir7RAJcXWG5CcAY+eBZdY4DZ5EZBDdOPW6mWL4+Jwr+pPhaoXRKH7Cp053RkeYj
+# D3PcunEU+tEwzSA4gKuuMvVvBPm6lhr4WXx0YiNUXNIIZo/2I697PyveQmbDeBGh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxMzIzMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIGzEMermvZVwgTcArSNcJRW5QgiiLjR8oZPz7CeHfrtw
-# MA0GCSqGSIb3DQEBAQUABIIBAKYxoDNTsIqkx+YoMnS1/+cdhY7KUHiVBNeGQgzN
-# 8EjJe/tayXlnyENhh20WSZ3sAnaOvTiCffsCqulzqr3UdwcRnwPFSlALcvNo5ZjX
-# ehKYXlT3VpGiVfKWiK85W4GKIC7vsq3RNZ8rNLVf6bczxaqWlogeP+MerJwyzRla
-# rmyOaTyeBe9lRe98mawOhaX47dJQj2fofPiMIvj+sN3/uUFekd4H6kctja+5yoeu
-# cNvoblWH5wYjveNOepQWZrcq2PRLh3ndBf+uaJG1SxJwpkz0E+ZRbVP/FSb5JMbK
-# LpjduMfzVxdF/hOwmKS5Ckwwii2wvdNZojcvIkZRR9OW64k=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDAyMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEILBSRN55Mi7udsN+LxhHmsXwx9K9Z8jBBNFCahSfyTIV
+# MA0GCSqGSIb3DQEBAQUABIIBAIVgKKov1T9BYW8Yb8bRDCwROH5j9bK/wkvHw/Or
+# mkQRTI9MNnK8gEyhBH5aaSFf067BQbTgHCiA1VAVcQN5/IuEjaXtNytw1Ah/UUB0
+# ClGUxTmptBqHKS8+4HkErnrllBBPQEMa6rELwEUhI3PI45ZoQ40Gh5hrTZ32Hdc4
+# Ju97eSUSsEMX71ZKcI4NqO1XB1+6va//XltrtZPe5ePfmF3I5cPM6Ocf5O8lw2uj
+# 9TahUZhcp2AtI9YqeUPf4l5i/BrN0T5qa0S3yPdSy1oudE44lkYTLWx7SHCol6Of
+# OqZ8kzsohEngYATf0WxT8+woNZHfeLlo7Z/8Wwbshw8H9jo=
 # SIG # End signature block
