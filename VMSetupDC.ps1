@@ -896,25 +896,29 @@ Begin
             # ╚██████╔╝███████║███████╗██║  ██║███████║
             #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
 
-            # FIX
-            # Add path to user location
-
             $Users =
             @(
-                @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Remote Desktop Users', 'Schema Admins', 'Protected Users') }
+                # Administrators
+                @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+
+                # Service accounts
+                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
+
+                # Tier 0 Users
                 @{ Name = 'JoinDomain';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+
+                # Users
                 @{ Name = 'Alice';            AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Bob';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Eve';              AccountNotDelegated = $false;  Password = 'P455w0rd';  MemberOf = @() }
 
-                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
             )
 
             foreach ($User in $Users)
             {
-                if (-not (Get-ADUser -SearchBase "$BaseDN" -SearchScope Subtree -Filter "sAMAccountName -eq '$($User.Name)'" -ErrorAction SilentlyContinue) -and
+                if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "OU=$DomainName,$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
                    (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
                 {
                     New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $true -Enabled $true -AccountNotDelegated $User.AccountNotDelegated
@@ -2492,8 +2496,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUew6emT9jOf8EFeCpVg/DCRZM
-# gRKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjqH4xrWCfjxH82nsGxz9j8Cu
+# pTaggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2577,28 +2581,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUChpCP4pRYFm02mGXCAl+JluyZlIwDQYJ
-# KoZIhvcNAQEBBQAEggIAREBqoIcpx9/glyqLDnk2Ci81B++AcasIKivmkzGU+Biu
-# h1cqqoVO/6NH82dgPybTKjks4B1gbeJn2OVAsbI0Fix1PuF2J49ih9BqGSqP53ak
-# aaX29WGj3XSDNURZMCvhiwmIKOIwNoDAn2FytkcuyG7tyMsNLiE8Dk+Gfk3GdeRt
-# cn+UMY0cE+KaEkdwHSwPi4SkJmnPXISHG9gLpz67HAtkalDwj8eoJ9ejs//FCwEU
-# sJchbcBbV4IFZhH3K6FIcDwHVZbFUmNpa5bdBrOVKftymZygn4W4AvXZIjzMcehO
-# ha010okkS3kAw8I3Mtq7Pttgr8E5Zn3x+SkyZewhvjwAFSQ8Z+czu71D1LKoxDXb
-# x6gZJWCdQsqyPZZQcuJZE+q1BurBoLPh70jl0SUxVtIh3WNQ++dpl3xGhe2uQcXZ
-# j2RwwOoYIoq7ZzZbtWZGj9hUUU/UmeFm8h9zLkGJCCHy8TaycawX98cTUDq1Dh85
-# RyV/nVn9vjFuwU5uar2w2Os7f6RTm+oa085jSA5BaDlTZIvVDezjK3ol5B/S+DiA
-# xsexamaUo/aGMx4oBSvcIF9yXLzF7LQQilLInb9lcnKNIS7AEnfKxKZCh3KWrScQ
-# Zv4RG0XXbx+nQFDYyHnMhREykz6A1fi853+V8KWjlVE3lMACebbbx+DXiI/JeNah
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCFMWOiWPlAF9YIgzhocVf/GOHU8wDQYJ
+# KoZIhvcNAQEBBQAEggIAaYMOXSOYWXsAoXRjszKOZOskDUY2/t/ECSY+Na7qx7py
+# VSTxGVsihCtIfHE/wbLQmQuIdSGK9DDxKucExCnNY46/l6S+7CfK+u8AmtCNM8e3
+# 4sgLsY5XMqqFlb8poNOc4Ea6OL7R8B52B4nTrCw7rAXeUHdM6H3yzIiX95p5Oo9D
+# f6zDnv85+q0n5zjjTVEA9K0jQLbuFmnDnQ9SqGHM1yYudJuzjiwFwh/rgqt9aHuJ
+# I/7yT5+4iWC6MYtJNi/UwXWRgQfybr0F/lQxn5lG79CqryupSTW40JFP/TCPiBnn
+# Vf25G1GOK5rp7d3vX60+bYVi4nBU0aOG9YpF8ysI6JZu2Kf2vbAHKZ7KdAzxJYOy
+# xjp8IoNChgLzC+D/Pl6IVdqZnT9ckNai/pj8xTQHWPEcI4B3/OGb9zmU8Kcce9JB
+# N08v8Pj2agv4q8UVFOw6HD4kwAvVqynyH+v+4JgJRYkHcHyfWSL/dXVBw+zeg8Oj
+# 7zX/revbHVzeYlcTeRFnCucGPfklQUkKLYmby14L2bZm4lyIJ+2JrI1U6x5hpueW
+# YoGnZxk8GsanuVy1MAd07/zy54m6kHZAFI9VZ68ZKoZ2J/x0q/+ooONzpPjPtpkj
+# iaVzY/4N+PogzkrSRL+Qom4QjAh/XgtDs5pFhNcnNcd9vA7kJitRboZfuAnbjNeh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNTE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIGFQP98TK0B+l27tX1sz9aPE2nHclJwlpSXBaVq+cy/s
-# MA0GCSqGSIb3DQEBAQUABIIBAIzPyNQ+nPV6Kn0iWnneZ6KYo+R5FnQo4H3l/z4c
-# D/V8CBX0elolst4uR4sHAaEUKY7j+oIKZcPcD49BhWkHYA2bFQkzv1JKif4Kvvu1
-# ZM//4ZYBfM6V7hvoKYsKYGDAI0gYrxOLHKSFifnn5wAQJ2VN4DyRV3F79fTrTVRM
-# CQY+CyyPsqAYcNrq8leFP3zcs4PfdUgy8xnxxGx+m3cvB8cRmdylxIDujiybVXpS
-# cqHrvIoNJ5DiYteYfCSEhKCcmYI1H411LQq23YQ+tQEKNk3yrBgEY5w695wz7v68
-# xDrUJJC2zUlH7cSZSEHfttL4A9nKLOwMquDO4AyIkNUJuWs=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNTE3MDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEICvupCnRzi1s089zn1jFoi/x6gtgH8gUdhIBjjucYChr
+# MA0GCSqGSIb3DQEBAQUABIIBAK6jJnFokTXYaonrwzX0FTHlrKbP8a+PsP9mZF2Y
+# eystwQM1JiHJdLbaKVQkYoT/VXwFOC1IErHqnKVcoj6D8pfhM/9X7Sjsyk6sln11
+# X45FnWdzl69sEGWVXLT+HgbY21AAyH8tgQtl9SRafGLVN7pwJa+4Ea1VbKWJIkhf
+# TCa9lQijYpCdnjCXeZ5ZtiOeBV0nfcoeiDJkBSd9D85S91dA0jaFp6/m6yisL5kV
+# 6gW7exOR8IMJr6EVNQLWWBGRqb18qiTKz5R7pTVuntOcyoeVxaSKT8kVXvFCJqrV
+# sVi4+GHkPWeQcTuWUdXbkUOJj38o+YIrbKUyYYsFpioRi1I=
 # SIG # End signature block
