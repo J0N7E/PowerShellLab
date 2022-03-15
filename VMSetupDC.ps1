@@ -1020,6 +1020,28 @@ Begin
             # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
             #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
 
+            ##########
+            # Kds Key
+            ##########
+
+            if (-not (Get-KdsRootKey) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
+            {
+                # DC computer object must not be moved from OU=Domain Controllers
+                Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
+            }
+
+            ################
+            # Global Groups
+            ################
+
+            # Initialize
+            $DomainGroups = @()
+
+            #########
+            # Tier 0
+            #########
+
             # Name              : Name & display name
             # Path              : OU location
             # MemberFilter      : Filter to get members
@@ -1027,18 +1049,8 @@ Begin
             # MemberSearchScope : Base/OneLevel/Subtree to look for members
             # MemberOf          : Member of these groups
 
-            # Initialize
-            $DomainGroups = @()
-
-            ################
-            # Global Groups
-            ################
-
-            #########
-            # Tier 0
-            #########
-
             # Administrators
+
             $DomainGroups +=
             @{
                 Name              = "Tier 0 - Administrators"
@@ -1185,6 +1197,40 @@ Begin
                 # Tier 0
                 #########
 
+                # Group Managed Service Accounts
+
+                @{
+                    Name              = 'Adfs'
+                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
+                @{
+                    Name              = 'PowerShell'
+                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like '*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
+                @{
+                    Name              = 'AzADSyncSrv'
+                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
+                @{
+                    Name              = 'Ndes'
+                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -like 'AS*' -and ObjectClass -eq 'computer'"
+                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
                 # Access Control
 
                 @{
@@ -1327,36 +1373,38 @@ Begin
 
             foreach($Group in $DomainGroups)
             {
+                # Check if group managed service account
+                $IsGmsa = ($Group.Path -match 'OU=Group Managed Service Accounts')
+
+                if ($IsGmsa)
+                {
+                    $GroupName = "Gmsa $($Group.Name)"
+                }
+                else
+                {
+                    $GroupName = $Group.Name
+                }
+
                 # Get group
-                $ADGroup = Get-ADGroup -Filter "Name -eq '$($Group.Name)'" -Properties Member
+                $ADGroup = Get-ADGroup -Filter "Name -eq '$GroupName'" -Properties Member
 
                 # Check if group exist
                 if (-not $ADGroup -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating `"$($Group.Name)`" group." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Creating `"$GroupName`" group." @VerboseSplat))
                 {
-                    $ADGroup = TryCatch { New-ADGroup -Name $Group.Name -DisplayName $Group.Name -Path $Group.Path -GroupScope $Group.Scope -GroupCategory Security -PassThru } -ErrorAction SilentlyContinue
+                    $ADGroup = TryCatch { New-ADGroup -Name $GroupName -DisplayName $GroupName -Path $Group.Path -GroupScope $Group.Scope -GroupCategory Security -PassThru } -ErrorAction SilentlyContinue
                 }
 
                 if ($ADGroup)
                 {
-                    if ($Group.MemberFilter -and $Group.MemberSearchScope -and $Group.MemberSearchBase)
+                    # Gmsa
+                    if ($IsGmsa)
                     {
-                        # Get members
-                        foreach($Member in (TryCatch { Get-ADObject -Filter $Group.MemberFilter -SearchScope $Group.MemberSearchScope -SearchBase $Group.MemberSearchBase } -ErrorAction SilentlyContinue))
+                        # Check if service account exist
+                        if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'") -and
+                            (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
                         {
-                            # Check if member of group
-                            if ((-not $ADGroup.Member.Where({ $_ -match $Member.Name })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Member.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
-                            {
-                                # Add Member
-                                Add-ADPrincipalGroupMembership -Identity $Member -MemberOf @("$($ADGroup.Name)")
-
-                                # Remember computer objects added to group
-                                if ($Member.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Member.Name))
-                                {
-                                    $UpdatedObjects.Add($Member.Name, $true)
-                                }
-                            }
+                            New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.Name)"
                         }
                     }
 
@@ -1378,6 +1426,28 @@ Begin
                             }
                         }
                     }
+
+                    # Check if filters exist
+                    if ($Group.MemberFilter -and $Group.MemberSearchScope -and $Group.MemberSearchBase)
+                    {
+                        # Get members
+                        foreach($Member in (TryCatch { Get-ADObject -Filter $Group.MemberFilter -SearchScope $Group.MemberSearchScope -SearchBase $Group.MemberSearchBase } -ErrorAction SilentlyContinue))
+                        {
+                            # Check if member is part of group
+                            if ((-not $ADGroup.Member.Where({ $_ -match $Member.Name })) -and
+                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Member.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                            {
+                                # Add Member
+                                Add-ADPrincipalGroupMembership -Identity $Member -MemberOf @("$($ADGroup.Name)")
+
+                                # Remember computer objects added to group
+                                if ($Member.ObjectClass -eq 'computer' -and -not $UpdatedObjects.ContainsKey($Member.Name))
+                                {
+                                    $UpdatedObjects.Add($Member.Name, $true)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1387,7 +1457,7 @@ Begin
             # ██║   ██║██║╚██╔╝██║╚════██║██╔══██║
             # ╚██████╔╝██║ ╚═╝ ██║███████║██║  ██║
             #  ╚═════╝ ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
-
+<#
             ##########
             # Kds Key
             ##########
@@ -1476,7 +1546,7 @@ Begin
                     }
                 }
             }
-
+#>
             # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
             # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
             # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
@@ -2511,8 +2581,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/L/gHx/Gjx6VB5Vu7qH0Rnlk
-# HViggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzUeJ0YOZsQfhyTwlI5YcV/Hi
+# faKggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -2596,28 +2666,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUifKMVtcW92DyXY0bN3qnFMVdfYAwDQYJ
-# KoZIhvcNAQEBBQAEggIAri2PCmoDXz4eVStqtjXMc7JLPKvdKY9vx27qApR+1l3u
-# Z+fWCLvI/5anBBMuTQ2cYPEyXGnhL4rwi+fE7SAXVZUjYnHQVttfycs1mtSLdO8/
-# EctLdt92jeZfVx0ILiNQGd2jsdueA5hwR008OQegRES/mvxIE7z9Qu0Y3VPMX/gn
-# YhShq4auKzV84kjbXaz2TQAesWF/sRnbTxroCYPNyLoTayOJRUADQA8FsDI9itm1
-# Nx+D4k2oAk81gtEGdftib0hy8LEXISfggcuMgWGk0qquUvxWyiVNW1zoN4mwijLt
-# PQRaA0x++8ks9NPrUI4k5FqCaoQOW6mqeOoRwZKX74qrDtt9hKnEtACeHI8BpuhT
-# cRNNtsEQOfeEngwg8MXJuf0YDa38ZhixNBNVxoaXGqj6CApF43WjGmHK2pb3/nxM
-# 6rto+h6uZ1Vjh5ba3HqDuuG+xl0ZbqI28YoOotSVb8mGaUm/GiBY8dOTgP1NgRZm
-# UXLNF0YTHmrURGQhhzufh/PXP7BmSqB2EoLlr9GFMPqT5XV0JqlL49ynNoTwzna+
-# 9r68rOoRG5Xy+WAsVJ0CHtJSSGLhxJ9AkG4HWhLcei1VA0zr6KvPWMNUtTBzeRkj
-# rgmeC755cll2SxFK5iZ5gaknGHaF83ixfRE5e8jcJ8R+O8kvr8d3RurLvSdFOF+h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU850wP4ddZ6MH0sQ/BjtuyeACE0AwDQYJ
+# KoZIhvcNAQEBBQAEggIAARHiJFlyevohT8evzj+7SKxlQC4rfn8V7BggxNpVi/5f
+# QHR9L19x7UDBlkdJidiknShJzKAou7/IMVY7MQ4rASF7Lf3A8VnyyMl3z98zbbqj
+# 7u1nAxescWBX0XDwd9D519HxUSpWZYvfgrgSbwe/oCDj769YYPvu2dBk25dfmKXY
+# YNKdtufU9G9uTumO5Y0utALmepLVMZ+sv75f5r1zogUtQM8somqu9NhzJ+v/2vx7
+# 4AEm8F90Q03RG37vh02Q+C/FIB5JlsqC5bWuh/RXIblz8LPhXU47XIoRi0T8b/Ii
+# VivhXljkYYZxZvtZJJ862//D0zT2YNKUDLhrfpxFew1cprf1vKaDoaHFky0MkznF
+# QNMowVow3a+ocS9Zj7wX2yJS87hWFUkCYtCwEunGJfeXjltqdbYElVMxUsMnIx4A
+# tRSnOZSorSM1c+FGjQwg1y+faQzDmSjuXQuhvSIU3m3t0UJVrAV9lhHN7eW9eK8E
+# oJiudzBKOJwBEuc+ZYZP7eR8nGCRGNOQGCJACI5tgsI+/mcB5uEZGFUWIOKc7pBk
+# SaAc+2Jy45kYBTzk8Ou2vy6msM7fUfW+yhtX7yQkpiSynn42nlQ17dOVWmLSvUOP
+# kneNEIAVTaAMmsDT1mxoyIYfswa85o0rNjKBr3L1loa5a0s+7MAdSZ7KNkMbdwOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNDIwMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIGjivYrnXu/42RqONJ35Px5FJ7Kr+qUaUX9lcFlAHP+L
-# MA0GCSqGSIb3DQEBAQUABIIBAIlzF+MMuw4gDN6qD26elHX0shvNCStS1GK8zzBj
-# UHUMUk8Y4DfrIr1hbBpm2WjPtD2uwKZq3OjL/36dUk0rIht1qUT40YG3Yg9ocN1k
-# nEX3H7rCajPTImslNkZBBb28S4TawWH+5APXWTGGNnJV7p49rJJerSZM5gPSjwFG
-# 08R8DNLAeEjL9G3oIxCC6DQBS3aho/sDnm7Adl4fdp8I3Q1fXFN0qPOJs74RbjbN
-# 6i5x6qeIq1vKRZhdGIDTlgl97O7jyta1337B50cog1b9ueKqs5VLWOJqFHNbWq1v
-# PpqBl7EVydnhbbSdNXRBSgxjiyYz9NtgW0AxsNfYlpJmpw0=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNTExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEIHk4966jA/FJhWhWsyPSB7AaGrRKzi9O/4pAIKMCrdF1
+# MA0GCSqGSIb3DQEBAQUABIIBAA2iT/FHDwr4LXR09iKmlPr1Gp5ps4nYgGL3mDAB
+# ++U1bW8f/k0auAI2f/P37qLnIZMimaoytfqpvKx83b2pID/MZwWxULvZMe9XRhMe
+# XN5gSIPrtQAoTHD4nGL5CttfbXdIxtVNEpMqgJ3WTwzfyM7OLXjF9PX3v4jZG/et
+# S6ix7pEg+lrdI1UPKET0UT+gyMzYA8Tr3Hrb4DcTR7uWdLxfn4EW0sMv88qbP0rI
+# zdNjfUbJh8X1jf3Py0TZS7Mj1ooYcTnEg4jjlLy31qjQqQoU0aJd2P1oqwApKm2R
+# uqeIWCZ3CAZHY5qfsVQy0L8cTDbb9obgDVV9Pf6o+q5VCC0=
 # SIG # End signature block
