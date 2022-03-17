@@ -666,22 +666,6 @@ Begin
             Check-Continue -Message "-CADistinguishedNameSuffix parameter not specified, no suffix will be used."
         }
 
-        ############
-        # Get CA CN
-        ############
-
-        if (-not $CACommonName)
-        {
-            $CACommonName = TryCatch { certutil -getreg CA\CommonName } -ErrorAction SilentlyContinue | Where-Object {
-                $_ -match "CommonName REG_SZ = (.*)$"
-            } | ForEach-Object { "$($Matches[1])" }
-
-            if (-not $CACommonName)
-            {
-                Write-Warning -Message "Can't get CACommonName."
-            }
-        }
-
         ###################
         # Expand variables
         ###################
@@ -1195,6 +1179,9 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     $ADCSCAParams +=
                     @{
                         'KeyContainerName' = $CertKeyContainerName
+
+                        # FIX
+                        # Add as parameter
                         #'IgnoreUnicode' = $true
                     }
                 }
@@ -1471,6 +1458,17 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 Write-Warning -Message "Waiting a bit extra for CA."
                 Start-Sleep -Seconds 10
             }
+        }
+
+        ############
+        # Get CA CN
+        ############
+
+        if (-not $CACommonName)
+        {
+            $CACommonName = TryCatch { certutil -getreg CA\CommonName } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "CommonName REG_SZ = (.*)$"
+            } | ForEach-Object { "$($Matches[1])" }
         }
 
         ######################
@@ -1837,8 +1835,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMzXm3ykk0ajGTco+yqhxM2hu
-# V52ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUR8SxWg282VCn33U2qPrZed/K
+# zsqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1922,28 +1920,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUh/qsagBVx31DQL/Mlxk4l6XX5nwwDQYJ
-# KoZIhvcNAQEBBQAEggIACN7vBhNhT4MWX75XE4dQMIK8tM1S4C8tcbSp+klZNhUM
-# ZmhGP8okceQ++MtpPv4ERQImNAkshLrnSRFIVfkT6y+FnT8PSPW0GUqooExvTMW/
-# F2YVbdqqz/3alHALfj9ducJDneMZqQLwcJPK/a3NKx6QwZEhz4PBb47nZuT8b5w7
-# UllwAQjnxvIY2EoqcYvN1pFp32u98t6K+Qv7Vqc7ngyXK3VOUu2yXiUdDrju/w74
-# xHgMUm8f236DZZqTV/fAgdwpKTd37gaUaMedjr7JuyOXWqJQUxLKQY1jwzTivjiU
-# HGFSBIUuR7kEiyVwHfi+o4Jr94/AJfaYTWeRs9IWqDbuhUKdyHEJdXCpC79gp31J
-# 3yV3vMHlGEAN9A+U6Gj9KWJbUVZ9XzyWNWkcpKkLPZhwgjSBD64X3P5/MUXhRDra
-# szq2aip4a8ajapjXN8CquzaRwydEDEkzvj6b1GY8FZmFqzww0OSi5RfNdHqcf7bW
-# jqhUXJh7rOiVVjPJADI28h/fN/ow+f+ZZuQyxdoCzVF8T/H1SM0D8VC1mYIagGGd
-# +5YrWDxe3rpwQDhaa62SAxJQbr5XXoYon9CxR01+mo+FnUt/Wh5PuL+/UkrS2x/C
-# gekekny/aEl9+qaFaOAENKDkJNduksdckDZP7/Pa0aOhrKM9fnFvgp2IYuELsVqh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGd69/UqiOrdrwOwcUpV5GtsIeeowDQYJ
+# KoZIhvcNAQEBBQAEggIAejlAmO3pIVAtTbfnrBdmEwAOPhbYwLY+CEAIMv9mOaYv
+# 7A/yMo9TwU/s9NQ7UjsopbkeBcgQbXs97dDspbNb5s84duBXCeNG7hxoY0hattW9
+# zR56duQuiaJDVDAXCAsMGaDWcVxbVGnN8fvqFZx5jzr7rQ0GbEVPf1li+h+iQFGy
+# v20oesobmq+umUmvSFTfprxxU6tzVmvOhqvpYoJglb/bV9etnHc5g+nWOLv05Gq8
+# qD+1BIrYXkF3tjxE2S1R3qxyW2jZTY5ykRr2ykup4yTp7Mh3UKt3Ikxag+KepDnU
+# YnSY3AVNA/NMoD7UnAlHqdmfdOjxudNLVzSz7w5Ls6LWErR8FsmdJiVQkhwQsGpy
+# wwIHSkJMiBtUA9m5TXfgPgRnvJLkh5bNKPp8c516hdJpuT0DLDhZ9lRKRmJ6GuUL
+# ceXbN3aKev06PKValOlabCYUw0at1eV1h77CgmMI8ISdfz27/cQC77bWMctykyHj
+# VIcZfhSSMFkZRTK1PSOMYHl9AEQASGPzTaqHf2i6sYAnUdL9IZlpu1sh6Q1FP9av
+# CWQc76MDTjamHnmsvVGUejRz7cvOysuCNJ+BIoFxAvdRaXM0GodXlbrhbw5DOc5R
+# Sxh+cl8WYx1CAdJ46MAQQ7KiOTkKuJf457DyagtEUl2KUoK67KeOsQcQ71ynvhOh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNTE0MDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEIBE5Ia7Y/jta5Fw41H1aNyYJIrXd8cq8K/hTmJw1Zztg
-# MA0GCSqGSIb3DQEBAQUABIIBAGs5itfL6hpmOqIVSxr4YEXuM2FHJ7pNpu1grGJl
-# Sxqh6UHuceGkEP0n5iej3LTu9qjS7Q1AXgT+StQdsV7joq0y7xHZGjuvVJ+/sL9e
-# 3qQXEHwHHtfBUdYT/i3DOp1qXGG/2yfzkujKyhqLvGR4Y0rCBlqoDC1fWXdWmDVe
-# WCyXiAdE/Druxm5rrWzIwIPVUCuof5Y3TfFZuVOhNqnZmBWLzCeyuNvMyduOs/wL
-# 6EPi+wlx30LVf6SrnyzipKqb0I/C+3ZK34jDgsE/3FJQM2vqfqv8kciZaehyXtJ8
-# fmmwifvDlidsu3tgfm+rmSWvhBb4P0KTHz8aXOkLU2L6PSY=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxNzIwMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIBpFfAw//+emDJ/yxzbrVOw76Q4k9hrSC7dZQJxHLcYo
+# MA0GCSqGSIb3DQEBAQUABIIBAFTOF2GLf/4KuGKbYTC+Ci6O34IWIk37QteZDVEe
+# Vp2xZTMlc2AaB0+bqUx8MgflXApaXAb1N18PmxW4C0+vj0UsYU2SHDGAo82PKlGV
+# rd9CjfZRStMg4MG18AEgPSnTig2FRxexWSeB2GGrjdTRyUKzOAGEAMFKLHn9naRO
+# 0UWLT8RoGp9f0Kpzuu1BQuApp1nrI4r3lCFHYDsDtdNMrPyiPWsf7YzH/A8ji2hP
+# Lud6c9Xx6pRfWrAUNgq24DpLRKSV2GSJbKrN66uJ0MiEyn9feJXT84qck2bmdnvX
+# DagAq+zHafvZEvRen0cIktFIUDp40b/yFB4kq2QwCWYmVMM=
 # SIG # End signature block
