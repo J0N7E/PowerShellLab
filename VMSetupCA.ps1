@@ -264,11 +264,11 @@ Param
     # Set host for AIA
     [String]$AIAHost,
 
-    # Crl publish uris
-    [Array]$CRLPublishLocations,
-
     # Set host for CDP
     [String]$CDPHost,
+
+    # Crl publishing locations
+    [Array]$CRLPublishLocations,
 
     # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
@@ -467,7 +467,7 @@ Begin
     # CertFile
     ###########
 
-    if ($ParameterSetName -match 'Certfile' -and
+    if ($ParameterSetName -match 'CertFile' -and
         (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
     {
         $CertFile = Get-Content -Path $CertFile -Raw
@@ -762,23 +762,6 @@ Begin
                 $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
             }
 
-            ####################
-            # Publish Locations
-            ####################
-
-            if ($CRLPublishLocations)
-            {
-                foreach ($Item in $CRLPublishLocations)
-                {
-                    # Add publishing paths
-                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
-                }
-            }
-            elseif ($ParameterSetName -match 'Subordinate')
-            {
-                Check-Continue -Message "-CRLPublishLocations parameter not specified, CRL will not be published to another server."
-            }
-
             ##################
             # AddTo (Include)
             ##################
@@ -811,6 +794,23 @@ Begin
             else
             {
                 Check-Continue -Message "-CDPHost parameter not specified, no CDP will be used."
+            }
+
+            ####################
+            # Publish Locations
+            ####################
+
+            if ($CRLPublishLocations)
+            {
+                foreach ($Item in $CRLPublishLocations)
+                {
+                    # Add publishing paths
+                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
+                }
+            }
+            elseif ($ParameterSetName -match 'Subordinate')
+            {
+                Check-Continue -Message "-CRLPublishLocations parameter not specified, CRL will not be published to another server."
             }
         }
 
@@ -1157,7 +1157,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 'AllowAdministratorInteraction' = $true
             }
 
-            if ($CertFile)
+            if ($ParameterSetName -match 'CertFile')
             {
                 # Get content
                 Set-Content -Path "$env:TEMP\CertFile.p12" -Value $CertFile
@@ -1171,7 +1171,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             }
             else
             {
-                if ($CertKeyContainerName)
+                if ($ParameterSetName -match 'CertKeyContainerName')
                 {
                     # KeyContainerName parameters
                     $ADCSCAParams +=
@@ -1185,7 +1185,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 }
                 else
                 {
-                    # Default parameters
+                    # None keycontainer default parameters
                     $ADCSCAParams +=
                     @{
                         'CACommonName' = $CACommonName
@@ -1193,7 +1193,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     }
                 }
 
-                # Common parameters
+                # Default parameters
                 $ADCSCAParams +=
                 @{
                     'CryptoProviderName' = $CryptoProviderName
@@ -1216,8 +1216,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                         'ValidityPeriodUnits' = $RenewalValidityPeriodUnits
                     }
                 }
-
-                if ($ParameterSetName -match 'NewKey.*Subordinate')
+                elseif ($ParameterSetName -match 'NewKey.*Subordinate')
                 {
                     $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName-Request.csr")
                 }
@@ -1467,6 +1466,11 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             $CACommonName = TryCatch { certutil -getreg CA\CommonName } -ErrorAction SilentlyContinue | Where-Object {
                 $_ -match "CommonName REG_SZ = (.*)$"
             } | ForEach-Object { "$($Matches[1])" }
+
+            if (-not $CACommonName)
+            {
+                Write-Warning -Message "Can't get CACommonName."
+            }
         }
 
         ######################
@@ -1513,24 +1517,15 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             }
         }
 
-        # ██████╗ ██╗   ██╗██████╗ ██╗     ██╗███████╗██╗  ██╗
-        # ██╔══██╗██║   ██║██╔══██╗██║     ██║██╔════╝██║  ██║
-        # ██████╔╝██║   ██║██████╔╝██║     ██║███████╗███████║
-        # ██╔═══╝ ██║   ██║██╔══██╗██║     ██║╚════██║██╔══██║
-        # ██║     ╚██████╔╝██████╔╝███████╗██║███████║██║  ██║
-        # ╚═╝      ╚═════╝ ╚═════╝ ╚══════╝╚═╝╚══════╝╚═╝  ╚═╝
+        # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+        # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+        #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+        #    ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+        #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+        #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 
-        if ($PublishCRL.IsPresent -and
-            (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
-        {
-            TryCatch { certutil -crl } > $null
-        }
-
-        #######################
-        # Enterprise Templates
-        #######################
-
-        if ($ParameterSetName -match 'Enterprise' -and $PublishTemplates.IsPresent)
+        if ($ParameterSetName -match 'Enterprise' -and
+            $PublishTemplates.IsPresent)
         {
             # Get AD templates
             $ADTemplates = TryCatch { certutil -ADTemplate } -ErrorAction SilentlyContinue | Where-Object {
@@ -1550,6 +1545,19 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     TryCatch { certutil -SetCATemplates "+$Template" } > $null
                 }
             }
+        }
+
+        #  ██████╗██████╗ ██╗
+        # ██╔════╝██╔══██╗██║
+        # ██║     ██████╔╝██║
+        # ██║     ██╔══██╗██║
+        # ╚██████╗██║  ██║███████╗
+        #  ╚═════╝╚═╝  ╚═╝╚══════╝
+
+        if ($PublishCRL.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
+        {
+            TryCatch { certutil -crl } > $null
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -1833,8 +1841,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm+GHy/irrXGT9IhWJhyd2w6j
-# hR6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmUE59Cc+eQ9eYKY9B+bTBtnZ
+# vm+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1918,28 +1926,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIaSYWXbayq0YY/pt3vm7f1/ruz8wDQYJ
-# KoZIhvcNAQEBBQAEggIACutudrIhLYDbsn99jx2ca2SlNPpz9i9fVUT2ItJ4x3Rc
-# eeF3ICzejQhaXpy+sO0TE9LzgxWZ228ztipogaSOp1j4L1B3/P9hZbLABjxLwcn7
-# SxtMaNBleJcshenhHT8kqor6KvcG7HswYjvtZYE7FTSKncz/AAzrO3xMSt6X7P6b
-# jYg/yD9XKUDZlG6w7gXzaw933Xy+QrfIDyFX5JNiADGoSmkL5MF6NoDUis+7nexu
-# zdW6DEIofQwt6BhEYZU0B4X6m1VKGdSaiXWYI9lmFPRvWDrj5zifhpo6X36e283l
-# PxPlzISb+lVoH3hVxYLpz2JIWehDDtk27PzK9Tf6fJEAoE0oXcfKZeWfKO/GSHcZ
-# rVE3tl+khCABCNIV3XKEiqMABH/LqgThJOSBOcxVBtQDp1VpKx1J+GUKycflJf9v
-# bHPHn71Gwitt3MaI5F3zSV+wMtHOxCLRi+eBx7FID+NWwELh02iunVjmEZDtRkC9
-# njpBvwT4fRRiIysMI0UMH6VhzBcYISxNvpsbnIj9WphO4ONUGoYxkUKiTgRLu1Vq
-# MHK/qJsaYxx3Rj5n5B4DpaG/UJo6MH4f/M9+i0+x98v5VbgzsYVgu+IfvldS2Vfa
-# YioCs78lsDmbmFkdUkEEwDQ6sDyy9vub2Zks8pNDToNEB3pODY+5glg0IDnEo2mh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhf95+S1cUVLuw1mu1V8wOiy+Mh4wDQYJ
+# KoZIhvcNAQEBBQAEggIAMP0rXdTp8QFTiFtGJeiAz6k3DfxqVdcuvDqulfuorVE9
+# y3WlU7fwgm/lgAYuDuJFLsM4k/bWnRwAHRMtOsC3xCrZP/if9Qfn76lDNuqR7/Tg
+# i/qLGt0YhBdq3BiP2iAe3d5FoCKwfd4m3/xze1EThMU/1T5BieqPxMceki6NZv+l
+# mhn5yhxdom8mzR5qhZQWYdkBKE/qQ6aR4FGuSwUI7BnzF6zClCroKpTKNU+2loJJ
+# mN1XU/fl+tZyc4hda9JfhS5qV0tW4Zw3ITKNMZWcrHevMdtXIU2Vsi1UGZHcIARs
+# RGXMYTDE1cJXCBiLR4mscFf020bXWwBwJpnjbMMYo6TEUEIYUG5QHt3YVw/Sl/pw
+# x31cZyoKWa+tvZF34DU/wiaM8aBvHWy3bKbA07yQ8XuM5vQZiJfTpsQqkaIg447u
+# brAs+8cswkFAIS4fUlbtJIivA4BVb+yfBk/SPg9A8+llGwUfdx/uDDfXD4d3gi6Q
+# e+kwLeKurJS/8WOsQI8d4K6M2zJyhdoFyOgxMJkT/kemH+KOhvPoGmcKFeSjrpJP
+# vn4OVrN8hMqJfwHYwwikO59KHX3iQvkOEw4FU4cftBUtlZq6e/IN4JaFlDcQrH+y
+# crjayGm8inkjecpXKffOS4cRKocKi6XLhMkdukD9nT4J0MBfOt9CkdFNhFYu1Deh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODA4MDAwMlow
-# LwYJKoZIhvcNAQkEMSIEINUXwrHw0CAoO1N9tnvN7dk/ePt5Kr77gbdUGALJ1Ec0
-# MA0GCSqGSIb3DQEBAQUABIIBAK83kuedPtzXeG4GqPzQdbGgJLw6D6Cs2uik470N
-# wFkGqIpUpxB6IIES4iKlPD/Eu0T9Yace16Css7LKAzC+o9eQApmpN/u/YRLL/LT4
-# Ss1S/XkGnH3ZsKOIhauZMzSjJkIDdc+Csr4xH+zeSxQh9vPzi9otGtNry39KWCA6
-# Rhje1OTmXJcvvai5ye5AvxbuDFheCbI+l1tZ4/9r4BI/JcSpAv4/Wr3qdGIJ7/z4
-# QrBm1VNvgQw6BQudHPVjrrPgksZ1DXypzFBgO/I9pth55mvFWll/1rzcZJvF25P6
-# JiKvriHEs7dgBndYb4Bd6hPCSjFkwowih8lZ040Oyo4QxuM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODExMDAwMlow
+# LwYJKoZIhvcNAQkEMSIEILrvhinfChL7M1ZQonLlqIungBNgZAisuLdfnTXl35V6
+# MA0GCSqGSIb3DQEBAQUABIIBAKdHKvCHGsq8bkSAVspOLuSS1OJ5LkPpbfZ/++A2
+# vkdqOirwWZ1mp2k4iRamKstSh9khApYmKLu6NJFJgGv0EK+mifeOAfN1BFgYhJTE
+# qM8ULHZGTO+Avpoq8xbDZxphye+xG40F0sDOoyyjvNH2cb3yLRCQan33tPh661jk
+# MnAlpy+MBo0NJzdcD0FM4IJFQDMjdYlWPnshDn2Mm+AMfiR4GcaS0JCkCnaBQ/ML
+# 7KjClq6fsJyrjjxvADugtrK+RBdx5SAY3+crFmo/kqM/wXIZsy4ALEoiMhHAiamz
+# reG50eJxe4IVrpmbcHJJDxJL69HvEaO+j5Q+TeGsSwtUuVM=
 # SIG # End signature block
