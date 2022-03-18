@@ -268,7 +268,7 @@ Param
     [String]$CDPHost,
 
     # Crl publishing locations
-    [Array]$CRLPublishLocations,
+    [Array]$CRLPublishAdditionalPaths,
 
     # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
@@ -339,10 +339,10 @@ Begin
 
     $Serializable =
     @(
-        @{ Name = 'Session';                                   },
-        @{ Name = 'Credential';          Type = [PSCredential] },
-        @{ Name = 'CertFilePassword';    Type = [SecureString] },
-        @{ Name = 'CRLPublishLocations'; Type = [Array]        }
+        @{ Name = 'Session';                                         },
+        @{ Name = 'Credential';                Type = [PSCredential] },
+        @{ Name = 'CertFilePassword';          Type = [SecureString] },
+        @{ Name = 'CRLPublishAdditionalPaths'; Type = [Array]        }
     )
 
     #########
@@ -800,9 +800,9 @@ Begin
             # Publish Locations
             ####################
 
-            if ($CRLPublishLocations)
+            if ($CRLPublishAdditionalPaths)
             {
-                foreach ($Item in $CRLPublishLocations)
+                foreach ($Item in $CRLPublishAdditionalPaths)
                 {
                     # Add publishing paths
                     $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
@@ -810,7 +810,7 @@ Begin
             }
             elseif ($ParameterSetName -match 'Subordinate')
             {
-                Check-Continue -Message "-CRLPublishLocations parameter not specified, CRL will not be published to another server."
+                Check-Continue -Message "-CRLPublishAdditionalPaths parameter not specified, CRL will not be published to another server."
             }
         }
 
@@ -1704,7 +1704,7 @@ Process
             $CDPHost = $Using:CDPHost
 
             # Crl publish uris
-            $CRLPublishLocations = $Using:CRLPublishLocations
+            $CRLPublishAdditionalPaths = $Using:CRLPublishAdditionalPaths
 
             # Crl Distribution Point (CDP)
             $CRLPublicationURLs = $Using:CRLPublicationURLs
@@ -1841,8 +1841,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmUE59Cc+eQ9eYKY9B+bTBtnZ
-# vm+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0yB1tqX3kRJGz9AH0QwTlboJ
+# ed+ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1926,28 +1926,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhf95+S1cUVLuw1mu1V8wOiy+Mh4wDQYJ
-# KoZIhvcNAQEBBQAEggIAMP0rXdTp8QFTiFtGJeiAz6k3DfxqVdcuvDqulfuorVE9
-# y3WlU7fwgm/lgAYuDuJFLsM4k/bWnRwAHRMtOsC3xCrZP/if9Qfn76lDNuqR7/Tg
-# i/qLGt0YhBdq3BiP2iAe3d5FoCKwfd4m3/xze1EThMU/1T5BieqPxMceki6NZv+l
-# mhn5yhxdom8mzR5qhZQWYdkBKE/qQ6aR4FGuSwUI7BnzF6zClCroKpTKNU+2loJJ
-# mN1XU/fl+tZyc4hda9JfhS5qV0tW4Zw3ITKNMZWcrHevMdtXIU2Vsi1UGZHcIARs
-# RGXMYTDE1cJXCBiLR4mscFf020bXWwBwJpnjbMMYo6TEUEIYUG5QHt3YVw/Sl/pw
-# x31cZyoKWa+tvZF34DU/wiaM8aBvHWy3bKbA07yQ8XuM5vQZiJfTpsQqkaIg447u
-# brAs+8cswkFAIS4fUlbtJIivA4BVb+yfBk/SPg9A8+llGwUfdx/uDDfXD4d3gi6Q
-# e+kwLeKurJS/8WOsQI8d4K6M2zJyhdoFyOgxMJkT/kemH+KOhvPoGmcKFeSjrpJP
-# vn4OVrN8hMqJfwHYwwikO59KHX3iQvkOEw4FU4cftBUtlZq6e/IN4JaFlDcQrH+y
-# crjayGm8inkjecpXKffOS4cRKocKi6XLhMkdukD9nT4J0MBfOt9CkdFNhFYu1Deh
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxjuvfcq7AXKYUdbrxUeqnYDDq5kwDQYJ
+# KoZIhvcNAQEBBQAEggIAlxh98MD9CFHpnUR/6J9EtNSIU4QsyNtFxLc/ETaU66Gl
+# FWZeG0W2LNB4jcktTiC2hBczhbJ0yeQUeJK5odHUvkT58MrQ5UQN0jR6RKWhDwqx
+# hyO8YKjd67T/aXZY4max5C5WQmXgMjRrvxlmx9hpBZa9r1O1bznqxtoFU/6xdWs+
+# n30nwlD9Fkijlsw88looaUfD4EvqKeVfEgJcITn0rQlgXaYA26L6iJPMpg/DptV4
+# Zad9iN+gBPPzXWG0h24gCfckGhZclBU2iaOFvmH1ZFc3eCuxbKfrIHbwq7Z3VOiE
+# TqVHwzs4jvqBHF+l+jzwMnxhLxJDAI/Ib0pnBtoW7hVYzzZTzrh3U4uF3SatJBPf
+# rd4uwftM9ydd96mMMNJ4S5G/t8U5CSlW36nTpaUdjFTYmAlkG5mDSQeD98WktuIL
+# kmHj8NICWEWv/Osbbn0od7eSzhEewN3+W+2fraCC9qxwiNIkG1eLY5YnSjXWbYm0
+# JZNvRD3gCivxhR0YRced01tTcGbH9IgsV4zuZJgIWf4+JY1Ufnav+TW64/sOi4RY
+# 3t/BoVTHdEcxOiASUX2xc6qwKhzWlzbcWCYTTRyWk/6VeeO84mPnu1Vgk8Qji88X
+# l9JxexttXqhNSPbs9kbBmpqONprIop70p0w4gwKhxE14pqT6EIrmCiqXPXglcl2h
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODExMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEILrvhinfChL7M1ZQonLlqIungBNgZAisuLdfnTXl35V6
-# MA0GCSqGSIb3DQEBAQUABIIBAKdHKvCHGsq8bkSAVspOLuSS1OJ5LkPpbfZ/++A2
-# vkdqOirwWZ1mp2k4iRamKstSh9khApYmKLu6NJFJgGv0EK+mifeOAfN1BFgYhJTE
-# qM8ULHZGTO+Avpoq8xbDZxphye+xG40F0sDOoyyjvNH2cb3yLRCQan33tPh661jk
-# MnAlpy+MBo0NJzdcD0FM4IJFQDMjdYlWPnshDn2Mm+AMfiR4GcaS0JCkCnaBQ/ML
-# 7KjClq6fsJyrjjxvADugtrK+RBdx5SAY3+crFmo/kqM/wXIZsy4ALEoiMhHAiamz
-# reG50eJxe4IVrpmbcHJJDxJL69HvEaO+j5Q+TeGsSwtUuVM=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODIzMDAwM1ow
+# LwYJKoZIhvcNAQkEMSIEIFv8ukfeWdi8aspvF5nuLbvOgFIfvhIYFCgTd1scYD6y
+# MA0GCSqGSIb3DQEBAQUABIIBAA0kTLyzE3Tnx9oTuVW0LhXaBJO7bhMhLALRa3A0
+# i7GFIyhXRU95RFGxiPQ13GG0lT5PL/NpSF4igeiDl4NjamtN165zr7GnRSdpcpgg
+# KQx0kaOxfRahaMx8Hk0lUAHsI500MBUvLRi+32+CpQ4kIRzji0duaPSg3RfasYxX
+# qXli9MfzE7BAefLWLEWkb4AmoBFEYZuAkfKHchidbFPHS3Bl2y/j1CSi803GqwqB
+# aU5P4Vqdu8dbM+HFh59NDlPdSPlzXT0m1w8Kyo4ORSDYZ90QtGKQCgyg7TIqkE0H
+# w4vEthGgSl2jZRHGGfa/2zst6HNArmd65+eqXnFKYUopAI0=
 # SIG # End signature block
