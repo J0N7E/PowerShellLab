@@ -265,7 +265,7 @@ Param
     [String]$AIAHost,
 
     # Crl publish uris
-    [Array]$CRLPublishURIs,
+    [Array]$CRLPublishLocations,
 
     # Set host for CDP
     [String]$CDPHost,
@@ -339,10 +339,10 @@ Begin
 
     $Serializable =
     @(
-        @{ Name = 'Session';                                  },
-        @{ Name = 'Credential';         Type = [PSCredential] },
-        @{ Name = 'CertFilePassword';   Type = [SecureString] },
-        @{ Name = 'CRLPublishURIs';     Type = [Array]        }
+        @{ Name = 'Session';                                   },
+        @{ Name = 'Credential';          Type = [PSCredential] },
+        @{ Name = 'CertFilePassword';    Type = [SecureString] },
+        @{ Name = 'CRLPublishLocations'; Type = [Array]        }
     )
 
     #########
@@ -386,12 +386,6 @@ Begin
         throw "Invalid CryptoProviderName `"$CryptoProviderName`", valid providers for $HashAlgorithmName/$KeyLength is $ValidCryptoProviderNames"
     }
 
-    #######################
-    # Get ParameterSetName
-    #######################1
-
-    $ParameterSetName = $PsCmdlet.ParameterSetName
-
     ##############
     # Set CA Type
     ##############
@@ -412,6 +406,12 @@ Begin
     {
         $CAType = 'StandaloneSubordinateCA'
     }
+
+    #######################
+    # Get ParameterSetName
+    #######################1
+
+    $ParameterSetName = $PsCmdlet.ParameterSetName
 
     ######################
     # Get parent ca files
@@ -467,7 +467,8 @@ Begin
     # CertFile
     ###########
 
-    if ($CertFile -and (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
+    if ($ParameterSetName -match 'Certfile' -and
+        (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
     {
         $CertFile = Get-Content -Path $CertFile -Raw
     }
@@ -765,9 +766,9 @@ Begin
             # Publish Locations
             ####################
 
-            if ($CRLPublishURIs)
+            if ($CRLPublishLocations)
             {
-                foreach ($Item in $CRLPublishURIs)
+                foreach ($Item in $CRLPublishLocations)
                 {
                     # Add publishing paths
                     $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
@@ -775,7 +776,7 @@ Begin
             }
             elseif ($ParameterSetName -match 'Subordinate')
             {
-                Check-Continue -Message "-CRLPublishURIs parameter not specified, CRL will not be published to another server."
+                Check-Continue -Message "-CRLPublishLocations parameter not specified, CRL will not be published to another server."
             }
 
             ##################
@@ -1695,7 +1696,7 @@ Process
             $CDPHost = $Using:CDPHost
 
             # Crl publish uris
-            $CRLPublishURIs = $Using:CRLPublishURIs
+            $CRLPublishLocations = $Using:CRLPublishLocations
 
             # Crl Distribution Point (CDP)
             $CRLPublicationURLs = $Using:CRLPublicationURLs
@@ -1832,8 +1833,8 @@ End
 # SIG # Begin signature block
 # MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUg+CMhGwzkIvmEnRVXywtu+v
-# 8Nuggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm+GHy/irrXGT9IhWJhyd2w6j
+# hR6ggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1917,28 +1918,28 @@ End
 # okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
 # EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
 # BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULnLp29n+JPDH4rqqVUZyfNDlDk8wDQYJ
-# KoZIhvcNAQEBBQAEggIAmXmmXUvyotxEGEACi3o3R5/ic053Qf6DP5PDK7/eprwI
-# O8c4KsLvp8XD+/Ssx0WXiWkh8U0dOoa8RdrNLyBwbkUwcfNz0vLMZ6Ywr5qUBjm8
-# 1KFki0FIqn7lgQrs61oJN/3kqmQTyRqlbjajpu04zQTIXYxrzhJWorntwPH3wzNc
-# Mc5EWmp/OCZyZoWJnJTr074QTKzDtxmqmN15RP+he5NvLfVFWeaC8iduViMyOuOy
-# qMj+XjB0YoK0TxXT9ikhkrzcDKnz6Qxvdy4Iq/vNihS3XnWLa3uUucYnd++bkx2w
-# e8BAyTbDyM3DR/5XOidd9JmqxL5NXSR3PQQx45gc80FiHZgkB9/WCjRDGuLh1JcF
-# IvPWYCyvl2PBz4iOwScqqLgM3wk9ImOzj//X0HtETLE5ex/Z4DQBk/UqWdhxGMP0
-# Z6i0BOcqi3Zgb7ircyljKxqDQJ3JsMTJH2HBD0VA/cXvFF5wbpDQG2VSLnCAURf2
-# IsN4Z3ixu+cdINz5tMNVSAb5iis+y/14TOLJEX4Nz/lV4Uvp93qiXdwelOvvxPRk
-# NBvZlX5KQQUWN5KSm2OHmJmgW66vV9UHauX9ri2XKtMYS7viRpZeOvkzpQuGYqLJ
-# zJkuStgBJ6CjRVA5pkCtfl/c9OxJmjIWXLslSq5qa3VgagI+gUosQ7uJRZnGfx2h
+# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIaSYWXbayq0YY/pt3vm7f1/ruz8wDQYJ
+# KoZIhvcNAQEBBQAEggIACutudrIhLYDbsn99jx2ca2SlNPpz9i9fVUT2ItJ4x3Rc
+# eeF3ICzejQhaXpy+sO0TE9LzgxWZ228ztipogaSOp1j4L1B3/P9hZbLABjxLwcn7
+# SxtMaNBleJcshenhHT8kqor6KvcG7HswYjvtZYE7FTSKncz/AAzrO3xMSt6X7P6b
+# jYg/yD9XKUDZlG6w7gXzaw933Xy+QrfIDyFX5JNiADGoSmkL5MF6NoDUis+7nexu
+# zdW6DEIofQwt6BhEYZU0B4X6m1VKGdSaiXWYI9lmFPRvWDrj5zifhpo6X36e283l
+# PxPlzISb+lVoH3hVxYLpz2JIWehDDtk27PzK9Tf6fJEAoE0oXcfKZeWfKO/GSHcZ
+# rVE3tl+khCABCNIV3XKEiqMABH/LqgThJOSBOcxVBtQDp1VpKx1J+GUKycflJf9v
+# bHPHn71Gwitt3MaI5F3zSV+wMtHOxCLRi+eBx7FID+NWwELh02iunVjmEZDtRkC9
+# njpBvwT4fRRiIysMI0UMH6VhzBcYISxNvpsbnIj9WphO4ONUGoYxkUKiTgRLu1Vq
+# MHK/qJsaYxx3Rj5n5B4DpaG/UJo6MH4f/M9+i0+x98v5VbgzsYVgu+IfvldS2Vfa
+# YioCs78lsDmbmFkdUkEEwDQ6sDyy9vub2Zks8pNDToNEB3pODY+5glg0IDnEo2mh
 # ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
 # FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
 # bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
 # ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODAyMDAwMlow
-# LwYJKoZIhvcNAQkEMSIEIIEIJtx3u5qNyuePkA5XbEwifTnC15kuNNiqm5y1j2on
-# MA0GCSqGSIb3DQEBAQUABIIBAL9T1MFBqHeKZyoX3eyc5ajIM1An3nTVSaHQF0ew
-# 535NUCVolpl5ecfsfqmD78z8jevcNdg2HO28PP+zoQYSgD5nYb+flQfTXrKzn92i
-# oxDUEeQ6tU/UvcuSyTu2IsDMFUJA/9kmHrpCTuGI9jEYNjLTpQxti9YhAGc1RJLD
-# K4jEs4XR0lBZFFr85YJjpD/PRtXq76tipGCEa+rovzwU1N7zANnO8spjrSEUKFkW
-# Kf92xkX2JpzVbwfdjJZzwLR79HWsPy48pyvlAS0r+NR89HIa5QV3hlBdOphwYlCS
-# CzZGiAC4PkfAzAYXkwL29nOSmkKKwlXEtm/YHefDE0UlQrg=
+# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMxODA4MDAwMlow
+# LwYJKoZIhvcNAQkEMSIEINUXwrHw0CAoO1N9tnvN7dk/ePt5Kr77gbdUGALJ1Ec0
+# MA0GCSqGSIb3DQEBAQUABIIBAK83kuedPtzXeG4GqPzQdbGgJLw6D6Cs2uik470N
+# wFkGqIpUpxB6IIES4iKlPD/Eu0T9Yace16Css7LKAzC+o9eQApmpN/u/YRLL/LT4
+# Ss1S/XkGnH3ZsKOIhauZMzSjJkIDdc+Csr4xH+zeSxQh9vPzi9otGtNry39KWCA6
+# Rhje1OTmXJcvvai5ye5AvxbuDFheCbI+l1tZ4/9r4BI/JcSpAv4/Wr3qdGIJ7/z4
+# QrBm1VNvgQw6BQudHPVjrrPgksZ1DXypzFBgO/I9pth55mvFWll/1rzcZJvF25P6
+# JiKvriHEs7dgBndYb4Bd6hPCSjFkwowih8lZ040Oyo4QxuM=
 # SIG # End signature block
