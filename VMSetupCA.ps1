@@ -44,32 +44,39 @@ Param
     [Switch]$StandaloneSubordinateCA,
 
     # Path to certfile
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CertFile,
 
     # Default generic lazy pswd
+    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     $CertFilePassword = (ConvertTo-SecureString -String 'e72d4D6wYweyLS4sIAuKOif5TUlJjEpB' -AsPlainText -Force),
 
-    # CertKeyContainerName
+    # Certificate Key Container Name
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CertKeyContainerName,
 
     # Certificate Authority CN
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
-    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CACommonName,
+
+    # Ignore Unicode
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [Switch]$IgnoreUnicode,
 
     # DN Suffix
     [String]$CADistinguishedNameSuffix,
@@ -93,25 +100,25 @@ Param
     [String]$PolicyURL,
 
     # Root CA certificate validity period units
-    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [String]$RenewalValidityPeriodUnits = '20',
 
     # Root CA certificate validity period
-    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$RenewalValidityPeriod = 'Years',
 
-    # Subordinate CA parent CA common name
+    # Parent CA CN
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
@@ -1654,11 +1661,14 @@ Process
             $CertFile = $Using:CertFile
             $CertFilePassword = $Using:CertFilePassword
 
-            # CertKeyContainerName
+            # Certificate Key Container Name
             $CertKeyContainerName = $Using:CertKeyContainerName
 
-            # Certificate Authority common name
+            # Certificate Authority CN
             $CACommonName = $Using:CACommonName
+
+            # Ignore Unicode
+            $IgnoreUnicode = $Using:IgnoreUnicode
 
             # DN Suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
@@ -1673,7 +1683,7 @@ Process
             $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
             $RenewalValidityPeriod = $Using:RenewalValidityPeriod
 
-            # Subordinate CA installation parameters
+            # Parent CA
             $ParentCACommonName = $Using:ParentCACommonName
             $ParentCAFiles = $Using:ParentCAFiles
             $ParentCAResponseFiles = $Using:ParentCAResponseFiles
@@ -1695,16 +1705,16 @@ Process
             $ValidityPeriodUnits = $Using:ValidityPeriodUnits
             $ValidityPeriod = $Using:ValidityPeriod
 
-            # Set uri for OCSP
+            # Set host for OCSP
             $OCSPHost = $Using:OCSPHost
 
-            # Set uri for AIA
+            # Set host for AIA
             $AIAHost = $Using:AIAHost
 
-            # Set uri for CDP
+            # Set host for CDP
             $CDPHost = $Using:CDPHost
 
-            # Crl publish uris
+            # Crl publishing locations
             $CRLPublishAdditionalPaths = $Using:CRLPublishAdditionalPaths
 
             # Crl Distribution Point (CDP)
@@ -1842,8 +1852,8 @@ End
 # SIG # Begin signature block
 # MIIY9AYJKoZIhvcNAQcCoIIY5TCCGOECAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZzrmXbAbWLHkVnGKx3DZDsOs
-# FemgghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHOY0oQhh0AigWtRCYrYChyIB
+# lk2gghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1944,34 +1954,34 @@ End
 # RxdbbxPaahBuH0m3RFu0CAqHWlkEdhGhp3cCExwxggXnMIIF4wIBATAiMA4xDDAK
 # BgNVBAMMA2JjbAIQJoAlxDS3d7xJEXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYB
 # BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
-# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSWJ0
-# T3HVdHc545C/+MDYjNFBkKIwDQYJKoZIhvcNAQEBBQAEggIAC69mHsgBsLlL7Au6
-# mbClyMmVDVFFVYQ7VOeSOVjBScWZqEKBNiLAKKa05DAfKM5Z4JeEaoeTY1zpI7KJ
-# K/IkAa63V9fBEq64jkBm3YMHgFEzVeaITTytuUUGFzbEob5Rnzj8FEXz4WVTrld+
-# mzvTYZR3AlS6toyaELpxl3B++CN3W3nmH8CSycg6m4V4jCEzxxRK15wUvZwMgeoj
-# eiQU4janJh/E2xGndoUosRS9nB+dW/PVAoC6BvRGYXVj3sHA/CsrRY8JVrBioKU3
-# /Jm2TcZqP4FFy+cXPUNV2hCnRlBhA6nd2u79UCIp2M6oHWwNFFw7VktbXp+gDc7W
-# eX5PCW0AmjAdn3AV6bQIRz5SnnMHlxATeSdW+uiRhbKrOCcfMQzPHL7CDSWoTMBA
-# 0WuRRhEUNa0m5I3R9kyBjZe1gZzAIw5hkSGhURfFZ3xA65jC++lZ7hdn4znTsHcz
-# LJnXsoo6rSO5KojBahQgKsftw14OxlN8W1UwxquLKRqL1wQPcucCUxqMuAXJe2mt
-# tV6DHXAbmeMCyKzVdLjpdyM1dtqkxB9RdfAzOKZm0hbQ8xNVXvftVarH2gzdLetI
-# u5pTSFHWU9s2qzW+wwXiSZNkZC0v9ut9UN4PykfspBjlOrqRHMTtltfu2RsUHg+e
-# af0xiWXSImJGe3QC3+SJY/gO0vChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCTzY
+# OMq7JENkmXrTr5OBoLCQykowDQYJKoZIhvcNAQEBBQAEggIAlGN8mm1TcueeSexK
+# +WQDAqyJQ9TDIYO/TOGKPX7bON+Rew3TftgV1BgZK8z31dCQVHIdKU/FZzQYthpD
+# MF0K51dcXBC5wqfLbkLC2zHqlVzpr8gWi+KHgLSKkllhUHgOym21g0apyqTn6MGo
+# H4glQ4lXf23aMsdjJWCnEKIz4mk9nXX3W1sgrTwk1+lUGg/t604xyDJMKmjEcaTd
+# J2uWwrOozdtR6z2b7IX9xQzy9nl0Tug60p31CKrGdgIRJBqgJXFDNO2gR8C672Pb
+# r6IO4ndpie2IPsRxH3B4QQAoSKwe92SgQFqQ+Ome+VA406yrZPbTe1AkDf+3HycW
+# PcK1UQD8eWrfhPmv3Ueud6iZSv52akYSwEqWnqBqT8r4wfVzWTKsVd2ebeGaoBJz
+# r6oIHYbCkMt6ApiAXNBwEzGMV9rCFFgEQrc8xzSbNyTWE79GLCCLjJvMpThDZR4q
+# v14houHEv71gXdXSdniYo8dMqY4yfd3p1WiFxsq3HbSkvdZCAnIu3N8FCAhqZbxF
+# 8bE/ifmp8x03leNOcFP4I+RgAw/2C+jSFSn3EEfzcRK16P6BktDszbX2G2HBVlJs
+# Q7doZ+65UE+oKHC1cKAvmyGK3JEwjjKCkoI+empn5D/UpE3md70gmfyCd0hCL5Jl
+# mGQSIGNzpEvqAhsEAf4fGpTd/rqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
 # AQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5
 # BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0
 # YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkwGAYJ
-# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDA1MTcw
-# MDAyWjAvBgkqhkiG9w0BCQQxIgQgEUrvtpsD47i0aV4n3AwtkPe9CAkcyunyZjh1
-# 4OUFqXkwDQYJKoZIhvcNAQEBBQAEggIAQzqOYm7ZMYEOFvIM5RrsP66F8Gb98pDt
-# Lf6jZ4li8gnm/H1BCxISYFs02wBVWtAKnMUcRtbRqWdGnQaxWARJFzeSvPlyHoJn
-# 7L1YKRH0DEDrjiiC+CnoxUGJdRFj5308kv/hTbbZjhZiyvWCegDHwhhcGeRdD8DD
-# WceM9j3ULDC7qIyt55QKP+sHpN4vbZB1ga0oCo/6DqOBxgxqSJ+QAQ2sCqRId6QX
-# /MUVxht1r4PMHv9gKF8PFw5s92dWM8oeK1JCoFExNiXcjh0wHtdOxosqjw6Tk5Eg
-# xM5UE1sHEQyNcBvW1vRu69DV9gGUUjNJxP9YtaF4uR2XdKGnblSHi55qxjD+kCEk
-# 4WbrMz5fvziTF3Qn34MbQd7ORiJb9eI03Pu8CFWKgOE7sCai+/c5nMDeUHd4Zk+p
-# CiSN96HOFlu5yptQyjimr83RAHwd8S7QZrw3tdqvqZEbfOMuJCReupn+/z+gCieb
-# hTAhKliWbkKIUug8lICr0Y5/C2xiRXxZWrfzSX9WebQEPYcvqlo/ZEMBjTX/PIBA
-# 5bqqcVZTnzofdDnEzD7ypadU/vsAHxoTHRa/cV42oI9q4/spRPFaXu43pV4vBx1W
-# m1MuTi9bw0N7Vao3sNxZvwMMa8TXLsbQ40uV434erHBPQnqzg68PRiQKwuFb9ZL2
-# oSZPS0KBOn4=
+# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDA4MjAw
+# MDA0WjAvBgkqhkiG9w0BCQQxIgQg31q4ngQ/miW8T+hOT4K9PyhQebAmlPzXCbJ3
+# C2vZ+pMwDQYJKoZIhvcNAQEBBQAEggIAT3DjGuuRmSTv/u44UyGn0Bc7788Uprnm
+# Al28OAfqHMvOXdnpXL7/oHA+sejKApF6Rmeli1rv/e2JcFyAaowlAaNxQkn6vfNz
+# lKyaHtbuaJVR1TLdvG8LegkBjv4K+AonXh0LtAtZLLNCmW3sNAYCaYMxs++fG2Eo
+# 7S220ZJ4Tlfsxzh11ozHzx71geUAaik3a5q73HywlQNK8AdqNNlfk7TeDWwVJLX2
+# zhcvX1+wHen5DASwddGiKjUwyv10bVwA3T6Z4tMECSG429F2nZ2jPquIPZdj+Gir
+# 8VYiMABSUYMSJCWTtupl5lzn2qzEXNQm5WnxU86aiaHm869P8WTy4uiyIPMnEQ6a
+# qNur+k4pOy2B4FrRtmWPTPt3Le2BnlClro1uEtkM//uPv0ZuXGYbQztWmxoUb3Sr
+# L5btMiOILKHfcMb/E/WTL2A1jiO54xgiyCYWBmdFhRvhAbNb5cKAiVyAL+KkGM1w
+# XJ7Q2/YlActFRDxESwRRcr1dOYff6+5S2tyXUXyO4+AtaFywK+KHqr5rZADQZ+T+
+# YhTXHnLhIhdE11qAwOpDVPdD/NJ+AqEp5jZrNQADmbUsINgM8RgFu7s053JvBeG6
+# geGY77hZstf0bFtXLalvRlOoka3oy4VdBPjMbV0HAjZKS9r2ogOEBDUVZPdpZ81l
+# +2LehSy9gqQ=
 # SIG # End signature block

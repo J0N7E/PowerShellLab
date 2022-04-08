@@ -33,14 +33,26 @@ Param
     [String]$HostName,
 
     # Physical Path
-    [String]$PhysicalPath = 'C:\inetpub\wwwroot',
+    [String]$PhysicalPath,
 
-    # Share access
+    ######
+    # IIS
+    ######
+
+    # Configure IIS
+    [Switch]$ConfigureIIS,
+
+    ########
+    # Share
+    ########
+
     # FIX
     # to array
+
+    # Share access
     [Parameter(ParameterSetName='Standard')]
     [Parameter(ParameterSetName='Share', Mandatory=$true)]
-    [Parameter(ParameterSetName='OCSPAuto')]
+    [Parameter(ParameterSetName='OCSPTemplate')]
     [Parameter(ParameterSetName='OCSPManual')]
     [String]$ShareAccess,
 
@@ -51,7 +63,7 @@ Param
     # OCSP template name
     [Parameter(ParameterSetName='Standard')]
     [Parameter(ParameterSetName='Share')]
-    [Parameter(ParameterSetName='OCSPAuto', Mandatory=$true)]
+    [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
     [String]$OCSPTemplate,
 
     #####################
@@ -121,6 +133,7 @@ Begin
         {
             . $PSScriptRoot\s_Begin.ps1
             . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CheckContinue.ps1
         }
         catch [Exception]
         {
@@ -129,9 +142,9 @@ Begin
 
     } -NoNewScope
 
-    ###############
-    # Parse config
-    ###############
+    ###################
+    # Check parameters
+    ###################
 
     $CAConfig | Where-Object {
                     $_ -match "(.*?)\.(.*)\\(.*)"
@@ -148,6 +161,20 @@ Begin
         throw "Invalid CAConfig `"$CAConfig`""
     }
 
+    if (-not $HostName)
+    {
+        Check-Continue -Message "-HostName parameter not specified, using `"pki.$DomainName`" as HostName."
+
+        $HostName = "pki.$DomainName"
+    }
+
+    if (-not $PhysicalPath)
+    {
+        Check-Continue -Message "-PhysicalPath parameter not specified, using `"C:\inetpub\wwwroot`" as PhysicalPath."
+
+        $PhysicalPath = 'C:\inetpub\wwwroot'
+    }
+
     ############
     # Get files
     ############
@@ -157,7 +184,7 @@ Begin
     $CAResponseFile = $null
 
     # Itterate all ca files
-    foreach($file in (Get-Item -Path "$PSScriptRoot\$CACommonName*"))
+    foreach($file in (Get-Item -Path "$PSScriptRoot\$CACommonName.*"))
     {
         if ($file.Name -notmatch 'Response' -and
             $file.Extension -ne '.req' -and
@@ -168,20 +195,6 @@ Begin
             $CAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
         }
     }
-
-<#
-    # Check crt
-    if (-not $CAFiles.GetEnumerator().Where({$_.Key -match '.crt'}))
-    {
-        throw "Can't find `"$CACommonName`" crt, aborting..."
-    }
-
-    # Check crl
-    if (-not $CAFiles.GetEnumerator().Where({$_.Key -match '.crl'}))
-    {
-        throw "Can't find `"$CACommonName`" crl, aborting..."
-    }
-#>
 
     # Check response file
     $CAResponse = Get-Item -Path "$PSScriptRoot\$CACommonName OSCP Signing-Response.crt" -ErrorAction SilentlyContinue
@@ -214,18 +227,12 @@ Begin
             throw "Must be administrator to setup Webserver."
         }
 
-       ###############
-        # Set hostname
-        ###############
-
-        if (-not $HostName)
-        {
-            $HostName = "pki.$DomainName"
-        }
-
-        ######
-        # IIS
-        ######
+        # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
+        # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
+        # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
+        # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
+        # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
+        # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 
         # Check if windows feature is installed
         if ((Get-WindowsFeature -Name Web-Server).InstallState -notmatch 'Install' -and
@@ -248,142 +255,110 @@ Begin
             }
         }
 
-        # Check if IIS drive is mapped
-        try
+        #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
+        # ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝
+        # ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗
+        # ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝
+        # ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗
+        #  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+        if ($ConfigureIIS)
         {
-            Get-PSDrive -Name IIS -ErrorAction Stop > $null
-        }
-        catch
-        {
-            Import-Module WebAdministration
-        }
-
-        # Get ip address
-        $IPAddress = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Manual', 'DHCP')} | Sort-Object -Property ifIndex | Select-Object -ExpandProperty IPAddress -First 1
-
-        ##########
-        # Binding
-        ##########
-
-        # Get web binding
-        $WebBinding = Get-WebBinding -Name 'Default Web Site'
-
-        # Check default binding
-        if ($WebBinding.bindingInformation -eq "*:80:" -and
-            (ShouldProcess @WhatIfSplat -Message "Remove default web binding `"*:80:`" from `"Default Web Site`"" @VerboseSplat))
-        {
-            Remove-WebBinding -Name 'Default Web Site' -IPAddress * -Port 80 -HostHeader ''
-        }
-
-        # Check pki binding
-        if (-not $WebBinding.Where({$_.bindingInformation -eq "*:80:$HostName"}) -and
-            (ShouldProcess @WhatIfSplat -Message "Adding web binding `"*:80:$HostName`" to `"Default Web Site`"" @VerboseSplat))
-        {
-            New-WebBinding -Name 'Default Web Site' -IPAddress * -Port 80 -HostHeader $HostName
-        }
-
-        ###########
-        # Settings
-        ###########
-
-        # Check double escaping
-        if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping).Value -eq $false -and
-            (ShouldProcess @WhatIfSplat -Message "Enabling double escaping." @VerboseSplat))
-        {
-            Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping -Value $true
-        }
-
-        # Check directory browsing
-        if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $false -and
-            (ShouldProcess @WhatIfSplat -Message "Enabling directory browsing." @VerboseSplat))
-        {
-            Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled -Value $true
-        }
-
-        ##################
-        # Cleanup wwwroot
-        ##################
-
-        if ($PhysicalPath -eq 'C:\inetpub\wwwroot')
-        {
-            # Files to be removed
-            $RemoveFiles = @('iisstart.htm', 'iisstart.png')
-
-            # Remove files
-            foreach ($File in $RemoveFiles)
+            # Check if IIS drive is mapped
+            try
             {
-                if ((Test-Path -Path "$PhysicalPath\$File") -and
-                    (ShouldProcess @WhatIfSplat -Message "Remove $File." @VerboseSplat))
+                Get-PSDrive -Name IIS -ErrorAction Stop > $null
+            }
+            catch
+            {
+                Import-Module WebAdministration
+            }
+
+            # Get ip address
+            $IPAddress = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Manual', 'DHCP')} | Sort-Object -Property ifIndex | Select-Object -ExpandProperty IPAddress -First 1
+
+            ##########
+            # Binding
+            ##########
+
+            # Get web binding
+            $WebBinding = Get-WebBinding -Name 'Default Web Site'
+
+            # Check default binding
+            if ($WebBinding.bindingInformation -eq "*:80:" -and
+                (ShouldProcess @WhatIfSplat -Message "Remove default web binding `"*:80:`" from `"Default Web Site`"" @VerboseSplat))
+            {
+                Remove-WebBinding -Name 'Default Web Site' -IPAddress * -Port 80 -HostHeader ''
+            }
+
+            # Check pki binding
+            if (-not $WebBinding.Where({$_.bindingInformation -eq "*:80:$HostName"}) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding web binding `"*:80:$HostName`" to `"Default Web Site`"" @VerboseSplat))
+            {
+                New-WebBinding -Name 'Default Web Site' -IPAddress * -Port 80 -HostHeader $HostName
+            }
+
+            ###########
+            # Settings
+            ###########
+
+            <#
+            # Check double escaping
+            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping).Value -eq $false -and
+                (ShouldProcess @WhatIfSplat -Message "Enabling double escaping." @VerboseSplat))
+            {
+                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping -Value $true
+            }
+            #>
+
+            # Check directory browsing
+            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $false -and
+                (ShouldProcess @WhatIfSplat -Message "Enabling directory browsing." @VerboseSplat))
+            {
+                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/directoryBrowse -Name enabled -Value $true
+            }
+
+            ##################
+            # Cleanup wwwroot
+            ##################
+
+            if ($PhysicalPath -eq 'C:\inetpub\wwwroot')
+            {
+                # Files to be removed
+                $RemoveFiles = @('iisstart.htm', 'iisstart.png')
+
+                # Remove files
+                foreach ($File in $RemoveFiles)
                 {
-                    Remove-Item -Path "$PhysicalPath\$File" -Force
+                    if ((Test-Path -Path "$PhysicalPath\$File") -and
+                        (ShouldProcess @WhatIfSplat -Message "Remove $File." @VerboseSplat))
+                    {
+                        Remove-Item -Path "$PhysicalPath\$File" -Force
+                    }
+                }
+
+                # Hide other files
+                foreach ($File in (Get-ChildItem -Path $PhysicalPath -Exclude '*.crt', '*.crl'))
+                {
+                    if (-not ($File.Attributes -contains 'Hidden') -and
+                        (ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat))
+                    {
+                        $File.Attributes += 'Hidden'
+                    }
                 }
             }
 
-            # Hide other files
-            foreach ($File in (Get-ChildItem -Path $PhysicalPath -Exclude '*.crt', '*.crl'))
+            ########
+            # Start
+            ########
+
+            # Check State
+            if ((Get-Website -Name 'Default Web Site').State -ne 'Started' -and
+                (ShouldProcess @WhatIfSplat -Message "Starting website `"Default Web Site`"" @VerboseSplat))
             {
-                if (-not ($File.Attributes -contains 'Hidden') -and
-                    (ShouldProcess @WhatIfSplat -Message "Setting hidden on `"$($File.Name)`"." @VerboseSplat))
-                {
-                    $File.Attributes += 'Hidden'
-                }
+                Start-Website -Name 'Default Web Site' -ErrorAction Stop
             }
         }
-
-        ########
-        # Start
-        ########
-
-        # Check State
-        if ((Get-Website -Name 'Default Web Site').State -ne 'Started' -and
-            (ShouldProcess @WhatIfSplat -Message "Starting website `"Default Web Site`"" @VerboseSplat))
-        {
-            Start-Website -Name 'Default Web Site' -ErrorAction Stop
-        }
-
-        ########
-        # Files
-        ########
-
-        # Create temp Directory
-        New-Item -ItemType Directory -Path "$env:TEMP" -Name $CACommonName -Force > $null
-
-        # Itterate all file
-        foreach($file in $CAFiles.GetEnumerator())
-        {
-            $FullName = "$env:TEMP\$CACommonName\$($file.Key.Name)"
-
-            # Save file to temp
-            Set-Content -Path $FullName -Value $file.Value -Force
-
-            # Set original timestamps
-            Set-ItemProperty -Path $FullName -Name CreationTime -Value $file.Key.CreationTime
-            Set-ItemProperty -Path $FullName -Name LastWriteTime -Value $file.Key.LastWriteTime
-            Set-ItemProperty -Path $FullName -Name LastAccessTime -Value $file.Key.LastAccessTime
-
-            # Copy
-            Copy-DifferentItem -SourcePath $FullName -TargetPath "$PhysicalPath\$($file.Key.Name)" @VerboseSplat
-
-            if (-not $DomainName -and $file.Key.Extension -eq '.crt')
-            {
-                if ($file.Key.Name -match 'Root' -and
-                    -not (TryCatch { certutil -store root "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to trusted root store." @VerboseSplat))
-                {
-                    TryCatch { certutil -addstore root "`"$FullName`"" } > $null
-                }
-
-                if (($file.Key.Name -match 'Sub' -or $file.Key.Name -match 'Issuing') -and
-                    -not (TryCatch { certutil -store ca "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to intermediate ca store." @VerboseSplat))
-                {
-                    TryCatch { certutil -addstore ca "`"$FullName`"" } > $null
-                }
-            }
-        }
-
-        # Remove temp directory
-        Remove-Item -Path "$env:TEMP\$CACommonName" -Force -Recurse
 
         # ███████╗██╗  ██╗ █████╗ ██████╗ ███████╗
         # ██╔════╝██║  ██║██╔══██╗██╔══██╗██╔════╝
@@ -431,6 +406,62 @@ Begin
                 Set-Acl -AclObject $Acl -Path $PhysicalPath
             }
         }
+
+        # ███████╗██╗██╗     ███████╗███████╗
+        # ██╔════╝██║██║     ██╔════╝██╔════╝
+        # █████╗  ██║██║     █████╗  ███████╗
+        # ██╔══╝  ██║██║     ██╔══╝  ╚════██║
+        # ██║     ██║███████╗███████╗███████║
+        # ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝
+
+        # Create temp Directory
+        New-Item -ItemType Directory -Path "$env:TEMP" -Name $CACommonName -Force > $null
+
+        # Itterate all file
+        foreach($file in $CAFiles.GetEnumerator())
+        {
+            $FullName = "$env:TEMP\$CACommonName\$($file.Key.Name)"
+
+            # Save file to temp
+            Set-Content -Path $FullName -Value $file.Value -Force
+
+            # Set original timestamps
+            Set-ItemProperty -Path $FullName -Name CreationTime -Value $file.Key.CreationTime
+            Set-ItemProperty -Path $FullName -Name LastWriteTime -Value $file.Key.LastWriteTime
+            Set-ItemProperty -Path $FullName -Name LastAccessTime -Value $file.Key.LastAccessTime
+
+            # Copy
+            Copy-DifferentItem -SourcePath $FullName -TargetPath "$PhysicalPath\$($file.Key.Name)" @VerboseSplat
+
+            # Add certificates to root and ca stores
+            if (-not $DomainName -and $file.Key.Extension -eq '.crt')
+            {
+                if ($file.Key.Name -match 'Root' -and
+                    -not (TryCatch { certutil -store root "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to trusted root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore root "`"$FullName`"" } > $null
+                }
+
+                if (($file.Key.Name -match 'Sub' -or $file.Key.Name -match 'Issuing') -and
+                    -not (TryCatch { certutil -store ca "`"$CACommonName`"" } -ErrorAction SilentlyContinue | Where-Object { $_ -match "command completed successfully" }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Key.Name)`" to intermediate ca store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore ca "`"$FullName`"" } > $null
+                }
+            }
+        }
+
+        foreach($Ext in ('crt', 'crl'))
+        {
+            if (-not (Test-Path -Path "$PhysicalPath\$CACommonName.$Ext"))
+            {
+                Write-Warning -Message "File missing `"$PhysicalPath\$CACommonName.$Ext`""
+            }
+        }
+
+        # Remove temp directory
+        Remove-Item -Path "$env:TEMP\$CACommonName" -Force -Recurse
 
         #  ██████╗  ██████╗███████╗██████╗
         # ██╔═══██╗██╔════╝██╔════╝██╔══██╗
@@ -892,7 +923,6 @@ OID="1.3.6.1.5.5.7.3.9"
             # Service account permissions:
             # Allow log on locally
             # Log on as a service
-
         }
     }
 }
@@ -912,8 +942,8 @@ Process
         try
         {
             # f_ShouldProcess.ps1 loaded in Begin
-            . $PSScriptRoot\f_CheckContinue.ps1
             . $PSScriptRoot\f_CopyDifferentItem.ps1
+            # f_CheckContinue.ps1 loaded in Begin
         }
         catch [Exception]
         {
@@ -930,7 +960,6 @@ Process
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_GetBaseDN.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_WriteRequest.ps1
 
         # Get parameters
@@ -945,15 +974,15 @@ Process
             $CAHostName = $Using:CAHostName
             $CACommonName = $Using:CACommonName
             $DomainName = $Using:DomainName
-
             $HostName = $Using:HostName
             $PhysicalPath = $Using:PhysicalPath
+
+            $ConfigureIIS = $Using:ConfigureIIS
+
             $ShareAccess = $Using:ShareAccess
 
             $OCSPTemplate = $Using:OCSPTemplate
-
             $OCSPManualRequest = $Using:OCSPManualRequest
-
             $OCSPRefreshTimeout = $Using:OCSPRefreshTimeout
             $OCSPAddNounce = $Using:OCSPAddNounce
             $OCSPHashAlgorithm = $Using:OCSPHashAlgorithm
@@ -978,7 +1007,6 @@ Process
             try
             {
                 . $PSScriptRoot\f_TryCatch.ps1
-                . $PSScriptRoot\f_GetBaseDN.ps1
                 . $PSScriptRoot\f_WriteRequest.ps1
             }
             catch [Exception]
@@ -1038,10 +1066,10 @@ End
 }
 
 # SIG # Begin signature block
-# MIIUvwYJKoZIhvcNAQcCoIIUsDCCFKwCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIY9AYJKoZIhvcNAQcCoIIY5TCCGOECAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFfcDp0gcUlR9VhykIKh0wyZW
-# NUqggg8yMIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9rbx+b53VmSVWWHNvmok1xyM
+# 76OgghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1067,86 +1095,109 @@ End
 # CgSBtUtsXUn3rAubGJo1Q5KuonpihDyxeMl8yuvpcoYQ6v1jPG3SAPbVcS5POkHt
 # DjktB0iDzFZI5v4nSl8J8wgt9uNNL3cSAoJbMhx92BfyBXTfvhB4qo862a9b1yfZ
 # S4rbeyBSt3694/xt2SPhN4Sw36JD99Z68VnX7dFqaruhpyPzjGNjU/ma1n7Qdrnp
-# u5VPaG2W3eV3Ay67nBLvifkIP9Y1KTF5JS+wzJoYKvZ2MIIE/jCCA+agAwIBAgIQ
-# DUJK4L46iP9gQCHOFADw3TANBgkqhkiG9w0BAQsFADByMQswCQYDVQQGEwJVUzEV
+# u5VPaG2W3eV3Ay67nBLvifkIP9Y1KTF5JS+wzJoYKvZ2MIIGrjCCBJagAwIBAgIQ
+# BzY3tyRUfNhHrP0oZipeWzANBgkqhkiG9w0BAQsFADBiMQswCQYDVQQGEwJVUzEV
 # MBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3d3cuZGlnaWNlcnQuY29t
-# MTEwLwYDVQQDEyhEaWdpQ2VydCBTSEEyIEFzc3VyZWQgSUQgVGltZXN0YW1waW5n
-# IENBMB4XDTIxMDEwMTAwMDAwMFoXDTMxMDEwNjAwMDAwMFowSDELMAkGA1UEBhMC
-# VVMxFzAVBgNVBAoTDkRpZ2lDZXJ0LCBJbmMuMSAwHgYDVQQDExdEaWdpQ2VydCBU
-# aW1lc3RhbXAgMjAyMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMLm
-# YYRnxYr1DQikRcpja1HXOhFCvQp1dU2UtAxQtSYQ/h3Ib5FrDJbnGlxI70Tlv5th
-# zRWRYlq4/2cLnGP9NmqB+in43Stwhd4CGPN4bbx9+cdtCT2+anaH6Yq9+IRdHnbJ
-# 5MZ2djpT0dHTWjaPxqPhLxs6t2HWc+xObTOKfF1FLUuxUOZBOjdWhtyTI433UCXo
-# ZObd048vV7WHIOsOjizVI9r0TXhG4wODMSlKXAwxikqMiMX3MFr5FK8VX2xDSQn9
-# JiNT9o1j6BqrW7EdMMKbaYK02/xWVLwfoYervnpbCiAvSwnJlaeNsvrWY4tOpXIc
-# 7p96AXP4Gdb+DUmEvQECAwEAAaOCAbgwggG0MA4GA1UdDwEB/wQEAwIHgDAMBgNV
-# HRMBAf8EAjAAMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMEEGA1UdIAQ6MDgwNgYJ
-# YIZIAYb9bAcBMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGlnaWNlcnQuY29t
-# L0NQUzAfBgNVHSMEGDAWgBT0tuEgHf4prtLkYaWyoiWyyBc1bjAdBgNVHQ4EFgQU
-# NkSGjqS6sGa+vCgtHUQ23eNqerwwcQYDVR0fBGowaDAyoDCgLoYsaHR0cDovL2Ny
-# bDMuZGlnaWNlcnQuY29tL3NoYTItYXNzdXJlZC10cy5jcmwwMqAwoC6GLGh0dHA6
-# Ly9jcmw0LmRpZ2ljZXJ0LmNvbS9zaGEyLWFzc3VyZWQtdHMuY3JsMIGFBggrBgEF
-# BQcBAQR5MHcwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBP
-# BggrBgEFBQcwAoZDaHR0cDovL2NhY2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0
-# U0hBMkFzc3VyZWRJRFRpbWVzdGFtcGluZ0NBLmNydDANBgkqhkiG9w0BAQsFAAOC
-# AQEASBzctemaI7znGucgDo5nRv1CclF0CiNHo6uS0iXEcFm+FKDlJ4GlTRQVGQd5
-# 8NEEw4bZO73+RAJmTe1ppA/2uHDPYuj1UUp4eTZ6J7fz51Kfk6ftQ55757TdQSKJ
-# +4eiRgNO/PT+t2R3Y18jUmmDgvoaU+2QzI2hF3MN9PNlOXBL85zWenvaDLw9MtAb
-# y/Vh/HUIAHa8gQ74wOFcz8QRcucbZEnYIpp1FUL1LTI4gdr0YKK6tFL7XOBhJCVP
-# st/JKahzQ1HavWPWH1ub9y4bTxMd90oNcX6Xt/Q/hOvB46NJofrOp79Wz7pZdmGJ
-# X36ntI5nePk2mOHLKNpbh6aKLzCCBTEwggQZoAMCAQICEAqhJdbWMht+QeQF2jaX
-# whUwDQYJKoZIhvcNAQELBQAwZTELMAkGA1UEBhMCVVMxFTATBgNVBAoTDERpZ2lD
-# ZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNvbTEkMCIGA1UEAxMbRGln
-# aUNlcnQgQXNzdXJlZCBJRCBSb290IENBMB4XDTE2MDEwNzEyMDAwMFoXDTMxMDEw
-# NzEyMDAwMFowcjELMAkGA1UEBhMCVVMxFTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZ
-# MBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNvbTExMC8GA1UEAxMoRGlnaUNlcnQgU0hB
-# MiBBc3N1cmVkIElEIFRpbWVzdGFtcGluZyBDQTCCASIwDQYJKoZIhvcNAQEBBQAD
-# ggEPADCCAQoCggEBAL3QMu5LzY9/3am6gpnFOVQoV7YjSsQOB0UzURB90Pl9TWh+
-# 57ag9I2ziOSXv2MhkJi/E7xX08PhfgjWahQAOPcuHjvuzKb2Mln+X2U/4Jvr40ZH
-# BhpVfgsnfsCi9aDg3iI/Dv9+lfvzo7oiPhisEeTwmQNtO4V8CdPuXciaC1TjqAlx
-# a+DPIhAPdc9xck4Krd9AOly3UeGheRTGTSQjMF287DxgaqwvB8z98OpH2YhQXv1m
-# blZhJymJhFHmgudGUP2UKiyn5HU+upgPhH+fMRTWrdXyZMt7HgXQhBlyF/EXBu89
-# zdZN7wZC/aJTKk+FHcQdPK/P2qwQ9d2srOlW/5MCAwEAAaOCAc4wggHKMB0GA1Ud
-# DgQWBBT0tuEgHf4prtLkYaWyoiWyyBc1bjAfBgNVHSMEGDAWgBRF66Kv9JLLgjEt
-# UYunpyGd823IDzASBgNVHRMBAf8ECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBhjAT
-# BgNVHSUEDDAKBggrBgEFBQcDCDB5BggrBgEFBQcBAQRtMGswJAYIKwYBBQUHMAGG
-# GGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBDBggrBgEFBQcwAoY3aHR0cDovL2Nh
-# Y2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0QXNzdXJlZElEUm9vdENBLmNydDCB
-# gQYDVR0fBHoweDA6oDigNoY0aHR0cDovL2NybDQuZGlnaWNlcnQuY29tL0RpZ2lD
-# ZXJ0QXNzdXJlZElEUm9vdENBLmNybDA6oDigNoY0aHR0cDovL2NybDMuZGlnaWNl
-# cnQuY29tL0RpZ2lDZXJ0QXNzdXJlZElEUm9vdENBLmNybDBQBgNVHSAESTBHMDgG
-# CmCGSAGG/WwAAgQwKjAoBggrBgEFBQcCARYcaHR0cHM6Ly93d3cuZGlnaWNlcnQu
-# Y29tL0NQUzALBglghkgBhv1sBwEwDQYJKoZIhvcNAQELBQADggEBAHGVEulRh1Zp
-# ze/d2nyqY3qzeM8GN0CE70uEv8rPAwL9xafDDiBCLK938ysfDCFaKrcFNB1qrpn4
-# J6JmvwmqYN92pDqTD/iy0dh8GWLoXoIlHsS6HHssIeLWWywUNUMEaLLbdQLgcseY
-# 1jxk5R9IEBhfiThhTWJGJIdjjJFSLK8pieV4H9YLFKWA1xJHcLN11ZOFk362kmf7
-# U2GJqPVrlsD0WGkNfMgBsbkodbeZY4UijGHKeZR+WfyMD+NvtQEmtmyl7odRIeRY
-# YJu6DC0rbaLEfrvEJStHAgh8Sa4TtuF8QkIoxhhWz0E0tmZdtnR79VYzIi8iNrJL
-# okqV2PWmjlIxggT3MIIE8wIBATAiMA4xDDAKBgNVBAMMA2JjbAIQJoAlxDS3d7xJ
-# EXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZ
-# BgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYB
-# BAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMFJ6V6WVHS9cRyzLWuCg3JzVZ1EwDQYJ
-# KoZIhvcNAQEBBQAEggIAb2i1yNlpfTKNvBrTi15DkgjsjC6L8/19J/bwS53S3dsT
-# ZMwJDsykbdbtJGkf+IVvLn9U/tFq7ooI20auvtHTjuy/Pw+QN8XWAd4HmTja3n3G
-# TetqWH12XG8isZy7vqqYxTlIToPNTzJr9FsfBapmYNr5vY5pJPtl8y0PMRGFRj/j
-# Hc2cBCLd9w3PYUOD24sKlXH5zvoWrf3xzPIDzwe8gBPqfmPzTahhvMhQQ0Cnp/z3
-# YlB640hZ1WX1MJzNuaIyldIWmDOk9qIdRnIxd1Gb+4c5uktR2132hdbM++8dotzc
-# XQ96B2Wmifq7Iu58pSAPRpyyFyoSiYPZBC6dl7Eqs7eXcE+VHCr1logmLjQKu8vW
-# toe/QiRngTDjQPeDhMfn11vR7Lbgkb23LkbBbpcjvaMzzMjbGyRoexIgufpOpXW8
-# 1F3Wz4YxlGIzE5hhCKwA2RWUpjSEYqzONZyHCboNOlzyyuEq2aPyHpeGf6IwQyfV
-# dKc0lPUJO/NvavxX3npyG7UFegeaEFHimXY6Nq1XSpdD7um2r5Ko3CxG94dUGzgj
-# L/ntpPOiPopbDCu3HiSudqdivhwiEKpdbeKtiIyG0NzPDOp3OPaXB9JmIR7x30zK
-# eTwp0Odv1VugYveopeJ0/Dr3ZV+Ue49afwl0KU9jwKMRu2E9+tvLFt+a69JNEnGh
-# ggIwMIICLAYJKoZIhvcNAQkGMYICHTCCAhkCAQEwgYYwcjELMAkGA1UEBhMCVVMx
-# FTATBgNVBAoTDERpZ2lDZXJ0IEluYzEZMBcGA1UECxMQd3d3LmRpZ2ljZXJ0LmNv
-# bTExMC8GA1UEAxMoRGlnaUNlcnQgU0hBMiBBc3N1cmVkIElEIFRpbWVzdGFtcGlu
-# ZyBDQQIQDUJK4L46iP9gQCHOFADw3TANBglghkgBZQMEAgEFAKBpMBgGCSqGSIb3
-# DQEJAzELBgkqhkiG9w0BBwEwHAYJKoZIhvcNAQkFMQ8XDTIyMDMwNzExMDAwM1ow
-# LwYJKoZIhvcNAQkEMSIEID0c8m3leWFR+3HjWjJNc06ZtPExxnbfqMUOBj6z0ZG+
-# MA0GCSqGSIb3DQEBAQUABIIBADvI4haAA8WmSo98/bEfHK3ez9IZdN9C2cAf3ZA3
-# ewmMZdWhA3OrFZqb+5Cp8ZEO7UtimBRwBvg/KXFB1HvZPlYY0sgE08qEnah87B6W
-# XJKO6ZxKzn3/kk44jlOBV/UEi5BmYjkG5xQqQ5zHaY8nYiKLSBkIK5wDcb9zghSv
-# nvD9KfabEoIwrq6gL2FXMqWq2WjU2YqP4MIAeOaSR1FvH9lIEA8D8OX10UN+F1iV
-# H4c+epJwJos6sw+zl60KCBWC6XTAyxH9cERc2TpsNE4SxrdjXy/8bfvizQ6plwu/
-# MEocDQvUBdOs5PY+vvpBUzadBCN/L/VgMXyihca68fdwBuk=
+# MSEwHwYDVQQDExhEaWdpQ2VydCBUcnVzdGVkIFJvb3QgRzQwHhcNMjIwMzIzMDAw
+# MDAwWhcNMzcwMzIyMjM1OTU5WjBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGln
+# aUNlcnQsIEluYy4xOzA5BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5
+# NiBTSEEyNTYgVGltZVN0YW1waW5nIENBMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
+# MIICCgKCAgEAxoY1BkmzwT1ySVFVxyUDxPKRN6mXUaHW0oPRnkyibaCwzIP5WvYR
+# oUQVQl+kiPNo+n3znIkLf50fng8zH1ATCyZzlm34V6gCff1DtITaEfFzsbPuK4CE
+# iiIY3+vaPcQXf6sZKz5C3GeO6lE98NZW1OcoLevTsbV15x8GZY2UKdPZ7Gnf2ZCH
+# RgB720RBidx8ald68Dd5n12sy+iEZLRS8nZH92GDGd1ftFQLIWhuNyG7QKxfst5K
+# fc71ORJn7w6lY2zkpsUdzTYNXNXmG6jBZHRAp8ByxbpOH7G1WE15/tePc5OsLDni
+# pUjW8LAxE6lXKZYnLvWHpo9OdhVVJnCYJn+gGkcgQ+NDY4B7dW4nJZCYOjgRs/b2
+# nuY7W+yB3iIU2YIqx5K/oN7jPqJz+ucfWmyU8lKVEStYdEAoq3NDzt9KoRxrOMUp
+# 88qqlnNCaJ+2RrOdOqPVA+C/8KI8ykLcGEh/FDTP0kyr75s9/g64ZCr6dSgkQe1C
+# vwWcZklSUPRR8zZJTYsg0ixXNXkrqPNFYLwjjVj33GHek/45wPmyMKVM1+mYSlg+
+# 0wOI/rOP015LdhJRk8mMDDtbiiKowSYI+RQQEgN9XyO7ZONj4KbhPvbCdLI/Hgl2
+# 7KtdRnXiYKNYCQEoAA6EVO7O6V3IXjASvUaetdN2udIOa5kM0jO0zbECAwEAAaOC
+# AV0wggFZMBIGA1UdEwEB/wQIMAYBAf8CAQAwHQYDVR0OBBYEFLoW2W1NhS9zKXaa
+# L3WMaiCPnshvMB8GA1UdIwQYMBaAFOzX44LScV1kTN8uZz/nupiuHA9PMA4GA1Ud
+# DwEB/wQEAwIBhjATBgNVHSUEDDAKBggrBgEFBQcDCDB3BggrBgEFBQcBAQRrMGkw
+# JAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBBBggrBgEFBQcw
+# AoY1aHR0cDovL2NhY2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0VHJ1c3RlZFJv
+# b3RHNC5jcnQwQwYDVR0fBDwwOjA4oDagNIYyaHR0cDovL2NybDMuZGlnaWNlcnQu
+# Y29tL0RpZ2lDZXJ0VHJ1c3RlZFJvb3RHNC5jcmwwIAYDVR0gBBkwFzAIBgZngQwB
+# BAIwCwYJYIZIAYb9bAcBMA0GCSqGSIb3DQEBCwUAA4ICAQB9WY7Ak7ZvmKlEIgF+
+# ZtbYIULhsBguEE0TzzBTzr8Y+8dQXeJLKftwig2qKWn8acHPHQfpPmDI2AvlXFvX
+# bYf6hCAlNDFnzbYSlm/EUExiHQwIgqgWvalWzxVzjQEiJc6VaT9Hd/tydBTX/6tP
+# iix6q4XNQ1/tYLaqT5Fmniye4Iqs5f2MvGQmh2ySvZ180HAKfO+ovHVPulr3qRCy
+# Xen/KFSJ8NWKcXZl2szwcqMj+sAngkSumScbqyQeJsG33irr9p6xeZmBo1aGqwpF
+# yd/EjaDnmPv7pp1yr8THwcFqcdnGE4AJxLafzYeHJLtPo0m5d2aR8XKc6UsCUqc3
+# fpNTrDsdCEkPlM05et3/JWOZJyw9P2un8WbDQc1PtkCbISFA0LcTJM3cHXg65J6t
+# 5TRxktcma+Q4c6umAU+9Pzt4rUyt+8SVe+0KXzM5h0F4ejjpnOHdI/0dKNPH+ejx
+# mF/7K9h+8kaddSweJywm228Vex4Ziza4k9Tm8heZWcpw8De/mADfIBZPJ/tgZxah
+# ZrrdVcA6KYawmKAr7ZVBtzrVFZgxtGIJDwq9gdkT/r+k0fNX2bwE+oLeMt8EifAA
+# zV3C+dAjfwAL5HYCJtnwZXZCpimHCUcr5n8apIUP/JiW9lVUKx+A+sDyDivl1vup
+# L0QVSucTDh3bNzgaoSv27dZ8/DCCBsYwggSuoAMCAQICEAp6SoieyZlCkAZjOE2G
+# l50wDQYJKoZIhvcNAQELBQAwYzELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDkRpZ2lD
+# ZXJ0LCBJbmMuMTswOQYDVQQDEzJEaWdpQ2VydCBUcnVzdGVkIEc0IFJTQTQwOTYg
+# U0hBMjU2IFRpbWVTdGFtcGluZyBDQTAeFw0yMjAzMjkwMDAwMDBaFw0zMzAzMTQy
+# MzU5NTlaMEwxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjEk
+# MCIGA1UEAxMbRGlnaUNlcnQgVGltZXN0YW1wIDIwMjIgLSAyMIICIjANBgkqhkiG
+# 9w0BAQEFAAOCAg8AMIICCgKCAgEAuSqWI6ZcvF/WSfAVghj0M+7MXGzj4CUu0jHk
+# PECu+6vE43hdflw26vUljUOjges4Y/k8iGnePNIwUQ0xB7pGbumjS0joiUF/DbLW
+# +YTxmD4LvwqEEnFsoWImAdPOw2z9rDt+3Cocqb0wxhbY2rzrsvGD0Z/NCcW5QWpF
+# QiNBWvhg02UsPn5evZan8Pyx9PQoz0J5HzvHkwdoaOVENFJfD1De1FksRHTAMkcZ
+# W+KYLo/Qyj//xmfPPJOVToTpdhiYmREUxSsMoDPbTSSF6IKU4S8D7n+FAsmG4dUY
+# FLcERfPgOL2ivXpxmOwV5/0u7NKbAIqsHY07gGj+0FmYJs7g7a5/KC7CnuALS8gI
+# 0TK7g/ojPNn/0oy790Mj3+fDWgVifnAs5SuyPWPqyK6BIGtDich+X7Aa3Rm9n3RB
+# Cq+5jgnTdKEvsFR2wZBPlOyGYf/bES+SAzDOMLeLD11Es0MdI1DNkdcvnfv8zbHB
+# p8QOxO9APhk6AtQxqWmgSfl14ZvoaORqDI/r5LEhe4ZnWH5/H+gr5BSyFtaBocra
+# MJBr7m91wLA2JrIIO/+9vn9sExjfxm2keUmti39hhwVo99Rw40KV6J67m0uy4rZB
+# Peevpxooya1hsKBBGBlO7UebYZXtPgthWuo+epiSUc0/yUTngIspQnL3ebLdhOon
+# 7v59emsCAwEAAaOCAYswggGHMA4GA1UdDwEB/wQEAwIHgDAMBgNVHRMBAf8EAjAA
+# MBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMCAGA1UdIAQZMBcwCAYGZ4EMAQQCMAsG
+# CWCGSAGG/WwHATAfBgNVHSMEGDAWgBS6FtltTYUvcyl2mi91jGogj57IbzAdBgNV
+# HQ4EFgQUjWS3iSH+VlhEhGGn6m8cNo/drw0wWgYDVR0fBFMwUTBPoE2gS4ZJaHR0
+# cDovL2NybDMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0VHJ1c3RlZEc0UlNBNDA5NlNI
+# QTI1NlRpbWVTdGFtcGluZ0NBLmNybDCBkAYIKwYBBQUHAQEEgYMwgYAwJAYIKwYB
+# BQUHMAGGGGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBYBggrBgEFBQcwAoZMaHR0
+# cDovL2NhY2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0VHJ1c3RlZEc0UlNBNDA5
+# NlNIQTI1NlRpbWVTdGFtcGluZ0NBLmNydDANBgkqhkiG9w0BAQsFAAOCAgEADS0j
+# dKbR9fjqS5k/AeT2DOSvFp3Zs4yXgimcQ28BLas4tXARv4QZiz9d5YZPvpM63io5
+# WjlO2IRZpbwbmKrobO/RSGkZOFvPiTkdcHDZTt8jImzV3/ZZy6HC6kx2yqHcoSuW
+# uJtVqRprfdH1AglPgtalc4jEmIDf7kmVt7PMxafuDuHvHjiKn+8RyTFKWLbfOHzL
+# +lz35FO/bgp8ftfemNUpZYkPopzAZfQBImXH6l50pls1klB89Bemh2RPPkaJFmMg
+# a8vye9A140pwSKm25x1gvQQiFSVwBnKpRDtpRxHT7unHoD5PELkwNuTzqmkJqIt+
+# ZKJllBH7bjLx9bs4rc3AkxHVMnhKSzcqTPNc3LaFwLtwMFV41pj+VG1/calIGnjd
+# RncuG3rAM4r4SiiMEqhzzy350yPynhngDZQooOvbGlGglYKOKGukzp123qlzqkhq
+# WUOuX+r4DwZCnd8GaJb+KqB0W2Nm3mssuHiqTXBt8CzxBxV+NbTmtQyimaXXFWs1
+# DoXW4CzM4AwkuHxSCx6ZfO/IyMWMWGmvqz3hz8x9Fa4Uv4px38qXsdhH6hyF4EVO
+# EhwUKVjMb9N/y77BDkpvIJyu2XMyWQjnLZKhGhH+MpimXSuX4IvTnMxttQ2uR2M4
+# RxdbbxPaahBuH0m3RFu0CAqHWlkEdhGhp3cCExwxggXnMIIF4wIBATAiMA4xDDAK
+# BgNVBAMMA2JjbAIQJoAlxDS3d7xJEXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYB
+# BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMgr1
+# 5qCp+jhqgvLsvojdG4IvTDMwDQYJKoZIhvcNAQEBBQAEggIAoxikzvZF8iGRU4/T
+# DYcey/OXFaSNbBEMe0be+5CLb+8qEt7GfHaMNCHZ8TBvru6vqhL51XDSatLsUmty
+# sFPCeTpR1OUQU8Sp7XNPFJYkcafqvH0Qfyj7t87XqVPFpEHWdqd9T/S0lNdot54o
+# tsCK3GQJlyv08EQOrX2OxMmHioS7Ee9MSFMlWR+uoew/K5dmZUJ9I8ppWITw5Z1V
+# IWuvsBkWvm0colgF+26rL8GUvotQasHyFlYhZbRpbifHRkXf/nURBTCnG/lZOytx
+# cH2cZ07Fut1xRV3My88tXzfzUl6uWN9s+XcW/BRLALyG42HKUcCgUsNaJjiOE3HK
+# FvhRTty2t36/qiYeRCyywIryO3ehR4C5+Mtm9AMKGP87I7YEOFGBtAT7iNpIlT3O
+# 1VfQqMr0T0+IGoL6YhdIqeyJbtNCmKle669LVAlj7UvGVj5j/ll2K+z0cwFG5Sm3
+# PbQaJEAdYKMMP3E5GPHcCgCZISdxivebD8ku8F64/zhYK/B86o9h15ONz9x6Z7Y9
+# c9LvBGkPhS51zZxdLKrTXAAjJhoDUnxo2GF6Q33oMzwHY97wo2sf9+QsFJ0jHzPQ
+# UVj159YZA7hTR77DjWeBWi8obOVBU9E5niuennV/lg2kbIQUd31OBqHtNOzQFxN2
+# rY+omXz988iKm4HUzlkFKIFTNsyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
+# AQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5
+# BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0
+# YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkwGAYJ
+# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDA4MjAw
+# MDA0WjAvBgkqhkiG9w0BCQQxIgQgKZnydmv68duXbtJK00qNlgMR/H7q/hzuUTjw
+# ZaydnO4wDQYJKoZIhvcNAQEBBQAEggIAl7k+RwgftyPjV8vQRNQTnCWZlpx+hRhm
+# nWo16XIDtuGengTxgHTispr5Ad6fPbL5GMZcXlmDlce56ajbWpG2DO/M/CefhGAW
+# tNSzkZ3YwVKCOY7F01TLqyDXrMQUAuJ9iItJjpjBf2FkUcB0rjnHWqZheWsU4G+V
+# g1d4kXWixOTCpYpZcAA5f561lqAuyjSk1aCsLnYlKJpylfuJY430JbDKiPGYsAHD
+# MDdOa11EkIZafN7UfW13sxFoe4OznDI7YPj2/kKqdhzWs/qlHSCjhlSzML/JUEjO
+# 0ZJfMvOlsGHTNCgih+po3DONr+oqp/yM66/SFo7i9hJqaJ98Ut7RodaY7IUdKaOg
+# OFNrHdxE1yUVQ+lJ9o64UDMSxQ9gS00peZvZMVzRUDUDjj5NAHIGq/Dm3+6eM7IX
+# QUYHeAjFXR8NsTLZeiEWDD4WOhDKOvVWKs08bQxU7EIASLfp2KMK3ICmITzG9DuI
+# kWEu1pnQnNoQASKrDjoM535kv9ESiyruXZ9zJQh/hPVKqZvobo5+fPpUeLn/yfCv
+# j5WhT5rfHaUg8WN7prW+fWxxpR3EJERCLmcJGU6LiOte3RzyzEuV0tXSM3pvH2ew
+# pPSuonaWM0VfIHU+BGqjxSO/hXKGQKULarn2K6j/2B4IbK338t26EHi1ll6U29wn
+# BcTU24/MpCE=
 # SIG # End signature block
