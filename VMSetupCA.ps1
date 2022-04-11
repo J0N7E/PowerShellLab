@@ -76,6 +76,10 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertKeyContainerName_StandaloneSubordinateCA')]
     [Switch]$IgnoreUnicode,
 
     # DN Suffix
@@ -98,6 +102,8 @@ Param
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$PolicyURL,
+
+    $Policy,
 
     # Root CA certificate validity period units
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
@@ -832,10 +838,27 @@ Begin
         # add parameters for issuance policy
         # add oid parameter
 
+        if (-not $Policy)
+        {
+            $Policy =
+            @{
+                PolicyOID = '2.5.29.32.0'
+            }
+
+            if ($DomainName)
+            {
+                $Policy.Add('PolicyURL',"http://pki.$DomainName/cps")
+            }
+            else
+            {
+                $Policy.Add('PolicyURL', $null)
+            }
+        }
+
         # Check if exist
         if ($ParameterSetName -match 'Subordinate')
         {
-            if ($DomainName -and -not $PolicyURL)
+            if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq )
             {
                 Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
 
@@ -1164,6 +1187,12 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 'AllowAdministratorInteraction' = $true
             }
 
+            # Ignore unicode
+            if ($IgnoreUnicode.IsPresent)
+            {
+                $ADCSCAParams.Add('IgnoreUnicode', $true)
+            }
+
             if ($ParameterSetName -match 'CertFile')
             {
                 # Get content
@@ -1181,14 +1210,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 if ($ParameterSetName -match 'CertKeyContainerName')
                 {
                     # KeyContainerName parameters
-                    $ADCSCAParams +=
-                    @{
-                        'KeyContainerName' = $CertKeyContainerName
-
-                        # FIX
-                        # Add as parameter
-                        #'IgnoreUnicode' = $true
-                    }
+                    $ADCSCAParams.Add('KeyContainerName', $CertKeyContainerName)
                 }
                 else
                 {
@@ -1209,10 +1231,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
 
                 if ($CADistinguishedNameSuffix)
                 {
-                    $ADCSCAParams +=
-                    @{
-                        'CADistinguishedNameSuffix' = $CADistinguishedNameSuffix
-                    }
+                    $ADCSCAParams.Add('CADistinguishedNameSuffix', $CADistinguishedNameSuffix)
                 }
 
                 if ($ParameterSetName -match 'Root')
@@ -1679,6 +1698,8 @@ Process
             # Policy URL
             $PolicyURL = $Using:PolicyURL
 
+            $Policy = $Using:Policy
+
             # Root CA certificate validity period
             $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
             $RenewalValidityPeriod = $Using:RenewalValidityPeriod
@@ -1852,8 +1873,8 @@ End
 # SIG # Begin signature block
 # MIIY9AYJKoZIhvcNAQcCoIIY5TCCGOECAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHOY0oQhh0AigWtRCYrYChyIB
-# lk2gghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUINiJqT+ppzAlHOo+ToS4BemS
+# kGSgghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1954,34 +1975,34 @@ End
 # RxdbbxPaahBuH0m3RFu0CAqHWlkEdhGhp3cCExwxggXnMIIF4wIBATAiMA4xDDAK
 # BgNVBAMMA2JjbAIQJoAlxDS3d7xJEXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYB
 # BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
-# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCTzY
-# OMq7JENkmXrTr5OBoLCQykowDQYJKoZIhvcNAQEBBQAEggIAlGN8mm1TcueeSexK
-# +WQDAqyJQ9TDIYO/TOGKPX7bON+Rew3TftgV1BgZK8z31dCQVHIdKU/FZzQYthpD
-# MF0K51dcXBC5wqfLbkLC2zHqlVzpr8gWi+KHgLSKkllhUHgOym21g0apyqTn6MGo
-# H4glQ4lXf23aMsdjJWCnEKIz4mk9nXX3W1sgrTwk1+lUGg/t604xyDJMKmjEcaTd
-# J2uWwrOozdtR6z2b7IX9xQzy9nl0Tug60p31CKrGdgIRJBqgJXFDNO2gR8C672Pb
-# r6IO4ndpie2IPsRxH3B4QQAoSKwe92SgQFqQ+Ome+VA406yrZPbTe1AkDf+3HycW
-# PcK1UQD8eWrfhPmv3Ueud6iZSv52akYSwEqWnqBqT8r4wfVzWTKsVd2ebeGaoBJz
-# r6oIHYbCkMt6ApiAXNBwEzGMV9rCFFgEQrc8xzSbNyTWE79GLCCLjJvMpThDZR4q
-# v14houHEv71gXdXSdniYo8dMqY4yfd3p1WiFxsq3HbSkvdZCAnIu3N8FCAhqZbxF
-# 8bE/ifmp8x03leNOcFP4I+RgAw/2C+jSFSn3EEfzcRK16P6BktDszbX2G2HBVlJs
-# Q7doZ+65UE+oKHC1cKAvmyGK3JEwjjKCkoI+empn5D/UpE3md70gmfyCd0hCL5Jl
-# mGQSIGNzpEvqAhsEAf4fGpTd/rqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUO4cd
+# qo3kJWGV5kGPYkICt7TjC18wDQYJKoZIhvcNAQEBBQAEggIAWLmJkv/AnFLM3klW
+# pYdRoitH63mtRIwB+hpHMVkwUMcRGqSLUh5n0V5vtjANSSmz8teVauGxhd8dqBi1
+# 7TXV8ihoEgCCIBcT7lW+B0Fo1GnFYGu2r3j9aLq2diSbCryUjm98hr+ncQ3wXZb9
+# o1Ms+6cOPeqc1vM8ewfazePEphBQlEiHnyOPCdPMpSTM50/8JBftxTy4emsg1kXt
+# q3SmwoN4SPkIolaZ/poBR03Y8fQbSkiVAWtUZtMPDAvD5zXxrD10ifmeUWeLa7gY
+# M5ev0ikM7CUSJI2+Dv6ugJ9zKAwGsrRfWNYBUOpQMJoR2HCS/q8Nl6sI/bdSfh85
+# X9lzLFCwBI3naL4P0EfOD1Bewaa8Quj7zz4gF9MIm8s3nehhxvVvkKFhOC/3cjRF
+# qkY5RCZ2vm4gUVTOSjdCybvO8J/ViuPGyMY/k1R1xPfSzEJix4z6XCNqrSk8csam
+# ak91jvq/ChiuROQZvxAFLa+6E1lDi13Ge6+SkmMcEKsFofc08A9wYvGzd4LElNyf
+# OR3KSXbSsmQDIdOZvSM/Xy+kWhnjkqGSrmrOa6cmybaMcTQfLC/1b+SUpnQxLXSo
+# VYkX3EFmfkvaM5qHEp+ciDqdKVamQ9ywSH9D9GzCjJfc8bMbUyF2exYpSUcY0Ydi
+# 3hGyOGnkfsI8MkKRpdSE+WeGKHKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
 # AQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5
 # BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0
 # YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkwGAYJ
-# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDA4MjAw
-# MDA0WjAvBgkqhkiG9w0BCQQxIgQg31q4ngQ/miW8T+hOT4K9PyhQebAmlPzXCbJ3
-# C2vZ+pMwDQYJKoZIhvcNAQEBBQAEggIAT3DjGuuRmSTv/u44UyGn0Bc7788Uprnm
-# Al28OAfqHMvOXdnpXL7/oHA+sejKApF6Rmeli1rv/e2JcFyAaowlAaNxQkn6vfNz
-# lKyaHtbuaJVR1TLdvG8LegkBjv4K+AonXh0LtAtZLLNCmW3sNAYCaYMxs++fG2Eo
-# 7S220ZJ4Tlfsxzh11ozHzx71geUAaik3a5q73HywlQNK8AdqNNlfk7TeDWwVJLX2
-# zhcvX1+wHen5DASwddGiKjUwyv10bVwA3T6Z4tMECSG429F2nZ2jPquIPZdj+Gir
-# 8VYiMABSUYMSJCWTtupl5lzn2qzEXNQm5WnxU86aiaHm869P8WTy4uiyIPMnEQ6a
-# qNur+k4pOy2B4FrRtmWPTPt3Le2BnlClro1uEtkM//uPv0ZuXGYbQztWmxoUb3Sr
-# L5btMiOILKHfcMb/E/WTL2A1jiO54xgiyCYWBmdFhRvhAbNb5cKAiVyAL+KkGM1w
-# XJ7Q2/YlActFRDxESwRRcr1dOYff6+5S2tyXUXyO4+AtaFywK+KHqr5rZADQZ+T+
-# YhTXHnLhIhdE11qAwOpDVPdD/NJ+AqEp5jZrNQADmbUsINgM8RgFu7s053JvBeG6
-# geGY77hZstf0bFtXLalvRlOoka3oy4VdBPjMbV0HAjZKS9r2ogOEBDUVZPdpZ81l
-# +2LehSy9gqQ=
+# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDExMjMw
+# MDA0WjAvBgkqhkiG9w0BCQQxIgQgWhqte49GufUddtspvgmR4uHoNotRsdf2oOYr
+# uK78suAwDQYJKoZIhvcNAQEBBQAEggIAkTAX/qVYWRCTzOGTuHJh/CFJ15mGgy3L
+# Z/wG9fD+oG0rJkWhWYICcWG2UFDCgg9ap/dxaI9rLy42dR03qtUAUb37CqTPzcs+
+# enPboiYQtHyQxzJP3fhQyuKRMG5D8PXV0TVH0WMedmvipX0GPU74wDXZ8q8Bliyl
+# NI6LxxTmHdRY+kB7U81hHInXpuAY4tckkz9RzX0aFS4cGyd26i+txzCTDgTZQ62c
+# m8Yuc+fG5UwFuCuFoUe/WfK2e4cX+0Kywj7xCmDy/KBEaPF45/SF4WZh2O9ouC9V
+# rUrIXtjyla65fWGwMLPodULnTH7KWgxl68MjfZoNLUNwHWYnovNSQ+MAuAj+qwMW
+# 0F7G1a6CK1zoJJuvThTMYXc9CHfuPGkdjni1yaorTTYDTprxzsAAXKSW78Wmvy++
+# fGT+MDAZB6e9vHjZWVCU0f58+3ue51I/fW+CQmc7f5/dYd++ZwvEaChMNsZw+N5k
+# kG+nkYmoObA97q4SK6O2QUD64oZRfoLQFKYyFH1miXf55NuMuv87yR7LEyoEk+Ox
+# 6+0ToAn8h09ojbcJ+Uqk3jiYAaBj5z4YZP8jQ0897WfwG4pvbuWOrCjcnURRw/z6
+# +p0EZsAV5OuXb7T02ZlQkh5ZdHCDcbopMf2Bo5RKLdFzlTDOAjKj37D2AvDVQ8W7
+# eFkQ7xYz+js=
 # SIG # End signature block
