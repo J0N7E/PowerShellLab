@@ -858,7 +858,7 @@ Begin
         # Check if exist
         if ($ParameterSetName -match 'Subordinate')
         {
-            if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq )
+            if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq '2.5.29.32.0')
             {
                 Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
 
@@ -1477,7 +1477,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             Restart-CertSvc
             Start-Sleep -Seconds 3
 
-            if ($Result.Contains('CertificateInstalled'))
+            if ($Result.Contains('CertificateInstalled') -and $CryptoProviderName -match 'SafeNet')
             {
                 Write-Warning -Message "Waiting a bit extra for CA."
                 Start-Sleep -Seconds 7
@@ -1873,8 +1873,8 @@ End
 # SIG # Begin signature block
 # MIIY9AYJKoZIhvcNAQcCoIIY5TCCGOECAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUINiJqT+ppzAlHOo+ToS4BemS
-# kGSgghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1GW1OPRn3Gd+bfXy5bWJZkpn
+# 2t6gghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1975,34 +1975,34 @@ End
 # RxdbbxPaahBuH0m3RFu0CAqHWlkEdhGhp3cCExwxggXnMIIF4wIBATAiMA4xDDAK
 # BgNVBAMMA2JjbAIQJoAlxDS3d7xJEXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYB
 # BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
-# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUO4cd
-# qo3kJWGV5kGPYkICt7TjC18wDQYJKoZIhvcNAQEBBQAEggIAWLmJkv/AnFLM3klW
-# pYdRoitH63mtRIwB+hpHMVkwUMcRGqSLUh5n0V5vtjANSSmz8teVauGxhd8dqBi1
-# 7TXV8ihoEgCCIBcT7lW+B0Fo1GnFYGu2r3j9aLq2diSbCryUjm98hr+ncQ3wXZb9
-# o1Ms+6cOPeqc1vM8ewfazePEphBQlEiHnyOPCdPMpSTM50/8JBftxTy4emsg1kXt
-# q3SmwoN4SPkIolaZ/poBR03Y8fQbSkiVAWtUZtMPDAvD5zXxrD10ifmeUWeLa7gY
-# M5ev0ikM7CUSJI2+Dv6ugJ9zKAwGsrRfWNYBUOpQMJoR2HCS/q8Nl6sI/bdSfh85
-# X9lzLFCwBI3naL4P0EfOD1Bewaa8Quj7zz4gF9MIm8s3nehhxvVvkKFhOC/3cjRF
-# qkY5RCZ2vm4gUVTOSjdCybvO8J/ViuPGyMY/k1R1xPfSzEJix4z6XCNqrSk8csam
-# ak91jvq/ChiuROQZvxAFLa+6E1lDi13Ge6+SkmMcEKsFofc08A9wYvGzd4LElNyf
-# OR3KSXbSsmQDIdOZvSM/Xy+kWhnjkqGSrmrOa6cmybaMcTQfLC/1b+SUpnQxLXSo
-# VYkX3EFmfkvaM5qHEp+ciDqdKVamQ9ywSH9D9GzCjJfc8bMbUyF2exYpSUcY0Ydi
-# 3hGyOGnkfsI8MkKRpdSE+WeGKHKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwmzw
+# qkUebj5PPkm9W/6CvIDFUIIwDQYJKoZIhvcNAQEBBQAEggIAIMv9jLBisLw7uoub
+# ofy2T1DLPjNvV5CFwRKmGAhHmK27Bdh8aybb8Q4DpNvEmmlNnHWHVrLxCZW0JUSe
+# qcr3KUSh6SqZ+pAEs6cbvPYOo0Xo716LTurHEUfjLRGrFWwqLgzJxTfPhKsuT5D/
+# e4bpw1ffTdwMS9o8NpH9rsfE/+4N2pC7cgy52sTEOANU2OdcGDhUzYrp44xZzhjS
+# rOV8ldP0L1PTPXUJv+MijyhsakwObmrgcbKnzTpaX2RRKT4xzjXwRp9KqbLkRoo5
+# OCGGs+48G/XomE1W3Y0KTssbuQhzmk85WhtVbnphRoW5qYkba8fQ5VknVNJRN1cX
+# 7rqWlTd7BnBHBygQc/K1iJ9Xe8YwlkP2S8ynlBRRFUp/K+RBAEykjIXH1XotzUNQ
+# i5A1kwQyz7/Ema+Eh+SqMkTFOWXgbjWsjqz+cgswcyGixRX0WqAEWs31GOggV8lj
+# DzyWwYrbNJee9HPixLkDtcr45sdCyrinONs/dkPxzrC/dK4amIv+HksZ1uYCKFPe
+# GyyGO1dbNba+ua70Le56QR5eNmqb4q9rs9Rh93nWO4N2qGh3v36cF6b6nx5eDn/n
+# Y6PsqvtkjvdHGW3CbkynzLRmK3r6jcdgb4FbB0xLenfIYLEWYtDWNLp6gutLxtKA
+# biixgXiubScbW0j60Qf/3N0RqzahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
 # AQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5
 # BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0
 # YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkwGAYJ
-# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDExMjMw
-# MDA0WjAvBgkqhkiG9w0BCQQxIgQgWhqte49GufUddtspvgmR4uHoNotRsdf2oOYr
-# uK78suAwDQYJKoZIhvcNAQEBBQAEggIAkTAX/qVYWRCTzOGTuHJh/CFJ15mGgy3L
-# Z/wG9fD+oG0rJkWhWYICcWG2UFDCgg9ap/dxaI9rLy42dR03qtUAUb37CqTPzcs+
-# enPboiYQtHyQxzJP3fhQyuKRMG5D8PXV0TVH0WMedmvipX0GPU74wDXZ8q8Bliyl
-# NI6LxxTmHdRY+kB7U81hHInXpuAY4tckkz9RzX0aFS4cGyd26i+txzCTDgTZQ62c
-# m8Yuc+fG5UwFuCuFoUe/WfK2e4cX+0Kywj7xCmDy/KBEaPF45/SF4WZh2O9ouC9V
-# rUrIXtjyla65fWGwMLPodULnTH7KWgxl68MjfZoNLUNwHWYnovNSQ+MAuAj+qwMW
-# 0F7G1a6CK1zoJJuvThTMYXc9CHfuPGkdjni1yaorTTYDTprxzsAAXKSW78Wmvy++
-# fGT+MDAZB6e9vHjZWVCU0f58+3ue51I/fW+CQmc7f5/dYd++ZwvEaChMNsZw+N5k
-# kG+nkYmoObA97q4SK6O2QUD64oZRfoLQFKYyFH1miXf55NuMuv87yR7LEyoEk+Ox
-# 6+0ToAn8h09ojbcJ+Uqk3jiYAaBj5z4YZP8jQ0897WfwG4pvbuWOrCjcnURRw/z6
-# +p0EZsAV5OuXb7T02ZlQkh5ZdHCDcbopMf2Bo5RKLdFzlTDOAjKj37D2AvDVQ8W7
-# eFkQ7xYz+js=
+# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDE1MDIw
+# MDA1WjAvBgkqhkiG9w0BCQQxIgQgfnsCeVISYXE3+XA4ap1lQAyXwrY0uy9Fmu3a
+# i4KNQ1swDQYJKoZIhvcNAQEBBQAEggIAKVKwu/YX+vV6QtB7yCgNSh1RT4ElNpTt
+# LWaUcojhxuAXUvXt/IjdEy8Bu6aYcVrehJEUTNVRIaYlU7JT37IbJ34oFnN34L2q
+# YQUUOPau+NkGv7IlS3b9Hh0SSthIVFS8D2rL1Nh8ZZ34Rw8+zD/6G0noftB9WaPG
+# bEY7FhDzHDQXSQJ9NoAJ9vaNgiE44wgEfqWEvYJZTYL+YT7fhPTSGxK3y2ko3kuR
+# PR8BAobV7SNyvIm49dkFtMYmJ7J0JIUgLsAIHRCwQCnt4MNV6Q7YA/jq5qEFJ+9V
+# dkVD/bxzv1fOc2+vQgi94gcGnOzBLlPjKzD2G/0l+711AT+eTz6vQsAUfHOiAc1q
+# SjDSlyeHRLMdCdq3LYgFTRoQ5Fayq8eccRr+BY+qXUOvymXmXLoJRz999Wm69LzQ
+# My5PvZsPqv4s7eo4uxw3fDAj7sW786wtup06ZSThTNLO7CX8ChjBHiLfLgY9l8Cl
+# w6we4a3gHwR9KdGxDoM9QcM1dnswkaYPK6OcDbhYZiJ3yBPqMmB4b5UzKYnZqV3g
+# mAOwgEaBgb+3Bdu3mosdI+HLW6fK6U6myjJiZCu4Djm49E0Stq1VYaSRp0wQgMZ/
+# q348jvFShYNAm+dZBpeE4YPmM3IM5TOg4jm7IYMRgQ0OedVTt9RrYes+JS1yKgwc
+# DlRx5r+yJk8=
 # SIG # End signature block
