@@ -56,6 +56,13 @@ Param
     [Parameter(ParameterSetName='OCSPManual')]
     [String]$ShareAccess,
 
+    #######
+    # Ndes
+    #######
+
+    # Configure Ndes
+    [Switch]$ConfigureNDES,
+
     #####################
     # OCSP Enterprise CA
     #####################
@@ -92,16 +99,10 @@ Param
     [String]$OCSPHashAlgorithm,
 
     # OCSP nonuce switch
-    [Switch]$OCSPAddNounce,
+    [Switch]$OCSPAddNonce,
 
     # OCSP refresh timeout
-    [Int]$OCSPRefreshTimeout,
-
-    #######
-    # NDES
-    #######
-
-    [Switch]$DeviceEnrollment
+    [Int]$OCSPRefreshTimeout
 )
 
 Begin
@@ -255,6 +256,16 @@ Begin
             }
         }
 
+        # Check if IIS drive is mapped
+        try
+        {
+            Get-PSDrive -Name IIS -ErrorAction Stop > $null
+        }
+        catch
+        {
+            Import-Module WebAdministration
+        }
+
         #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
         # ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝
         # ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗
@@ -264,16 +275,6 @@ Begin
 
         if ($ConfigureIIS)
         {
-            # Check if IIS drive is mapped
-            try
-            {
-                Get-PSDrive -Name IIS -ErrorAction Stop > $null
-            }
-            catch
-            {
-                Import-Module WebAdministration
-            }
-
             # Get ip address
             $IPAddress = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Manual', 'DHCP')} | Sort-Object -Property ifIndex | Select-Object -ExpandProperty IPAddress -First 1
 
@@ -303,6 +304,9 @@ Begin
             ###########
 
             <#
+             # FIX
+             # check if delta, then aply
+
             # Check double escaping
             if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping).Value -eq $false -and
                 (ShouldProcess @WhatIfSplat -Message "Enabling double escaping." @VerboseSplat))
@@ -463,6 +467,187 @@ Begin
         # Remove temp directory
         Remove-Item -Path "$env:TEMP\$CACommonName" -Force -Recurse
 
+        #  ███╗   ██╗██████╗ ███████╗███████╗
+        #  ████╗  ██║██╔══██╗██╔════╝██╔════╝
+        #  ██╔██╗ ██║██║  ██║█████╗  ███████╗
+        #  ██║╚██╗██║██║  ██║██╔══╝  ╚════██║
+        #  ██║ ╚████║██████╔╝███████╗███████║
+        #  ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚══════╝
+
+        if ($ConfigureNDES.IsPresent)
+        {
+            # Check if windows feature is installed
+            if ((Get-WindowsFeature -Name RSAT-AD-PowerShell).InstallState -notmatch 'Install' -and
+                (ShouldProcess @WhatIfSplat -Message "Installing RSAT-AD-PowerShell windows feature." @VerboseSplat))
+            {
+                Install-WindowsFeature -Name RSAT-AD-PowerShell > $null
+            }
+
+            # Test service account
+            # FIX add parameter for accountname
+
+            if (-not (Test-ADServiceAccount -Identity MsaNdes) -and
+                (ShouldProcess @WhatIfSplat -Message "Installing service account." @VerboseSplat))
+            {
+                Install-ADServiceAccount -Identity MsaNdes
+            }
+
+            # Add service account to iis_iusrs
+            # FIX add parameter for accountname
+
+            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$ -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
+            {
+                Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
+            }
+
+            # Check if windows feature is installed
+            if ((Get-WindowsFeature -Name ADCS-Device-Enrollment).InstallState -notmatch 'Install' -and
+                (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Device-Enrollment windows feature." @VerboseSplat))
+            {
+                Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
+            }
+
+            # Add CertSrv application
+            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            {
+                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv'> $null
+            }
+
+            # Check directory browsing
+            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $true -and
+                (ShouldProcess @WhatIfSplat -Message "Disabling NDES directory browsing." @VerboseSplat))
+            {
+                # Disable directory browsing
+                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
+            }
+
+            # Configure Ndes
+            # FIX
+            # RPC server unavailable when using remote
+
+            if (-not (Get-Item -Path HKLM:\SOFTWARE\Microsoft\Cryptography\MSCEP -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Configuring NDES." @VerboseSplat))
+            {
+                # Initialize
+                $NdesParams =
+                @{
+                    ApplicationPoolIdentity = $true
+                    CAConfig = $CAConfig
+                    RAName = "$CACommonName NDES"
+                    RACountry = 'SE'
+                    RACompany = $DomainName
+                    SigningProviderName = 'Microsoft Strong Cryptographic Provider'
+                    SigningKeyLength = 2048
+                    EncryptionProviderName = 'Microsoft Strong Cryptographic Provider'
+                    EncryptionKeyLength = 2048
+                }
+
+                try
+                {
+                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
+                }
+                catch [Exception]
+                {
+                    throw $_.Exception
+                }
+            }
+
+            # Set application pool identity
+            # FIX add parameter for accountname
+
+            if ((Get-ItemProperty IIS:\AppPools\SCEP -name processModel).identityType -eq 'ApplicationPoolIdentity' -and
+                (ShouldProcess @WhatIfSplat -Message "Setting service account as application pool identity." @VerboseSplat))
+            {
+                Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
+            }
+
+            #############################
+            # Set privat key permissions
+            #############################
+
+            foreach ($Cert in (Get-Item -Path Cert:\LocalMachine\My\* | Where-Object {
+                $_.Subject -match "$CACommonName NDES" -and
+                $_.Extensions['2.5.29.37'] -and
+                $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Certificate Request Agent')
+            }))
+            {
+                $KeyContainerPath = (Get-ChildItem -Path C:\ProgramData\Microsoft\Crypto -Filter (
+                    (certutil -store my $($Cert.Thumbprint)) | Where-Object {
+                        $_ -match "([a-z0-9]{32}_[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})"
+                    } | ForEach-Object { "$($Matches[1])" }) -Recurse
+                ).FullName
+
+                if (Test-Path -Path $KeyContainerPath)
+                {
+                    # Get NTFS acl
+                    $Acl = Get-Acl -Path $KeyContainerPath
+
+                    # Add system full control
+                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                    @(
+                        <#IdentityReference#> [System.Security.Principal.NTAccount] "NT AUTHORITY\SYSTEM",
+                        [System.Security.AccessControl.FileSystemRights] "FullControl",
+                        [System.Security.AccessControl.InheritanceFlags] "None"
+                        [System.Security.AccessControl.PropagationFlags] "None",
+                        [System.Security.AccessControl.AccessControlType] "Allow"
+                    )
+                    $Acl.AddAccessRule($Ace)
+
+                    # Add administrators full control
+                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                    @(
+                        <#IdentityReference#> [System.Security.Principal.NTAccount] "BUILTIN\Administrators",
+                        [System.Security.AccessControl.FileSystemRights] "FullControl",
+                        [System.Security.AccessControl.InheritanceFlags] "None"
+                        [System.Security.AccessControl.PropagationFlags] "None",
+                        [System.Security.AccessControl.AccessControlType] "Allow"
+                    )
+                    $Acl.AddAccessRule($Ace)
+
+                    # Add OCSP service read
+                    $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                    @(
+                        <#IdentityReference#> [System.Security.Principal.NTAccount] "IIS APPPOOL\SCEP",
+                        [System.Security.AccessControl.FileSystemRights] "Read",
+                        [System.Security.AccessControl.InheritanceFlags] "None"
+                        [System.Security.AccessControl.PropagationFlags] "None",
+                        [System.Security.AccessControl.AccessControlType] "Allow"
+                    )
+                    $Acl.AddAccessRule($Ace)
+
+                    # Set NTFS acl
+                    Set-Acl -AclObject $Acl -Path $KeyContainerPath
+                }
+            }
+
+            # Remove default certificates
+            # Enroll new certificates from custom templates
+            # Export user certificate pfx and remove it
+            # Import user certificate to local machine
+
+            # Enroll TLS certificate
+            # Force SSL on MSCEP_admin
+
+            # Set registry values
+
+
+
+            # Move ISAPA 4.0 64bit Handler mapping down
+
+            # useKernelMode false
+            # useAppPoolCredentials true
+            # authPersisSingleRequest true
+            # extendedProtection tokenChecking Require
+            # Remove providers, add Negotiate:Kerberos
+            # setspn -s HTTP/hostname A-RECORD
+
+            # Service account permissions:
+            # Allow log on locally
+            # Log on as a service
+        }
+
         #  ██████╗  ██████╗███████╗██████╗
         # ██╔═══██╗██╔════╝██╔════╝██╔══██╗
         # ██║   ██║██║     ███████╗██████╔╝
@@ -518,7 +703,7 @@ Begin
             $OcspSigningFlags = $OCSP_SF_SILENT + `
                                 $OCSP_SF_RESPONDER_ID_KEYHASH
 
-            if ($OCSPAddNounce.IsPresent)
+            if ($OCSPAddNonce.IsPresent)
             {
                 # Add nounce flag
                 $OcspSigningFlags += $OCSP_SF_ALLOW_NONCE_EXTENSION
@@ -745,6 +930,14 @@ OID="1.3.6.1.5.5.7.3.9"
             # Set configuration
             $OcspAdmin.SetConfiguration($ENV:ComputerName, $true)
 
+            # Check directory browsing
+            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\ocsp" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $true -and
+                (ShouldProcess @WhatIfSplat -Message "Disabling OCSP directory browsing." @VerboseSplat))
+            {
+                # Disable directory browsing
+                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\ocsp" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
+            }
+
             #########
             # Accept
             #########
@@ -771,52 +964,59 @@ OID="1.3.6.1.5.5.7.3.9"
                     # Set privat key permissions
                     #############################
 
-                    # Get signing certificate
-                    $SigningCertificate = Get-Item -Path Cert:\LocalMachine\My\* | Where-Object { $_.Subject -match "$CACommonName OCSP Signing" -and $_.Extensions['2.5.29.37'] -and $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('OCSP Signing') }
-
-                    # Set key container path
-                    $SigningCertificateKeyContainerPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$($SigningCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName)"
-
-                    if (Test-Path -Path $SigningCertificateKeyContainerPath)
+                    foreach ($Cert in (Get-Item -Path Cert:\LocalMachine\My\* | Where-Object {
+                        $_.Subject -match "$CACommonName OCSP Signing" -and
+                        $_.Extensions['2.5.29.37'] -and
+                        $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('OCSP Signing')
+                    }))
                     {
-                        # Get NTFS acl
-                        $Acl = Get-Acl -Path $SigningCertificateKeyContainerPath
+                        $KeyContainerPath = (Get-ChildItem -Path C:\ProgramData\Microsoft\Crypto -Filter (
+                            (certutil -store my $($Cert.Thumbprint)) | Where-Object {
+                                $_ -match "([a-z0-9]{32}_[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})"
+                            } | ForEach-Object { "$($Matches[1])" }) -Recurse
+                        ).FullName
 
-                        # Add system full control
-                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                        @(
-                            <#IdentityReference#> [System.Security.Principal.NTAccount] "NT AUTHORITY\SYSTEM",
-                            [System.Security.AccessControl.FileSystemRights] "FullControl",
-                            [System.Security.AccessControl.InheritanceFlags] "None"
-                            [System.Security.AccessControl.PropagationFlags] "None",
-                            [System.Security.AccessControl.AccessControlType] "Allow"
-                        )
-                        $Acl.AddAccessRule($Ace)
+                        if (Test-Path -Path $KeyContainerPath)
+                        {
+                            # Get NTFS acl
+                            $Acl = Get-Acl -Path $KeyContainerPath
 
-                        # Add administrators full control
-                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                        @(
-                            <#IdentityReference#> [System.Security.Principal.NTAccount] "BUILTIN\Administrators",
-                            [System.Security.AccessControl.FileSystemRights] "FullControl",
-                            [System.Security.AccessControl.InheritanceFlags] "None"
-                            [System.Security.AccessControl.PropagationFlags] "None",
-                            [System.Security.AccessControl.AccessControlType] "Allow"
-                        )
-                        $Acl.AddAccessRule($Ace)
+                            # Add system full control
+                            $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                            @(
+                                <#IdentityReference#> [System.Security.Principal.NTAccount] "NT AUTHORITY\SYSTEM",
+                                [System.Security.AccessControl.FileSystemRights] "FullControl",
+                                [System.Security.AccessControl.InheritanceFlags] "None"
+                                [System.Security.AccessControl.PropagationFlags] "None",
+                                [System.Security.AccessControl.AccessControlType] "Allow"
+                            )
+                            $Acl.AddAccessRule($Ace)
 
-                        # Add network service full control
-                        $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
-                        @(
-                            <#IdentityReference#> [System.Security.Principal.NTAccount] "NETWORK SERVICE",
-                            [System.Security.AccessControl.FileSystemRights] "Read",
-                            [System.Security.AccessControl.InheritanceFlags] "None"
-                            [System.Security.AccessControl.PropagationFlags] "None",
-                            [System.Security.AccessControl.AccessControlType] "Allow"
-                        )
-                        $Acl.AddAccessRule($Ace)
+                            # Add administrators full control
+                            $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                            @(
+                                <#IdentityReference#> [System.Security.Principal.NTAccount] "BUILTIN\Administrators",
+                                [System.Security.AccessControl.FileSystemRights] "FullControl",
+                                [System.Security.AccessControl.InheritanceFlags] "None"
+                                [System.Security.AccessControl.PropagationFlags] "None",
+                                [System.Security.AccessControl.AccessControlType] "Allow"
+                            )
+                            $Acl.AddAccessRule($Ace)
 
-                        # Set NTFS acl
-                        Set-Acl -AclObject $Acl -Path $SigningCertificateKeyContainerPath
+                            # Add network service read
+                            $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
+                            @(
+                                <#IdentityReference#> [System.Security.Principal.NTAccount] "NETWORK SERVICE",
+                                [System.Security.AccessControl.FileSystemRights] "Read",
+                                [System.Security.AccessControl.InheritanceFlags] "None"
+                                [System.Security.AccessControl.PropagationFlags] "None",
+                                [System.Security.AccessControl.AccessControlType] "Allow"
+                            )
+                            $Acl.AddAccessRule($Ace)
+
+                            # Set NTFS acl
+                            Set-Acl -AclObject $Acl -Path $KeyContainerPath
+                        }
                     }
 
                     ############
@@ -858,71 +1058,6 @@ OID="1.3.6.1.5.5.7.3.9"
                     Write-Request -FilePath "$env:TEMP\$CACommonName OSCP Signing.csr"
                 }
             }
-        }
-
-        #  ███╗   ██╗██████╗ ███████╗███████╗
-        #  ████╗  ██║██╔══██╗██╔════╝██╔════╝
-        #  ██╔██╗ ██║██║  ██║█████╗  ███████╗
-        #  ██║╚██╗██║██║  ██║██╔══╝  ╚════██║
-        #  ██║ ╚████║██████╔╝███████╗███████║
-        #  ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚══════╝
-
-        if ($DeviceEnrollment.IsPresent)
-        {
-            # Check if windows feature is installed
-            if ((Get-WindowsFeature -Name ADCS-Device-Enrollment).InstallState -notmatch 'Install' -and
-                (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Device-Enrollment windows feature." @VerboseSplat))
-            {
-                Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
-            }
-
-            if (-not (Get-Item -Path HKLM:\SOFTWARE\Microsoft\Cryptography\MSCEP -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Configuring Device Enrollment." @VerboseSplat))
-            {
-                # Initialize
-                $NdesParams =
-                @{
-                    ApplicationPoolIdentity = $true
-                    CAConfig = $CAConfig
-                    RAName = "$CACommonName NDES"
-                    RACountry = 'SE'
-                    RACompany = $DomainName
-                    SigningProviderName = 'Microsoft Strong Cryptographic Provider'
-                    SigningKeyLength = 2048
-                    EncryptionProviderName = 'Microsoft Strong Cryptographic Provider'
-                    EncryptionKeyLength = 2048
-                }
-
-                try
-                {
-                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
-                }
-                catch [Exception]
-                {
-                    throw $_.Exception
-                }
-            }
-
-            # Add CertSrv application
-            if (-not (Get-WebApplication -Site 'Default Web Site' -Name 'CertSrv') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv application." @VerboseSplat))
-            {
-                New-WebApplication -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' -ApplicationPool 'DefaultAppPool' > $null
-            }
-
-            # Force SSL on MSCEP_admin
-            # Move ISAPA 4.0 64bit Handler mapping down
-
-            # useKernelMode false
-            # useAppPoolCredentials true
-            # authPersisSingleRequest true
-            # extendedProtection tokenChecking Require
-            # Remove providers, add Negotiate:Kerberos
-            # setspn -s HTTP/hostname A-RECORD
-
-            # Service account permissions:
-            # Allow log on locally
-            # Log on as a service
         }
     }
 }
@@ -977,17 +1112,21 @@ Process
             $HostName = $Using:HostName
             $PhysicalPath = $Using:PhysicalPath
 
+            # IIS
             $ConfigureIIS = $Using:ConfigureIIS
 
+            # Ndes
+            $ConfigureNDES = $Using:ConfigureNDES
+
+            # Share
             $ShareAccess = $Using:ShareAccess
 
+            # OCSP
             $OCSPTemplate = $Using:OCSPTemplate
             $OCSPManualRequest = $Using:OCSPManualRequest
             $OCSPRefreshTimeout = $Using:OCSPRefreshTimeout
-            $OCSPAddNounce = $Using:OCSPAddNounce
+            $OCSPAddNonce = $Using:OCSPAddNonce
             $OCSPHashAlgorithm = $Using:OCSPHashAlgorithm
-
-            $DeviceEnrollment = $Using:DeviceEnrollment
 
             # Files
             $CAFiles = $Using:CAFiles
@@ -1068,8 +1207,8 @@ End
 # SIG # Begin signature block
 # MIIY9AYJKoZIhvcNAQcCoIIY5TCCGOECAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9rbx+b53VmSVWWHNvmok1xyM
-# 76OgghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi6kFdEeaj2SochUcKl5gkVnh
+# kQygghJ3MIIE9zCCAt+gAwIBAgIQJoAlxDS3d7xJEXeERSQIkTANBgkqhkiG9w0B
 # AQsFADAOMQwwCgYDVQQDDANiY2wwHhcNMjAwNDI5MTAxNzQyWhcNMjIwNDI5MTAy
 # NzQyWjAOMQwwCgYDVQQDDANiY2wwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
 # AoICAQCu0nvdXjc0a+1YJecl8W1I5ev5e9658C2wjHxS0EYdYv96MSRqzR10cY88
@@ -1170,34 +1309,34 @@ End
 # RxdbbxPaahBuH0m3RFu0CAqHWlkEdhGhp3cCExwxggXnMIIF4wIBATAiMA4xDDAK
 # BgNVBAMMA2JjbAIQJoAlxDS3d7xJEXeERSQIkTAJBgUrDgMCGgUAoHgwGAYKKwYB
 # BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
-# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMgr1
-# 5qCp+jhqgvLsvojdG4IvTDMwDQYJKoZIhvcNAQEBBQAEggIAoxikzvZF8iGRU4/T
-# DYcey/OXFaSNbBEMe0be+5CLb+8qEt7GfHaMNCHZ8TBvru6vqhL51XDSatLsUmty
-# sFPCeTpR1OUQU8Sp7XNPFJYkcafqvH0Qfyj7t87XqVPFpEHWdqd9T/S0lNdot54o
-# tsCK3GQJlyv08EQOrX2OxMmHioS7Ee9MSFMlWR+uoew/K5dmZUJ9I8ppWITw5Z1V
-# IWuvsBkWvm0colgF+26rL8GUvotQasHyFlYhZbRpbifHRkXf/nURBTCnG/lZOytx
-# cH2cZ07Fut1xRV3My88tXzfzUl6uWN9s+XcW/BRLALyG42HKUcCgUsNaJjiOE3HK
-# FvhRTty2t36/qiYeRCyywIryO3ehR4C5+Mtm9AMKGP87I7YEOFGBtAT7iNpIlT3O
-# 1VfQqMr0T0+IGoL6YhdIqeyJbtNCmKle669LVAlj7UvGVj5j/ll2K+z0cwFG5Sm3
-# PbQaJEAdYKMMP3E5GPHcCgCZISdxivebD8ku8F64/zhYK/B86o9h15ONz9x6Z7Y9
-# c9LvBGkPhS51zZxdLKrTXAAjJhoDUnxo2GF6Q33oMzwHY97wo2sf9+QsFJ0jHzPQ
-# UVj159YZA7hTR77DjWeBWi8obOVBU9E5niuennV/lg2kbIQUd31OBqHtNOzQFxN2
-# rY+omXz988iKm4HUzlkFKIFTNsyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqT+8
+# OMffrmnKUCUagm8yCuPQTOgwDQYJKoZIhvcNAQEBBQAEggIAJwDR7g1NKV0x/8Bh
+# FzB0AmOz9n+hOc3HEuboN8CtK3U7UkJTs+XS2s23vQ6dD4s9t1d3FkH8DW9jx6K8
+# hT5E9vYOBFafWNH/7XLXzoFUsvlVemhmS1wFU9pQTBhuSQaOOoOhET00QekbyF2B
+# KRiDNSoAVZz0cHfNd5MlVg2SNd8DJcUgouFIOCLFGRNOSm88YC9bhVJrvNJVhIMc
+# 2UCR5Zh1B/L4BkiwB7ydzKDrJQ2P19u4VkmLCwhD76N4KmmYWk5Q42Nn7UcEfhu4
+# 2sRaku76a2hIJrfCtgWexGC04VA3XJNc937I88+vtrBxqxCdCVQbPJISH9LPcxBg
+# Ok7hxre7UNJJXKKTqz7Hu3Om4gy5osbU+00w1zyHhNLnm8DkPS0kcPMKWCkeVIEg
+# nzpBbVbTdj8izLJZKpyYuB9Rf5OBPGkdAjrfFmuRe4oMn9dYZa06i7uYj0wt2mJ+
+# BXFOaEWWnNlKuPbzuI6Mne9lIOicvRH5994P+h4mc0LfjFZWlBE768VRriT1NXPo
+# wZT8MewdaCsb+MFsMqIBfULFXwxnGAb2YtSWwFE4JbSBZIFQGv/UQ13iJcCH8Hsa
+# zIoveXv+BC+rVesjcg10YQXqpbAQHdBf4Ibmjz7U7yOge+CQ4cbfbR6qLYHm6Oh6
+# FoZljAr6JccLbzxd9lpY8h95H1WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkC
 # AQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5
 # BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0
 # YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkwGAYJ
-# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDA4MjAw
-# MDA0WjAvBgkqhkiG9w0BCQQxIgQgKZnydmv68duXbtJK00qNlgMR/H7q/hzuUTjw
-# ZaydnO4wDQYJKoZIhvcNAQEBBQAEggIAl7k+RwgftyPjV8vQRNQTnCWZlpx+hRhm
-# nWo16XIDtuGengTxgHTispr5Ad6fPbL5GMZcXlmDlce56ajbWpG2DO/M/CefhGAW
-# tNSzkZ3YwVKCOY7F01TLqyDXrMQUAuJ9iItJjpjBf2FkUcB0rjnHWqZheWsU4G+V
-# g1d4kXWixOTCpYpZcAA5f561lqAuyjSk1aCsLnYlKJpylfuJY430JbDKiPGYsAHD
-# MDdOa11EkIZafN7UfW13sxFoe4OznDI7YPj2/kKqdhzWs/qlHSCjhlSzML/JUEjO
-# 0ZJfMvOlsGHTNCgih+po3DONr+oqp/yM66/SFo7i9hJqaJ98Ut7RodaY7IUdKaOg
-# OFNrHdxE1yUVQ+lJ9o64UDMSxQ9gS00peZvZMVzRUDUDjj5NAHIGq/Dm3+6eM7IX
-# QUYHeAjFXR8NsTLZeiEWDD4WOhDKOvVWKs08bQxU7EIASLfp2KMK3ICmITzG9DuI
-# kWEu1pnQnNoQASKrDjoM535kv9ESiyruXZ9zJQh/hPVKqZvobo5+fPpUeLn/yfCv
-# j5WhT5rfHaUg8WN7prW+fWxxpR3EJERCLmcJGU6LiOte3RzyzEuV0tXSM3pvH2ew
-# pPSuonaWM0VfIHU+BGqjxSO/hXKGQKULarn2K6j/2B4IbK338t26EHi1ll6U29wn
-# BcTU24/MpCE=
+# KoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwNDE4MDUw
+# MDAzWjAvBgkqhkiG9w0BCQQxIgQgkC5GnoXkKgILDDk6xriQjUNgBIuWq9iYohA0
+# YIjErYUwDQYJKoZIhvcNAQEBBQAEggIAYQbI6PC7CqjjR89wIoPJ8GV93VFjrUuI
+# uFV0fcb262R/8QX17PbAdlBlGSIBeGzTSIcCy4wLZFP1jn++k/lew5eCo4XJI/TQ
+# HHvnB9yjvYCI+hY9iAFxCBxn/eSmOPtMl+ULLIM0kjW6mcE5V8jMRTSQ0eeUVbpB
+# vN9p+vL32wf+XptMRh7s+/Q6rJTVEvea36gX0fy0oPWH8XCi+H9c582uWLGoTmyA
+# YIf7caBkfcONhsTZGhemSeTf6CJfnvhYlmsjqrURCj7TrmfE/NaSxe/EeXdqAJpJ
+# YSrzgAdqdSazwzq69Bdir5t99Md3VT5kfxnui2RkP0pN84zCX+RnKA1ZhcYPUXGm
+# mP9AcZ2r7RIshkS6v7/d8/TucPfedtZaOTHtpuTeXOHaEUEP4YXFWLCR9QZjhR7v
+# 2kXM0v8oDm/iywlOOSSy2zzGGJMudUFJrTZmp4h42nlHScsNGCyZfP+sKQ3MsX4q
+# B55NJdwBAm1T1VlkObMxHrCG93U9UOLQHFQkCorRFH3tGl0aDp6FtPYSt3WACSiD
+# kZryQY9LQyrqDeBhlh0mhVrPufMVg/YJy9FXzXjMUu5403U7KMmIMWL7WqqulW/i
+# YthDvGnr7LhJJKe1eD1Q5enbuJ9oIIcPXhnoeXDzfAjnlNvgkBgtYrBNx/ScQPpL
+# YP0uHkg6RXk=
 # SIG # End signature block
