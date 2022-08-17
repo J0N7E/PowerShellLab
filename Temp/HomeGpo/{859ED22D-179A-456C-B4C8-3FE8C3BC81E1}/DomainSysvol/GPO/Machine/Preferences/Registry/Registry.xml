@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="AuditLevel" status="AuditLevel" image="12" changed="2020-03-30 21:39:51" uid="{2A986DE8-0733-479D-9F88-A718FA8454FA}"><Properties action="U" displayDecimal="1" default="0" hive="HKEY_LOCAL_MACHINE" key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LSASS.exe" name="AuditLevel" type="REG_DWORD" value="00000008"/></Registry>
-	<Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="RunAsPPL" status="RunAsPPL" image="12" changed="2020-03-30 21:36:02" uid="{0B5532BC-AA07-402E-A544-8B92D68263E7}"><Properties action="U" displayDecimal="1" default="0" hive="HKEY_LOCAL_MACHINE" key="SYSTEM\CurrentControlSet\Control\Lsa" name="RunAsPPL" type="REG_DWORD" value="00000001"/></Registry>
-</RegistrySettings>

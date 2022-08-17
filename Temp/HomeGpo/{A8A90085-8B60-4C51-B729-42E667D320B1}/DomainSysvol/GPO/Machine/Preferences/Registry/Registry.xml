@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="AEDirectoryCache" status="AEDirectoryCache" image="3" bypassErrors="1" changed="2021-06-04 12:23:16" uid="{50A10DD5-D1A4-4FEC-9FA7-E8DA48EFC31B}" disabled="1"><Properties action="D" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="SOFTWARE\Microsoft\Cryptography\AutoEnrollment\AEDirectoryCache" name="" type="REG_SZ" value=""/></Registry>
-</RegistrySettings>
