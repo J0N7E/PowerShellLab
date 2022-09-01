@@ -112,7 +112,7 @@ Param
     [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    [String]$RenewalValidityPeriodUnits = '20',
+    [String]$RootValidityPeriodUnits = '20',
 
     # Root CA certificate validity period
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
@@ -122,7 +122,7 @@ Param
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
-    [String]$RenewalValidityPeriod = 'Years',
+    [String]$RootValidityPeriod = 'Years',
 
     # Parent CA CN
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
@@ -1234,8 +1234,8 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                 {
                     $ADCSCAParams +=
                     @{
-                        'ValidityPeriod' = $RenewalValidityPeriod
-                        'ValidityPeriodUnits' = $RenewalValidityPeriodUnits
+                        'ValidityPeriod' = $RootValidityPeriod
+                        'ValidityPeriodUnits' = $RootValidityPeriodUnits
                     }
                 }
                 elseif ($ParameterSetName -match 'NewKey.*Subordinate')
@@ -1697,8 +1697,8 @@ Process
             $Policy = $Using:Policy
 
             # Root CA certificate validity period
-            $RenewalValidityPeriodUnits = $Using:RenewalValidityPeriodUnits
-            $RenewalValidityPeriod = $Using:RenewalValidityPeriod
+            $RootValidityPeriodUnits = $Using:RootValidityPeriodUnits
+            $RootValidityPeriod = $Using:RootValidityPeriod
 
             # Parent CA
             $ParentCACommonName = $Using:ParentCACommonName
@@ -1869,8 +1869,8 @@ End
 # SIG # Begin signature block
 # MIIelwYJKoZIhvcNAQcCoIIeiDCCHoQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlQlJtN8hz8Hq+lp+frYqkPQK
-# /PegghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJsIBHvO1Nwx9y4hJdABGwDm1
+# TeqgghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2002,33 +2002,33 @@ End
 # DAYDVQQDDAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# rXJoTtEG11kX5UaqkZI99zzAQ0IwDQYJKoZIhvcNAQEBBQAEggIACT7sF+m7LUkR
-# M9dED3J3OMwFlwrXPYMxnNherAImzaFjX7PBvFvgwRNrAxhfYr1ER4xXoLDEgK1u
-# Y54iGXg/kdX7cSrhoe1Rxbmv6mqh9q2VXY5mrV7C1s+pHrxQwKHgb8ocqCyh9udw
-# iI5R/rVqnnr3sGGBYxgIZb8kXJKjZ0lcvOmQrrf+5bESGrNkCGE4LTvRqP+hTv5a
-# nv8fEzbk98tSTFvu2nEwrSu3KeX3qzrpLUjytbtC7U0iEv7gzxCSl3EbLN/IlMjW
-# FVQtRaLGnB7lnWX7FbOjYW/ABZp4+XIM6aL6ggqn1YKeoVBRQ8innTgMyhJ/M7ej
-# 0ckdiG5NMNgxE6V0DFC3IvxfjXEmlRnOMRbEeMTajIS7ATdPyj52B0EwlyKiijkn
-# eu5N7iig/rIEDQpPIXnczLBunnbiQn69/aEvo40+rBpNUjNIs+XgXVTjQ2zVBt33
-# BAGJbnwiklIr6Bh4B/d/9JjOFVIPzD58KU0p8/y9jv/TqH6SxC+apiBteSXQMGd1
-# SEjV/iWiMk863SikKjzHy7HUQh5lqPF6naIkpI3tsIhUZl/fzmBLLHlhiutwDOaX
-# Tfk4BOeg0eNp9D5DofVh7FPcnNIuktfQNothVDK5fdct5fsfqsVc7bL+P4A1aLoO
-# cEIoHPPL43EPRyudrr7tdbPsa6vDwzqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
+# IysJK2bALIlvn5ySKTz6dZfJXcwwDQYJKoZIhvcNAQEBBQAEggIAHXPtg7obXYUU
+# zFSrYu+BNO9SIh0kN7F6GSRbpdD5JGS7aa/sXPIzfxvMAc8CJgQmyed7dvL7b7ai
+# IlJ8STSMjJn1Pzq/JqbyJrSNTrHTZV9ZgGatFlvV5CXe8x9Lrr64HnMSx3HxzzRw
+# 7ZRVR8+hctrEcwbUvoOtjdxZXi6U/2xK1ukP00rju6I/M0HvutQjHYDcNfhvpMdx
+# hCAak6OnjvhEyNNUlr1CZuhxLzgqFBHI4P5gl2v/xl/zfu6Jy34RgCM2fHBgEKVh
+# DIILt2mzJ1mtVeull4DW1nmPuz782Lx++bPwY6eC11QfvBoKpJP1SiXu2XDWaPFJ
+# MZgopl9zd3+GOxije2fXChVagJaPVh5sIVjFzik3+mGnMV2P/H4LQgNqzpr+3XUh
+# UBk+rkpp8J0dQkrL0+17eU8LfuDdgOFkh7htP/RcD5kerIidZyqz5V9R7QXosBYS
+# iR7776yMJD5OFZ63biMTZGonJyJk+rNrjt9023aqszge/PYeCzRwq3fmdTtkKRMd
+# PvZaSfTytCnbMtTctiTJhsL5pwVkG1O+BUeOQhsS0cDuvriI3rjLaVpZaVH+agK1
+# H+DnJFT2N6UKtJcXEdv3OJQ3iAs9cP550BVdAI1Qpi3iaydBYPgnP/kuNvnWP/su
+# CQ37xCAtt44p1zaPRePS/fut3WhHr9ihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
 # AwkCAQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4x
 # OzA5BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGlt
 # ZVN0YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkw
-# GAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwODMx
-# MTUwMDAwWjAvBgkqhkiG9w0BCQQxIgQgtDru/k0yHsGcj2Gdu748ZUSeniXfoS4e
-# 7UXbQCkY5w0wDQYJKoZIhvcNAQEBBQAEggIAqZbBlqbnLmGvZpEaxUClNCQh9s8N
-# 3gdSqWX2DuHL279BUe/0yNsmPM1jleIiZTqFMigVFwWwh4kYa51jb0gB1O5kHpYZ
-# c/qJoSeznYQp40HRf3o7iLf7Tz+h8jujuPHqFDa9az9KW4CVLUFbKerNcDUp8zF/
-# O4q5v9nT55h6GstqZhOT46lYfDw3WMhwmoCPmxQBDMfSxSJGLqE2jN1c+fnQBxxx
-# hT8IQshcAquwW6KGVEjZ1XM/WSig1ZVdIvR68peU3gABx6V0lLxQeqcCXYEhZnXy
-# wPmhDsU+YDMMIoaWec/T7pJPcVeIH40ixVF9IYqzGNfWx5wyqpb42iiYnbNsy+s9
-# sICNX9I2FL2qNBlJRGy1v2KNEOdkI7Elw6uVFocHBDiC9VjxAsRtn+Pcizn19VSu
-# B4YIW42P+3gb4FH2TtFqevkQGFCdQbQmgxkVROc6r67Y2dZYGSEgTdF3Y0YrSUOa
-# Aqp9TymvNkVsKnr0Qiv5EPxMze63kSHQQJO8yo+nTtZRhZ28uK0ssCE48o/LpLen
-# SLjDC525nqK4oagKoIlspAhh36DU0+wT3H08s1ooUDCIRBGgHWSnd19RdAdgvT9L
-# 45k5j3avYlBIxpGDzHIwKjJCyrs6/lbj7l2omckhh5XAxCRuyh1lGPiAmeOOTPqN
-# yuwlGKoym31TRQA=
+# GAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTAx
+# MTU1OTU5WjAvBgkqhkiG9w0BCQQxIgQgNWMJLQcWdREsI4WeCxNINeJ3ox5gu2EQ
+# 6JUWC8ckM/4wDQYJKoZIhvcNAQEBBQAEggIAhW7oUZo8fOqN8uGlKXBq/X+AQvb9
+# PyctdJdtkT+yxWbq4dD9S5f4pWB7DWIQPBP2R18lRoobg+Mh1lVKZkwX1Qu4GKeH
+# k5R28MOrTp1YUfExPzx+Wjjb3gjPyW9E0HC+k1qsHlxjQquXuqcOZpVHqOxHYJd7
+# HC4WuQvv/eYKIpeDUyTG4npFXCavD8I6Es0mqsa8Zd8xwf0YyBwTI+r+RBzWlLnJ
+# 95fX95PDWyrrAotThywTUaC5FBFEcwa4Le5puR6M5eXriiDUKtrGE9yCQ5EEFSID
+# rXaEdQ9ENkAufVJrmfwBjbumFZd19ukdSMXjjvcnJGXpYrwa0ru/81UI70xGvMF6
+# xmJFC13gvw8m4BsP6oFtYAkeLKXv1Wo+8DwCDcdnX8iwUhze6IIrnvsPuTmpWiEl
+# vScpIqKVsvysIu3vHza1f7DO6M06CoplJJyaOLbFV34V5AA0I6KfC+L6rfSZVOzE
+# 6a6C4LvVreyWUfkTH9k3FWyhT6kKSG4UrxOM9KqFPd7jRvggWb03ekooClSwwSu4
+# dgC+1xxKMaVP8enKfdYwDksCy4KnLhUwsDkustj8nhFtH8eHbVgJ9BZNy+p3MzvY
+# 1UkWS3eDj5rQsrrDnpvfhMpTiRc86A6DoYnW5fgk/EDQZrOLBB86rp0MAZnKRuNR
+# MOqPH9yp7qBBoxk=
 # SIG # End signature block
