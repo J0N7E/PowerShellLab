@@ -310,6 +310,39 @@ Begin
             Enable-NetFirewallRule -Name WINRM-HTTP-Compat-In-TCP > $null
         }
 
+        ##################
+        # Disable TLS 1.3
+        ##################
+
+        if (-not ((Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3" -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Creating registry key `"TLS 1.3`"" @VerboseSplat)))
+        {
+           New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols" -Name "TLS 1.3" > $null
+        }
+
+        if (-not ((Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Creating registry key `"Client`"" @VerboseSplat)))
+        {
+           New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3" -Name "Client" > $null
+        }
+
+        $RegProps =
+        @{
+            DisabledByDefault = 1
+            Enabled = 0
+        }
+
+        foreach ($Prop in $RegProps.GetEnumerator())
+        {
+            if (((Get-ItemPropertyValue -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Prop.Key -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Prop.Key -ErrorAction SilentlyContinue) -eq $Prop.Key.Value) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting $($Prop.Key) = $($Prop.Value)" @VerboseSplat))
+            {
+                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Prop.Key -Value $Prop.Value
+            }
+        }
+
+        return
+
         ########
         # Hosts
         ########
@@ -586,8 +619,8 @@ End
 # SIG # Begin signature block
 # MIIelwYJKoZIhvcNAQcCoIIeiDCCHoQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhuffjjDTVCZZrZ5fx4XUI7Ya
-# CvSgghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjl0HafDO3QEUUJV3PlCoGGHw
+# YJegghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -719,33 +752,33 @@ End
 # DAYDVQQDDAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# lPy+xEFrQdni17GWMzluF6HV/6UwDQYJKoZIhvcNAQEBBQAEggIAOW9a7XBFbR5P
-# tfXtkA7tGKkKWAZFi+ZtoWx5dAyYcdbErXns1Ss+TM/1ZIf7teCIHojH7JeaCatv
-# m7N6h//gJzGsnIbn4GW3b14HDC3g1OZNnxMZ/yNPRbrTFms0ohhGlLMqDHVtzCQE
-# EO9jQRfEKgVmYhYUYHUnW218zn4sTZm9n8v6/FDJjka09zHe0j2C24zGGiGHLAxY
-# crtu9qxQVnJat0Vhq6le5cxB4AE+E9XlEqxXRhr/4YYya5NZi4PT5WGPuB6/ILhn
-# 61hTFQS5KG7+MvQlLkTn3vXWGqraj/zwqUC39AscIiunkEuryGgfZUbp4tEwegTy
-# wUuqBogo+pxxksK5AhxqRjCzeEOdEnKHA1nmkD3IeVrsTDgM0D61hOabDih3B/Hs
-# KLXICNC5289lZj9fMPe/af+5KSrB7CQn6Z+26un9KKc9KERvHLQaml2m7JfrNW9I
-# WVO5mSBnF9QVifW/Ay7EDa5sqFBvTKM6SmNQ9yW6XamYNRIAnCO+4fDPc1zKlmRW
-# bK5wUOs4niP32udjIQAcF60PqCUSbqkGpHdFKnVtIOBP6wvEZpJ6hPKPlBK+adEa
-# O7GBKtsAuJZgRbBr2br+KOz0jn63IskOCrxaarF8dzs25X7fbXS4VMFw698EumBX
-# YRj2WmuZs6ZaZ1WFjzQ7K7+Kx8uQQ6ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
+# YzW7gmx9tHc2mJ7IrBU1/SiRmmowDQYJKoZIhvcNAQEBBQAEggIAaBaye0Hb/mh4
+# nutKU2c82n/PEfj6gPfC3Bq5hQdMoEZliIV0j24zlD0BESKy0bNfmmZZlq0rBXb5
+# VePFdsKPtPwqVyYPQnRmSsqXusYgACec3ntpIHmlYNbPbJ9/ZwAxHbdwsMMkpS9Y
+# v4njJdIdBX4hMuM9BZl7b99zHhNcoXHzOlM9cFc85nJazyRysRFD+yGUBwdlDi/A
+# DlZ/HCV+uXiSM2iRoOHg4QUOoK0rdTatafuPfqw4WRlZND0el7U7yLj+6MtQ5P9O
+# mzPvK56LJcqweejtZ6ifHltBwj6U8rvkYNQlNegZrF4bX3jWjokhjlWydgeJ6peD
+# rzBwB/b5+hDsfAfElHNK+geMmAUOqeZ6oeLtQMH0cC11yaC+YvMikkQc1iwBFke/
+# 56sw67MkxBpj/ptdVHr/PE5Sfkoy7c6FjhHfxq0lOlIqId+l+fIEeZDrwm9Qu3EM
+# I7nSbUV5naDoG3LBSDwfEIZps4zWIMAMmHRbI3yWXdphCwQ78TdjBOY8QAMZ9If8
+# 0CxvfV6+aPK+lsQdPbXA4U51OTE/pcFxX2IcsMdH7JUdRLemJABiyjztCiglZjXO
+# 66LDXJjDVoMuuNIgl6eqfO2G80eUwAVCS3oW6jJM4sDeCIebOIBPgDJ8fSY48yPB
+# ruXSZg5Uo0Ia0ctTEmgCY3WuIGewc4GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
 # AwkCAQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4x
 # OzA5BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGlt
 # ZVN0YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkw
 # GAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTA2
-# MTMwMDA0WjAvBgkqhkiG9w0BCQQxIgQgLw6Cjk3vAG23wzyYagebnskrN2g/sY8B
-# U1tTQ7P7GFcwDQYJKoZIhvcNAQEBBQAEggIAleX/rJJBsTHCMa8jd9tgeQgdNCqQ
-# hJSNPqihkj+HRaLvFyCTxXTmxR+a7dCUDcFC0wcw0kiFfliwMdtkfOIruOPOcZX5
-# sZ6Le7WVCIDmxExgmy7R9AUAgtisIEE0ssvzdIANatVfM+QPvM+tcTDv+1SvZtEI
-# aEFaaXqKLzeQp2OvCuY4C1brUfHCgg6KLdiFRwOvYh5TrOS+83e7xqWLGYEzCuFg
-# s1Awc8mAj00mmW7T7YVEF06AOZusZItq5pQ/WgEpfE6CFIHlNGhfPlPk2HiTbLyA
-# 5tn30+MxmKmKn7nCyAmKsjNp3pQJFQWErN0Ueg76hQlrrZsOwpMb+k+3RfFE9BgE
-# lIlfzhon5RmePfy+Rurh9T5Uv8sLnxgvWPbxd1gg9M1XhNlOBDkmtJRcCfXTffZl
-# JULJyqm9yjcZW6XwcAWIH1U4fAMvam4po5pjvdf03Gx837s+VuzBivgSg9npbSyo
-# AUY25/UgtC68pIoerMCC+PBgwX/l9lziFFlOByhFlY96hlyimvJ/ZtsMnjIKfPhb
-# uMTgbJf06te+ZyhroHrNvloq5UDdpg3WbANlpq3G6ly9nBMv2cUSXhr2lm6Zm+e3
-# 5SS30ZhwcBmWoYlPrn4W4VHWUXeNUNUQZn2FlRjo2nGBPWeKxsxRUxSG/7Hlzqi6
-# oLLVgZrdewjOMqM=
+# MTQwMDAyWjAvBgkqhkiG9w0BCQQxIgQgmd2xlncOw/bvy+WdugFRDcRuVdLrMC7D
+# JomXeXTO5a0wDQYJKoZIhvcNAQEBBQAEggIAVWNqAqEHDll6JJ+JcRE+UaagX5XY
+# Xi8hXvay+H64PRtrxfkW8kaPuxAoAAG8EWae30z0V1cwzDumWE87ZK6cnYiLO3vh
+# hTE9Yh/Np5VEORNfwV6aR4olzYrL03b0MUOuI9+68xNC1B8lAshmGqRb59Jh2IGx
+# uubLGfECzwSneBo/PA71F95Ilv6A0aiC3LSoSKBsz0L1+NalHPeTAlRs9U+OXD9n
+# ENhgJC1MaZGGbVYai/Lwnc6LdFcV/VKqUrd01YL1b677qP0E4G1hqRfaovd1K/p7
+# AURf2P+yIKuaRWbdUJ3dmpFItN18SRpr4jlinZQgz3RAbhPBWsZzhxqXOFZLwEfG
+# ETJuv2HGQ9z+4Vltef1lugoipMT9Q6eCHIklp37gCmphEXo8wF7xysPbK5XrCCfn
+# kSL5kx4YzN4coWu/ErTGuHLKBCwChNusslCKY1ZRiOY/Z8ubIlpBJ2Pqee4KNZND
+# NZg82MjBkV571qOa91M7GRWm5qBrHnJmhYO0WUeffZOEd/VXHvo87MlwxNtLkQz3
+# xQLLyO4XtpFc3rSdZKbnIC4uHm6kQ+DVoNHOVJ+hd1aL20kjMWfYLj+It4y7nmuq
+# bjIXxpD79sYiyGzTS017es81Ufj2UxcYERYVfRtiW8eZgTBg1rTEvQellc3lHZkg
+# 8bB6d7sjfUjcq/I=
 # SIG # End signature block
