@@ -437,17 +437,12 @@ Begin
         {
             $CertutilDump = (certutil -dump $file) | Out-String
 
-            # Check subject
-            if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
-                    $_ -match "Subject:\r\n.*CN=(.*)\r\n"
-                } | ForEach-Object { "$($Matches[1])" }))
-            {
-                # Get file content
-                $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
-            }
+            ######################
+            # Get parent response
+            # for Subordinate CA
+            ######################
 
-            if ((Test-Path -Path "$PSScriptRoot\$CACommonName-Request.csr") -and
-                $file.BaseName -eq "$CACommonName-Response")
+            if (Test-Path -Path "$PSScriptRoot\$CACommonName-Request*.csr")
             {
                 # Check issuer
                 if ($CACommonName -eq ($CertutilDump | Where-Object {
@@ -458,17 +453,47 @@ Begin
                         $_ -match "Issuer:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
+                    Write-Verbose -Message "Getting parent CA response file: $($file.Name)" @VerboseSplat
+
                     # Get file content
                     $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
                 }
+            }
+
+            #########################
+            # Get parent certificate
+            # for Standalone CA
+            #########################
+
+            if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
+            {
+                # Check subject
+                if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
+                        $_ -match "Subject:\r\n.*CN=(.*)\r\n"
+                    } | ForEach-Object { "$($Matches[1])" }))
+                {
+                    Write-Verbose -Message "Getting parent CA certificate: $($file.Name)" @VerboseSplat
+
+                    # Get file content
+                    $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+                }
+
 
             }
         }
 
-        # Check if not found
-        if ($ParentCAFiles -eq 0)
+        ###########################
+        # Check parent certificate
+        # for Standalone CA
+        ###########################
+
+        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
         {
-            throw "No parent certificate for `"$ParentCACommonName`" found, aborting..."
+            # Check if not found
+            if ($ParentCAFiles -eq 0)
+            {
+                throw "No parent certificate for `"$ParentCACommonName`" found, aborting..."
+            }
         }
     }
 
@@ -1349,7 +1374,7 @@ CRLDeltaPeriod=$CRLDeltaPeriod
                     (ShouldProcess @WhatIfSplat -Message "Installing CA certificate..." @VerboseSplat))
                 {
                     # Try installing certificate
-                    TryCatch { certutil -f -q -installcert "$ParentCAResponseFileMatch" } -ErrorAction Stop > $null
+                    TryCatch { certutil -f -q -installcert "`"$ParentCAResponseFileMatch`"" } -ErrorAction Stop > $null
 
                     $Result.Add('CertificateInstalled', $true)
                     $Restart = $true
@@ -1883,8 +1908,8 @@ End
 # SIG # Begin signature block
 # MIIelwYJKoZIhvcNAQcCoIIeiDCCHoQCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7XveRNVVqbUmCG4/BK2ui72s
-# ShKgghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwUDnsWT6z36HoeGFIQkdCB9u
+# Nt6gghgYMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2016,33 +2041,33 @@ End
 # DAYDVQQDDAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYK
 # KwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIB
 # BDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU
-# E5s9Gx/7jhwMxGwL/1X+tTueYL0wDQYJKoZIhvcNAQEBBQAEggIAmNhVLXfLah7V
-# QViDciRZ5TAdrpwELJktTrgkpoSRXQo1l1t+QkrjhWDjMidZx7zv8shb15Y6xsAx
-# P2hCRa8BTMTvdyXG86fGjEyx7NcXS8OkQvAv02Y5Whg1kH7jh6+4PEZcurj14qKT
-# qpvxsg3rkfBv0cZDfZOWV+GK/WE33Y/4IgmcZKTDJYQPn+2jG7EUver1eQlSffnR
-# sKyoZ1U93DXvLE6b7MixcY0pb1zCizMe4G7aMRbYXCf+Vf+ISosYpHbfMv4ONCJ0
-# tAp/zQd9JH7+ubyl/Cw30Qus5o9LBC7KY+AgnFP+RhunNAjF2zbPzSX7Hg6YQQdy
-# BMLwhTjtteL4N+k/xlQ+plkQ3a02cSxd6OacGIsXWQ+OcD7Gh7qDep1Cao3t16AC
-# TNXkzuUZ7Q0PNvjEX0Ffh0RZSeszc+uZaQP50zRTXJWBP0elNtWIz3D8lb9e0qmR
-# Oj2x2utjcfIu+O5xqH2Yq5w66vL2028Tu2Dn36TX0w9QFgQG/+AAPs5nFYdiO8US
-# CdR7zYdd1Z6+GV+DCo69NmJVDGO2rfdKbhJeW/Dq0KHQoK1fRwuk2Ehd+ZHfRn+Y
-# dwhczThg5vF/Ohb1I6mtk0muL+RxmOtnd+2/FX//6RsEnKEbTkyNaj8CxexOFEh+
-# zPySHuSC70dHpmAfYOJ+hU3TJuxnqjihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
+# QmvvlVGeHKzhgzvii/qAlkXysewwDQYJKoZIhvcNAQEBBQAEggIAFacBSia5qnfs
+# zC1dxENvEX8EkiKL+kEnBPPWB2bVHZD3eQVJ8mf531AvBJLj+H41cCrJuYVi9KsQ
+# ru9RIFSzlu4ElLgWbXGcUzZK/ziNT2ImeIW8XlT1aa8ECcasiWbcfynD3HH1aCcE
+# ZQP23ogAm/MQwqBBerVskYxD3hl/Z11TAN2tTfT7REwOFHc2zCKSQdxSnO0uE+rX
+# k8aU30Uciw+NJHQxuDAkds3gyE0+qhe9/N+FmI4VKDwtSd4MHAw6XDqly9E09GBw
+# wIDAi6o+FoBSAyYaE4AUVpFRrfx9b3RkjDNeGl0hoc5R1xWnviKLwkJJAW94kHIj
+# fk5Pxe72EAsvppGGtLiOBLYCinwAC1l7LAQYG9cF7zbKCZ2Nusd5M3HLG91MVNb3
+# l02oq141Xb6v2UgYKzK2vHq8qPBKUYcNR/L/S/0CozsdKcoAVlDt2r5iW+k4H1eG
+# gfi31xs3mF0thQrQafaJV9BP2LuMVoeRGg0o1ZPueOVtQ98usMbM2AmlGQrRVWQ7
+# fwNoHFHLP/Ds8ciTlkwc9SI2E+gNWVzyJsSnV83JatAKdU5cAgHoZ/sBJkrQ5XIy
+# KaxoLkHVCyFS2SOIhcFLb26Jb6+yPJIF3RBZs020hbw+poahmK/CPo3qomGL2NXP
+# n3QLmIxEJtXzY85NDy858fiEnbgLOJKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCC
 # AwkCAQEwdzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4x
 # OzA5BgNVBAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGlt
 # ZVN0YW1waW5nIENBAhAKekqInsmZQpAGYzhNhpedMA0GCWCGSAFlAwQCAQUAoGkw
-# GAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTA2
-# MTEwMDAyWjAvBgkqhkiG9w0BCQQxIgQg6Y4mmj1Ba/088J2ZnaYlcbw/9lingN7w
-# AmWcPA2pKrMwDQYJKoZIhvcNAQEBBQAEggIAKDKrW9FwVBx2JJ+AJkvh+2FjD3gK
-# q4nTviq0gyk9lntZ4Ud6CtdhwHjfikffId7Diu4vTAcMAqqgQICyDbgoKdEK7B+W
-# L7A6WNt94QhsCHdfbNk2u8JR5YGAjjARksVrBivFE3h5Xpp2CG/FI8JvCGKG5Zg7
-# UgQk13gxua9e5A+vor2rrlpgf3oaDxVGPNZDTxhtHP0MhDVaOQpD8nMECB0N6BhV
-# Be8TNp8O7A8rHk4v2TIi5rh6nJJOy6I54P5V4Gcl6ezvB3e9krizMwji5No+YAlC
-# Fu5HytF2oRMLwHGeKxpEUPKnGbS7vxKfncxnwPZs0j8JilmlrOjP0sfpkiZRTbVq
-# DD62JlU26qxMF6kVIYOEDUFCv9XPp7rP3Gj8XjpdMGfkWsS9T1f4yw/DEV/xtthx
-# NjXwJPCz73sLB8f4o/Z8N4etvLBj5sde7N1qQm+ob8euW7PRrLQKFcpHsBoY8p9h
-# azOjGXuTBHtHFtDIDmU6rt2HvMWmZJ1Fd3GpsH18mpVdDvc16PYXQS6ZgpRb7TEY
-# KX9MCsPX2TLEyUT8is3rFytCJUDmKBI1W3Wlxlktb7ioFUlLErIEM3Qyb7FyptP6
-# XESGPSxAK2z5coS9asrDjMCBA3/BsmI7rk4eEyB8HnQHhDtbZkXaLV0A2KPu5cxG
-# Xw4eCI5J2Lb+gqg=
+# GAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTA3
+# MTgwMDAyWjAvBgkqhkiG9w0BCQQxIgQg96msj2gV5djjS19/ydfLbpb5kCKULUHK
+# 9lmzoxaTppIwDQYJKoZIhvcNAQEBBQAEggIAF3DnowhKj5GS1ffndx3iBTZ9974t
+# hEGtDE29MBPTOFcpUJcFCWrhO+0qrAqh7XMSVeS1BI+00f65NQfI6VnUsKzXqQny
+# K/zl1cNdP4rGls8hCZqaFH1c45GMtZz90ZBdcK/5djPKDA3nzMYNRGfKk82DMPLN
+# UDctw6MJJ3r2NtYtlo0GLFez5b+Kx5Gbu1DB5mElpPRB9y9QlKUlDVYmM/JcP+iS
+# XrwmnqUrOtbT7n+gS9zJb34hxCBgl5oSRzPctpIZgPfmgp0A3IBuiZSBQGvH93OF
+# dzWEEb/JL6szY8PmaHSDn5YXdYK0LupzdZGoQd6nugcZLmahMURtv65ygkS2ciIa
+# DoVUEBTTH5QNvlATaVt8r4AwL2PE8cua/g1hrrq/SK0JK+v8gCjXTHoGNMzlb/GU
+# JEwD7YAsGN8c53uoU4EzTM97DpAQ2k4ML7npgQphRESCLf2+9bcNTGX09DZNve2Z
+# PW1SpMlvMXNzlvVxD8AlpOpxuYIZusWcrtQtDdEoSHA9ZhAu27KyGxwwnK2J8CPC
+# 9dvxlQYgOjHbQx+SMa6qzcQwv98L+28n3IoFjKM0bvNglZ3ynFyBjJyIN97qa42e
+# i+iEA1GxpfojQMHRLGsmHbovhiJ8y/SQgE+5IbmZ7z41u/oxSSE+sizTVn3Pk5ih
+# +WGUprKUgCKpGQY=
 # SIG # End signature block
