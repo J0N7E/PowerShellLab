@@ -21,10 +21,21 @@ Param
     # Serializable parameters
     $Session,
     $Credential,
-    $HSMCredential,
-    $SSH,
 
-    [String]$LunaClientPath = '.\LunaHSMClient.exe'
+    [String]$LunaClientPath = '.\LunaHSMClient.exe',
+
+    [ValidateSet('Start', 'Show', 'Stop')]
+    [String]$PedServer,
+
+    [String]$HSMHostname,
+    <#----#>$HSMCredential, #Serializable
+
+    <#----#>$LunaSh, #Serializable
+    [String]$LunaShTimeout = '500',
+
+    [String]$LunaCm,
+
+    [Switch]$Popup
 )
 
 Begin
@@ -45,7 +56,7 @@ Begin
         @{ Name = 'Session';                                         },
         @{ Name = 'Credential';                Type = [PSCredential] },
         @{ Name = 'HSMCredential';             Type = [PSCredential] },
-        @{ Name = 'SSH';             Type = [Array] }
+        @{ Name = 'LunaSh';                    Type = [Array] }
 
     )
 
@@ -80,6 +91,8 @@ Begin
 
     if (Test-Path -Path "$PSScriptRoot$LunaClientPath")
     {
+        $LunaFile = Get-Item -Path "$PSScriptRoot$LunaClientPath"
+
         $SessionSplat = @{}
         $ToSessionSplat = @{}
 
@@ -87,11 +100,21 @@ Begin
         {
             $SessionSplat += @{ Session = $Session }
             $ToSessionSplat += @{ ToSession = $Session }
+
+            $TestLunaFileBlock =
+            {
+               Get-Item -Path "$Using:TempDir\$($Using:LunaFile.Name)" -ErrorAction SilentlyContinue
+            }
+        }
+        else
+        {
+            $TestLunaFileBlock =
+            {
+               Get-Item -Path "$TempDir\$($LunaFile.Name)" -ErrorAction SilentlyContinue
+            }
         }
 
-        $LunaFile = Get-Item -Path "$PSScriptRoot$LunaClientPath"
-
-        if (-not (Invoke-Command -Session $Session -ScriptBlock { Get-Item -Path "$Using:TempDir\$($Using:LunaFile.Name)" -ErrorAction SilentlyContinue }))
+        if (-not (Invoke-Command @SessionSplat -ScriptBlock $TestLunaFileBlock))
         {
             Copy-Item @ToSessionSplat -Path $LunaFile.FullName -Destination $TempDir
         }
@@ -130,74 +153,187 @@ Begin
         {
             param
             (
-                [Parameter(Mandatory=$true)]
-                [ValidateSet('LunaCm', 'Cmu', 'KspCmd', 'KspUtil', 'PedServer', 'Ssh')]
-                [String]$Program,
+                [Parameter(Position=0, ParameterSetName='LunaCm', Mandatory=$true)]
+                [Switch]$LunaCm,
 
-                [Parameter(Mandatory=$true)]
+                [Parameter(Position=0, ParameterSetName='Cmu', Mandatory=$true)]
+                [Switch]$Cmu,
+
+                [Parameter(Position=0, ParameterSetName='KspCmd', Mandatory=$true)]
+                [Switch]$KspCmd,
+
+                [Parameter(Position=0, ParameterSetName='KspUtil', Mandatory=$true)]
+                [Switch]$KspUtil,
+
+                [Parameter(Position=0, ParameterSetName='PedServer', Mandatory=$true)]
+                [Switch]$PedServer,
+
+                [Parameter(Position=0, ParameterSetName='Ssh', Mandatory=$true)]
+                [Switch]$Ssh,
+
+                [Parameter(Position=1, ParameterSetName='Ssh', Mandatory=$true)]
+                [String]$Hostname,
+
+                [Parameter(Position=2, ParameterSetName='Ssh', Mandatory=$true)]
+                [PSCredential]$Credential,
+
+                [Parameter(Position=3, ParameterSetName='Ssh')]
+                [String]$TimeOut = 500,
+
                 [Array]$Command,
 
-                [Switch]$NoExit
+                [Switch]$Popup
             )
 
             begin
             {
+                ############
+                # Functions
+                ############
+
+                function serialize
+                {
+                    [alias('ser')]
+                    param
+                    (
+                        [Parameter(Position=0, Mandatory=$true)]
+                        $InputObject
+                    )
+
+                    [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([System.Management.Automation.PSSerializer]::Serialize($InputObject)))
+                }
+
+                ###############
+                # Check params
+                ###############
+
+                $ParameterSplat =
+                @{
+                    Program = $PsCmdlet.ParameterSetName
+                }
+
+                if ($Ssh.IsPresent)
+                {
+                    if(-not(Get-InstalledModule | Where-Object { $_.Name -match 'Posh-SSH' }))
+                    {
+                        throw "Please install Posh-SSH module from PSGallery to use SSH."
+                    }
+
+                    if($Popup.IsPresent)
+                    {
+                        $HostnameStr = "-Hostname $Hostname "
+                        $CredentialStr = "-Credential $(serialize $Credential) "
+                    }
+                    else
+                    {
+                        $ParameterSplat +=
+                        @{
+                            Hostname = $Hostname
+                            Credential = $Credential
+                            TimeOut = $TimeOut
+                        }
+                    }
+                }
+
+                ###################
+                # Set command file
+                ###################
+
+                if($LunaCm.IsPresent -or $Ssh.IsPresent)
+                {
+                    Out-File -FilePath "$env:TEMP\safenet_cmd.txt" -InputObject $Command -Encoding Ascii
+                }
+                else
+                {
+                    Out-File -FilePath "$env:TEMP\safenet_cmd.txt" -InputObject ($Command -join ' ') -Encoding Ascii
+                }
+
+                ##############
+                # Scriptblock
+                ##############
+
                 $ExecBlock =
                 {
+                    param
+                    (
+                        [String]$Program,
+                        [String]$Hostname,
+                        $Credential,
+                        [String]$TimeOut,
+                        [Switch]$NoExit
+                    )
+
+                    ##################
+                    # Configure paths
+                    ##################
+
                     $LunaPath = 'C:\Program Files\SafeNet\LunaClient'
                     $KspPath  = 'C:\Program Files\SafeNet\LunaClient\ksp'
 
-                    $Program = $args[-2]
-                    $NoExit = $args[-1]
+                    ############
+                    # Functions
+                    ############
 
-                    if($Program -eq 'LunaCm')
+                    function deserialize
                     {
-                        Set-Location -Path $LunaPath
-                        Invoke-Expression -Command """.\lunacm.exe -f $env:temp\lunacm.txt"""
+                        [alias('dser')]
+                        param
+                        (
+                            [Parameter(Position=0, Mandatory=$true)]
+                            $InputObject
+                        )
+
+                        [Management.Automation.PSSerializer]::Deserialize([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($InputObject)))
                     }
-                    elseif($Program -eq 'Ssh')
-                    {
-                        $Command = Get-Content -Path $env:temp\lunacm.txt -Encoding Ascii
 
-                        $Session = Get-SSHSession | Where-Object { $_.Connected -eq $true -and $_.Host -eq $Command[0] }
+                    #######
+                    # Main
+                    #######
+
+                    if($Program -eq 'Ssh')
+                    {
+                        $Session = Get-SSHSession | Where-Object { $_.Connected -eq $true -and $_.Host -eq $Hostname }
 
                         if(-not $Session)
                         {
-                            $Session = New-SSHSession -ComputerName $Command[0] -Credential (New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList 'admin', (ConvertTo-SecureString -String $Command[1] -Force -AsPlainText)) -ConnectionTimeout 600
+                            if ($Credential -is [PSCredential])
+                            {
+                                $Session = New-SSHSession -ComputerName $Hostname -Credential $Credential -AcceptKey -ConnectionTimeout $TimeOut
+                            }
+                            else
+                            {
+                                $Session = New-SSHSession -ComputerName $Hostname -Credential (deserialize $Credential) -AcceptKey -ConnectionTimeout $TimeOut
+                            }
                         }
 
                         $Stream = New-SSHShellStream -SSHSession $Session
 
-                        Start-Sleep -Milliseconds 500
+                        Start-Sleep -Milliseconds $TimeOut
 
                         # Discard banner
                         $Stream.Read() > $null
 
-                        for($i=2; $i -lt $Command.Length; $i++)
-                        {
-                            $Stream.WriteLine($Command[$i])
+                        $Commands = Get-Content -Path "$env:TEMP\safenet_cmd.txt" -Encoding Ascii
 
-                            Start-Sleep -Milliseconds 500
+                        foreach($Cmd in $Commands)
+                        {
+                            $Stream.WriteLine($Cmd)
+
+                            Start-Sleep -Milliseconds $TimeOut
 
                             $Stream.ReadLine() > $null # Discard writeline output
 
-                            if ($Stream.DataAvailable)
+                            do
                             {
                                 $StreamOutput = $Stream.Read()
 
                                 if ($StreamOutput -notmatch '^\s*$')
                                 {
-                                    Write-Verbose -Message 'Stream Output:' -Verbose
-                                    Write-Output -InputObject $StreamOutput
+                                    Write-Host -Object $StreamOutput
                                 }
-                            }
 
-                            if($StreamOutput -notmatch 'Success')
-                            {
                                 if($StreamOutput -match '''Proceed''')
                                 {
-                                    $Stream.Read()
-
                                     if ((Read-Host -Prompt 'Continue? [y/n]') -ne 'y')
                                     {
                                         $Stream.WriteLine('quit')
@@ -207,83 +343,136 @@ Begin
                                         $Stream.WriteLine('proceed')
                                     }
 
+                                    Start-Sleep -Milliseconds $TimeOut
+
                                     $Stream.ReadLine() > $null # Discard writeline output
                                 }
-
-                                Write-Verbose -Message 'Waiting for Stream:' -Verbose
-
-                                $Stream.Expect('Success')
                             }
+                            while ($StreamOutput -notmatch 'LunaSh:>')
                         }
                     }
                     else
                     {
-                        $Command = Get-Content -Path $env:temp\lunacm.txt -Encoding Ascii
+                        $Commands = Get-Content -Path "$env:TEMP\safenet_cmd.txt" -Encoding Ascii
 
                         switch($Program)
                         {
-                           'Cmu'
-                           {
-                                Set-Location -Path $LunaPath
+                            'LunaCm'
+                            {
+                                $ProgPath = $LunaPath
+                                $Commands = "-f " + $env:TEMP + "\safenet_cmd.txt"
+                            }
 
-                                if($Command.StartsWith('list'))
+                            'Cmu'
+                            {
+                                $ProgPath = $LunaPath
+
+                                if($Commands.StartsWith('list'))
                                 {
-                                    $Command = $Command -replace 'list', ''
-                                    Invoke-Expression -Command """.\cmu.exe list '-display=handle,label,keyType,class,id'$Command"""
+                                    $Commands = "'-display=handle,label,keyType,class,id'" + $Commands -replace 'list', ''
                                 }
-                                else
-                                {
-                                    Invoke-Expression -Command """.\cmu.exe $Command"""
-                                }
-                           }
+                            }
 
-                           'KspCmd'
-                           {
-                                Set-Location -Path $KspPath
-                                Invoke-Expression -Command """.\kspcmd.exe $Command"""
-                           }
+                            'KspCmd'
+                            {
+                                $ProgPath = $KspPath
+                            }
 
-                           'KspUtil'
-                           {
-                                Set-Location -Path $KspPath
-                                Invoke-Expression -Command """.\ksputil.exe $Command"""
-                           }
+                            'KspUtil'
+                            {
+                                $ProgPath = $KspPath
+                            }
 
-                           'PedServer'
-                           {
-                                Set-Location -Path $LunaPath
-                                Invoke-Expression -Command """.\pedserver.exe $Command"""
-                           }
+                            'PedServer'
+                            {
+                                $ProgPath = $LunaPath
+                            }
                         }
+
+                        Write-Host "NoExit:$($NoExit.IsPresent)"
+
+                        if ($NoExit.IsPresent)
+                        {
+                            $Command = """.\$Program.exe $Commands"""
+                        }
+                        else
+                        {
+                            $Command = ".\$Program.exe $Commands"
+                        }
+
+                        Write-Host "Command:$Command"
+
+                        # Remember working directory
+                        Push-Location
+
+                        # Change working directory
+                        Set-Location -Path $ProgPath
+
+                        Write-Host "Path:$(pwd)"
+
+                        try
+                        {
+                            # Invoke
+                            $Output = Invoke-Expression -Command $Command
+
+                            # Output
+                            foreach($row in $Output)
+                            {
+                                Write-Host -Object $row
+                            }
+                        }
+                        catch [Exception]
+                        {
+
+                        }
+
+                        # Reset working directory
+                        Pop-Location
                     }
 
-                    if($NoExit -eq 'False')
+                    if($NoExit.IsPresent)
                     {
                         Read-Host -Prompt 'Press <Enter> to exit'
                     }
 
-                    Remove-Item -Path "$env:temp\lunacm.txt" -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path "$env:TEMP\safenet_cmd.txt" -Force -ErrorAction SilentlyContinue
                 }
 
-                if($NoExit.IsPresent)
-                {
-                    $NoExitStr = '-NoExit '
-                }
+                #####################
+                # Invoke scriptblock
+                #####################
 
-                if($Program -eq 'LunaCm' -or $Program -eq 'Ssh')
+                try
                 {
-                    Out-File -FilePath "$env:temp\lunacm.txt" -InputObject $Command -Encoding Ascii
+                    if ($Popup.IsPresent)
+                    {
+                        Start-Process PowerShell -ArgumentList `
+                        @(
+                            "-Command &{ $ExecBlock } $HostnameStr$CredentialStr-Program $($PsCmdlet.ParameterSetName) -Timeout $Timeout -NoExit"
+                        )
+                    }
+                    else
+                    {
+                        &$ExecBlock @ParameterSplat
+                    }
                 }
-                else
+                catch [Exception]
                 {
-                    Out-File -FilePath "$env:temp\lunacm.txt" -InputObject ($Command -join ' ') -Encoding Ascii
+                    throw $_
+                    Remove-Item -Path "$env:TEMP\safenet_cmd.txt" -Force -ErrorAction SilentlyContinue
                 }
-
-                Start-Process PowerShell -ArgumentList `
-                @(
-                    "$NoExitStr-Command &{ $ExecBlock } $Program $NoExit"
-                )
             }
+        }
+
+        #########
+        # Params
+        #########
+
+        $PopupSplat =  @{}
+
+        if ($Popup.IsPresent)
+        {
+             $PopupSplat += @{ Popup = $true }
         }
 
         ######################
@@ -293,7 +482,50 @@ Begin
         if (-not (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\lunacm.exe") -and
             (ShouldProcess @WhatIfSplat -Message "Installing Luna Client." @VerboseSplat))
         {
-            Start-Process -WorkingDirectory $env:temp -FilePath $LunaFile.Name -ArgumentList "/install /quiet /norestart addlocal=NETWORK,CSP_KSP" -Verb RunAs
+            Start-Process -WorkingDirectory $env:TEMP -FilePath $LunaFile.Name -ArgumentList "/install /quiet /norestart addlocal=NETWORK,CSP_KSP" -Verb RunAs
+        }
+
+        ############
+        # PedServer
+        ############
+
+        if ($PedServer)
+        {
+            switch ($PedServer)
+            {
+                'Start'
+                {
+                    SafeNet @PopupSplat -PedServer -Command 'mode start'
+                }
+
+                'Show'
+                {
+                    SafeNet @PopupSplat -PedServer -Command 'mode show'
+                }
+
+                'Stop'
+                {
+                    SafeNet @PopupSplat -PedServer -Command 'mode stop'
+                }
+            }
+        }
+
+        #########
+        # LunaSH
+        #########
+
+        if ($LunaSh)
+        {
+            SafeNet @PopupSplat -Ssh -Hostname $HSMHostname -Credential $HSMCredential -Command $LunaSh -Timeout $LunaShTimeout
+        }
+
+        #########
+        # LunaCm
+        #########
+
+        if ($LunaCm)
+        {
+            SafeNet @PopupSplat -LunaCm -Command $LunaCm
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -353,8 +585,17 @@ Process
             $Force            = $Using:Force
             $ParameterSetName = $Using:ParameterSetName
 
-            $LunaFile      = $Using:LunaFile
-            $HSMCredential = $Using:HSMCredential
+            $LunaFile         = $Using:LunaFile
+
+            $HSMHostname      = $Using:HSMHostname
+            $HSMCredential    = $Using:HSMCredential
+
+            $LunaSh           = $Using:LunaSh
+            $LunaShTimeout    = $Using:LunaShTimeout
+
+            $LunaCm           = $Using:LunaCm
+
+            $PedServer        = $Using:PedServer
         }
 
         $InvokeSplat.Add('Session', $Session)
@@ -455,8 +696,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7sgMFtLK/B9tARWYma9LBLbf
-# wx2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxvyXzV6/Q0JWhTCgGSoymxba
+# ZHqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -548,10 +789,10 @@ End
 # 8Zhf+yvYfvJGnXUsHicsJttvFXseGYs2uJPU5vIXmVnKcPA3v5gA3yAWTyf7YGcW
 # oWa63VXAOimGsJigK+2VQbc61RWYMbRiCQ8KvYHZE/6/pNHzV9m8BPqC3jLfBInw
 # AM1dwvnQI38AC+R2AibZ8GV2QqYphwlHK+Z/GqSFD/yYlvZVVCsfgPrA8g4r5db7
-# qS9EFUrnEw4d2zc4GqEr9u3WfPwwggbAMIIEqKADAgECAhADyzT9Pf8SETOf8HxL
-# IVfHMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdp
+# qS9EFUrnEw4d2zc4GqEr9u3WfPwwggbAMIIEqKADAgECAhAMTWlyS5T6PCpKPSkH
+# gD1aMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdp
 # Q2VydCwgSW5jLjE7MDkGA1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2
-# IFNIQTI1NiBUaW1lU3RhbXBpbmcgQ0EwHhcNMjIwODMwMDAwMDAwWhcNMjMwODI5
+# IFNIQTI1NiBUaW1lU3RhbXBpbmcgQ0EwHhcNMjIwOTIxMDAwMDAwWhcNMzMxMTIx
 # MjM1OTU5WjBGMQswCQYDVQQGEwJVUzERMA8GA1UEChMIRGlnaUNlcnQxJDAiBgNV
 # BAMTG0RpZ2lDZXJ0IFRpbWVzdGFtcCAyMDIyIC0gMjCCAiIwDQYJKoZIhvcNAQEB
 # BQADggIPADCCAgoCggIBAM/spSY6xqnya7uNwQ2a26HoFIV0MxomrNAcVR4eNm28
@@ -573,48 +814,48 @@ End
 # aW1lU3RhbXBpbmdDQS5jcmwwgZAGCCsGAQUFBwEBBIGDMIGAMCQGCCsGAQUFBzAB
 # hhhodHRwOi8vb2NzcC5kaWdpY2VydC5jb20wWAYIKwYBBQUHMAKGTGh0dHA6Ly9j
 # YWNlcnRzLmRpZ2ljZXJ0LmNvbS9EaWdpQ2VydFRydXN0ZWRHNFJTQTQwOTZTSEEy
-# NTZUaW1lU3RhbXBpbmdDQS5jcnQwDQYJKoZIhvcNAQELBQADggIBAC0UyaEGSS3d
-# imxaHgXjrMnYnjeKsKYhIj9EyjE9ywwM33xT5ZRqdiX3Isk7nEIElPWCRN5u4oTo
-# 7k5EGGktx3ZsrHpzf0siEEmEdDfygtNBlXYxLvlZab8HVrslWfexM+66XRCFK19P
-# gSnudu0gC3XaxWbC6eAeWmgBTLRktDRpqbY9fj1d6REtuXxf4RNrN0MDT+kVDdt1
-# BVTHDTlfGDbA6HAXR1Vc+khF8cv4RMJ8vvP3p6z05qFttPe3RMWPCC+d8hKtJI+2
-# C3hBwdKChzJizkfq60Vrqqj+dEeBnrUYhUcYIIz6WeVYk72r/31a9SowYPuTzNCk
-# tU59LF6Y2/bMPIpHeHhsBAvg2RMxDzH4TfzgKkGM8F8VDpTAKUXe8vlzzsNjJ4m+
-# oeGi72Kj6if/M07iiT4kMEQV5Fg8BotKdIqx7a1Cf+aqpZq5+DAcFhPwo4uoKtSL
-# AWY0aIACxRKSFqIHngiuc2t9n+vB/oM/rtlQNnnlt8E2hvC3yQl5+M/7sqzX4vI3
-# BBv6ASmOsDaYOGrb90BA77kpxccgavKscb/UdmJ+yGZjMyuuUzjPpKpGxMG95S9A
-# TieDVuDFi68taSY81PJVmxBD/MrBbfTZ9JBLS5F1s0ecKEr6OOY1PvLIry+8Trgn
-# FUP5KT019GjiRV2GVCOBx9aBB9M+oTliMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
+# NTZUaW1lU3RhbXBpbmdDQS5jcnQwDQYJKoZIhvcNAQELBQADggIBAFWqKhrzRvN4
+# Vzcw/HXjT9aFI/H8+ZU5myXm93KKmMN31GT8Ffs2wklRLHiIY1UJRjkA/GnUypsp
+# +6M/wMkAmxMdsJiJ3HjyzXyFzVOdr2LiYWajFCpFh0qYQitQ/Bu1nggwCfrkLdcJ
+# iXn5CeaIzn0buGqim8FTYAnoo7id160fHLjsmEHw9g6A++T/350Qp+sAul9Kjxo6
+# UrTqvwlJFTU2WZoPVNKyG39+XgmtdlSKdG3K0gVnK3br/5iyJpU4GYhEFOUKWaJr
+# 5yI+RCHSPxzAm+18SLLYkgyRTzxmlK9dAlPrnuKe5NMfhgFknADC6Vp0dQ094XmI
+# vxwBl8kZI4DXNlpflhaxYwzGRkA7zl011Fk+Q5oYrsPJy8P7mxNfarXH4PMFw1nf
+# J2Ir3kHJU7n/NBBn9iYymHv+XEKUgZSCnawKi8ZLFUrTmJBFYDOA4CPe+AOk9kVH
+# 5c64A0JH6EE2cXet/aLol3ROLtoeHYxayB6a1cLwxiKoT5u92ByaUcQvmvZfpyeX
+# upYuhVfAYOd4Vn9q78KVmksRAsiCnMkaBXy6cbVOepls9Oie1FqYyJ+/jbsYXEP1
+# 0Cro4mLueATbvdH7WwqocH7wl4R44wgDXUcsY6glOJcB0j862uXl9uab3H4szP8X
+# TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoXjRVkTy
-# EHnrY+xjaylfiTvyCA8wDQYJKoZIhvcNAQEBBQAEggIADCddl96etcfE1PSboViX
-# Jgx9V8fHepS3N9ALiWCrQ4ckYQ8vPs0FN5uBNJd0nNpKN2DLmAJM17stGeWTyogS
-# iKGrxOmNFwQ2xLs3YBrC7DMFQ08AjZo3srW95O7c+3ci7f4Zx/uXg1m+7y5NRUcC
-# XYIniZaxVyZ7onQPQHc0Y86DGKURXmMtiPRLKFdR43qBINMfO/ncvh0WdkLAYGUD
-# fBPpJZqDEYhdE1S0vYFao9bZSeuy7nXZozGfjW9d8Lu8Y/0aJOI2RqE8q1QgijEy
-# c4cDhrh8BUC01keYgut2tDkRUMl7kz09u4vMZRdiJBaKAZg2MmxTgWzrUeLYcSIe
-# APCsW2g79bR18mgGGfYT+tvZk1gdt+GuDlntBBRzsNjcO3fcC4LssmGsctjF2hTZ
-# BuEM2g6yCIXr3FFBH5l+Ikgcx0nnt+q6eYFawJy3/sLBWjVdA+Les3S/IBujkD/P
-# YXt1ZRFoJocivtejDII9TEJ5K+l16vGVDjVR+cRFIlKj7+c44NEH9b57zndUHz5L
-# ungj8TjAojNDK4alRgVMQIAo1yqwf8ERIZxuP7aXmna8bt3Pt052r2Y2nW8Qo1NW
-# i4K7cdrhNI2NQn6FIuNIJM6vJxtMfmJKHGCg+MwBBci9mb6W26U8SMVVKUi922DJ
-# Xl4K+G4cbwOZ6cDiQwY0i8+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUbPJN+H/b
+# hHcFU+gwPQw73FA4cQ4wDQYJKoZIhvcNAQEBBQAEggIAFxHCJJeXBMK73J8TcPk+
+# Zqy1diAlqrGidTnIRhmQWkFnYSDnP/7JKsN+TgHcmYDpqxGcpABt3RpDJB7zj48B
+# xM19zkB+OjM0eQnznWEv9vcdHldaZkIzIcH7sDJweTHXOV38t4IyZpmmmYEU4fFV
+# Z2trxIg3NzwsdCMZzJhDg7BZcuiwc1dY9BH828LxuaiEQJsaf7NNxfvHzRRiHV16
+# 2e2MsmseJYH+0NMD2DFDGM0D3bE7BUqcoBkgojZA3Tlgf8rGHXGo1pQpyF680SCm
+# LZBKtYJ7ggxhSUlCwpHrnxPibXGjNa9tp+xSPv4bIxiGlgVuYm9Fo2r+/gIG18cJ
+# iSdyGLuxQqOPJr18KmDPGknlA2hhkVgbp2xDUN59qgGEaeSgl/oSpZ9WsKpDhI4b
+# /3HWUMCf+zGxGO1UH6orwO/Y+EjRyzM+vlHBCy8COMueP4I6yrPMn2AqTunY9Pqa
+# prfgGZbQsuUGSSc5pEB1Gp4bIdG/PciprR4KCUCq0TVpEjQLdE9aWqUpwZY8CJKB
+# 2n2efDkyE+hV6cZNmr5Ccdk4bRUNCOoXaK6A+w2NPIsgqtMCwtEPv9H2FhPy2Yio
+# IRN/HKeR5sW7MxPyia85J4IEgm+tMb2YMv0JUB/Rc1kuPDsDI0pdivZ1f/c+g3QJ
+# 7WP8b6XHpIubAwLCzHJ6nhihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
-# aW5nIENBAhADyzT9Pf8SETOf8HxLIVfHMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTIwMTcwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgwqHj6N8UjCbS8yDNIwODNo+UdLwieJYwWRDmbHmX
-# YgMwDQYJKoZIhvcNAQEBBQAEggIAbhauRk/S8IgvuRA98JnjU/Oms+VQnJX5v0PN
-# STUB94ac7sl4R9GfVXewGr3niwBaJHyvYzesafZ69hbNUk0gxgSuKKLWANoWAPpf
-# m/zg7BxM+B4+3eYCj320cdsLfYoBI2vMjcTNVGGN5FySsvswTPjZ/4E11ItY/Flx
-# 0R3k5tQBT0x4SJBgJ9DJAyZuGp9+T533z45+j8okbB5JhFc4TybfU/e44iB0Cl1s
-# y2vA2zg4K2RD5jfcTaTz5iZV19Y92phj43/lnOPJ80rmPoeb+mkVFW5DLV8hOs5n
-# FIsOrJUz5+bDE0zJlaXe6O614ItaOwhS9pV6vwFTfY+lYJn8l9VEBmMRIB4Cs1SC
-# P6+bsjmlotM/oQTz40Uoe3+mCj98iepOWNgkfbe0nN09ytOfjdby20WpwyCJAmTn
-# p64YO/LV3M0+OLOpB6K08gIvFvT73u4tnb5aieAyGdP9XvBNzBDTbbLquI8yZp4z
-# IbzSjy+Jv/yp6VtDVaoQCPK5GBTbzqSEFtS9c9QMuoYXvZ9ByvEMWGEO9/N/fTNe
-# DM71mA6PA/aZNgACzVhv8BsGt46dmED5pMSB0wBeLonJnC4cuOOdX0wV/bXxp4UZ
-# UsADV0mm/vsTduh6MTjdjv4F/ZROSVZvKMjACH33b21MZnXrhHrJsIqs3wd5PzjE
-# ofPZoF4=
+# aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTI2MTUwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQggHBJW3xoN/HvbALOcSxcAAhjzA6ENoIAiYTV8l5l
+# B1EwDQYJKoZIhvcNAQEBBQAEggIAxLCoz4PV0+ZnlUqwdgnbYsKcv5R1KfcqEGrk
+# VNrgPH8IclrcqsF5pVQU3eyk/gZVqj6l2RQq9kfrFTgkSNvRBR+mdP7wzvb814hB
+# 3TOY8WgaLNtUIVPheeYWFp3jo5Kcz2Zy04V5D7Rsxus7/ZybgAlOk1FGe41CXLBk
+# Tkiu2NmVCzafTgOs3Q4Ufzga/GuCEv6XNwtSj0MpCQpH10GfL43jgUWy6V33X7mk
+# gmN8HeB1p2oSgLdJlHm8CyShbeAegSSTNgnTIP+/87i54jDJ8LBkXtw6Gwp4F9Hc
+# eJT8a+M39KcBaIJxmCp8yfYy4c3QQOM5zKiQIyQJg+Nr5ewpItBMcLQvaSVA/w/C
+# 4aO7fHz99ozw7Va0fdRT7/V8rqKCkC8dTxAPUTAv4/R8aKnGtXKnEPDSu7yw4pCs
+# j7LQn/zb7J6DwWTUul3Em7Teff6nsx9BWjPDQX1JpK7Ou5TJI2CUem8QUjwM8SSc
+# WIrAE350slN5NBKoN+DX/PPkKHmjZuv5xO+Z7e1hqH6KR0OoG+ZrpWqfVjAatk6d
+# PsgN1iUWKzqpd4+iEK2fVwjp80fv2o9B4XB31nRu58EVOBTHFhwkaHXg/le9OtZ4
+# LhHCgTpOCs1ZnyHeQu+Pj9CmhLvA8P7DMB/7SF7024zTvi5jl3x9JiFx13ixhbMe
+# 7m64dm8=
 # SIG # End signature block
