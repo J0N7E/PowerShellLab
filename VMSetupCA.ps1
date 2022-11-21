@@ -715,7 +715,7 @@ Begin
         ######
 
         # Check if exist
-        if (-not $CACertPublicationURLs)
+        if (-not $CAConfigured -and -not $CACertPublicationURLs)
         {
             # Set default AIA
             $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
@@ -766,7 +766,7 @@ Begin
         ######
 
         # Check if exist
-        if (-not $CRLPublicationURLs)
+        if (-not $CAConfigured -and -not $CRLPublicationURLs)
         {
             ##################
             # PublishToServer
@@ -1068,11 +1068,14 @@ CRLDeltaPeriod=$CRLDeltaPeriod
         # Set policy
         #############
 
-        # Save CA policy to temp
-        Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
+        if (-not $CAConfigured)
+        {
+            # Save CA policy to temp
+            Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
 
-        # Move to systemroot if different
-        Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -Delete -Backup -TargetPath "$env:SystemRoot\CAPolicy.inf" @VerboseSplat
+            # Move to systemroot if different
+            Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -Delete -Backup -TargetPath "$env:SystemRoot\CAPolicy.inf" @VerboseSplat
+        }
 
         # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
         # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
@@ -1274,20 +1277,17 @@ CRLDeltaPeriod=$CRLDeltaPeriod
             # Verify
             #########
 
-            if (-not $CAConfigured)
+            foreach($Param in $ADCSCAParams.GetEnumerator())
             {
-                foreach($Param in $ADCSCAParams.GetEnumerator())
+                if ($Param.Value -match " ")
                 {
-                    if ($Param.Value -match " ")
-                    {
-                        $Param.Value = "`"$($Param.Value)`""
-                    }
-
-                    Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
+                    $Param.Value = "`"$($Param.Value)`""
                 }
 
-                Check-Continue -Message "Proceed with CA setup?" -AllwaysPrompt
+                Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
             }
+
+            Check-Continue -Message "Proceed with CA setup?" -AllwaysPrompt
 
             ##########
             # Install
@@ -1908,8 +1908,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTyHqLA6L2XYfoEDfDXifPttJ
-# E16gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgoYS5Go+cqdSrfVaD091jqFG
+# GHegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2001,10 +2001,10 @@ End
 # 8Zhf+yvYfvJGnXUsHicsJttvFXseGYs2uJPU5vIXmVnKcPA3v5gA3yAWTyf7YGcW
 # oWa63VXAOimGsJigK+2VQbc61RWYMbRiCQ8KvYHZE/6/pNHzV9m8BPqC3jLfBInw
 # AM1dwvnQI38AC+R2AibZ8GV2QqYphwlHK+Z/GqSFD/yYlvZVVCsfgPrA8g4r5db7
-# qS9EFUrnEw4d2zc4GqEr9u3WfPwwggbAMIIEqKADAgECAhADyzT9Pf8SETOf8HxL
-# IVfHMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdp
+# qS9EFUrnEw4d2zc4GqEr9u3WfPwwggbAMIIEqKADAgECAhAMTWlyS5T6PCpKPSkH
+# gD1aMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdp
 # Q2VydCwgSW5jLjE7MDkGA1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2
-# IFNIQTI1NiBUaW1lU3RhbXBpbmcgQ0EwHhcNMjIwODMwMDAwMDAwWhcNMjMwODI5
+# IFNIQTI1NiBUaW1lU3RhbXBpbmcgQ0EwHhcNMjIwOTIxMDAwMDAwWhcNMzMxMTIx
 # MjM1OTU5WjBGMQswCQYDVQQGEwJVUzERMA8GA1UEChMIRGlnaUNlcnQxJDAiBgNV
 # BAMTG0RpZ2lDZXJ0IFRpbWVzdGFtcCAyMDIyIC0gMjCCAiIwDQYJKoZIhvcNAQEB
 # BQADggIPADCCAgoCggIBAM/spSY6xqnya7uNwQ2a26HoFIV0MxomrNAcVR4eNm28
@@ -2026,48 +2026,48 @@ End
 # aW1lU3RhbXBpbmdDQS5jcmwwgZAGCCsGAQUFBwEBBIGDMIGAMCQGCCsGAQUFBzAB
 # hhhodHRwOi8vb2NzcC5kaWdpY2VydC5jb20wWAYIKwYBBQUHMAKGTGh0dHA6Ly9j
 # YWNlcnRzLmRpZ2ljZXJ0LmNvbS9EaWdpQ2VydFRydXN0ZWRHNFJTQTQwOTZTSEEy
-# NTZUaW1lU3RhbXBpbmdDQS5jcnQwDQYJKoZIhvcNAQELBQADggIBAC0UyaEGSS3d
-# imxaHgXjrMnYnjeKsKYhIj9EyjE9ywwM33xT5ZRqdiX3Isk7nEIElPWCRN5u4oTo
-# 7k5EGGktx3ZsrHpzf0siEEmEdDfygtNBlXYxLvlZab8HVrslWfexM+66XRCFK19P
-# gSnudu0gC3XaxWbC6eAeWmgBTLRktDRpqbY9fj1d6REtuXxf4RNrN0MDT+kVDdt1
-# BVTHDTlfGDbA6HAXR1Vc+khF8cv4RMJ8vvP3p6z05qFttPe3RMWPCC+d8hKtJI+2
-# C3hBwdKChzJizkfq60Vrqqj+dEeBnrUYhUcYIIz6WeVYk72r/31a9SowYPuTzNCk
-# tU59LF6Y2/bMPIpHeHhsBAvg2RMxDzH4TfzgKkGM8F8VDpTAKUXe8vlzzsNjJ4m+
-# oeGi72Kj6if/M07iiT4kMEQV5Fg8BotKdIqx7a1Cf+aqpZq5+DAcFhPwo4uoKtSL
-# AWY0aIACxRKSFqIHngiuc2t9n+vB/oM/rtlQNnnlt8E2hvC3yQl5+M/7sqzX4vI3
-# BBv6ASmOsDaYOGrb90BA77kpxccgavKscb/UdmJ+yGZjMyuuUzjPpKpGxMG95S9A
-# TieDVuDFi68taSY81PJVmxBD/MrBbfTZ9JBLS5F1s0ecKEr6OOY1PvLIry+8Trgn
-# FUP5KT019GjiRV2GVCOBx9aBB9M+oTliMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
+# NTZUaW1lU3RhbXBpbmdDQS5jcnQwDQYJKoZIhvcNAQELBQADggIBAFWqKhrzRvN4
+# Vzcw/HXjT9aFI/H8+ZU5myXm93KKmMN31GT8Ffs2wklRLHiIY1UJRjkA/GnUypsp
+# +6M/wMkAmxMdsJiJ3HjyzXyFzVOdr2LiYWajFCpFh0qYQitQ/Bu1nggwCfrkLdcJ
+# iXn5CeaIzn0buGqim8FTYAnoo7id160fHLjsmEHw9g6A++T/350Qp+sAul9Kjxo6
+# UrTqvwlJFTU2WZoPVNKyG39+XgmtdlSKdG3K0gVnK3br/5iyJpU4GYhEFOUKWaJr
+# 5yI+RCHSPxzAm+18SLLYkgyRTzxmlK9dAlPrnuKe5NMfhgFknADC6Vp0dQ094XmI
+# vxwBl8kZI4DXNlpflhaxYwzGRkA7zl011Fk+Q5oYrsPJy8P7mxNfarXH4PMFw1nf
+# J2Ir3kHJU7n/NBBn9iYymHv+XEKUgZSCnawKi8ZLFUrTmJBFYDOA4CPe+AOk9kVH
+# 5c64A0JH6EE2cXet/aLol3ROLtoeHYxayB6a1cLwxiKoT5u92ByaUcQvmvZfpyeX
+# upYuhVfAYOd4Vn9q78KVmksRAsiCnMkaBXy6cbVOepls9Oie1FqYyJ+/jbsYXEP1
+# 0Cro4mLueATbvdH7WwqocH7wl4R44wgDXUcsY6glOJcB0j862uXl9uab3H4szP8X
+# TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4dDZrYdz
-# NcGvfFgVIHUG70UzNRMwDQYJKoZIhvcNAQEBBQAEggIAbOaFI2uqDvQZTnC7cvJK
-# ioln9e7YnXvAWmjX4VR5Y8HUcqquedTRdgV5Dg+XdTdyiep8QMGUT3Ckj4cu/VkZ
-# rkLmtWK5CM05STzwObNO78EhZhL52Hh0wkKY3VCR70l3kvaMmi874gjYAHu6P4os
-# 2sUA3B9H4wJmYSc9PrvZi/NH63c/46N+sdQMlIhfBub9e1T8GaMcKbemmd/prqTP
-# 1WGa5jGPWrWHpyVBLupMTMANMhS2j8fmxGScEWX85GHx2FEcMDOkUXbB9N199ZcL
-# Am34D4cJgF0RMlnYUluKsHV1wG78f/TI0D8/e818n07Tbdnt3IaqqbeWw4myMgF0
-# JwlEkbyP2K4tM5DGQRlgdx8KG11vgWhITHJ9g87m6juViOPR+dASbLaQEc4GjYVj
-# IDeX3EvnhbVnk9+QECezQ/zmTvObjQFgEc2g8yIM9OuhToY2w95LVovGzQHhgQqI
-# oOTKpubn4EbahYRHE1d4Vqa4VntABf2BBgXB6lxrL0mgOAykirvJuxdpB+bjAQrc
-# 2jzIbE6gc+/0Qnfobf8CuFcfjdVxZawPhatbMPaKEs3xgM0EO0nxeJ8lPwHWJ/ey
-# RTCoTutPOFuyk/b/vEs1bfSkjHwAWA13agGJUjiSRO1hk/fIfPdoQJzINyKlgXZ+
-# YLxfyy0WQLgtKrxsRmHNVX6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUWFoDsv7
+# eU6OdlRyJZToccG0ubswDQYJKoZIhvcNAQEBBQAEggIAQONlnEy/HtogDh84owNZ
+# ZJgUllrYb3ExtOITqUlqXxeYTa8I7yO/xuJKEV/extJz/V4+/mQPkRtGJ9kofnjo
+# yPAAE8Y9rPGDI6Uy2rj5ZH6ona+NyUd6k+lI7ll11CDplB2VS7/n8RySfnBkZKBO
+# /bJ7LCAaH/FxKZRkzNkXiCtRBL7YmDbfGIxHQtHlmqqK0Q9bIvIOZ0S+vSPfdpR6
+# FVHpyGDT81fEvCAf3Im2qXu+ZP5aBSwqsTxbY8UjTYnd9F4TyViCipPWr0xgbEt0
+# qDJ5KyeQSDuO7r/0cDX+G0ygrcduxdaPyHy9t+8GVd41rMj7KG9U23uZahSv+5+c
+# r/slr8W2BfP0weZ0sQZqyDy3hAKTF/QFbuSO7cQ3qMKzxQGwwZ/8kqwNPxOlLX14
+# QcldTlWWQSP5k6Ku6taVZGLsFqj+Y/TZbno8bEetFtmzH+yorbwQIt6rlH0ou3Ac
+# ou3hKywzm0Dvm83+3IzghEC9KhirhkrBAiWZL7SsgjzIiXom+YIl8nwT8HxcfCwE
+# y9foAyC6/wVTWkEOAmlDwoerHfw58hwQ2M47ZXDpyZs1D9K+z10W7DxZzNuQj+LX
+# OtOcNRiRAovLVjH/Ihx31vOdJ8rx2CcY0ieAs49Xr9T2q/SdEehshWffnSrqdNtA
+# QX6ZWrGdwjVfzPdposrDJzuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
-# aW5nIENBAhADyzT9Pf8SETOf8HxLIVfHMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIwOTIwMTcwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg7Id7mGCCoWktZbjz8vFoNasoxXoRNToXHSQoA5rk
-# 3DowDQYJKoZIhvcNAQEBBQAEggIAs9p/dfF3pbcfK2LnlBKsGUuZV6pT+fFZCdnI
-# zZRWl9dbxlc0ERxhUsOi/E4JURD25PSggfUbgwF6g69XHKVgpEk6v8FEnxWxm7d1
-# b7qhQnSUbjN0Rw+Bj3tOr27wfuyRzge8ccFaVpXC36Vbc5viwXAfB6BE2YPIQ145
-# NqoGXx34grcLi4lBb3202ohedbw9u2Wp3s+Gm1+c+C5JnehVMYvGLb6k4cwLtKgD
-# jcGsmTXJyseKGnIYSa6pEbG44ztxj8wNghCjh754rgv+DA1ICTjXvSPpXN4cB6uH
-# AeQkaeRF6kqegyTZ/KgYdEjHyX374PXeGbdXJ4Nrot7A18APXmPeq1k0GXdu9+qk
-# VW9BVuKzA6KS9wlENECUJPVDOAAitSL4K2D95eVPhHACsvW4xDyRX955PWWdGZit
-# wjSRYOrWw0jbtUjgPBSE6ODtr6q3NJYZgBlkvyo0GmSQcIEwNj/c3WG/Ee9JAklY
-# Lla0G9OnO8YxAoNhikkDHDKdrlNrD6b6KQNhskNyCM/SpIS5BtYv0LA6MUaXU4zf
-# edUjbBYdSTLQsrunCibr2zLO0STRknEqoNEBW4jCKPe26ARwe/5DymrNEMyNDkQJ
-# Y504HeX3SBMfF4d1iPdAykvOcYNB49vxjXLaGW5So5MSZZPccq0vu0M+50/AYlAC
-# 4lzxHZQ=
+# aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMTIxMDAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgOjGdguzaPyf+33Bh7TInStmUOYAM2bTsqhMBZZFl
+# 5gMwDQYJKoZIhvcNAQEBBQAEggIAwVzJhtomTrLvaeMzSCgqyaiLtF9E8FIl3PCk
+# gIea4L/6U80lsOBVg6brWS+IgpalRJRRMddGn7iI1Xj/SiEuNTU8roHg0tjvaNW7
+# FvFwfVjtGBI9rtzytkzFp0zJl2lgD8amlRpaNDKAwEbNPI//aBEgr1Qi6ITmaS2B
+# uQP95Ewzr1reV4HsDNMOdXALF3bXlzANqxKANFJ6vBXMhmg11d6Xh4w23tc0pQec
+# 6B3acqzEN4F7xkamo0iSu5IWmv+3yj3x4P76otiBNwJ7lZILGvjr8gwUlNfIifw3
+# ihqxuiKXMvOO90l47ajM/XIv2Xl631K7HR7mPJj20YDGmwR+yWsrrjJNVEgXZzFK
+# lMBE1sVCRhWOdTEK4z559ZmC6crChJ56UxI8IMOqZoPhLx7riKPFmgOVQuDVwWxB
+# WIij+O9zUEyzFePDzGstxnpopBmwCZf251fErJ3vqy+aaZOLY1VzvYQJQ7b5/uIk
+# XWY1ImBsW0ygBxegi4s40IryBgVRjV4kSXo9kFpRjaLpcqxXA62PCX+jff0Q1EAG
+# hZAkBstvJbPwATVoBJX81XQWLhlQ5HPpBdL0CBtEFkvfKp2lmPzGaA9gpk50fgPI
+# aa/yJvrWLvn5zIOJaltyS6zHV1G5kYOTUpshuT+z3o9e0vSNE4BLTvG36yU7xSMt
+# 2SHSntI=
 # SIG # End signature block
