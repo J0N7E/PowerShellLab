@@ -433,7 +433,7 @@ Begin
     if ($ParameterSetName -match 'NewKey.*Subordinate')
     {
         # Itterate all posbile parent ca files
-        foreach($file in (Get-Item -Path "$PSScriptRoot\*.cer", "$PSScriptRoot\*.crt"))
+        foreach($file in (Get-Item -Path "$PSScriptRoot\*.cer"))
         {
             $CertutilDump = (certutil -dump $file) | Out-String
 
@@ -622,7 +622,7 @@ Begin
         # Initialize
         $Result = @{}
 
-        ##############§
+        ##############
         # Check admin
         ##############
 
@@ -709,13 +709,21 @@ Begin
         $DatabaseDirectory   = $ExecutionContext.InvokeCommand.ExpandString($DatabaseDirectory)
         $CertEnrollDirectory = $ExecutionContext.InvokeCommand.ExpandString($CertEnrollDirectory)
 
+
+        #  █████╗ ██╗ █████╗     ██╗ ██████╗██████╗ ██████╗
+        # ██╔══██╗██║██╔══██╗   ██╔╝██╔════╝██╔══██╗██╔══██╗
+        # ███████║██║███████║  ██╔╝ ██║     ██║  ██║██████╔╝
+        # ██╔══██║██║██╔══██║ ██╔╝  ██║     ██║  ██║██╔═══╝
+        # ██║  ██║██║██║  ██║██╔╝   ╚██████╗██████╔╝██║
+        # ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝     ╚═════╝╚═════╝ ╚═╝
+
         ######
         # AIA
         # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
         ######
 
         # Check if exist
-        if (-not $CAConfigured -and -not $CACertPublicationURLs)
+        if (-not $CACertPublicationURLs)
         {
             # Set default AIA
             $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
@@ -766,7 +774,7 @@ Begin
         ######
 
         # Check if exist
-        if (-not $CAConfigured -and -not $CRLPublicationURLs)
+        if (-not $CRLPublicationURLs)
         {
             ##################
             # PublishToServer
@@ -859,68 +867,70 @@ Begin
         # add parameters for issuance policy
         # add oid parameter
 
-        if (-not $Policy)
+        if (-not $CAConfigured)
         {
-            $Policy =
-            @{
-                PolicyOID = '2.5.29.32.0'
-            }
-
-            if ($DomainName)
+            if (-not $Policy)
             {
-                $Policy.Add('PolicyURL',"http://pki.$DomainName/cps")
+                $Policy =
+                @{
+                    PolicyOID = '2.5.29.32.0'
+                }
+
+                if ($DomainName)
+                {
+                    $Policy.Add('PolicyURL',"http://pki.$DomainName/cps")
+                }
+                else
+                {
+                    $Policy.Add('PolicyURL', $null)
+                }
             }
-            else
+
+            # Check if exist
+            if ($ParameterSetName -match 'Subordinate')
             {
-                $Policy.Add('PolicyURL', $null)
+                if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq '2.5.29.32.0')
+                {
+                    Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
+
+                    # Add default AIA url
+                    $PolicyURL = "http://pki.$DomainName/cps"
+                }
+                else
+                {
+                    Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
+                }
             }
-        }
 
-        # Check if exist
-        if ($ParameterSetName -match 'Subordinate')
-        {
-            if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq '2.5.29.32.0')
-            {
-                Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
+            ##################
+            # Standalone Root
+            ##################
 
-                # Add default AIA url
-                $PolicyURL = "http://pki.$DomainName/cps"
-            }
-            else
-            {
-                Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
-            }
-        }
+            $CAPolicy_StandaloneRootCA = @(
+                "[Version]",
+                "Signature=`"`$Windows NT$`"`n",
 
-        ##################
-        # Standalone Root
-        ##################
+                "[BasicConstraintsExtension]",
+                "Critical=Yes`n",
 
-        $CAPolicy_StandaloneRootCA = @(
-            "[Version]",
-            "Signature=`"`$Windows NT$`"`n",
-
-            "[BasicConstraintsExtension]",
-            "Critical=Yes`n",
-
-            "[Certsrv_Server]",
-            "RenewalKeyLength=$KeyLength",
-            "AlternateSignatureAlgorithm=0"
-        )
-
-        if (-not $UseDefaultSettings.IsPresent)
-        {
-            $CAPolicy_StandaloneRootCA += @(
-                "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                "CRLDeltaPeriod=$CRLDeltaPeriod"
+                "[Certsrv_Server]",
+                "RenewalKeyLength=$KeyLength",
+                "AlternateSignatureAlgorithm=0"
             )
-        }
 
-        ##################
-        # Enterprise Root
-        ##################
+            if (-not $UseDefaultSettings.IsPresent)
+            {
+                $CAPolicy_StandaloneRootCA += @(
+                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                    "CRLDeltaPeriod=$CRLDeltaPeriod"
+                )
+            }
 
-        $CAPolicy_EnterpriseRootCA =
+            ##################
+            # Enterprise Root
+            ##################
+
+            $CAPolicy_EnterpriseRootCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -943,18 +953,18 @@ AlternateSignatureAlgorithm=0
 LoadDefaultTemplates=0
 "@
 
-        if (-not $UseDefaultSettings.IsPresent)
-        {
-            $CAPolicy_EnterpriseRootCA +=
+            if (-not $UseDefaultSettings.IsPresent)
+            {
+                $CAPolicy_EnterpriseRootCA +=
 @"
 CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
 CRLDeltaPeriod=$CRLDeltaPeriod
 "@
-        }
+            }
 
-        if ($UsePolicyNameConstraints.IsPresent)
-        {
-            $CAPolicy_EnterpriseRootCA +=
+            if ($UsePolicyNameConstraints.IsPresent)
+            {
+                $CAPolicy_EnterpriseRootCA +=
 @"
 [Strings]
 szOID_NAME_CONSTRAINTS = "2.5.29.30"
@@ -969,71 +979,71 @@ _continue_ = "UPN = @$DomainName&"
 _continue_ = "Email = @$DomainName&"
 _continue_ = "DirectoryName = $BaseDn&"
 "@
-        }
+            }
 
-        #########################
-        # Enterprise Subordinate
-        #########################
+            #########################
+            # Enterprise Subordinate
+            #########################
 
-        $CAPolicy_EnterpriseSubordinateCA = @(
-            "[Version]",
-            "Signature=`"`$Windows NT$`"`n",
+            $CAPolicy_EnterpriseSubordinateCA = @(
+                "[Version]",
+                "Signature=`"`$Windows NT$`"`n",
 
-            "[PolicyStatementExtension]",
-            "Policies=IssuancePolicy",
-            "Critical=No`n",
+                "[PolicyStatementExtension]",
+                "Policies=IssuancePolicy",
+                "Critical=No`n",
 
-            "[IssuancePolicy]",
-            "OID=$PolicyOID"
-        )
-
-        if ($PolicyURL)
-        {
-            $CAPolicy_EnterpriseSubordinateCA += @("URL=$PolicyURL")
-        }
-
-        $CAPolicy_EnterpriseSubordinateCA += @(
-            "`n[BasicConstraintsExtension]",
-            "Pathlength=$PathLength",
-            "Critical=Yes`n",
-
-            "[Certsrv_Server]",
-            "RenewalKeyLength=$KeyLength",
-            "AlternateSignatureAlgorithm=0",
-            "LoadDefaultTemplates=0"
-        )
-
-        if (-not $UseDefaultSettings.IsPresent)
-        {
-            $CAPolicy_EnterpriseSubordinateCA += @(
-                "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                "CRLDeltaPeriod=$CRLDeltaPeriod"
+                "[IssuancePolicy]",
+                "OID=$PolicyOID"
             )
-        }
 
-        if ($UsePolicyNameConstraints.IsPresent)
-        {
+            if ($PolicyURL)
+            {
+                $CAPolicy_EnterpriseSubordinateCA += @("URL=$PolicyURL")
+            }
+
             $CAPolicy_EnterpriseSubordinateCA += @(
-                "`n[Strings]"
-                "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"`n"
+                "`n[BasicConstraintsExtension]",
+                "Pathlength=$PathLength",
+                "Critical=Yes`n",
 
-                "[Extensions]",
-                "Critical = %szOID_NAME_CONSTRAINTS%",
-                "%szOID_NAME_CONSTRAINTS% = `"{text}`"`n",
-
-                "_continue_ = `"SubTree=Include&`"",
-                "_continue_ = `"DNS = $DomainName&`"",
-                "_continue_ = `"UPN = @$DomainName&`"",
-                "_continue_ = `"Email = @$DomainName&`"",
-                "_continue_ = `"DirectoryName = $BaseDn&`""
+                "[Certsrv_Server]",
+                "RenewalKeyLength=$KeyLength",
+                "AlternateSignatureAlgorithm=0",
+                "LoadDefaultTemplates=0"
             )
-        }
 
-        #########################
-        # Standalone Subordinate
-        #########################
+            if (-not $UseDefaultSettings.IsPresent)
+            {
+                $CAPolicy_EnterpriseSubordinateCA += @(
+                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                    "CRLDeltaPeriod=$CRLDeltaPeriod"
+                )
+            }
 
-        $CAPolicy_StandaloneSubordinateCA =
+            if ($UsePolicyNameConstraints.IsPresent)
+            {
+                $CAPolicy_EnterpriseSubordinateCA += @(
+                    "`n[Strings]"
+                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"`n"
+
+                    "[Extensions]",
+                    "Critical = %szOID_NAME_CONSTRAINTS%",
+                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"`n",
+
+                    "_continue_ = `"SubTree=Include&`"",
+                    "_continue_ = `"DNS = $DomainName&`"",
+                    "_continue_ = `"UPN = @$DomainName&`"",
+                    "_continue_ = `"Email = @$DomainName&`"",
+                    "_continue_ = `"DirectoryName = $BaseDn&`""
+                )
+            }
+
+            #########################
+            # Standalone Subordinate
+            #########################
+
+            $CAPolicy_StandaloneSubordinateCA =
 @"
 [Version]
 Signature="`$Windows NT$"
@@ -1055,21 +1065,19 @@ RenewalKeyLength=$KeyLength
 AlternateSignatureAlgorithm=0
 "@
 
-        if (-not $UseDefaultSettings.IsPresent)
-        {
-            $CAPolicy_StandaloneSubordinateCA +=
+            if (-not $UseDefaultSettings.IsPresent)
+            {
+                $CAPolicy_StandaloneSubordinateCA +=
 @"
 CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
 CRLDeltaPeriod=$CRLDeltaPeriod
 "@
-        }
+            }
 
-        #############
-        # Set policy
-        #############
+            #############
+            # Set policy
+            #############
 
-        if (-not $CAConfigured)
-        {
             # Save CA policy to temp
             Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
 
@@ -1908,8 +1916,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgoYS5Go+cqdSrfVaD091jqFG
-# GHegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvJKVONf/tymgQTfmGBhSwspO
+# lrWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2040,34 +2048,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUWFoDsv7
-# eU6OdlRyJZToccG0ubswDQYJKoZIhvcNAQEBBQAEggIAQONlnEy/HtogDh84owNZ
-# ZJgUllrYb3ExtOITqUlqXxeYTa8I7yO/xuJKEV/extJz/V4+/mQPkRtGJ9kofnjo
-# yPAAE8Y9rPGDI6Uy2rj5ZH6ona+NyUd6k+lI7ll11CDplB2VS7/n8RySfnBkZKBO
-# /bJ7LCAaH/FxKZRkzNkXiCtRBL7YmDbfGIxHQtHlmqqK0Q9bIvIOZ0S+vSPfdpR6
-# FVHpyGDT81fEvCAf3Im2qXu+ZP5aBSwqsTxbY8UjTYnd9F4TyViCipPWr0xgbEt0
-# qDJ5KyeQSDuO7r/0cDX+G0ygrcduxdaPyHy9t+8GVd41rMj7KG9U23uZahSv+5+c
-# r/slr8W2BfP0weZ0sQZqyDy3hAKTF/QFbuSO7cQ3qMKzxQGwwZ/8kqwNPxOlLX14
-# QcldTlWWQSP5k6Ku6taVZGLsFqj+Y/TZbno8bEetFtmzH+yorbwQIt6rlH0ou3Ac
-# ou3hKywzm0Dvm83+3IzghEC9KhirhkrBAiWZL7SsgjzIiXom+YIl8nwT8HxcfCwE
-# y9foAyC6/wVTWkEOAmlDwoerHfw58hwQ2M47ZXDpyZs1D9K+z10W7DxZzNuQj+LX
-# OtOcNRiRAovLVjH/Ihx31vOdJ8rx2CcY0ieAs49Xr9T2q/SdEehshWffnSrqdNtA
-# QX6ZWrGdwjVfzPdposrDJzuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+cN3aRv5
+# qxaT2loq3yl1NFtWHCYwDQYJKoZIhvcNAQEBBQAEggIAfP1BBQtVVGdE0CA6/ooG
+# nkuz1aTKm64Y02miyoIrcuP1nGy16NeUVyVLdPt5flO5JmNynN/UiBb2rJA+8pdu
+# hQdoZKdR/otoWdODnj5i306jTNVA4/BxfwfWl4YLVOjK2oTv++0WOXnF7J6/7x6E
+# ueDWi50o6t/03qrG3Ky3q/iKNrJaScurZMo6MGlOda3m07AkIOkilsakncWO65LN
+# eH33DSu62UghURMOIecHIhVPmsaa1RB486btUiNJLRjDKW4NGCd+qO64edSr076k
+# rw45YGGmHdGcGNuTn5PwbmZezdF3uyGe2ONK9RmXOtW+4wjRHkbAwrpkkYBQIlaQ
+# NZHo1VjXHxBDLvFnG76meyYdLJ3MhwOG5rOxyHezqxs47sgcOIGXUWSEXsknXR8I
+# oeRl8qO4gZRYpcXRBPFhsCV9vFlIM18ouVVcxXNXPwhPI3L0Jh7oXxjiz1CPsVyC
+# +16GZ9wryeKFb2cS6UIGqFvASOpHGhCbJesP0tR1aOocFVALahhphWsVRkFxM+nb
+# +cUUSOapxejmDJJiDKj+BxkbBOaTLjpaa/4EvCkYrBuF2rsuFAfnyy+xFSxSwdRO
+# tRU5fes2yIFzO0iX9ao7xtPo7jujKiVKmnFlP2HkDu+BPtxgE45uOZBlq60ZsM/6
+# za/lAB4pt7wWQXbzS8Q3royhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMTIxMDAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgOjGdguzaPyf+33Bh7TInStmUOYAM2bTsqhMBZZFl
-# 5gMwDQYJKoZIhvcNAQEBBQAEggIAwVzJhtomTrLvaeMzSCgqyaiLtF9E8FIl3PCk
-# gIea4L/6U80lsOBVg6brWS+IgpalRJRRMddGn7iI1Xj/SiEuNTU8roHg0tjvaNW7
-# FvFwfVjtGBI9rtzytkzFp0zJl2lgD8amlRpaNDKAwEbNPI//aBEgr1Qi6ITmaS2B
-# uQP95Ewzr1reV4HsDNMOdXALF3bXlzANqxKANFJ6vBXMhmg11d6Xh4w23tc0pQec
-# 6B3acqzEN4F7xkamo0iSu5IWmv+3yj3x4P76otiBNwJ7lZILGvjr8gwUlNfIifw3
-# ihqxuiKXMvOO90l47ajM/XIv2Xl631K7HR7mPJj20YDGmwR+yWsrrjJNVEgXZzFK
-# lMBE1sVCRhWOdTEK4z559ZmC6crChJ56UxI8IMOqZoPhLx7riKPFmgOVQuDVwWxB
-# WIij+O9zUEyzFePDzGstxnpopBmwCZf251fErJ3vqy+aaZOLY1VzvYQJQ7b5/uIk
-# XWY1ImBsW0ygBxegi4s40IryBgVRjV4kSXo9kFpRjaLpcqxXA62PCX+jff0Q1EAG
-# hZAkBstvJbPwATVoBJX81XQWLhlQ5HPpBdL0CBtEFkvfKp2lmPzGaA9gpk50fgPI
-# aa/yJvrWLvn5zIOJaltyS6zHV1G5kYOTUpshuT+z3o9e0vSNE4BLTvG36yU7xSMt
-# 2SHSntI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMTIxMTAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgk+WvxSy+5xNtfIliD4P2ujrVK6RSGxPl8kmz8l5g
+# abswDQYJKoZIhvcNAQEBBQAEggIAxOzE2LCtjhCcZm8uoHpMJKjNclVYagHayNvq
+# Gq1nwqNsgbkJ5cCwe7MGE6k+HQu3y6vjYF0zGS+LmrexrrY0F3Q8zcqUCgWaTVZh
+# iWsR4T9wUODmmxWudC/Zs1XesUh/BJAmkeDN84UbW/NOzObm0N8d0Q/zyQ0CyqRZ
+# 7/y60PNax9Ax2espJkAp8fidssPXlSVduMZzk51AtQDASibLJlyHiUuKrO3Q+Dq4
+# WCNc8+qUE6i2FgKrfRvpoZ6skPNXaw8kyEBMDKWdhwMFBZaqrwxwcCyQ0zYsysQ2
+# qGR4Nls7l6RfR7ry2Ny/08CqV+IIzINzV2wAI/Ez9lu2rZ/vNdBRGebRdKlqR4ga
+# baGHRg/2RXMSsTS8Eo48Rru7hRw9jKbiDPhPyB0bHdgcFeULaHncx386FryIXap6
+# Q9xgDo6dymAwChbgo8lmN7LQic534XM2EqYoUaByOBfmax5KgovUAXczndZAiLho
+# BaL0k916zFzMxOSUbWP1eA5v3oPz8Mz0OoU7jBn69plElarEiwHThf11V4b9oKr9
+# ZYDZc+kq2XszFO+7gJUOfKhu19PyA8KoJhpFrzh3JUH75UzVaMKL8/2qO2EQgTgP
+# exOftlyMwn53AvXJyyQDpIgoVb2rs5BD6pnIXtaRZmtiR/1hmkbJ04YoFcjfxS6j
+# xi0BG5k=
 # SIG # End signature block
