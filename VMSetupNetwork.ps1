@@ -163,7 +163,7 @@ Begin
         if (-not $DNSServerAddresses)
         {
             if ($CurrentDNSServerAddresses -and
-                (ShouldProcess @WhatIfSplat -Message "Removing dns server adresses $CurrentDNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting `"Obtain DNS server address automatically`" on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Set interface to "Obtain DNS server address automatically"
                 Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
@@ -171,7 +171,7 @@ Begin
         }
         # Compare dns client server addresses
         elseif (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
-               (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set dns server addresses
             Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ServerAddresses $DNSServerAddresses
@@ -184,19 +184,9 @@ Begin
         # Get current gateway
         $CurrentGateway = Get-NetRoute -InterfaceIndex $IfIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue
 
-        # Check if gateway exist
-        if ($DefaultGateway -eq 'DHCP')
-        {
-            if ($CurrentGateway -and
-                (ShouldProcess @WhatIfSplat -Message "Removing gateway $($CurrentGateway.NextHop) on if $IfIndex `"$IfAlias`"." @VerboseSplat))
-            {
-                # Remove gateway
-                $CurrentGateway | Remove-NetRoute -Confirm:$false
-            }
-        }
         # Compare gateways
-        elseif ($DefaultGateway -and $DefaultGateway -notin $CurrentGateway.NextHop -and
-               (ShouldProcess @WhatIfSplat -Message "Setting gateway $DefaultGateway to if $IfIndex `"$IfAlias`"." @VerboseSplat))
+        if ($DefaultGateway -and $DefaultGateway -ne 'DHCP' -and $DefaultGateway -notin $CurrentGateway.NextHop -and
+            (ShouldProcess @WhatIfSplat -Message "Setting gateway $DefaultGateway to if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
@@ -298,8 +288,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrL2UUnJSJZFFtjac6UJOtqgu
-# i0OgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5VRzkoCsqVNofQy0uZ2+diat
+# sEagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -430,34 +420,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUuO5dwbbj
-# XbV0Qiue+i5/JtONXcgwDQYJKoZIhvcNAQEBBQAEggIAvyCTgqrWaRTzaysNkJc8
-# JIG0n1BMizpYgjxx+A5bF3n53GNBIcNh7cmIja39GgLij/pcA+wgpe59C/a/ba9w
-# xTUOFcMZZ7+vj8/4hQM8dT1k6+qff0UiH9rZyZycU1DGDQ1YCS5tEX76J1Dwad+G
-# BBJ1P12G7eiAapBAzTfi9a7SimvgTMhGoRZwmQnubT081dgvhrTrtk6CXGvx4Or3
-# rtJWrMcDR32IBl+jUWAIM/FwVi7UQ1CA647vUCgiM2NoB57Ml3+pH2WKGQOtACUQ
-# 2mTBLkjeHUjZKiM8q+e6h7iXIPI5GAGoDQCwjNwYhDUFi4xHgUyhIM83x4JucnOe
-# t1/eLnNUtGPIVdyF+fs79aBqoDaPZcqdNIrYgiD0Jaob0dm/WFz1V6pXLW0NqAeh
-# FYvzaOpTHvQRSLmAZm8gr1iuT7mq4+bWVn9iM5Wvc0wkwX74GUGoLuAfa1w722b7
-# XxolodhtOfdKNJXnwYK1Sc1/7znBlIRbMcYYZslx/ufXNR18fvrNv2T2ibgFUNgr
-# VQ1EKYjqLqZ+OlxCbZtbdXAeuCO9guRLU/IeVyLxMDRbaO1lXEUHzbUBLYFKqwPV
-# B8fEaVIgrMPVJTL5x8qi0HfLzgIixCjVcJSrHSTga2Z9cFONpaSQGAolWC+kKEQj
-# 5fdAda1iIDI7wIw0+8Ijkk6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUAjpLSwCz
+# HAQnpdawim4q7oiLzQcwDQYJKoZIhvcNAQEBBQAEggIArvPprhJXpFL1Z2u/Q618
+# W9SbyWYqYEpy5NoK2hnpNPp3L8LmG3uuJ4Qu6nu8FJzp7ezaAG/ponMqOru6UPmz
+# gxJcaPXMXKVPuYUFIsw2SLLJu/c/NpBDZApIdZ/HKeIkmuQAcrb10Ct759AgRO0l
+# wkriNVWlfnKzbXQI82Nfd8UcpSXmeZIVOfevnTcencJ31cBmpc0LzfQhqED7y/f4
+# iio660gkcRmTqW7VgLMbFU16FGMVQnDfOYf9N+ZyLmxBhSbQbAQDM4ryAbLyLV7C
+# xJMcrzFRfVJ0j+l+ZQxD1a6pKoo0FVCJOsSGk2DdxPcQvRMcka9UDoKiT0eRG7+e
+# y+jO1Ky/i8Uv3MQwshqmFCKgEzOVjlwBY1F/oewa19nVOavdHPXb0SGStt8ynzsA
+# f4Eq2NNBAHh0gyRKgqPrXEHjgC+bkPp/KBn31jqyNuZj/Fh+cnp8G+35GUwIk7+S
+# AnsOBg2z+1+9uv9wHZ0O9JeCejHICJaivLSx8rtXoHLFYYWX49h22Hm10nE7JGuO
+# 6teXgPc49q3naDUVQ0g/dm3PbuyZO1pFzUxxh44sTFRpNR7uiJoiWbObvRgUk/5U
+# zNyh5tiOZWG/SZL/5q1z7BKMjqn9ZW6zih8BE84sUObkIkcl7rnb20+VcGkWkhjJ
+# +G6i9ws8GhvjFXyl4a/X+iShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjA1OTU5
-# WjAvBgkqhkiG9w0BCQQxIgQg3SsODgwBJqVWAewlwyWwQ7joCB+Tv8fxdAKlJQT+
-# nFowDQYJKoZIhvcNAQEBBQAEggIAftS2C9+4/XZrIwPF3vD94Ww9mVInKvgIIUc7
-# 3+4g2T0xp3JVB8Ptjf5ImaaasTm+rLir/gqnscZtnIdf22Zcej56QSUe7TqQnNWG
-# BXYVjd4D6RsIeIIxO/tchSZP/Q7DhArW1wxZfeO5zLqtPoloeTMOsZPNa/xXC0xI
-# iecbLbdp0Y/Xba5y9kXCwrjlqa/2WNyVn3/muCl/mhMoYPblDH+3rMgKk0e4uDJ2
-# r1Kssn6X3CDgvJME8tC5TJOrhgp2ya3SF7F4dQhP1U92zOe7572UiycdxfxQQOTD
-# 80Ti1kDWAfYgauDV+YuCM9aY4lLh62ggV0cNfLfiZ2KF5bn3TpfDcRnd57CfpiTS
-# afMw5BhYajptkdCRBLsLvzHVJUi0E6dVm8zUfSuAddupSB2KwYWyo0ByCUKhX0yf
-# 5Ef/W23vVziOh6o5RS7nF5MPZigHQPuGN83URLp8rKGRQUtc81S0Sqyv8O7EKBb1
-# BwAUlswfWUjuji3Unf8HQywIstGs5ahNSE6moN6J6JUGmB85NYx+l5oaYAMVf5e9
-# lnOR0Q+38YCNVTTetWeMctl6XT0EaceRGe6MukU/Vk5EyFqwqp6YQdpnb3Q5ZlsW
-# oz/PWGoaHQm5gXmsMfawT3yzkW+aJMFTlnXu0sJuRWsTLJFoPqUBprMw3Qsr3BXT
-# OAKTS58=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjI1OTU4
+# WjAvBgkqhkiG9w0BCQQxIgQgpWet2nYLoW9cxxH7fTx/c+r+I0ye+rjAq2/J7g3K
+# kxQwDQYJKoZIhvcNAQEBBQAEggIAlHGjqj/3ZcwUQgbe0mCgBNUxsgkq7kObvHjB
+# Rt+NX9WScHPyjq/6NkktwdBsRLCFyqXZDLRlUNkua3apJHPEc4Q06j8zbxabQgTG
+# DnLhbocBCcBT6njrpAMPdosBwVgX+eBZlmiXGsWxCAFrJJzfOTgshOODjIVbjSRc
+# oV5n4GBG9wV1yO6YLmL7HwvmZfWgKJGGAi2WydSdmdOpZh66L1QhUA0K8CTn4aeV
+# JShSE7yNXmsfem+JDAB//AYzA7tIbXMf23k7wkEqNJfySnSBaLj2iyzl/ndGicUU
+# p0da9cevLRGwQupcA7TAJfyHljkKx/HsZEIIRRqR1qCDboQaS1AOH9zpImXivnBe
+# CjoDU8pkktu03hu/F7O7bfqq2BYX/QvhGRRguOJ2SKRJD9+CTkXmNcvrUWPKhTwF
+# m/CPN7Pp85f7LpNIPh8WkqHPhtTrWeZPrfIz/sJqPd0B9pCU9k8fZOV5L7r3u8hJ
+# 4EQkYoKvX7jblgcgneguNlDwV29mBftxzvjWp0Bws8qClI8V6XWVpLxi5g7OnxGx
+# zmvXt1bXTWGc4nVobV3sKtijDOKr1HNfXoCAKwo4L6ckM9LDVD38JaDJ0lszcGpb
+# TwPuAm+8GFOntkh2XM1RDtg3VWXWVgwDLoTo2+nG3j/Kkc6w1U16hBl8rfSrKOHy
+# I1Z1Zw4=
 # SIG # End signature block
