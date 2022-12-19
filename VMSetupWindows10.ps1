@@ -463,51 +463,9 @@ Begin
             Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Force -Recurse
         }
 
-        # ██████╗ ██████╗ ██╗██╗   ██╗ █████╗  ██████╗██╗   ██╗
-        # ██╔══██╗██╔══██╗██║██║   ██║██╔══██╗██╔════╝╚██╗ ██╔╝
-        # ██████╔╝██████╔╝██║██║   ██║███████║██║      ╚████╔╝
-        # ██╔═══╝ ██╔══██╗██║╚██╗ ██╔╝██╔══██║██║       ╚██╔╝
-        # ██║     ██║  ██║██║ ╚████╔╝ ██║  ██║╚██████╗   ██║
-        # ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝   ╚═╝
+        # Stop explorer
 
-        $ScheduledTasks =
-        @(
-            @{ Path = '\Microsoft\Office\';                                           Name = 'Office ClickToRun Service Monitor' },
-            @{ Path = '\Microsoft\Office\';                                           Name = 'OfficeTelemetryAgentFallBack2016' },
-            @{ Path = '\Microsoft\Office\';                                           Name = 'OfficeTelemetryAgentLogOn2016' },
-            @{ Path = '\Microsoft\Windows\Application Experience\';                   Name = 'Microsoft Compatibility Appraiser' },
-            @{ Path = '\Microsoft\Windows\Application Experience\';                   Name = 'ProgramDataUpdater' },
-            @{ Path = '\Microsoft\Windows\Autochk\';                                  Name = 'Proxy' },
-            @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\';  Name = 'Consolidator' },
-            @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\';  Name = 'KernelCeipTask' },
-            @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\';  Name = 'UsbCeip' },
-            @{ Path = '\Microsoft\Windows\DiskDiagnostic\';                           Name = 'Microsoft-Windows-DiskDiagnosticDataCollector' },
-            @{ Path = '\Microsoft\Windows\Feedback\Siuf\';                            Name = 'DmClient' },
-            @{ Path = '\Microsoft\Windows\Feedback\Siuf\';                            Name = 'DmClientOnScenarioDownload' },
-            @{ Path = '\Microsoft\Windows\PI\';                                       Name = 'Sqm-Tasks' },
-            @{ Path = '\Microsoft\Windows\Windows Error Reporting\';                  Name = 'QueueReporting' }
-        )
-
-        if ($Admin)
-        {
-            foreach ($Task in $ScheduledTasks)
-            {
-                $ScheduledTask = Get-ScheduledTask -TaskPath $Task.Path -TaskName $Task.Name -ErrorAction SilentlyContinue
-
-                if ($ScheduledTask -and $ScheduledTask.State -ne 'Disabled' -and
-                    (ShouldProcess @WhatIfSplat -Message "Disabling task `"$($Task.Name)`"." @VerboseSplat))
-                {
-                    Disable-ScheduledTask -TaskPath $Task.Path -TaskName $Task.Name > $null
-                }
-            }
-
-        }
-
-        # Allow domain PIN login
-        #@{ Name = 'ColorizationAfterglow';  Value = '0xc44c4a48';     PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' }
-
-        #Stop-Process -Name "ShellExperienceHost" -Force -ErrorAction SilentlyContinue
-        #Stop-Process -Name "Explorer" -Force -ErrorAction SilentlyContinue
+        Stop-Process -Name "Explorer" -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -601,8 +559,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXjjeuOZc75252o6r4TYhhEKr
-# n0CgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHijk4GLSg7bZmAsUumN8eBzi
+# ZFqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -733,34 +691,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFbyU9ahk
-# /2+9cyJvoqMieBsdipYwDQYJKoZIhvcNAQEBBQAEggIAn/YBsazKhccJ42+7F5r/
-# wiDtOjSh1MDf6dx41l3EjL3EG7bmZ7ThuavXaDV79+rVUZoNFNktQiyRXFhX2baa
-# duDEzB/oY9RcxUKhXcu8HEDEAq0HKNtJpfDa9Skx6uN1dnOb5AMk6YwFouB2d4BR
-# QA3m17rbfjZN7KOpelKXfopdKhBqn9JCojpIlUCuxU/69a4M0pRyw+pTs2vFgCwy
-# jJtVgmWLU9LbH416KBGHyQ4/PGHh+SLiRzDefeL2FKX1Z7NV8sfUAeUQGM2EL63w
-# qf9492ifSoHo6FuM14uAxHLDQnDQu8qY5ASH+SEhaRNJ6vixEqwG2hjGT15cmYY6
-# XWLdr0PmsfZyXnzAgTUczqYvEzmzdE1ttdCmP4BREbL6pLFt0+qghVMkCH/ePsfw
-# rqn2p/5xvlB8a3vZzNL8Y1+kfybzc+ALZpdR0pSJkRU0AMxW6+dEebbsc/2hrvrE
-# ueRF1KZvVc2gsIY/TWpxqQw/Kqg9q9ojOvOk+SIKi0qRF+mACm2tu/ojrXhyqtJT
-# j6oco0nELK1Ogy8QQ2wzfNo3G/czt3nmnv21G02HLsBrdOnTVOrF1/C/8XPaA/Hg
-# 8YEpfGwFFBvrKRpVLPkoNI5QeRKPWkaDqDPfDFtFxCld4bUz96R67xs9fin17utQ
-# lj73Ucolx6K8pVXHH4F6DT6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrABF/cFV
+# /0xR2RVeO4E7lyxe+X8wDQYJKoZIhvcNAQEBBQAEggIANYkuYYSYWY6nKRQvftcK
+# iF6gCXRzWRO03YKAa9fbVkM+eUfaR7lHeMJyPVaJtlMsuN8/pRgOYWBf+Xqx//TO
+# IfWAbimufQNjmm7j50DSwLJjGkRGJ9GLNFz6a7YmsWsQUwzK1598M686KN2cf97D
+# cEXfVx2YEUJiN/mk9vNQ0GKujNCRWqTPkVligLBuvAUYAaQAYm1B+Fyb8gt/HJFS
+# 2A1n3v6VBemnCmUDsgJGRI35sfejXxrMBuzSdnsFEsj0yBllItEk2Fsj/3uDWRCQ
+# ZsKX1scaCT12aVweziI/J0+Dt6p+Z/wLhpQD1uah8plpCHoqolnJXUySIdUjVrIw
+# GoO0QgPJr/lOWI7pHB2YBTzWcAzmnFt785l51RxUr9oRSR9nuO+fz7kH6++cvsEj
+# nGOeORdtxqHwffg3DVMFgqZBAtCGfFjKEhmqR15p8pZ+xNkQIJqi/eW7KDJl7HMu
+# 4GzQ5e6fTEyHdV7Sukqd19hpz6/4z0g/JqOC9x9K7fEpCU1ZiIxpNg7qNvVJJ5Yu
+# QErln8d7OQsroz5TEw7mwcqURpQeI/f/v5ld0+hjHrl5uJ2u6TAvD/eXv3WtTEXA
+# 0hdicTRlC8HvzsiI6gUFL/FasR2E3Kz1AA5O2Dxm6z2FdGmjofZCXZqRTZ9Gury5
+# y+5DVRmLyaqGPl+K6SMNNZ2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjE1OTU3
-# WjAvBgkqhkiG9w0BCQQxIgQgPTn4knv582f87jxpzaCnbToSKgpQIIqpeUcW8J3n
-# gt8wDQYJKoZIhvcNAQEBBQAEggIAQFOSQsvXMBEas8JbK6LgbHrT7hHpKn++390e
-# uqhDW+GE7Rz1VhgJbgHISS9DXBBzmReh9gLLrKyrRWCvzCBwKxnBVjVMFQCxN5UF
-# PkIlJENNc3nwRGjJMFP3wFoHO8uO6Rt8FvQwt3g3LWQfwFiIZHvYkctBjt2V//PN
-# VrY8Qn7/sq6Wx7/xTo6/Hr0H2UepE6bShvJbjlur9bldKB679HRR7Vc2iKcaz1Ss
-# wQkH/U9as4M61vjz6phq6HAtu3IdbE8Au8H7FGeJ2BLpqFKojtOIJYFJRYIP527z
-# ZB3Orr+oKNJpCBuf6pIxc0Z8p0Duv3e23yoOkZzIFCkDlfd7xxHPGHW9EAiSaNqu
-# Jg8star7a/tGc8o8Ya7+ewAJjnzoznAThlFbOeLgSyg+NTqThjBwj1qoJXmk691E
-# t8EFm4PEFIg3rx0UjthhTfoKyNEk4CaTb5nPJkoZc2lUeFdwStvgvmjvxPKDP6We
-# 1yNBRbR0MIUn8tdO9h5npepsS8IhoRMgIjYn8OTlNNc2rJulnBDdZUqfF65hJN2/
-# hYg3fwP4fNUrdPaBAV5ooEg7QrqxcMG/ku9g6exDk+hYfH0vIzKNIwKwSu5mZ/F6
-# Qd8OxAPA/3vBAE/iLdr2yqu9jAG5YMvLP9zdfFDT8Sy/lHmqF24gl0/3s+ysxlyD
-# dGMgm1o=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjE5MTAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgvHQEJMBKVowgMtyWO3ooERv2j518BZ4gAeeDdQ21
+# EfgwDQYJKoZIhvcNAQEBBQAEggIATv6+53OLRDJ97tmEh/u5GOhakod2bocawgYH
+# j6Owq2y8VoWo2o8pF91pcSyvgkGTuHuAy+Idsrv3vDNKnwgnWA0hqjVCXBfhPRFX
+# tvI5HZ6APoRK5e6k50DiJoyuo8IKvQTisQ0k7HVC99kbssvZsEaVONzBiAY/GtZw
+# qO3hQtQNcYYpf8yr3sFLb7gYB4SOhI/EUlQ9RRP0a0p/N1CwHJHxD2fK+05f+sXR
+# f5rV8brFEE/MMTT2/LstCuqVlMhS62L8RISibtfilc2br34+FXx69YhLiIT3RtAn
+# M+/iYe9WqvMhRcF/Byj+0uWBqSnUBsmj8TNAP/PCOj9UI165aBS+vV7gNAtsBd/0
+# we3addofpXQQyWbq9ufOLP0Aa6jsRnt5La4EgTCWo5exWg7XtjSHQhaumJAiX8Tz
+# AxczYL5zEwz6HVjhLE3uoYOr9pi63uH5F2b1RZaGQOVS2VnQNBFccHPFmhTXbBZJ
+# 6xP/dNO69dhayfG096wpD03kUb1x/WFBGiiLhf/NAVmnaVL4esEtxXIJPAekw6kL
+# vc4+sJ18cf1r0on8dygfr6q3sMi9twd4Mc0WxGZ9K7PB4GBhYfsJWmIwRVdbjCMW
+# 9FeDljV/PS7Cr77RoeBMnVdy2j40wrKD3btTnuI2HV8Qa3gdgw6wBhlZEgc2z+QJ
+# iuDS5Go=
 # SIG # End signature block
