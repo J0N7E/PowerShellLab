@@ -25,8 +25,8 @@ Param
     # Certificate Authority config
     [Parameter(ParameterSetName='Standard', Mandatory=$true)]
     [Parameter(ParameterSetName='Share', Mandatory=$true)]
-    [Parameter(ParameterSetName='OCSPAuto', Mandatory=$true)]
     [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
+    [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
     [String]$CAConfig,
 
     # Host name
@@ -52,36 +52,26 @@ Param
     # Share access
     [Parameter(ParameterSetName='Standard')]
     [Parameter(ParameterSetName='Share', Mandatory=$true)]
-    [Parameter(ParameterSetName='OCSPTemplate')]
     [Parameter(ParameterSetName='OCSPManual')]
+    [Parameter(ParameterSetName='OCSPTemplate')]
     [String]$ShareAccess,
 
     #######
-    # Ndes
+    # OCSP
     #######
 
-    # Configure Ndes
-    [Switch]$ConfigureNDES,
-
-    #####################
-    # OCSP Enterprise CA
-    #####################
+    # Configure OCSP
+    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Share')]
+    [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
+    [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
+    [Switch]$ConfigureOCSP,
 
     # OCSP template name
     [Parameter(ParameterSetName='Standard')]
     [Parameter(ParameterSetName='Share')]
     [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
     [String]$OCSPTemplate,
-
-    #####################
-    # OCSP Standalone CA
-    #####################
-
-    # OCSP request signing certificate
-    [Parameter(ParameterSetName='Standard')]
-    [Parameter(ParameterSetName='Share')]
-    [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
-    [Switch]$OCSPManualRequest,
 
     ####################
     # OCSP Array Member
@@ -102,7 +92,14 @@ Param
     [Switch]$OCSPAddNonce,
 
     # OCSP refresh timeout
-    [Int]$OCSPRefreshTimeout
+    [Int]$OCSPRefreshTimeout,
+
+    #######
+    # NDES
+    #######
+
+    # Configure Ndes
+    [Switch]$ConfigureNDES
 )
 
 Begin
@@ -655,7 +652,7 @@ Begin
         # ╚██████╔╝╚██████╗███████║██║
         #  ╚═════╝  ╚═════╝╚══════╝╚═╝
 
-        if ($OCSPManualRequest.IsPresent -or $OCSPTemplate)
+        if ($ConfigureOCSP.IsPresent)
         {
             ##########
             # Feature
@@ -803,11 +800,41 @@ Begin
             # Set properties
             $OcspConfig.ProviderProperties = $OcspProperties.GetAllProperties()
 
-            ########################
-            # Standalone CA Request
-            ########################
+            ################
+            # OCSP Template
+            ################
 
-            if ($OCSPManualRequest.IsPresent)
+            if ($OCSPTemplate)
+            {
+                # Add autoenrollment flags
+                $OcspSigningFlags += $OCSP_SF_ALLOW_SIGNINGCERT_AUTORENEWAL + `
+                                     $OCSP_SF_FORCE_SIGNINGCERT_ISSUER_ISCA + `
+                                     $OCSP_SF_AUTODISCOVER_SIGNINGCERT + `
+                                     $OCSP_SF_ALLOW_SIGNINGCERT_AUTOENROLLMENT
+
+                if (-not $OCSPHashAlgorithm)
+                {
+                    $OCSPHashAlgorithm = 'SHA256'
+                }
+
+                if ($OcspConfig.CAConfig -ne $CAConfig -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting CAConfig `"$CAConfig`"" @VerboseSplat))
+                {
+                    $OcspConfig.CAConfig = $CAConfig
+                }
+
+                if ($OcspConfig.SigningCertificateTemplate -ne $OCSPTemplate -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting SigningCertificateTemplate `"$OCSPTemplate`"" @VerboseSplat))
+                {
+                    $OcspConfig.SigningCertificateTemplate = $OCSPTemplate
+                }
+            }
+
+            ######################
+            # OCSP Manual Request
+            ######################
+
+            else
             {
                 # Get signing certificate
                 $SigningCertificate = Get-Item -Path Cert:\LocalMachine\My\* | Where-Object { $_.Subject -match "$CACommonName OCSP Signing" -and $_.Extensions['2.5.29.37'] -and $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('OCSP Signing') }
@@ -863,36 +890,6 @@ OID="1.3.6.1.5.5.7.3.9"
                 if (-not $OCSPHashAlgorithm)
                 {
                     $OCSPHashAlgorithm = 'SHA1'
-                }
-            }
-
-            ###############################
-            # Enterprise CA Autoenrollment
-            ###############################
-
-            else
-            {
-                # Add autoenrollment flags
-                $OcspSigningFlags += $OCSP_SF_ALLOW_SIGNINGCERT_AUTORENEWAL + `
-                                     $OCSP_SF_FORCE_SIGNINGCERT_ISSUER_ISCA + `
-                                     $OCSP_SF_AUTODISCOVER_SIGNINGCERT + `
-                                     $OCSP_SF_ALLOW_SIGNINGCERT_AUTOENROLLMENT
-
-                if (-not $OCSPHashAlgorithm)
-                {
-                    $OCSPHashAlgorithm = 'SHA256'
-                }
-
-                if ($OcspConfig.CAConfig -ne $CAConfig -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting CAConfig `"$CAConfig`"" @VerboseSplat))
-                {
-                    $OcspConfig.CAConfig = $CAConfig
-                }
-
-                if ($OcspConfig.SigningCertificateTemplate -ne $OCSPTemplate -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting SigningCertificateTemplate `"$OCSPTemplate`"" @VerboseSplat))
-                {
-                    $OcspConfig.SigningCertificateTemplate = $OCSPTemplate
                 }
             }
 
@@ -1126,8 +1123,8 @@ Process
             $ShareAccess = $Using:ShareAccess
 
             # OCSP
+            $ConfigureOCSP = $Using:ConfigureOCSP
             $OCSPTemplate = $Using:OCSPTemplate
-            $OCSPManualRequest = $Using:OCSPManualRequest
             $OCSPRefreshTimeout = $Using:OCSPRefreshTimeout
             $OCSPAddNonce = $Using:OCSPAddNonce
             $OCSPHashAlgorithm = $Using:OCSPHashAlgorithm
@@ -1229,8 +1226,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPvrRP9HMjotXtUcpRIAlbY37
-# PUugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjWD172KKoL3KZvJk6VHDx5yL
+# ZjOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1361,34 +1358,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUudp1NSHU
-# R/Yd89eiliOxnOFnegkwDQYJKoZIhvcNAQEBBQAEggIAjB/Bgy1hoOdztYHyAHGp
-# 53fTnx0xIaqoUlsQfjz2rwbB7hRCSE/idWHxEi/L+UrZ+7OYCSFj2yY5uTf4anqq
-# 0XX8+jfAB/8CFRXKt/1noAmvP8oaZQvKT2O15NLgysEYsuBdzzgFt/sBtQWVgTBs
-# /bSiUGVhuffk5QfPptnfUL6g7X8EwdW+BXU8rhSApanqp2dgXkL/oDOX1m+TQPFl
-# ugRRmzePHXGJV70WkGq51gqRr6Q95Pky4yAONAGII87OnkTcu/508G9n/xtOl1Or
-# v27OZiPIjC2wcnJXcTavXDTbghE5sNl3pvLqr0S0XeqARzE+y2m1Xn5ALme3leUs
-# fTInSEjhqB86gCIe8OaAYC1eVxD1jSyI7B117oUtpSAOfRw10CvXmCe0cf5EOoNP
-# LF+8UBOwozW946w/IafUcfmLZBT4FQSPvQsWC/Ew/7UmepX6SgOgAVLRbOtRNpke
-# U41hGbdgrXFGrmZFFFbuxZZwW4v/bUVtVbIt6NHf55cdQdMDQgLCAoUvgKWDxQKx
-# fpEj2kWsMxSGAlF7M0aamqbfMdYsx4RPjO68NVdMnvHGZg6vOl+zRYTJkI7GtVwg
-# DUJAwI4ukJw4oQxzR4Tx3vjnte8K8RQ0uAeln1oOV+F8LjE5vlgxisoPhOnxMDK/
-# UiCYT+GbUnkl8ylU0Nhx3EqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwcWD7KRU
+# eH/3gPcRixqVxlZpbGMwDQYJKoZIhvcNAQEBBQAEggIAP38E3cM4bxmFZ5Ktp4kC
+# 76t/aWBvnDQDYu3jB2PCMcL30iskT37SFo4YrP+lA7sTdMn7mx5fY7bsr4MQlqE1
+# vQ2ozjsXwRN1F0ngrcloa5YJS11+apbYyXlr2sHIK5keyENLne+4b+QxI4xggsgB
+# OuY3bTxTtuxOCTOsjhud9WOWME4VKQsYLkq+URIwAnraJyCL4LDj1QQzUyfqM8MS
+# le8/gt4l8usqkkr/nnwHedMraUjLqeG5NTbTiHjCk2GSsYw+lA8sSkfMcJfLy1+X
+# EHl1Nnof/H4t6J3YTxBVK3UxF13K+yLnbPzblSXd5QiFtMVYAG66IxsD5ptUA3DD
+# 64C57+TyEebXKXrszWc2m1xpe8sbXcp8kMK22y0vn3PJghqrKB1aHa0rhzKhVwuf
+# 6BER6NlDRb4HyFUcOpHGMe7k7VAMy/SDUDtIahWgCHne3/g1i+UD9/+D89UgBrg9
+# L0gmdwtk4uurgUAUvKBKVBW3Uch7ER2uWyLrBgOTUIhnMFxqU1HomI1cT0UdRYGR
+# yumckAPxSafCgutXSqMy+tqp3eEkooTxVc4E452ZFcZUWERvF3II9YKXQN6ihNSE
+# syc6RdOdfMoBxbuFdtdnjXrI5k9RY4qwY8J4+2KO/6HBoWF2edU80UehT2+hb5VO
+# dBEcCF33U6g6MD1y3ZNkS6qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMTcwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgKdaIhDhBawaDjUVa0y4gurrgSK5zSjTgC4aNc8j9
-# EFkwDQYJKoZIhvcNAQEBBQAEggIAnPez/+LM03AHXWqW2tXxfikkFivTs2sT0PbI
-# I4dAoUPme18hVgAajt072Vx0h59fZnwqZzRBHco4Q7pp88l4srTtyMZJO9HSQ+0r
-# 3zmVCIfrKbPtiq3+cu+5iGxBVo+tSAAl25r3GFGY9yfPTqWsggk3HyUjxBMrtiSe
-# E2W2hr2AjY/+d0n080uVMsQLXZX1byu1y4K+GRffl1UavhyrAQ6/R0lndkIrJ3pv
-# j3utm4UAoLj3QlZUmN3ltFa04aW0z7WvzLVLhyadG2vts6N+W51vdmmau57zatim
-# o6EZAd+JU9LBLp2MepvI2sAXLZAm4WRH/6OAHlG3+x0+TA2ybn6fJXidKeWEzA+G
-# RsB6FrFmsD4Xd/5QW8fWyF08l2xQLGHnzTWWCkNoyDhOUiHPJ89g1iQj6gXnoHea
-# XMj7UdXsm/3n3YuqpycuVCe9K3ieEYlD1HmhJiOprKbB9WQ+70ZzOjCosHOQakzv
-# ExBhz+r/3rzDoYJ9n6NcvUXvd5q7Fk8pGOkxCGxJ6tJwjQVFYGloFZthm12XWyqh
-# NAaJApKVUg8I2jQVX9XuyMPGd4A5bomAd7hbPNeWrpSQ89BHd7XVk5y9aJM6yMs6
-# X88Wgg2MRRfJaR5Ry5WJ3IGECENaRO0+5KFBbcKLjzBJYB7G44il+OdCKaj4q0+j
-# GKp+yWg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMTkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgfK2R3Yy7be8FR5jNx9l/ocYLFzHOLHP956pvCo1S
+# qFgwDQYJKoZIhvcNAQEBBQAEggIANYeIxaXYOk7B4vLbM4PEIZw4wRNGIL+zalLs
+# U7HVuvxlTwRQxnsOA9sSoVzSTAxjTYO9SCUsnicuTrvfI94kyXMkFlQy+58dBS+0
+# Gq22+9/6eDSG9mlsNWRUMrAvyocM0LbSHc4tKJ9saW8waUlfXdAkm2qpC0Rsqs6C
+# UiBYoaf9ZBYsrS9ewJv1T0U/cPUTyQ/kHvIo1RLMDBWN4Np4WCGvwUTV75pEpRMB
+# bghTIfzKnPu9blgAnmM8RC7v2XpfrYJN95MpjwQqq6UGJveRgXHnOL2Op9lCxux2
+# ZSDztkXOklIUoqZYPDeFBIiNFnFW3NVkV5PqHFdEfbGZ4SWAMZRckY32vNJoHpE0
+# fJ34qk14yav+kNgWv+rvZ/36SPPPwaW0km5h860Y3xl+Xh7e8JY/Cz8SewkatmZ0
+# P1xk3n+1+4DbIFff4JV7As8JNIERCwSVAoSlMYbjJuaCVgSdI55l2sPW3HFlhuad
+# OWgGsee7Dq8/aV15izz9vE8HW9iclngo0n0mYMiWB0h/q5BZCge8tLydzKZZT486
+# DrRm5R6drBIWOYvuvT45+0xEdkX00qz/7hXkBUoIGUs1KTMs5tHnHK/BIXKs8QYg
+# PtgIL9sOrjUJd8hefB9u8vMqMcBSvj0yybywGMHW03rqSVw+sYehCtiB+DeHptko
+# DAhsmeM=
 # SIG # End signature block
