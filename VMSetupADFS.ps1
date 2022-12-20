@@ -201,30 +201,30 @@ Begin
             {
                 # Set file content
                 $RequestInfFile =
-@"
-[Version]
-Signature = "`$Windows NT$"
-
-[Strings]
-szOID_SUBJECT_ALT_NAME2 = "2.5.29.17"
-szOID_ENHANCED_KEY_USAGE = "2.5.29.37"
-szOID_PKIX_KP_SERVER_AUTH = "1.3.6.1.5.5.7.3.1"
-
-[NewRequest]
-Subject="CN=$FederationServiceName,$(Get-BaseDn -DomainName $DomainName)"
-KeyLength=2048
-MachineKeySet=TRUE
-Exportable=$(if($ExportCertificate){'TRUE'}else{'FALSE'})
-KeySpec=AT_KEYEXCHANGE
-
-[Extensions]
-%szOID_SUBJECT_ALT_NAME2% = "{text}"
-_continue_ = "DNS=$FederationServiceName&"
-_continue_ = "DNS=certauth.$FederationServiceName&"
-_continue_ = "DNS=enterpriseregistration.$DomainName&"
-
-%szOID_ENHANCED_KEY_USAGE% = "{text}%szOID_PKIX_KP_SERVER_AUTH%"
-"@
+                (
+                    "[Version]",
+                    "Signature = `"`$Windows NT$`"",
+                    "",
+                    "[Strings]",
+                    "szOID_SUBJECT_ALT_NAME2 = `"2.5.29.17`"",
+                    "szOID_ENHANCED_KEY_USAGE = `"2.5.29.37`"",
+                    "szOID_PKIX_KP_SERVER_AUTH = `"1.3.6.1.5.5.7.3.1`"",
+                    "",
+                    "[NewRequest]",
+                    "Subject=`"CN=$FederationServiceName,$(Get-BaseDn -DomainName $DomainName)`"",
+                    "KeyLength=2048",
+                    "MachineKeySet=TRUE",
+                    "Exportable=$(if($ExportCertificate){'TRUE'}else{'FALSE'})",
+                    "KeySpec=AT_KEYEXCHANGE",
+                    "",
+                    "[Extensions]",
+                    "%szOID_SUBJECT_ALT_NAME2% = `"{text}`"",
+                    "_continue_ = `"DNS=$FederationServiceName&`"",
+                    "_continue_ = `"DNS=certauth.$FederationServiceName&`"",
+                    "_continue_ = `"DNS=enterpriseregistration.$DomainName&`"",
+                    "",
+                    "%szOID_ENHANCED_KEY_USAGE% = `"{text}%szOID_PKIX_KP_SERVER_AUTH%`""
+                )
 
                 # Save request file
                 Set-Content -Path "$env:TEMP\ADFSCertificateRequest.inf" -Value $RequestInfFile -Force
@@ -667,8 +667,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmv/YxKjLdjtlSmJ22VFtWXl8
-# tXagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQt9UIuU4G/pg71i7rvEmZvmn
+# hFmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -799,34 +799,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJR/IOM+R
-# gk9BjgZz6na30pqTBXwwDQYJKoZIhvcNAQEBBQAEggIApXDRvlXhlJBN3EVpQuON
-# lUv1S0yBji+HCiBaWqhNOPubm03kwgFnTThxXeeM8kHULulnFaCRqaDcmlN0nOQt
-# E4pI7DSSRk2qdeNNJ9r38dIOPzJ238yU8kzig/YhyMn3c49Pw//9jtrc3oPVYAeU
-# Hn7huFNi2YlPv8k+6m7icgiNQZBDrFjbPL3Uum19WFvo/imQS0vl9Dwb//Li0ZCh
-# 9u8jXOBAFxuHvRYEmibUcfSKVMxs/vYnVURVqZV+t5p7UFnUP7FqoHTCiIWwx1nc
-# 1rUMRERhbJH9OHuS3eA6YwWhDihzz4tKScjyGCiZIkMwMnXiPR0m9LJS8vOZHJY9
-# SZZ51jcVk9WvhMC7zKW8obS5boD9EHh8E2TjcrKsTEu72RRkDS9Is+7GI4/Qtx3l
-# TTSp7zp/BCDs872ixoJeYFX3LgG780ZwC4Ik2C4GsULuOVucj8aYw7W6awxWDLpp
-# Ua5vLFOOI6ysFRfG2Cih4MNyi33FrkoMiYSoJoMZyOLJulO9rbpcRVcar3pAggCC
-# 7Q8/glfNAkwMRKmWKF5zfxvKtmqKr8qpP/MwNdfnQW+0t5XDaIaxYsGpKAVnQr3C
-# 9UDWkgE1zGqC8+AOTEe4j340uTGpByMyLzfx0QUcyExnW2LpRGCvhppNZ8W23HB1
-# llJfdb27HnHb1shtdllqcGuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURmYVzFWv
+# FTF3SwCKVZnsTvioUMMwDQYJKoZIhvcNAQEBBQAEggIAjrtvNowjedbdhmd0ycwo
+# Z2Bo6w6PThFUkKFLR0h3aEvS8Zcx0zLnl1XxwEzQD7libofO5X5tETxIv3qpBPcq
+# NVYwIBHB1pBNqH/MEIGP2RA/G9areTVoEwqAAEqEzHUAhWEgsozmnoWuDo1jgR60
+# oehscoX3rUG8X3PcvNrAFyYVjikbhF/pu0zksMsbyxPEaJfL4/YMVeHBpAdDZ01O
+# 3t1xHSu9YgM2hzIjJcQcikGD+aB6uUMyaIsXP4x08dK8NKwOUeiLuJw4JvYrBASc
+# o8rTBagmZ2yglSO1O3L2JPomIApmdq5Unwg2gnS5f7oJYgpKWEjtPtR6JOVYdh0i
+# jYIABfMVw7pqJb7NqnIH5xvO4c+utoHk7B1OaouNSvygDt8JjuiJb8kv0OUeQ2vU
+# S8EpUJQKaWdMuTuIWPCCzYXwwFZ42y/L6R5XS5hKO0vcPoKMAE26DzKz9VESG+FT
+# N74zVED8WeW3X+9JaLfFXpMY9T4MZEJWWrk+qzy/jD5F6JHezta4lmQrXon/FQnt
+# XVo2PkxIkKITWCX6gNRRsE/H5cQobo5wNM+URdxPmiQ2mF286NNElK1jUAwuYSQ3
+# AcSt3CvgTBrscUj7YOF05TbPpeRRBPLVBOX/s1REgdhVXBWISKImf2oiPK/M2l7q
+# 4sVZWbxF2Ej+gFAPuk9gCBWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjA1OTU3
-# WjAvBgkqhkiG9w0BCQQxIgQgP4ycYEbfL6MZUPxU0pCWzBmgNRPNPap3dmvSK0YB
-# z8QwDQYJKoZIhvcNAQEBBQAEggIAtn1R2bTfrJky69XLN57nDxX34f4SWB4BjGm+
-# 3nIamWfP9WyIJ/Fy++KI7zzbj/OjUV7SQah6avwpd+pua0gIXBFS5c7xK360jkiY
-# 5TYlvOlNvgY3hqL0hgGjRDkB2bbWwAG2id9unoMjtHg07DoIXldIKrMPPesF+MW2
-# sq2+2J5dz7wmR9f8+XDgQnWSkyi1SdShFBZ+D7PwnROQB1B+OsiawnYLauBIoozJ
-# sHj12KJ6iuf8R3Oa33hb6woXFG/q5nsKvXMtn8TMBy/JG0nkgyBz9MdSKdR9XTsA
-# 6jQg8TcYoycahgK2fJ9z69cSWCiuor3KLaF+u6kzp3Il3ZitRuC0p2w0l7tV/2hy
-# jlQQbXw6W91inCyNw7wDk9qSJRd6Ipv+Wns86FUDLD1AmxKO4N3yAMSaXupKTkaS
-# NFaz7jcgCShLbwUENivfVmZWqKrOqbPvqdx20T2Z8MgCn5EEbrz0VTarQf5eLDyn
-# MyitgnsnF1cVcKPk1xykuPpa/WZs8JlvnVSyygPBjZfrjgftmqR/04DNjN7Nh6sN
-# F6UEUEfCcDic+I1ixgBjieIElkrq4yc2KCdR/MVqNissZYn3dtfyECcrJSkQlyJz
-# XPLMt4v9NJnLdkiMfoZs/L0PG+gI6LR8qb2DDR0qhEDawCmAaND/TnV+taYQp+rw
-# HAS+r/k=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMjAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgvuf1CRbZP9S3L1Xc39vLsgjRgUMHnrLtrCrAY00E
+# 69EwDQYJKoZIhvcNAQEBBQAEggIAIsl1mPEqwMWus7mQOqTrsH6w5sIE7WLkKD7J
+# ZgDtyFAsPZwFra+wne5nFFghrC/zkUOLev3V2Ai2ZqLNCawzWdisErpPz7Xc+46v
+# N0hcrhaBQM/xuoG6dMsSfZmnSazbGIPKdtnzkOsNQ2sMJc2enoRnrw2pfThxO0Ec
+# nwXs0xOe0FYcrCrW6Ft/oIhTgScBxLNUBhB/8nUf3VOycR002DpNxgqFQYEzbHGb
+# 7jLF2A0ZWy7GN810XAQ8klc3vYAT5R7NP1HeJMUXFTFni/fQm2xfMNf34Br7Gfc+
+# Dg+udN5JTw5FS84YKTvkaWzUZt3qXHhH4XxSRg7ji8cnJ83/wlBe1QJs7fcBDBMp
+# i4k5Sn5zxWCGEFSuyOgRi8DPvjwgPAp8mSWBA7XGUgYwUw8uP/J+40VeQ08GnhQh
+# Z2deh4sLjKCWy3ZG+sJvNzn99Prcq3leEj5bYm4jouPhG5qjbHYwFtXpz5wRD5YO
+# sk6fWVUD6oApAQgHUPz46UEduoCFMViZp5MvhsDmAZOS6idTi+c6gF0HXEfcM6SI
+# OLVKsk7YM3diqZnnsFXfnGPtQiW78kxGN9b2GU63xgd3wIC8DKrGIt33SEWhxDma
+# g18Ujuzu+dApfp4kJRJQZcvuOQXq6DuKVUlgUvnOcofBXRtA1PCDMfWjWut4lsgp
+# wvyJWUY=
 # SIG # End signature block

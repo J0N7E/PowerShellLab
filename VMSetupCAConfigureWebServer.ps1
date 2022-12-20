@@ -861,19 +861,21 @@ Begin
                     # Request
                     ##########
 
-# FIX
-# test KSP provider with SHA256
+                    # FIX
+                    # test KSP provider with SHA256
 
-$RequestInf =
-@"
-[NewRequest]
-Subject = "CN=$CACommonName OCSP Signing"
-MachineKeySet = True
-ProviderName = "Microsoft Enhanced Cryptographic Provider v1.0"
-KeyLength = 2048
-[EnhancedKeyUsageExtension]
-OID="1.3.6.1.5.5.7.3.9"
-"@
+                    $RequestInf =
+                    (
+                        "[NewRequest]",
+                        "Subject = `"CN=$CACommonName OCSP Signing`"",
+                        "MachineKeySet = True",
+                        "ProviderName = `"Microsoft Enhanced Cryptographic Provider v1.0`"",
+                        "KeyLength = 2048",
+                        "",
+                        "[EnhancedKeyUsageExtension]",
+                        "OID=`"1.3.6.1.5.5.7.3.9`""
+                    )
+
                     # Save inf file
                     Set-Content -Path "$env:TEMP\$CACommonName OSCP Signing.inf" -Value $RequestInf
 
@@ -1226,8 +1228,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjWD172KKoL3KZvJk6VHDx5yL
-# ZjOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaYMRwGRbCd8Nh7/I4p+/XNQ3
+# EVWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1358,34 +1360,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwcWD7KRU
-# eH/3gPcRixqVxlZpbGMwDQYJKoZIhvcNAQEBBQAEggIAP38E3cM4bxmFZ5Ktp4kC
-# 76t/aWBvnDQDYu3jB2PCMcL30iskT37SFo4YrP+lA7sTdMn7mx5fY7bsr4MQlqE1
-# vQ2ozjsXwRN1F0ngrcloa5YJS11+apbYyXlr2sHIK5keyENLne+4b+QxI4xggsgB
-# OuY3bTxTtuxOCTOsjhud9WOWME4VKQsYLkq+URIwAnraJyCL4LDj1QQzUyfqM8MS
-# le8/gt4l8usqkkr/nnwHedMraUjLqeG5NTbTiHjCk2GSsYw+lA8sSkfMcJfLy1+X
-# EHl1Nnof/H4t6J3YTxBVK3UxF13K+yLnbPzblSXd5QiFtMVYAG66IxsD5ptUA3DD
-# 64C57+TyEebXKXrszWc2m1xpe8sbXcp8kMK22y0vn3PJghqrKB1aHa0rhzKhVwuf
-# 6BER6NlDRb4HyFUcOpHGMe7k7VAMy/SDUDtIahWgCHne3/g1i+UD9/+D89UgBrg9
-# L0gmdwtk4uurgUAUvKBKVBW3Uch7ER2uWyLrBgOTUIhnMFxqU1HomI1cT0UdRYGR
-# yumckAPxSafCgutXSqMy+tqp3eEkooTxVc4E452ZFcZUWERvF3II9YKXQN6ihNSE
-# syc6RdOdfMoBxbuFdtdnjXrI5k9RY4qwY8J4+2KO/6HBoWF2edU80UehT2+hb5VO
-# dBEcCF33U6g6MD1y3ZNkS6qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUt2KJmYWJ
+# NnZ3JVp+JlecgN7xBJcwDQYJKoZIhvcNAQEBBQAEggIANqgDNStaPJv+hxmqitwH
+# FNGnYzMog3C2pTwrDzRojTykpcybC3gt9sHMDxRTuTZYf6ZHaVIq4e/o8v2l5UFr
+# NknUC7Kb4xGwIk8g2vUJ+F3Vh+BplGdVHQNaZpSvzvbOSv9Bij+QAowTYBWEzwjQ
+# 0PF4n4HMFkIUpXueSpL+MtP259Q4KsJn5Qt4s0Lv5MwMMqpy4L5rEaM9ieHJGHGr
+# THbO2QzPGH1LdIiTe7Pyv1f6KiVlJc1e0UPm9qLF6tEKAD8ibghllYp8Q3tpD30Q
+# nxuA1qOuiFtZpP1laC4GwYXPN1ilpNELF2h3WOkB3CmYyP50jjrQxqBxlGs/vz6P
+# X4/GQOuNUx11xDwuBMuN4hHeW+SpWxegWjMR0p0DK2XEa5XETlZHgSBfQPZ6RRth
+# PKzBWsZamigfefOKp0hkhSx1kOBZifv+5G0fbw1R1gFJtFIWIHn/ies64EpAxx2/
+# InwuUvnToInZZDdo8xfnKz4lgktwLjQd9HrhwriIpJB2HQO02ZMou1jqonnGGtJ0
+# mtT6gXOKCzMhWUB9798sBK0nqUJckaanrGpJb1LKBYDpOcQ/Jjd5zW8eMOSwjE7q
+# HDGq7P/MDR79ScyY0rqBE7EChpUcnTnzEEMpjzDSavX2rvQKhQT0oHVL0YuwjJpS
+# rIxvKzqBivD6i2Mhq/l6l/+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMTkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgfK2R3Yy7be8FR5jNx9l/ocYLFzHOLHP956pvCo1S
-# qFgwDQYJKoZIhvcNAQEBBQAEggIANYeIxaXYOk7B4vLbM4PEIZw4wRNGIL+zalLs
-# U7HVuvxlTwRQxnsOA9sSoVzSTAxjTYO9SCUsnicuTrvfI94kyXMkFlQy+58dBS+0
-# Gq22+9/6eDSG9mlsNWRUMrAvyocM0LbSHc4tKJ9saW8waUlfXdAkm2qpC0Rsqs6C
-# UiBYoaf9ZBYsrS9ewJv1T0U/cPUTyQ/kHvIo1RLMDBWN4Np4WCGvwUTV75pEpRMB
-# bghTIfzKnPu9blgAnmM8RC7v2XpfrYJN95MpjwQqq6UGJveRgXHnOL2Op9lCxux2
-# ZSDztkXOklIUoqZYPDeFBIiNFnFW3NVkV5PqHFdEfbGZ4SWAMZRckY32vNJoHpE0
-# fJ34qk14yav+kNgWv+rvZ/36SPPPwaW0km5h860Y3xl+Xh7e8JY/Cz8SewkatmZ0
-# P1xk3n+1+4DbIFff4JV7As8JNIERCwSVAoSlMYbjJuaCVgSdI55l2sPW3HFlhuad
-# OWgGsee7Dq8/aV15izz9vE8HW9iclngo0n0mYMiWB0h/q5BZCge8tLydzKZZT486
-# DrRm5R6drBIWOYvuvT45+0xEdkX00qz/7hXkBUoIGUs1KTMs5tHnHK/BIXKs8QYg
-# PtgIL9sOrjUJd8hefB9u8vMqMcBSvj0yybywGMHW03rqSVw+sYehCtiB+DeHptko
-# DAhsmeM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMjAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgitSxNerHYfbn6lTH+c0/2rObjkg24cGfgTCB+8HX
+# ELMwDQYJKoZIhvcNAQEBBQAEggIAFVp9JlhVdQWLRt+VaBzKDmQ7A1v/Xlj2lJdB
+# wYrobt/WNWA1d3UUbdQumOyRPCE6Jq+BddfPswTsMhzCR7nfv3NbIKDcTloUTKuv
+# 8QpXAUBUxf+py+F+VN7V3Ahxjm+Qwa/KchPC7A/Pymw9J5m1aKnw76WgwPLSH1uX
+# spz7Q1PS/Ujidqn7T5D1r6woUz3Q2A6svpGroxrAcVpvDyz5zQQBWx8+vv+QFfQJ
+# z8IABWHQyR+nguFvWpYtqZG2/0ekraJmqz3ZH6dHqrnynflv767YCiCs+vYbn92n
+# MK6M22l7HCQbEXqcaVsTSFguw49XcAin6wehLOoP/HYHplX5+gV+t694Mfyd51d7
+# m7Sy1T5DOitLGJrDpzuny1ijOsOZ5M44d1RnytdxsstxAt9kagDP1BIpdtd/wRT2
+# tVY3A8lkZgZktwqRMy3rg7ZXv0NGXZihQ6jqNJGkScFuBQtzrV4UdTli+ds2CFxt
+# NbjervyacJQfZ8rvMMQb93a5t4R3I2vabjfZ+d++ABnMNq8qKwwhvCzHksOiJFO1
+# 5skR2yfW58/HByzIV3or5W8uRGLNVaEPUovC/T1EmrJTJCtoMVohyx9KQ1EPmqeD
+# TxKwLay1zbAGqsUcafijA8gUgRnvizMGwgGQNn283vqZSC04ZJ6cnQbXYLL1/QvO
+# WRm6Vq8=
 # SIG # End signature block

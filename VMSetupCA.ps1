@@ -906,13 +906,14 @@ Begin
             # Standalone Root
             ##################
 
-            $CAPolicy_StandaloneRootCA = @(
+            $CAPolicy_StandaloneRootCA =
+            @(
                 "[Version]",
-                "Signature=`"`$Windows NT$`"`n",
-
+                "Signature=`"`$Windows NT$`"",
+                "",
                 "[BasicConstraintsExtension]",
-                "Critical=Yes`n",
-
+                "Critical=Yes",
+                "",
                 "[Certsrv_Server]",
                 "RenewalKeyLength=$KeyLength",
                 "AlternateSignatureAlgorithm=0"
@@ -920,7 +921,8 @@ Begin
 
             if (-not $UseDefaultSettings.IsPresent)
             {
-                $CAPolicy_StandaloneRootCA += @(
+                $CAPolicy_StandaloneRootCA +=
+                @(
                     "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
                     "CRLDeltaPeriod=$CRLDeltaPeriod"
                 )
@@ -931,68 +933,70 @@ Begin
             ##################
 
             $CAPolicy_EnterpriseRootCA =
-@"
-[Version]
-Signature="`$Windows NT$"
-
-[PolicyStatementExtension]
-Policies=AllIssuancePolicy
-Critical=No
-
-[AllIssuancePolicy]
-OID=2.5.29.32.0
-Notice="All Issuance Policy"
-
-[BasicConstraintsExtension]
-Pathlength=$PathLength
-Critical=Yes
-
-[Certsrv_Server]
-RenewalKeyLength=$KeyLength
-AlternateSignatureAlgorithm=0
-LoadDefaultTemplates=0
-"@
+            @(
+                "[Version]",
+                "Signature=`"`$Windows NT$`"",
+                "",
+                "[PolicyStatementExtension]",
+                "Policies=AllIssuancePolicy",
+                "Critical=No",
+                "",
+                "[AllIssuancePolicy]",
+                "OID=2.5.29.32.0",
+                "Notice=`"All Issuance Policy`"",
+                "",
+                "[BasicConstraintsExtension]",
+                "Pathlength=$PathLength",
+                "Critical=Yes",
+                "",
+                "[Certsrv_Server]",
+                "RenewalKeyLength=$KeyLength",
+                "AlternateSignatureAlgorithm=0",
+                "LoadDefaultTemplates=0"
+            )
 
             if (-not $UseDefaultSettings.IsPresent)
             {
                 $CAPolicy_EnterpriseRootCA +=
-@"
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
-"@
+                @(
+                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                    "CRLDeltaPeriod=$CRLDeltaPeriod"
+                )
             }
 
             if ($UsePolicyNameConstraints.IsPresent)
             {
                 $CAPolicy_EnterpriseRootCA +=
-@"
-[Strings]
-szOID_NAME_CONSTRAINTS = "2.5.29.30"
-
-[Extensions]
-Critical = %szOID_NAME_CONSTRAINTS%
-%szOID_NAME_CONSTRAINTS% = "{text}"
-
-_continue_ = "SubTree=Include&"
-_continue_ = "DNS = $DomainName&"
-_continue_ = "UPN = @$DomainName&"
-_continue_ = "Email = @$DomainName&"
-_continue_ = "DirectoryName = $BaseDn&"
-"@
+                @(
+                    "",
+                    "[Strings]",
+                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"",
+                    "",
+                    "[Extensions]",
+                    "Critical = %szOID_NAME_CONSTRAINTS%",
+                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"",
+                    "",
+                    "_continue_ = `"SubTree=Include&`"",
+                    "_continue_ = `"DNS = $DomainName&`"",
+                    "_continue_ = `"UPN = @$DomainName&`"",
+                    "_continue_ = `"Email = @$DomainName&`"",
+                    "_continue_ = `"DirectoryName = $BaseDn&`""
+                )
             }
 
             #########################
             # Enterprise Subordinate
             #########################
 
-            $CAPolicy_EnterpriseSubordinateCA = @(
+            $CAPolicy_EnterpriseSubordinateCA =
+            @(
                 "[Version]",
-                "Signature=`"`$Windows NT$`"`n",
-
+                "Signature=`"`$Windows NT$`"",
+                "",
                 "[PolicyStatementExtension]",
                 "Policies=IssuancePolicy",
-                "Critical=No`n",
-
+                "Critical=No",
+                "",
                 "[IssuancePolicy]",
                 "OID=$PolicyOID"
             )
@@ -1002,11 +1006,13 @@ _continue_ = "DirectoryName = $BaseDn&"
                 $CAPolicy_EnterpriseSubordinateCA += @("URL=$PolicyURL")
             }
 
-            $CAPolicy_EnterpriseSubordinateCA += @(
-                "`n[BasicConstraintsExtension]",
+            $CAPolicy_EnterpriseSubordinateCA +=
+            @(
+                "",
+                "[BasicConstraintsExtension]",
                 "Pathlength=$PathLength",
-                "Critical=Yes`n",
-
+                "Critical=Yes",
+                "",
                 "[Certsrv_Server]",
                 "RenewalKeyLength=$KeyLength",
                 "AlternateSignatureAlgorithm=0",
@@ -1015,7 +1021,8 @@ _continue_ = "DirectoryName = $BaseDn&"
 
             if (-not $UseDefaultSettings.IsPresent)
             {
-                $CAPolicy_EnterpriseSubordinateCA += @(
+                $CAPolicy_EnterpriseSubordinateCA +=
+                @(
                     "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
                     "CRLDeltaPeriod=$CRLDeltaPeriod"
                 )
@@ -1023,14 +1030,16 @@ _continue_ = "DirectoryName = $BaseDn&"
 
             if ($UsePolicyNameConstraints.IsPresent)
             {
-                $CAPolicy_EnterpriseSubordinateCA += @(
-                    "`n[Strings]"
-                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"`n"
-
+                $CAPolicy_EnterpriseSubordinateCA +=
+                @(
+                    "",
+                    "[Strings]"
+                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`""
+                    "",
                     "[Extensions]",
                     "Critical = %szOID_NAME_CONSTRAINTS%",
-                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"`n",
-
+                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"",
+                    "",
                     "_continue_ = `"SubTree=Include&`"",
                     "_continue_ = `"DNS = $DomainName&`"",
                     "_continue_ = `"UPN = @$DomainName&`"",
@@ -1044,34 +1053,34 @@ _continue_ = "DirectoryName = $BaseDn&"
             #########################
 
             $CAPolicy_StandaloneSubordinateCA =
-@"
-[Version]
-Signature="`$Windows NT$"
-
-[PolicyStatementExtension]
-Policies=AllIssuancePolicy
-Critical=No
-
-[AllIssuancePolicy]
-OID=2.5.29.32.0
-Notice="All Issuance Policy"
-
-[BasicConstraintsExtension]
-Pathlength=$PathLength
-Critical=Yes
-
-[Certsrv_Server]
-RenewalKeyLength=$KeyLength
-AlternateSignatureAlgorithm=0
-"@
+            @(
+                "[Version]",
+                "Signature=`"`$Windows NT$`"",
+                "",
+                "[PolicyStatementExtension]",
+                "Policies=AllIssuancePolicy",
+                "Critical=No",
+                "",
+                "[AllIssuancePolicy]",
+                "OID=2.5.29.32.0",
+                "Notice=`"All Issuance Policy`"",
+                "",
+                "[BasicConstraintsExtension]",
+                "Pathlength=$PathLength",
+                "Critical=Yes",
+                "",
+                "[Certsrv_Server]",
+                "RenewalKeyLength=$KeyLength",
+                "AlternateSignatureAlgorithm=0"
+            )
 
             if (-not $UseDefaultSettings.IsPresent)
             {
                 $CAPolicy_StandaloneSubordinateCA +=
-@"
-CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits
-CRLDeltaPeriod=$CRLDeltaPeriod
-"@
+                @(
+                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                    "CRLDeltaPeriod=$CRLDeltaPeriod"
+                )
             }
 
             #############
@@ -1915,8 +1924,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEVu61SPCnlj0fy84W3ZhGz5L
-# 5eigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpPvqVK51hcFK1Ea0sMdACGrh
+# IfCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2047,34 +2056,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFQRax2pK
-# /jCulN+sv5qUGxRvhU4wDQYJKoZIhvcNAQEBBQAEggIAOzSyliy62hhQDc0A2HsH
-# RRQNsV1uuXsHb5UZildFV+rj3pfpT+MqFVJoPkCkKt86htvXgrkktvad885RC0ZP
-# 4WitaPSUAVWUVmoJWBFVv6qwY1M8HzrYmfQm+X36zbGgfqlWoi1rGJgFX2JaEVod
-# TR9z7OeBrcHrji+ey0Kj5q85+/w6CpSa9YfUOpTvBwDOFjcwDir08eqHRTAdtUxA
-# xdLsFxO3JDoQ7+Itj93ghfqLVOYEs3MO3pF4EY0VidFGhDfzcuaikoSfLaBUtpZf
-# kIWeRgBnetYnUlJlze4HkEytFmmSain5M9CgPqp2FOe0UzENwvxVqN9EtqS88ms6
-# npT6dCYYXc6fw8IDeQWB3axGjONgy/DyKRFxiruKHCjYdyohT0M6U2EuAjccj1uZ
-# 54jw68Ih0xAcWBHAe+RFr7RlnItA3s9e9V8EPoZGva1/Nm26gFE/mwhry8n7gceY
-# YzT65DU82wAwaZLplqpkZVoK2BET6N+Hx17XZxjVnsBJwHLnDHBgW6ncnmGul2IB
-# qWZaQkXmoxxHNrhFem20Gh5YenamZgX4LloclCNH5tDX/pexUWbBTIg7DJ9CCr2R
-# 7a7wcEQwczUR/+3/MKpdJoYR7I3ArUj6LTx8Nqy6+YLJWNw+ahdgmp872br7u4ju
-# D1qZ/X4UxJGHQR16GGS72SOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUbA/T1HCM
+# 9pjdKaAwciwthiKK1HswDQYJKoZIhvcNAQEBBQAEggIAI9wqjPGH330RyVcy9gcb
+# W27PPNQIP/wm0m3E3dL3GmuSlYaKoGze4Dd3ys0wqIlFjQzUEsAVKxwd15Ym2Tw1
+# CHAhaa71BudnW7Yivti13X+a6FhryTRWym6WRy29OdbLsgL0xXjr9wSLMZ1ZWwoK
+# TRWavKqnzHQ89mC2tMN4sYjQhdHsl9Ap3O36Yqjm+cVJWQQpDIK9ras2joxiykI0
+# q4XoeDRORmQUfqcmosV35xRp2fQ57SICuUv+mmx2IVG9S+CvyF0rbcUR9oXUNbvz
+# dvO6Z8px3ygcAB5UKiZECTIWd/WFjly38YPWdPtHwavtl+WCYSEbkusXzBnf3Ons
+# Uisaf/8wzmeiledv48uaGz9FWHgkH+bnmkKI4CaPXBPVal+o3F9/Y+fE4gTvP0J7
+# w+HMjqfKODnx0pq/3PSERgPtb+OPNz/XQkF8A3d6erxfOW3zeZckhTq1l5nrAIxh
+# jUAA4FYUYcEVXY7ruo4OdCe/tIpYOFCqZqlBm/JxBiRUvc+kJeybYlh53n4C0pkg
+# fn2oOwmVdr40z1ZBUxt3P5F0kpyLCxYIf8nNBCvoF92AOw9kD/xC7yrADx73Alf/
+# C4zWj9oV5uxgEbPTjWe8sd9Xw9uHpCMQWKVkDUiIngDL3UdtWnKnVKYgUXMGTNht
+# Zj/ZScrVpw5LWZfZXH261wuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA5MDkwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgdMtmm725/N0RIiuKRpyzNuh+B1Temm+/g+ExdX7d
-# AR0wDQYJKoZIhvcNAQEBBQAEggIAakcoS0+Pv8oZ3USXvlP2R7rEw+CrMOUhOMch
-# 3ss7Zoj36NGJI3eY35BXpRxMlxqLbFV1qrKSg6BebhZKw5QPb3CFjb73D2nmYqQ2
-# pUgOJ8r4LdM3tkle9bTSV/c7Qo0L0ikX7yU5RwM9Qj4bLV06YHqvEn3aE8/AK4KS
-# wX895+JfqkFW8+cd/gY6yVegMiPzKcW2HQocONV1aqxwwkUeaPiXZC4D+nDEPh/S
-# lM1+6JnkB6OWBq82OL5qbsMyUHkJMji/I/t79f1Kj8f5QAyiWrvxridv8VzgO/9E
-# iTvI+i+QnSjVyuRhn1Wh0uMYGjIQHUFY9DCynfuuhB4Qtb1fr/B4yAlrZ95Nqyu4
-# MGB0/TVf8YG/KxhH7HqT10y+NzYTNshi6K9IVebF6RAiiWb3zkHCWx5zUgc1rRM4
-# a/nInYbfOAj95vi3bxKeVbDIKGUwtih9Ot9z6URf6l0G2EFWfKN0CntNhNidKz4q
-# A2fGoGDADY1ug+1T1TOyGWZQmj1Qx5O+57uoavwOoUbCEQfiD4TKYBmKZFnzjsNf
-# h9WlOhOWJELdvclZUe2xu8QJHDDCp3X5PVrW3DgLsdyGu19KNjVjTZKCBpGLbdY8
-# kpJRXhflVogay5DiuvXjyxYmlGeTLHA25mt7rnnmpQL1PB4I6IqUc7Y18RiTK+uW
-# Yv3TR5k=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMjAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgbjXuDTRQarQ+p5U4f0Bp73cD3twiZIzVnmRoiShn
+# xNAwDQYJKoZIhvcNAQEBBQAEggIAHaErNZdgMaCUvuyxCekKlLn2ElVpopJgSD5w
+# KTVR1qzYp3PVn6yt0sqmIFqTWdcJ+9UdwpUAa/0dD4jLyrD+uSwyv5itfMCy8PIn
+# RVcMnWQnPQUOAfh00pI8YEphqYcF9zqTMZnH3GVysHzsm8QLc7/PVYSsAJDC8O2M
+# RBM0yiJNZTPcVQS57ph17SWFCq9w4Bb3C86b39eZRpx1ZYyRflY7ycXQ2g1tQptL
+# zZFPWk9/3mv0r5eEhRCAAElBYv6TU7p5av5kmRacEx39FZgptCiyZpfsEGJUOneg
+# RC/CkkEp58YLrMtD5ri9jiTgUp6lEtXhQL/m0MDIyfvQ24uRvTn4vxQNIpFSLtEY
+# HP16IG3a5DLtLZDBXO4ec0GopZ/1SIa/o1DXdZZk5w+MAHIeRyV6t/JQL+Ax2uv+
+# IAVpWLhfj7+SXbU0E1z3f1thfKT17CavxHQOxJCh5D2jNjxSdL9kCyMb5kvCQA6o
+# l6h5l/e/2EBOZd8hVntE9A9NcjhlC+2NveaKQlw4lhaxsMwxhUyoE2ioEiUqnZc0
+# LmY2EuDA04X0IQbI5JGPAUIQ9a9GdRuYNTr2E8koALLSEKKc27T9H7BH1TV8LqFO
+# m6vIU9GxIf0jXD5C1y+z+l50tidBZcjPDbULVJNvn4xG+jwOUlAC8WbmjFJ9vifV
+# Pd0Nm64=
 # SIG # End signature block
