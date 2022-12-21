@@ -553,7 +553,7 @@ Begin
             if ((Get-ItemProperty IIS:\AppPools\SCEP -name processModel).identityType -eq 'ApplicationPoolIdentity' -and
                 (ShouldProcess @WhatIfSplat -Message "Setting service account as application pool identity." @VerboseSplat))
             {
-                #Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
+                Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
             }
 
             #############################
@@ -599,16 +599,21 @@ Begin
                     )
                     $Acl.AddAccessRule($Ace)
 
-                    # Add IIS AppPool read
+                    # Add service account read
+                    # FIX add parameter for accountname
                     $Ace = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList `
                     @(
-                        <#IdentityReference#> [System.Security.Principal.NTAccount] "IIS APPPOOL\SCEP",
+                        #<#IdentityReference#> [System.Security.Principal.NTAccount] "IIS APPPOOL\SCEP",
+                        <#IdentityReference#> [System.Security.Principal.NTAccount] "home\MsaNdes$",
                         [System.Security.AccessControl.FileSystemRights] "Read",
                         [System.Security.AccessControl.InheritanceFlags] "None"
                         [System.Security.AccessControl.PropagationFlags] "None",
                         [System.Security.AccessControl.AccessControlType] "Allow"
                     )
                     $Acl.AddAccessRule($Ace)
+
+                    # FIX add parameter for accountname
+                    Write-Verbose @VerboseSplat -Message "Setting Read for `"home\MsaNdes$`" on key container `"$($Matches[1])`""
 
                     # Set NTFS acl
                     Set-Acl -AclObject $Acl -Path $KeyContainerPath
@@ -1237,8 +1242,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAbkDO1aAmW0qFZvEojYiHJdK
-# ZhagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeWwJS3plBWM/d0a7d96I/PAY
+# F1CgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1369,34 +1374,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9fgJwpcA
-# pWwlRiD5IXQ9/W7CmgcwDQYJKoZIhvcNAQEBBQAEggIAxkPDToW/EZeDelLJXp67
-# w7JnLePpyD6DAsAQVjNLnRnlcPo88CWTHP2z3Th04gCdWS+H5n0Jj5S8uOftTlAC
-# Kl6k+2F/07WeszeHw/u/fGNXFvt8+hVGBDcqtKMKgYMXRWbtcY+gWvexRbJ9tEld
-# wWiEQ1W4o5ojMJlbRw23lbYfP+zi7qDmjL65UCnvowZMdaMRKt5CJ2jkPA0HKlXw
-# q/4uxG9ebqkWYxP6AMz81kkAozTR515DgungH2M7h0cYL3KmG9wupV3rWj0yIZ+F
-# P0Q2mSdt4tqccqoj+8YWb4px4bbLMuy2QzZfrWpz9BmTWgIIZ2JLTQfiHMqfykR9
-# XnHsyV9xupOXEZVJi+tNHoEGX8/nHGbW5UvB8cXjZWB2tCIOsMivrw2Itj6w5OBY
-# bD6eki11fvWosdtaFdTPSfJDi53qU5pa8rZC35CFDfQ7t5KjQO2tOLfgB/QzfqTo
-# HyQSmSML12jH0wVXp/4GDQzFU9KzSQ0e/2Bv/sfqVotiFhUd6AOUc7OuVh3Piz51
-# LNQeXyCj7AKjdb5I/Ho3SJ1qlgwT8j98Wy06O/NYS19F/6wf28KzhheKclTvbHe7
-# TbcldnUIQDxMVbAI36z1gCThq9Ie5Bg0ZbWN4F8IuN+bUKQT0jiM9A8KKr14YzAU
-# sEjgzODwSMuK8CNrId6CW2ehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnB7e4INB
+# S9Y6uEvYlt6PcVT+cR4wDQYJKoZIhvcNAQEBBQAEggIAMKr2xIoAX5M0LC2OcDBN
+# CNRjtpTwUkLGvw89A2TD+3tivvx6USwXtiWvi54MDft9ttiOX2GOI4//lmz9pzyV
+# wrO5xgHYeMBMZWjZmfI5xtNTprtsPwtbpzcM3+JO70b4qPa3irGmh2zySPrg5L1h
+# stlZ+JBE7+LeQPJKOfwcfSQLuFYKaPBhLuj2umgOb79kVAHEuOqXMECXDhGBd1kn
+# a8UEzBCD+lfq9YW/p8RUlqeLR7eZYMcS88QN+CLdBydZPpoohM09WcNa1v6SSVwO
+# muAJUxmZf4Wyc/yboTYDPcnGcFAHzAzw8p+UrxN2Fou5hoUV0vqcF1esxfGkkSeQ
+# ChHdbQP1ck+nFW/cg7z2fJgYnvvh3dHSlHsL++umDS4JKCleOmAjv7XeSmL0it0E
+# aQxaA2QbtFyQn9wSWCODvQ41sagon80ZfhxvmeqcisyCKhd2dMM4gSa3qzimQ9qm
+# ooYS8/HpFPsaJo6eGfwfLxdltymZGv5wp+/XMD5ovgkmT8ihkuf13lbcAwfcwZCl
+# OzJonlGGqQ32E5v4Jj6SbBHm16U9aDvCgcNjDp5v19aCT7yge0V0t4oQYz78l3aT
+# kbQeLRC3jRjBc7drJnv+5ZwzxvqNq+ZLX3z24Ecaebi58cUdP6yOWfdqWZXkhnNc
+# kGhJuB7ooO9J62g5VvIUoUihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTUwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg+0/dlQBmsQw2YALrupsf31GRFgszNx+QGIyjXVw1
-# n84wDQYJKoZIhvcNAQEBBQAEggIAfSMxiW80q6+BaDj0IPKWezIKRpddqV6DnVkS
-# trOpRSJyL6Isp6C8VnPiKEg5NGCPtx/F5rdbNIZs/EaBK6f8TLyhrB76yWM81kZ8
-# 3bLv6/5YM2CScYH3gyytbo6MRDYiphm7AmlE5ObMD4OYGLCw2QaA1EuJ3JNdEHXG
-# u64WiCWGFH01y3xPDDUSWWWfEMn6j54IcpQZCATiopDN7lGflyK7C5Ox0ugQoszW
-# XOQrA60AB8ZO6yyEYgokbE2MHcgweGPN2+RS2+8sTQ4yzXRqwA7d97MOTyxxngCD
-# aTanu19/3RmfrhKsfknLCr8WolupxOwbQ+zq+jU70rPSyUvC52ek3INeR9Qr6Cha
-# ODBR51zA2Srn3nJzvuCAdbRhkMJi9OaLP+blLRtc91J9GVaZyLmkKGH3BZ6vT+A4
-# s4oc9vIZCwhs2yEEdYOc6Mv5LwB55fJTE21nxE5qLUv5aRvBRuAqir6bsRX49Hhf
-# liqz0+CpZtlJMevSZJ4lx3u0VWwIyWGHMorxOqgqwdGHBkqJTHTssQ5ZTzKMIwZ5
-# 8Mks1Kj4STOjTys65l/MywyaBQdwJ/Os+7ynMFs21IWriR23M1d6svbX7phAJ/hb
-# ElfLuZeUlsf7MLNA+aYf2hmV/L7B1X5DUR2vw1QQ8dxdlCZXtbR8Fr7omS0e6gOh
-# 2T6qtwk=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMjIwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgEbRtS9doHLKoaLnaCjL/PJAXPCqr8qG91gZidLcY
+# mFEwDQYJKoZIhvcNAQEBBQAEggIApvw9Io8G1rfTNWXISgD9E6xC4Apvw1bDS5L5
+# T86Uu4BEiGLr3V8pNAAqunlBrD4gzkMf1omWZz/+m3tCJsro29JIJgxGtzl4Dc9P
+# N1PTGDKBUNqmZmdVmfexOI8NEzkKZeQqf9NoFyR6wPJkyal4aZUf8s4eQ4e6VMzq
+# 7NjqivQGf1PnI9F0OznnOCgcQuLq7rK35WNck3p4gzNVrxTG9Kqg5PcZA7Sac5W3
+# UecUgEyZ2pmZwbplnV5jPeX11uzA3bil9XUjrR1ByJbO53JLILsZ+3V83SshSSKf
+# v/07Illa5cPL//4yMHlS06MXtmmH22Gu+PigxTnkMsKX+Ao6T6RcKGMxCoNqDE5A
+# RX8XNd2X7asFNAYQpwKe13JazLXY254+60W/sZxjyQxMxq+MyMOSOnvW1dwNEGKt
+# n2d1cpg2n7ge1gvxLPbqfzNjMNMxBMmgELLpsDvyrZcKXImqSKy0foqninY38pSH
+# Y0RfhtaS8rQGLNKzPSr+rOxJJ87LeFgYrZmlrGlFZOCF9hmtujs5KAApK27bqdoR
+# rTeFFvn76NXQp4sCWLZ5YWWIl+Ph9anmJ3CDJmAxlcOdWX6YCWyufeeamE1k6QXt
+# 8fhcWCdlXz1qqT42JZ+cPvzV2bz6SlT6dDnQMgizb5Ag0TIiZRganZUKyZqo1XMO
+# mmwE2no=
 # SIG # End signature block
