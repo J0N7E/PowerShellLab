@@ -487,6 +487,48 @@ Begin
                 Install-WindowsFeature -Name RSAT-AD-PowerShell > $null
             }
 
+            # Add CertSrv application
+            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            {
+                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
+            }
+
+            # Check directory browsing
+            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $true -and
+                (ShouldProcess @WhatIfSplat -Message "Disabling NDES directory browsing." @VerboseSplat))
+            {
+                # Disable directory browsing
+                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
+            }
+
+            # Configure Ndes
+            if (-not (Get-Item IIS:\AppPools\SCEP -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Configuring NDES." @VerboseSplat))
+            {
+                # Initialize
+                $NdesParams =
+                @{
+                    ApplicationPoolIdentity = $true
+                    CAConfig = $CAConfig
+                    RAName = "$CACommonName MSCEP RA"
+                    RACountry = 'SE'
+                    SigningProviderName = 'Microsoft Strong Cryptographic Provider'
+                    SigningKeyLength = 2048
+                    EncryptionProviderName = 'Microsoft Strong Cryptographic Provider'
+                    EncryptionKeyLength = 2048
+                }
+
+                try
+                {
+                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
+                }
+                catch [Exception]
+                {
+                    throw $_.Exception
+                }
+            }
+
             # Test service account
             # FIX add parameter for accountname
 
@@ -505,52 +547,6 @@ Begin
                 Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
             }
 
-            # Add CertSrv application
-            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
-            {
-                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
-            }
-
-            # Check directory browsing
-            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $true -and
-                (ShouldProcess @WhatIfSplat -Message "Disabling NDES directory browsing." @VerboseSplat))
-            {
-                # Disable directory browsing
-                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
-            }
-
-            # Configure Ndes
-            # FIX
-            # RPC server unavailable when using remote
-
-            if (-not (Get-Item -Path HKLM:\SOFTWARE\Microsoft\Cryptography\MSCEP -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Configuring NDES." @VerboseSplat))
-            {
-                # Initialize
-                $NdesParams =
-                @{
-                    ApplicationPoolIdentity = $true
-                    CAConfig = $CAConfig
-                    RAName = "$CACommonName NDES"
-                    RACountry = 'SE'
-                    RACompany = $DomainName
-                    SigningProviderName = 'Microsoft Strong Cryptographic Provider'
-                    SigningKeyLength = 2048
-                    EncryptionProviderName = 'Microsoft Strong Cryptographic Provider'
-                    EncryptionKeyLength = 2048
-                }
-
-                try
-                {
-                    Install-AdcsNetworkDeviceEnrollmentService @NdesParams -Force > $null
-                }
-                catch [Exception]
-                {
-                    throw $_.Exception
-                }
-            }
-
             # Set application pool identity
             # FIX add parameter for accountname
 
@@ -565,7 +561,7 @@ Begin
             #############################
 
             foreach ($Cert in (Get-Item -Path Cert:\LocalMachine\My\* | Where-Object {
-                $_.Subject -match "$CACommonName NDES" -and
+                $_.Subject -match "$CACommonName MSCEP RA" -and
                 $_.Extensions['2.5.29.37'] -and
                 $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Certificate Request Agent')
             }))
@@ -619,6 +615,21 @@ Begin
                 }
             }
 
+            ########################
+            # Set registry settings
+            ########################
+
+            $NdesRegistrySettings =
+            @(
+                @{ Name = 'SignatureTemplate';       Value = 'HomeNDES';  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'EncryptionTemplate';      Value = 'HomeNDES';  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'GeneralPurposeTemplate';  Value = 'HomeNDES';  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'PasswordMax';             Value = '500';       PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordMax' },
+                @{ Name = 'PasswordLength';          Value = '20';        PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordLength' }
+            )
+
+            Set-Registry -Settings $NdesRegistrySettings
+
             # Remove default certificates
             # Enroll new certificates from custom templates
             # Export user certificate pfx and remove it
@@ -626,21 +637,6 @@ Begin
 
             # Enroll TLS certificate
             # Force SSL on MSCEP_admin
-
-            ########################
-            # Set registry settings
-            ########################
-
-            $NdesRegistrySettings =
-            @(
-                @{ Name = 'SignatureTemplate';       Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
-                @{ Name = 'EncryptionTemplate';      Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
-                @{ Name = 'GeneralPurposeTemplate';  Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
-                @{ Name = 'PasswordMax';             Value = "500";       PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordMax' },
-                @{ Name = 'PasswordLength';          Value = "20";        PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordLength' }
-            )
-
-            Set-Registry -Settings $NdesRegistrySettings
 
             # Move ISAPA 4.0 64bit Handler mapping down
 
@@ -1241,8 +1237,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwB0A2z6yT2rFKHutazQrWa4x
-# zqmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXXu5PLZxvawOObQX2Pk8gOk+
+# enugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1373,34 +1369,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/35oFJlc
-# LVAcOIuFL9fREHaEJlAwDQYJKoZIhvcNAQEBBQAEggIAGYK46y0PcgIWhgI3Kzbv
-# QDTjSTaNxU1NdP7wgjj2zHuSr9SnvFAxVhZCXmSEZRqkpZe0nCcc6Hcj5Tm2jMlO
-# FGfYf+aj38KlqBYogTE+2uaiNwPTr3zop8WXhjFGCFwb/ObfCuXN/67DeugMhTjk
-# MtnCdLqecnQoplwVnBZlaw26MuTNWiZp6kiZNqxxeYOxYQjOsbZSoRIGkBUkOXqo
-# YzhV/TrN9kpDWHM+FuJfWW/D1k/dAYvttRzW6s8DYhOiGzNdPZGPXp3up0ie+azW
-# h4J+xdu/Hc/izuCbcyXRz+eSGdNloQNn3sUziEDBrZlFy2w+8QtkSJBaZf8/KRMW
-# L7tuMP5gJBiF6kZ3bLre9y2krQfAas1MKzotwHHhtq0Nu2lSdnO8cfPwJA2ABlUs
-# SPprjFe3ErCDojwS/2BI6bYjCSQojh1pjrPq1Om01wrPOXqd3hJjyiXUdrTG5NNa
-# kvSuqNQZJQ9J4cC+E3SNFcTDUo0lX0wNiPcD0hUZZnsQePtQCIPtUrmJ8FExAnh/
-# N/lQuesGCJf1QbxyMQwYy3d0D3cFXC+n+Eo3R8bozAW25QWPoRPNgoohHnrH7Ug9
-# zjLcEVxhz7pCATF/1+qB8cQwJSFfmrvi+T/9/yP69WK0NpbGzR/GzrylVdUCIvaW
-# DbFe4XcKh/u1zMbM8yCWThehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUfGmr2tZz
+# cILMxT+7TVb+Ze1PctIwDQYJKoZIhvcNAQEBBQAEggIABAT0stCW+pFC1Mm3An8D
+# 3cHxSExdHbGhw7xTm4Hi87S3I2olenwNolfT927tS+qJcg8MDvtXmMdCoKcoOLn3
+# Z+qjBcOVoty4jIXrz0qh+36I4FoPiNpHOjLz+tURCGuCXtMPfiAOUoqtp1a7juWd
+# 04ORu9Z/kmHtSz7HaHU8r4BqRrzgDYFhslFDezoVxx9Jo2CtVCnZ1d5aB6ZETkSC
+# 1i4TSqXuBf7ti9+OjwWdWJQZEaWHMUmO3ACF0/qagPGnsZI9tw6D31ETCDGo3vQk
+# BePxpPTja0Kb1nN/6VLyKaXi7JzKNCMacdI3qi5RRb1yprDyUcz1r1VlX5AbMSWu
+# a5YBRgVllNvOFPpqjOZyy7z4Z3uYhwe7/erUwgRHiSmrHNi3Qsp3sSypV3zwihi7
+# TUum3h0dGtdgtKRb9NtANa1Dur/O4H7veK1dlYFhHgCx1McZkQlhPf+o5TlVBjpC
+# UXuvSlasNFCEguNXs1arL43/IcmDzV27d4Ur3eV28//oXDusFzSKLWjm7q6XExbn
+# cZN/9/vWIZo+JamF/x25Xy/r1vxCBQAh4UIOSibX+/XYsSd3/ySaacXqvY0Rh5k2
+# oQ85OQ9aFI84xMO5x4YeGu2RRbg8hgfnv6DL9TcMzVkQVNJLZcW1/Om1jpM9KZBP
+# CCadOquFw9RsPlbp4hwAksyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgn3wUs5vk4FHD6ggCx8UzFtwPwPFNHAPqV+81KTip
-# R6owDQYJKoZIhvcNAQEBBQAEggIAf9M6SOQ00tzB0b1iVvsCITKoUwwxLTzQGxY0
-# mPTVnRBus5tKFjsXbPpSBiXuqFfQMzTo+EePN4CiIceVfJ7+/4PvqIEyXlqQb/OL
-# KeuWIdbH7gTQ8iFcFuy9ODUx7Zb2q2EA2mz20JuihDr0fAXVVdXX0IbRmqVGTLNG
-# teWkbmKXMy4LapBuwodf2DWBiTe6QH81yETITuRxQfyc3iJgzI8wmFfUyBwxklq4
-# qYW0YNEMoyzTcL/VxvmRLaIshCbsVVnO+j8W1UHxbHUnDVFaxODkbVSRZ9Xh71CP
-# ON59QqArXhLS5yeRC5pSB4UGLQbBaXSUAABhjlpF1ejKFwCaMO9WdLSaSG0aPtGw
-# tI7P4jIljo4leSc7zbO5LRwXiFTWX4mqZl+0uUrPjc4oixqQhUuv6cua79RKcpph
-# Fp4hwR9D4kTzoaWgHZhWJ+OWCuPNuR2OeacsjzgmqTl1UxhBlIEMWMgbMgtyOBFe
-# XlFKf9kPbq8ude2lz82pqr3Yub5mRgwAjzByKu43PoX0PLcZ9jTjqxQzWPvS5dqe
-# ZY9GyAAH4BQX7M/rDwrsMCGnYppXAfyiTDAw+jLbF0rGZNSSvU5ITlGI0chqBr85
-# ByK3GdpxsOlGVcv788N4+M2bRiKq2nC5+2g/k5Br1gZtrhkgEb/lQDaLWTSm/7ev
-# pKhsqKs=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgXs9yYC3Pci0s+cEjB7momcB2KxbmKept4KGpKavA
+# CvMwDQYJKoZIhvcNAQEBBQAEggIAqp5ro+nsrfJLdc1kgwahfdr2PTe809fcsWM+
+# Lq1LsWjGv/wK7krNYFpHwKRXL0u9hzAMnuFAdJYZjqBqjG1tFZjrOmL39XOTn5Ow
+# u+rhV9YJFih+fVADI5ukZlb/PXseL3lt01mUWfdZLpbjUeubzb55Mfso2UmbANFc
+# pTn9k9HA9KKENxhLeEmqLkC131NkN8yowfRzWqEmfWL8NdY0enRUqI17+e46/95R
+# Ojm3xCoO5hdPTEsHoKsAEiY+ATayLoRdoQWX3kxqzzk6AAPXIqCH2VO/yyyc9ehB
+# +OFEYxE5H2bFxoowzl7KwFDkIktMM++xp49KuCL/ZiWSiubQ7gh8CbA07mpx6r1v
+# 4efOSsiCzQwMKSz324P34NyGrpZ4Rtq0lEEhDxXN2nlqdo7Ik5TjJuLKrxQap/z6
+# m2yleqJinOZdnhm+u5saSFl4oSXD5Qy/RC0SFoirMZkJwlSQWPpRexQSuBCviYdC
+# 7ltYBZF5mC0KBbQbDx5QO57a42UCeE0OPwXqW3iywQx3S7UNY2yWW1zLx2VgeWC4
+# l4ltmK9h5Vgqj6tWVeHcOAWOXK1UWzjQdgH/kfzheROIR8IUyjM5KEM5ZPnXndAr
+# +O4p7kLPYfwoRYN0kE+3PHt/HWvkMaZ9WjlBDRVha2NyfL7SgNIgx6AmWREEzu74
+# 00nN7vg=
 # SIG # End signature block
