@@ -627,44 +627,20 @@ Begin
             # Enroll TLS certificate
             # Force SSL on MSCEP_admin
 
-            ####################
-            # Set registry keys
-            ####################
+            ########################
+            # Set registry settings
+            ########################
 
-            $RegistryKeys =
+            $NdesRegistrySettings =
             @(
-                @{ Path = 'HKLM:\Software\Microsoft\Cryptography';       Value = 'MSCEP' },
-                @{ Path = 'HKLM:\Software\Microsoft\Cryptography\MSCEP'; Value = 'PasswordMax' },
-                @{ Path = 'HKLM:\Software\Microsoft\Cryptography\MSCEP'; Value = 'PasswordLength' }
+                @{ Name = 'SignatureTemplate';       Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'EncryptionTemplate';      Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'GeneralPurposeTemplate';  Value = "HomeNDES";  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
+                @{ Name = 'PasswordMax';             Value = "500";       PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordMax' },
+                @{ Name = 'PasswordLength';          Value = "20";        PropertyType = 'Dword';   Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP\PasswordLength' }
             )
 
-            foreach ($Key in $RegistryKeys)
-            {
-                if (-not (Get-Item -Path "$($Key.Path\$Key.Value)" -ErrorAction SilentlyContinue) -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating registry key `"$($Key.Value)`"" @VerboseSplat))
-                {
-                   New-Item -Path $Key.Path -Name $Key.Value > $null
-                }
-            }
-
-            ######################
-            # Set registry values
-            ######################
-
-            $RegistrySettings =
-            @{
-                DisabledByDefault = 1
-                Enabled = 0
-            }
-
-            foreach ($Setting in $RegistrySettings.GetEnumerator())
-            {
-                if (((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Setting.Key -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Setting.Key -ErrorAction SilentlyContinue) -eq $Setting.Key.Value) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting $($Setting.Key) = $($Setting.Value)" @VerboseSplat))
-                {
-                    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Setting.Key -Value $Setting.Value -Type DWord
-                }
-            }
+            Set-Registry -Settings $NdesRegistrySettings
 
             # Move ISAPA 4.0 64bit Handler mapping down
 
@@ -1134,6 +1110,7 @@ Process
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_WriteRequest.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetRegistry.ps1
 
         # Get parameters
         Invoke-Command -Session $Session -ScriptBlock `
@@ -1185,6 +1162,7 @@ Process
             {
                 . $PSScriptRoot\f_TryCatch.ps1
                 . $PSScriptRoot\f_WriteRequest.ps1
+                . $PSScriptRoot\f_SetRegistry.ps1
             }
             catch [Exception]
             {
@@ -1263,8 +1241,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUryxGWB/xhjfxX6eHiOO7LHgr
-# 8gCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwB0A2z6yT2rFKHutazQrWa4x
+# zqmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1395,34 +1373,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUK2MADmzl
-# qUdmj1EF4zNBSApjOB4wDQYJKoZIhvcNAQEBBQAEggIAczHLeIDvPkecxMwtkQgy
-# JnAzEaALavBs3ON0kRqVZPTjO09yKFEKC+i5UN+A1LZN1nhdFcdS+yab2FSo/zCm
-# V8kcQKrO8zPmZaVs6nPIYW/Ju1wWoy0Ar7KLCeAkbHCXDAiUoDo3hCDbteTyhmTP
-# MudV7iygcMnJ0pVxw1L87V5kj3ZS2VWD339bV/ySKbsza8jhazXNOXW8c72fabED
-# cjoCwKAYElB9qRyehgvsAU20vBZ9TFrV+VP1pDrltPmiudFLfvob7Mym+OAnVUEz
-# zT6wcCpDTJYsh1guVCrOYzfIaHL7D+EIu6Terl1Lo9MXOH+ls0KGR4c8SqcJdODf
-# rXaLbfToscKlilK7Q6a4IcNNfo1QvhCmh5yDCFQDPIajeiyCg3bofySIOdJ3c8B5
-# AlEFaJzJGa0wrShEFQ+voh/T0FJrYRrs/CZuUt3h10ouDl3yzsxJbbKQz32oSsNX
-# sBvfTfwDWNoS2EwEwB4SQ181+RQBOqXNfsbOt/08zUgIlnizRWMjbRanaQ8yr7q1
-# dXtVdqs9lbNFPnTV+v8EpCw4Cc/mrpkU/Gl1CVhiG4dE5K4HSrX8v0/E8Wc12Tnn
-# u/4zThtOxcUy+Kx2VO5FG3LAFHyMQm68y39y0WkpOIDerv8C0yENZcdKGH3T752v
-# 9h5sCIY0fbMLZOzwd163WMKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/35oFJlc
+# LVAcOIuFL9fREHaEJlAwDQYJKoZIhvcNAQEBBQAEggIAGYK46y0PcgIWhgI3Kzbv
+# QDTjSTaNxU1NdP7wgjj2zHuSr9SnvFAxVhZCXmSEZRqkpZe0nCcc6Hcj5Tm2jMlO
+# FGfYf+aj38KlqBYogTE+2uaiNwPTr3zop8WXhjFGCFwb/ObfCuXN/67DeugMhTjk
+# MtnCdLqecnQoplwVnBZlaw26MuTNWiZp6kiZNqxxeYOxYQjOsbZSoRIGkBUkOXqo
+# YzhV/TrN9kpDWHM+FuJfWW/D1k/dAYvttRzW6s8DYhOiGzNdPZGPXp3up0ie+azW
+# h4J+xdu/Hc/izuCbcyXRz+eSGdNloQNn3sUziEDBrZlFy2w+8QtkSJBaZf8/KRMW
+# L7tuMP5gJBiF6kZ3bLre9y2krQfAas1MKzotwHHhtq0Nu2lSdnO8cfPwJA2ABlUs
+# SPprjFe3ErCDojwS/2BI6bYjCSQojh1pjrPq1Om01wrPOXqd3hJjyiXUdrTG5NNa
+# kvSuqNQZJQ9J4cC+E3SNFcTDUo0lX0wNiPcD0hUZZnsQePtQCIPtUrmJ8FExAnh/
+# N/lQuesGCJf1QbxyMQwYy3d0D3cFXC+n+Eo3R8bozAW25QWPoRPNgoohHnrH7Ug9
+# zjLcEVxhz7pCATF/1+qB8cQwJSFfmrvi+T/9/yP69WK0NpbGzR/GzrylVdUCIvaW
+# DbFe4XcKh/u1zMbM8yCWThehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgKNUTK+F8ySTrjkeaofTBoWLEkH6wvyyuKzOWb90Q
-# rX0wDQYJKoZIhvcNAQEBBQAEggIAUEUI1t8+Rb2ARC2FNjh5mrAebjuek+/j+1zE
-# xmmc9RtizmUWlAnzKa68pnmRP2we9Pztd+VfZGNaT9i4GfScnzMX1j2df2uJUBbK
-# zHYh603tDrqLzlbqKYTpAmy/IJ+scjP1bXFxHU6JtOUqFsxIF0En9UjVhx7LnLNl
-# CF0CFSzHrFK/DbO/2PDGJVmhplQGvNY1rgRybu30ig/gJrNjLFJDGkMho6W6JGM4
-# PgfXRvBSMSvD0VDmhRG6NFtY2NVbG7flpSdpThHNiz7rn6CZxqe8gTzO46wawTXO
-# ptD6L6S7GR2cywD4K+0ms+gmNc6TFZ8RWk54L1gB8sTE0NCPa8xJOcnW01yw40wi
-# d803MIRpcFbeqdNq6jh784OftL5Q2FwKRUOw0muTHhfOPhq5j6N6Pg6pm7HDlEEy
-# X1MXFH3pYt9YHsaCyuUjoTyHgQGCgnXSashoO9SpRtSewwX/4ReiA61eh+GkmTr/
-# Vd0Uu4lryNwfgFcd6LbIQL2M2cgWJkYaq8YxyEZh1TqA77Y+vpigvlaYUuXNh900
-# s35R55KBrNa22zgzYaP0+ud8Y3TkMjMXVC2uE+7McTk3Z/5Miah3TOYoycLEcNb9
-# U7zDPsFueHeHCCLrKmuK28ALtcMdmLVPwROooE5tYUIMSsd2nEeefmEtCrPE/LAv
-# FIPDvjg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgn3wUs5vk4FHD6ggCx8UzFtwPwPFNHAPqV+81KTip
+# R6owDQYJKoZIhvcNAQEBBQAEggIAf9M6SOQ00tzB0b1iVvsCITKoUwwxLTzQGxY0
+# mPTVnRBus5tKFjsXbPpSBiXuqFfQMzTo+EePN4CiIceVfJ7+/4PvqIEyXlqQb/OL
+# KeuWIdbH7gTQ8iFcFuy9ODUx7Zb2q2EA2mz20JuihDr0fAXVVdXX0IbRmqVGTLNG
+# teWkbmKXMy4LapBuwodf2DWBiTe6QH81yETITuRxQfyc3iJgzI8wmFfUyBwxklq4
+# qYW0YNEMoyzTcL/VxvmRLaIshCbsVVnO+j8W1UHxbHUnDVFaxODkbVSRZ9Xh71CP
+# ON59QqArXhLS5yeRC5pSB4UGLQbBaXSUAABhjlpF1ejKFwCaMO9WdLSaSG0aPtGw
+# tI7P4jIljo4leSc7zbO5LRwXiFTWX4mqZl+0uUrPjc4oixqQhUuv6cua79RKcpph
+# Fp4hwR9D4kTzoaWgHZhWJ+OWCuPNuR2OeacsjzgmqTl1UxhBlIEMWMgbMgtyOBFe
+# XlFKf9kPbq8ude2lz82pqr3Yub5mRgwAjzByKu43PoX0PLcZ9jTjqxQzWPvS5dqe
+# ZY9GyAAH4BQX7M/rDwrsMCGnYppXAfyiTDAw+jLbF0rGZNSSvU5ITlGI0chqBr85
+# ByK3GdpxsOlGVcv788N4+M2bRiKq2nC5+2g/k5Br1gZtrhkgEb/lQDaLWTSm/7ev
+# pKhsqKs=
 # SIG # End signature block

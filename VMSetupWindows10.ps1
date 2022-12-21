@@ -72,69 +72,6 @@ Begin
     {
         $Admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-        # FIX
-        # make importable
-        function SetRegistry
-        {
-            [cmdletbinding(SupportsShouldProcess=$true)]
-
-            param
-            (
-                [Array]$Settings
-            )
-
-            foreach ($Setting in $Settings)
-            {
-                if ($Setting.Path.StartsWith('HKEY_CURRENT_USER') -or ($Setting.Path.StartsWith('HKEY_LOCAL_MACHINE') -and $Admin))
-                {
-                    $ItemValue = [microsoft.win32.registry]::GetValue($Setting.Path, $Setting.Name, $null)
-
-                    #https://docs.microsoft.com/en-us/dotnet/api/microsoft.win32.registryvaluekind?view=dotnet-plat-ext-3.1
-                    switch ($Setting.PropertyType)
-                    {
-                        'String'
-                        {
-                            $ValueKind    = 1
-                            $ValueDiffers = $ItemValue -ne $Setting.Value
-                        }
-                        'ExpandString'
-                        {
-                            $ValueKind    = 2
-                            $ValueDiffers = $ItemValue -ne $Setting.Value
-                        }
-                        'Binary'
-                        {
-                            $ValueKind    = 3
-                            $ValueDiffers = @(Compare-Object -ReferenceObject $Setting.Value -DifferenceObject $ItemValue -SyncWindow 0).Length -ne 0
-                        }
-                        'DWord'
-                        {
-                            $ValueKind    = 4
-                            #$ValueDiffers = $ItemValue -ne [Convert]::ToInt64($Setting.Value,16)
-                            $ValueDiffers = $ItemValue -ne $Setting.Value
-                        }
-                    }
-
-                    if ($ValueDiffers)
-                    {
-                        if ($Setting.Name -in @('Value', 'Start', 'Enabled', 'Disabled'))
-                        {
-                            $DisplayName = $Setting.Path.SubString($Setting.Path.LastIndexOf('\') + 1)
-                        }
-                        else
-                        {
-                            $DisplayName = $Setting.Name
-                        }
-
-                        if (ShouldProcess @WhatIfSplat -Message "Setting `"$DisplayName`" to `"$($Setting.Value)`"" @VerboseSplat)
-                        {
-                            [microsoft.win32.registry]::SetValue($Setting.Path, $Setting.Name, $Setting.Value, $ValueKind)
-                        }
-                    }
-                }
-            }
-        }
-
         # ███████╗ ██████╗ ██╗     ██████╗ ███████╗██████╗ ███████╗
         # ██╔════╝██╔═══██╗██║     ██╔══██╗██╔════╝██╔══██╗██╔════╝
         # █████╗  ██║   ██║██║     ██║  ██║█████╗  ██████╔╝███████╗
@@ -217,7 +154,7 @@ Begin
             @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$EnvDataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
         )
 
-        SetRegistry -Settings $ShellFolders
+        Set-Registry -Settings $ShellFolders
 
         ################################
         # Remove namespace from this pc
@@ -455,7 +392,7 @@ Begin
             @{ Name = 'ColorizationAfterglow';  Value = 0xc44c4a48;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' }
         )
 
-        SetRegistry -Settings $ExplorerSettings
+        Set-Registry -Settings $ExplorerSettings
 
         # Clear recent
         if ((Get-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*") -and
@@ -503,6 +440,7 @@ Process
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetRegistry.ps1
 
         # Get parameters
         Invoke-Command -Session $Session -ScriptBlock `
@@ -529,6 +467,7 @@ Process
             {
                 . $PSScriptRoot\f_TryCatch.ps1
                 . $PSScriptRoot\f_ShouldProcess.ps1
+                . $PSScriptRoot\f_SetRegistry.ps1
             }
             catch [Exception]
             {
@@ -560,8 +499,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXXIZWLH8tj6UwQaYf+SnVIIN
-# uAWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8H6yxDr6vNylsuJh3c0zvohP
+# 5+KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -692,34 +631,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8aXkPbTU
-# uynQmv1+e+xaXkOkma4wDQYJKoZIhvcNAQEBBQAEggIAkESR8QY4H5CDJa/sg5kb
-# A3TxLSpwE0p6Kw3T0Md25g72sjw2bFhk8ahFW9/m5XokUbPEpHC+K5Mnc+zDqtPE
-# DJf4ng1TZiflo+cqMGAfaXIgaAXuKvBX7rXXKqGjogv93dpKGKaYXjunhQYPUW9I
-# sjcDdEWGPpIAuC+N+TK79RtQqK0Lo0Eut+N2ok+VyHGyMEACTbEyva4tcp1BUaqN
-# zlmazpV+57KjnzX8ixHejKAf45GL80mJVUEsNIPWaIWzKZ6++TaRIqpwviGeip0P
-# wv0JVR98jghK0wetpZ9eisjBna35B2ETAaGb6Cu1OZfs9+WkfNlGNZJuaTcyqjbo
-# p+fHp+gtt7neMSFSAgqjhC50/3JUdzqz0xY4chnDdy1N9Ad6ylQ+0MzzsKiHdwHI
-# wnZveC+R1AOGSHw9MTjDCJH/vq6ZnwoOo+SlO+FVDZss1Jg6a2aSDzv5A5AcPnug
-# 2KbV+dixajc04uA3ERvx/Jzje0RyZmy334JwfBboPSKVhj+QNMHLWC8rPVU9N0Lr
-# cdV0KviMLs2uRQtkIR0NT5lQs8btg1mQ0jx/h2d68gPOtiIWCQDvkdvA58Wg5hFp
-# eBDGGQlsaZe2+h4mW9AHtc0dGp5mFICUZ503wSKfTNAlikkj/jMoJ39C/XO3nDq+
-# 7B/rZDIbYuU5dEP8mQQf3v2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUT1Qcq6ST
+# omptbV8VB7PUfFjq7s8wDQYJKoZIhvcNAQEBBQAEggIAYsRLrHT/zxXN6SX2CeP3
+# Y8og0+mWQKpZm0Q+hGNn6GcumKjLnVie505+gHhUEbgWlG7mrueFq9wO4FHWHC6B
+# UPDj35tIo92QFgyMhcTScBKqJ9LdYjO1YSsPznxbt+Y2hxIpn5+8AzMYT9WOkVuZ
+# gjhgoAZ6sXaaH/74Sij/x4tEneC1Jsxe8Lh0ZzL2UaU/oa0WawBXsYBRtd0gLmcv
+# JkD0c2t6HR1hbgPJYGjEVJiJLTQMW9tDSHxU2y+DRj446oV+Bn6NDXH2Zdy4eiE0
+# +yCEN9ewlzlym45LELH2JlURNcNlsGdrWXCjgiiLG7Hs7PkDMaSraFNiklqi4W59
+# 8gvezmqmJZJKl5Xtn8HE2WOgjb7VqRp60aYhDqjs2PD+d2EbEijYwAgYXWudIqjA
+# sz17cC6icFtS7gtvUT8kr6IiK/vYwLL12v/p0tkCzDAnnUvKcp6nzi4AfHVBZ71X
+# B61mPxutzfqYOnf9aegWYbx1dh0/UDdIb8ixIac1HM7bRpqH+HDjPDsEKJTRFUL5
+# 6KNAMjDawx8yF9D5uejh/z9J9uOUfdQnVDr94Lbjj7KDMCmUY4b7B7ywdjhcoIBR
+# mTWisPUE8STgNaqgyvfTQ/bwsxb84LKKQeeesLBK31rpuevff3yjXkxKS7gZkzhd
+# TEsy0y/RoHTQRgEqEMNUXFKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjE5MTEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg68si7s+3ukQDv3f1ik3Il0XzAdMf5d/10M8hBKmA
-# HdAwDQYJKoZIhvcNAQEBBQAEggIAlkU7GJODrcJ88EYG3VZHdxWKckOKg11Y2t9G
-# 7cOarCzK41hsjBrPZj/+qpMY3ntsMUh4aPUG/YVN9R8FhjQ2iyAjMS0Yjmjl/Jqg
-# 3YyAOYey8/LnQ1b4H0Z696dR5MlKpOkFhSOzy07G0OYpm15zCC/LpysYvVdra9Lf
-# 3Haj+ovHt8wnfZtRLmz3cYPp4xAlDqGPVYRoV6iV1997INmZ5UmAQ9nHIZ/63ZM4
-# TOqzw6Vzv0h2KZWdV25FXoLByMym0k3KF9roeyxkD7f7ejx5FxHWYSncO51ObvTF
-# VAfULlnVGtt3dDijOumYO2NacbBfU8WRMPXwpQJdE/51CyEtqUOjORRwIp55Y5Ev
-# fMFisTm9+JxN+zbylLzOpYMhVCxBrmthrwVNlC7NErkINyUvcK/xCUdqdMfifhDQ
-# BYPXbbg3sSb8E/GO5JqQj1584YtWhpI6gBjM43dJVCR18ky5lI5cqoB5uPUrYLqx
-# OOmEELlq3TbPJ7T8Fu1rFOkFA8jrw0XLjI0XHDKRNdunSIHt9U4rL3Wmpps6NEi5
-# Rtl+QfrQ1sVFVj0dgJdTpWOG2+FYNJnTxF7T5gF8NuhmFEbRRGtOeZVVv67kxfGR
-# zVQD0EBjTgUTKMqp/PthdMHETwSGJn7baevbDk4IabT7jJOsF0J7MG8xlA7WyL4o
-# iFd2Vwc=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTIwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQghos45wDpf/pZJ3roi1d7a5xcOkaK6UjBlMafHjPR
+# JFgwDQYJKoZIhvcNAQEBBQAEggIABoxepA6FoxA/jkC1GwIqSfpNxDqzVEQRHUlp
+# m7LeKS1tpu08Zm5b3TYcVduBb9qIFhRF3MPIItu/4GLbdzZLzXVrvk192Lbd1yO1
+# Q49qrc+XBplSc926bPVlQfes1jwDZc5PATFJzMM+oIN5xRE23v8j69MW7+4qNIiU
+# T+ULit/iOp2SUQFPzlBXgiZW3fSikMsPqXKflu5VmvIcfgXSaX4f0rY6PojL9LMn
+# odDsgdGm2I5UrjiEjzQry0SpcW1gReG5/kPXvUmgsMX8WhKRphWHzz5Rw2GsU5zk
+# c4T3D2zWU3DsmuEg+ldlqkuLH++axOuZ5BcbdYtCzXW5LiMPSggxz5kJC2MMgdIC
+# RLERE7Ar1VMnA2w/ymqferaieplJ4XkJ8uLEDSHEaeJX5ONnWps1P89fZKeLkYdD
+# GLs4Q5ecS8Jo/P1r67uHErjI1mIYU+Gf+Rpf0vp53zg0llo1kNYMQBXDklgURxaI
+# BGcnkQXk5WKaG76frukNRU+WYa19k86LqA4B3tS9aCwFeHA2nFrjnEVGWwHo05+f
+# nQ93dFq18YgkFqAffjAzgBIpKSCd1Qug2DITNVp0+PZSWjbk2T8zbv5BKF5kmavK
+# O3DJwWuE5HPoMDr/79P13f/nsrOoAsXil4/AktIlRpE3kqBGTjzIX6MQFTiEEnkP
+# lFHsfPw=
 # SIG # End signature block
