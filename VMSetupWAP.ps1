@@ -314,36 +314,37 @@ Begin
         # Disable TLS 1.3
         ##################
 
-        if (-not (Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3" -ErrorAction SilentlyContinue) -and
-            (ShouldProcess @WhatIfSplat -Message "Creating registry key `"TLS 1.3`"" @VerboseSplat))
-        {
-           New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols" -Name "TLS 1.3" > $null
-        }
+        # Set registry keys
 
-        if (-not (Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -ErrorAction SilentlyContinue) -and
-            (ShouldProcess @WhatIfSplat -Message "Creating registry key `"Client`"" @VerboseSplat))
-        {
-           New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3" -Name "Client" > $null
-        }
+        $RegistryKeys =
+        @(
+            @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols';          Value = 'TLS 1.3' },
+            @{ Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3';  Value = 'Client' }
+        )
 
-        if (-not (Get-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" -ErrorAction SilentlyContinue) -and
-            (ShouldProcess @WhatIfSplat -Message "Creating registry key `"Server`"" @VerboseSplat))
+        foreach ($Key in $RegistryKeys)
         {
-           New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3" -Name "Server" > $null
-        }
-
-        $RegProps =
-        @{
-            DisabledByDefault = 1
-            Enabled = 0
-        }
-
-        foreach ($Prop in $RegProps.GetEnumerator())
-        {
-            if (((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Prop.Key -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Prop.Key -ErrorAction SilentlyContinue) -eq $Prop.Key.Value) -and
-               (ShouldProcess @WhatIfSplat -Message "Setting $($Prop.Key) = $($Prop.Value)" @VerboseSplat))
+            if (-not (Get-Item -Path "$($Key.Path\$Key.Value)" -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating registry key `"$($Key.Value)`"" @VerboseSplat))
             {
-                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Prop.Key -Value $Prop.Value -Type DWord
+               New-Item -Path $Key.Path -Name $Key.Value > $null
+            }
+        }
+
+        # Set registry values
+
+        $RegistrySetting =
+        @(
+            @{ Setting = 'DisabledByDefault';  Type = 'Dword';  Value = '1';  Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client' },
+            @{ Setting = 'Enabled';            Type = 'Dword';  Value = '0';  Path = 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client' },
+        )
+
+        foreach ($Setting in $RegistrySetting)
+        {
+            if (((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Setting.Key -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Setting.Key -ErrorAction SilentlyContinue) -eq $Setting.Key.Value) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting $($Setting.Key) = $($Setting.Value)" @VerboseSplat))
+            {
+                Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" -Name $Setting.Key -Value $Setting.Value -Type DWord
             }
         }
 
@@ -587,8 +588,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUprozP/tUPB3/B1PzbYf/7R9g
-# aBWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDB9A2vglgrgQzwBUjTN15VA3
+# ebegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -719,34 +720,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUpOJb38qV
-# 2sspfYqjV+mWDRHCwaswDQYJKoZIhvcNAQEBBQAEggIAQnZ+lMj9P2QK7eT1q5Re
-# g+DDV98ghuncatUlHFk4wyr+BYrjEcWpOODk6dVue2KB9uj15BAQGff1cBx9lhU5
-# MklNyobDZa1B7LQu50h3BBu7KiXCk5Zn7wHyEvbjN5sKkIMgPy6eTYLeGS1Ba0pY
-# mf2JyF4lP2PIt7pFcFnhnOcCvUStO7hYoKCRP/cHCDDfCztejP47Z1cC63BKHtNq
-# zk4zZKAcTLn1IxkY6MaD01ye/CvjkgJjEdKvpIU1nRDXeijSsd3H84tzxyTBuzJp
-# 7dQuaAKMru63bQek14IGpVnUvZ4W4/nT1v3F1sxS4KiZprejD4PYQCjxssgad30k
-# h/4l7P92TfAs6jW05pr3iIh4PAyVowBMK8ymN/5w3HOz+nKUObZW4kkO/Zb9ufxw
-# 3LM6gCsbAY+suN2qlxfVX7uk4nIuMbYiTUCCSc80Vqc0xtTQfsQnujxLS2TSQLnK
-# dzS2E1ll0sp+cYSp8iqX2AeedZ/u2Z8aK5OA5VigLom1KGroWm0j03wXnMN9R+Vw
-# D1zDZlMT4gJeQaZ5YzbRXd5MQ0RMofT+zHs89GV3rgh4nKw8fe9kf7Qrdblf4CRR
-# G7C9qd8lIlAm74DOxj0FSa1UgWzwzMHeEIqNl7YdUzelcnJ2TIFbNO/IBL2C6Q3Y
-# OkLYYU1qLRiUTNpmdU7Ob/ShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIL4vRsUY
+# mNlgE3GudeDH6dxlAuIwDQYJKoZIhvcNAQEBBQAEggIASi4MsAYQyjEVOJYI7BKs
+# KzpcITajfDnvg81zb/WB56lnsZexNnujgQhO3M6yncx2do7ISSFHp2nf/IDMSG7L
+# Dr1F82G+ts374qEfvxyr7b6/4jN/97znXcC0jEzT7+C9nTZXUssNCpqJGJrquKPG
+# WQMoSTcrg/uw9GGil0BCT/jWLNJbW1p0hOPvhjbTOUflwIC4QDreO9vPweSOXB10
+# 16m4y7iv7LKe7n13+pZUN+bw2g9RdzF0jBq5WSdgky76Nqh2+ncwe9ckH1WYNLkV
+# bUK7LwxB5DacrZi4d0ZX2IoGhmI+gCOMrAp9JvDrsQpFZbfbetU9Le5tncylrF6A
+# Gipd8fD1N6oRmznNDrpw2Be/vSjwqR2sJksmJ7G9UOfPa/SrintpaRX+k+BklRbH
+# jx6xtt+Duir0IxIHOvqYwi8ntOU2TEto0rGRAK+X+Q3UCLy5IsE2uRHpv9S3S/sm
+# N7NdHa+IrtZqlDyoWb34n+SYHFkvwyQNWv/U6HdbvzjF8wXt3H/CmQn2HLHe7301
+# rSyZQ9TSUs8SskzqQoGca9NgIGt5rVoeGbkjzysj4fU2DcyOZ1vT+sbixamY2Bvb
+# S2KgVt9SdY2/361tq8UY55hxY+kZJdWRaSpO0uu7TzLWe6dZtsM+tHqKWKJZOCE2
+# DRAYBGrz7nF3Ta55Id/sipKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjA1OTU5
-# WjAvBgkqhkiG9w0BCQQxIgQg5bD4Eqntq2enLk0KOpyYUjgJM/WxPTnNF+0sa848
-# V6EwDQYJKoZIhvcNAQEBBQAEggIAnq7RAxAi5lwzD9uf4DEa+n3WdikMkoY/2+DE
-# R5k26eRU79m1o01poIdDGIhsP8Jo5LbWEn31g1DKoujAnnq0V0xEDkfE8xWfaWUr
-# uwB+3fAtK9UAOgpYFvGB2zKITqph4bjKWf6PAM1fmZr2QCU4RuObPjJEoeikeG07
-# BhQ8l0u9J8C6x3wtnFJUvO46LvAiD4bolg5eN9JxgSyfbV1NWogZOQvg+TtBaS57
-# 852mOSX9he7W9VXRpMgex7ZpqrOT0gKlyJvaFekybQxC7As604QfeG3UaY4+TuXu
-# Yp638uSZE0LgepN9nkA7GGDDkhDwb8pNZhI2OZ1vmsX69xuTT+rgbng96yGOWLp8
-# uoh67H0RUbs2Jk7y/YZUg/HV0LCQ0KWoDaifnIhPDmCYOsj6T4cAg1i7EfiEovUW
-# DAdfeNcGkthEaCXSyD9cccmT5CRFa7/LeHoiOGCoG4gwOL4XEhCH2e+FVxc/0lgI
-# CRVGlSGgceCK+0pBVivDvHcLK0H0FWQcMMYSOEhLJTwMUi9fjS8crlSpIlgO/qiJ
-# MX3E90TBPw39ZVoi+wx4W6cSYA1zOgPfJsepwYfSDYf+etocxZHSE131GR7AwgT2
-# cIXCFFx5IV09qBYRzPLj86oeIK8l2N8TQL4VLH9986ktStXTpXZCM95VmLzkiECa
-# kD5oy1Q=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMTEwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgtKU6YT2mvBnT37hz9I72gHiBwHcG+tWOsyPSHFo/
+# WXgwDQYJKoZIhvcNAQEBBQAEggIAMyZzvj6JX78tmgt/M1ebsPkPD72a/nvK/JrX
+# oJ1oPj4kiZJbkMWllji9Yi1Z7t+CWXCikiKPEUiH08byYrQsXaidFxG/OAweFMfy
+# gyWRaO40BDg7F2ngxOGRY0o0BP+AlIzieZ0ZFft9XPC3Cw9BdM37Q+k9u4VMZiPT
+# JWyUhJtMfzGMXtl5VAydTZEOqZHRAPOEMgspiRJdUztSjKN6A5V6lnEnKVMway59
+# 2Q5PBRISs5AYP/Vf7n9pKEtu6mkgxCaXug7bTurtjvWiT8GUaqWTijfpmTI+PgL1
+# gSif6u2kS40oy4zALQ217374HB9/4TxBuKcJuiHb3SXxOHdpEbXTCiHC0oWFySV0
+# Hv3w0PO7HcOUg0xW4lKCTYHXSlFqEvktWmERuQIU5X2RUW1e+JrIlAfXRUvYoPzT
+# 8rpH/qGiJ3vaIwnoIpnqvuPdpSV3Y9AHe9tCt8GmnU7T6cS/esC8S17nr0TmSJeg
+# z1MpGTLp4wTuYMgsZ7rW9e7a1Kup65AklfbceiIW5sAxURDyQrGPzd+k++w9xwIf
+# dVVoR6HY2PqGkmEOqjhhKXLBJS/AF/S4fmlAUJVNCKEcuSKjCTMDQfguZVuUXMek
+# 3OYUCDqPhQ7QhKzFlpfmbnIHNEcsGz5/VUAfat56UQliUZ/GH/YoY9IP/MUZ0fOJ
+# PL28EIg=
 # SIG # End signature block
