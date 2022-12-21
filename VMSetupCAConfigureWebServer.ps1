@@ -635,6 +635,15 @@ Begin
 
             Set-Registry -Settings $NdesRegistrySettings
 
+
+            # Service account permissions:
+            # Allow log on locally
+            # Log on as a service
+
+
+
+
+
             # Remove default certificates
             # Enroll new certificates from custom templates
             # Export user certificate pfx and remove it
@@ -642,6 +651,10 @@ Begin
 
             # Enroll TLS certificate
             # Force SSL on MSCEP_admin
+
+
+
+
 
             # Move ISAPA 4.0 64bit Handler mapping down
 
@@ -651,10 +664,6 @@ Begin
             # extendedProtection tokenChecking Require
             # Remove providers, add Negotiate:Kerberos
             # setspn -s HTTP/hostname A-RECORD
-
-            # Service account permissions:
-            # Allow log on locally
-            # Log on as a service
         }
 
         #  ██████╗  ██████╗███████╗██████╗
@@ -1242,8 +1251,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeWwJS3plBWM/d0a7d96I/PAY
-# F1CgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU504E6rRsGVaMm9RT7b6A6UJY
+# aD+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1374,34 +1383,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnB7e4INB
-# S9Y6uEvYlt6PcVT+cR4wDQYJKoZIhvcNAQEBBQAEggIAMKr2xIoAX5M0LC2OcDBN
-# CNRjtpTwUkLGvw89A2TD+3tivvx6USwXtiWvi54MDft9ttiOX2GOI4//lmz9pzyV
-# wrO5xgHYeMBMZWjZmfI5xtNTprtsPwtbpzcM3+JO70b4qPa3irGmh2zySPrg5L1h
-# stlZ+JBE7+LeQPJKOfwcfSQLuFYKaPBhLuj2umgOb79kVAHEuOqXMECXDhGBd1kn
-# a8UEzBCD+lfq9YW/p8RUlqeLR7eZYMcS88QN+CLdBydZPpoohM09WcNa1v6SSVwO
-# muAJUxmZf4Wyc/yboTYDPcnGcFAHzAzw8p+UrxN2Fou5hoUV0vqcF1esxfGkkSeQ
-# ChHdbQP1ck+nFW/cg7z2fJgYnvvh3dHSlHsL++umDS4JKCleOmAjv7XeSmL0it0E
-# aQxaA2QbtFyQn9wSWCODvQ41sagon80ZfhxvmeqcisyCKhd2dMM4gSa3qzimQ9qm
-# ooYS8/HpFPsaJo6eGfwfLxdltymZGv5wp+/XMD5ovgkmT8ihkuf13lbcAwfcwZCl
-# OzJonlGGqQ32E5v4Jj6SbBHm16U9aDvCgcNjDp5v19aCT7yge0V0t4oQYz78l3aT
-# kbQeLRC3jRjBc7drJnv+5ZwzxvqNq+ZLX3z24Ecaebi58cUdP6yOWfdqWZXkhnNc
-# kGhJuB7ooO9J62g5VvIUoUihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUuklOnM4U
+# m6oAKmntGBuIT4rDmPMwDQYJKoZIhvcNAQEBBQAEggIAClkl87EFuItR5Clxf+kE
+# KQorDfpFEnZUbuOrsBEau1CMMLsjGOGu9eYrQtlZhDcRIXVi9G/6pYd3XC7MySI9
+# ySa84QQmOaZV7nYmcS7elPExMYzqc4J9G5HjYQdI2FlKd7oUKS7yvln7GwGpUvdK
+# qo+TYPDqbv0JDFSqx+nEADP+RXbHBrRDa+q6QDMyCPzC8OiGfyo1qvQOFk4MWAYU
+# wezKcSTgbeAO65MwkE+NNGQcXe9UkQkXS/0VosqM+FAoa7FTp+FnQ4k8A2wesdO6
+# 9Q49njs3MMwK6s/Qmw/Hy0rvxZjzo6EVpinyVp0vfCZRR/UPHC/yVyrDdL16iVxC
+# 8SKk398vQc4LXpnW7W1FH8Qx5M4zXz9glP1l1AO70cM3FNfNq9jGavEIVA7ga9mZ
+# eTM9d/aqoCckUmXKdUE3fxKgrlS90lv+nyaSjXsfM+02V6bIX6ULsURryhOpF0jv
+# h+UpEHy/5XW2PvFwoygJz6QPQgu1dlM+AtAGKPsBp2ZtCifyaPQHxKNdbVpXJLCW
+# vQXbaS4BfqnwAoMuy8PBIX7ZfqEzmvAKK9hZtxEvoSd0OYuOtIi/XFUJ98VD35sI
+# secGi4uZcc9Caick6Qr4VwZcZlXl68NLKAYw2KD4TdAn2CiOBCZwRBGKZeQN9Z0M
+# N2J9hhfCNJheTEKU+ATsfJihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMjIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgEbRtS9doHLKoaLnaCjL/PJAXPCqr8qG91gZidLcY
-# mFEwDQYJKoZIhvcNAQEBBQAEggIApvw9Io8G1rfTNWXISgD9E6xC4Apvw1bDS5L5
-# T86Uu4BEiGLr3V8pNAAqunlBrD4gzkMf1omWZz/+m3tCJsro29JIJgxGtzl4Dc9P
-# N1PTGDKBUNqmZmdVmfexOI8NEzkKZeQqf9NoFyR6wPJkyal4aZUf8s4eQ4e6VMzq
-# 7NjqivQGf1PnI9F0OznnOCgcQuLq7rK35WNck3p4gzNVrxTG9Kqg5PcZA7Sac5W3
-# UecUgEyZ2pmZwbplnV5jPeX11uzA3bil9XUjrR1ByJbO53JLILsZ+3V83SshSSKf
-# v/07Illa5cPL//4yMHlS06MXtmmH22Gu+PigxTnkMsKX+Ao6T6RcKGMxCoNqDE5A
-# RX8XNd2X7asFNAYQpwKe13JazLXY254+60W/sZxjyQxMxq+MyMOSOnvW1dwNEGKt
-# n2d1cpg2n7ge1gvxLPbqfzNjMNMxBMmgELLpsDvyrZcKXImqSKy0foqninY38pSH
-# Y0RfhtaS8rQGLNKzPSr+rOxJJ87LeFgYrZmlrGlFZOCF9hmtujs5KAApK27bqdoR
-# rTeFFvn76NXQp4sCWLZ5YWWIl+Ph9anmJ3CDJmAxlcOdWX6YCWyufeeamE1k6QXt
-# 8fhcWCdlXz1qqT42JZ+cPvzV2bz6SlT6dDnQMgizb5Ag0TIiZRganZUKyZqo1XMO
-# mmwE2no=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIxMjMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgIw6Im1UhK3vYDCBzoxiNOdP/yGTzLXZD1Ry0tndl
+# nnAwDQYJKoZIhvcNAQEBBQAEggIAC6FcVbhLGzZ9hpT8nx1/RWesYU8kk5vbuB3q
+# xvv1MngQCrof66w/Pz4uYKJkI0F1w6rmiu4DMVqBuItntRCavXQ24jMSQTJcvLX1
+# tRylWxEwszi2eQzQrRfBUN++9oKS7qrDyApse2mC8vCOjcJ97YRaHBl6A5ABTwCV
+# Qn2SNomzYmQkq8+lvdZWDyz+QFDJLzAaqNKN/ZavD0jFq9sIbLRtkoLXBcJc72Zb
+# jue4QOKhd/MBxeDhq7xwn1PKy7HvfbZh5cJA/nRrbYRNIIUUKGmxaNh2OAvwh+e7
+# w4XFqR9bK5Lru2Tp0Ec29BIQ8c3Xd7Wkb5hrR+Vv42t/eEmD9BFvYq0ly8Wu+prt
+# tznlQ6PWXfhQtqDeZE2c3ab0kbqlx6AEsAa3Ms2mQrEGScr4qBFshDGcCgQmTQ4I
+# rIZ0wSb9BdrHslBNKKZdkLUA9zo+QBjGUaiT/h3ToG+KwaUxy1TdtlQqJBly7XSq
+# u7fg9yLhRNu+NGdDVlYdHWpPxA8palb5+dA2m/0Uv5982VWwCsDEduVkj0tEt78R
+# nN00d9USifbqGxXvJnyN7/5Zt2Vh8GVDTSBdkjBJWmDYy8heuGSzTyLEBaI5qaM5
+# o+P80EUJsMBzseZTUYuhSDkkXqifuhgl7Kg+lA+RXVtn4wpbVhSH70hH0e0+TBa/
+# ey4eha0=
 # SIG # End signature block
