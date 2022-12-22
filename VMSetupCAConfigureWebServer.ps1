@@ -303,6 +303,7 @@ Begin
             <#
              # FIX
              # check if delta, then aply
+             # copy set properties from NDES below
 
             # Check double escaping
             if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site" -Filter /system.webServer/Security/requestFiltering -Name allowDoubleEscaping).Value -eq $false -and
@@ -902,6 +903,7 @@ Begin
                 Install-WindowsFeature -Name RSAT-AD-PowerShell > $null
             }
 
+            <#
             # Add CertSrv application
             if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
@@ -916,6 +918,7 @@ Begin
                 # Disable directory browsing
                 Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
             }
+            #>
 
             # Configure Ndes
             if (-not (Get-Item IIS:\AppPools\SCEP -ErrorAction SilentlyContinue) -and
@@ -942,6 +945,13 @@ Begin
                 {
                     throw $_.Exception
                 }
+            }
+
+            # Stopping MSCEP AppPool
+            if ((Get-WebAppPoolState -Name SCEP).Value -eq 'Started' -and
+                (ShouldProcess @WhatIfSplat -Message "Stopping SCEP AppPool." @VerboseSplat))
+            {
+                Stop-WebAppPool -Name SCEP
             }
 
             # Test service account
@@ -1050,14 +1060,32 @@ Begin
 
             Set-Registry -Settings $NdesRegistrySettings
 
+            #####################
+            # Set IIS properties
+            #####################
 
-            # Service account permissions:
-            # Allow log on locally
-            # Log on as a service
+            $WebServerProperties =
+            @(
+                @{Name = 'maxUrl';          Value = '65536';  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' },
+                @{Name = 'maxQueryString';  Value = '65536';  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' }
+            )
 
+            foreach ($Prop in $WebServerProperties)
+            {
+                # Check properties
+                if ((Get-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name).Value -ne $Prop.Value -and
+                    (ShouldProcess @WhatIfSplat -Message "Setting $($Prop.Name) to $($Prop.Value)." @VerboseSplat))
+                {
+                    Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
+                }
+            }
 
-
-
+            # Start MSCEP AppPool
+            if ((Get-WebAppPoolState -Name SCEP).Value -eq 'Stopped' -and
+                (ShouldProcess @WhatIfSplat -Message "Starting SCEP AppPool." @VerboseSplat))
+            {
+                Start-WebAppPool -Name SCEP
+            }
 
             # Remove default certificates
             # Enroll new certificates from custom templates
@@ -1067,9 +1095,9 @@ Begin
             # Enroll TLS certificate
             # Force SSL on MSCEP_admin
 
-
-
-
+            # Service account permissions:
+            # Allow log on locally
+            # Log on as a service
 
             # Move ISAPA 4.0 64bit Handler mapping down
 
@@ -1251,8 +1279,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXg+lo2oYbZlOovlieihwcASO
-# rJGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtk+fXFTmz1u23q4cRyeqC/LF
+# Ol2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1383,34 +1411,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURYSxetZ+
-# JYPn0FIAzCGKTbivWxYwDQYJKoZIhvcNAQEBBQAEggIASS1Ut1W/ESp9nAHm7ryb
-# rk9FLEXPPLdHN3U9GSjes0WfohHG0eiWqjqi+eUMRYbM9zQalSKIvfaWoGZpqSD+
-# TWXtS2viFwLOnuc/e9SjqCjP0jzQPwofAt0JxX2rddnfsImrWRoRpwLOieGdpWqO
-# K0IY09KAes5ol1PVAxft2W++qaDH/7I0GiQyQ1DP1RJVnqjnIz4gR+s9hpN2CN0g
-# KN8+Ch9AjUeUsVb+rG/zMfLVMJNCr6DtSdmwzo6DYgWMN5Sb3BoRJENd8MjAdxzm
-# aKf+PjFcLS34aQ7HrxNa1GPI0RZ1S7i1tXuXO+HI62/ElEfeQXyHnawrh7kvmltf
-# hfCET1OWQUUpnZcwi7QJuafCbxAOo9+FN3An1svD0gi+buGTDbIXI94nNayTwnPT
-# NE8JIeO/k3zX4MEdIFqJdtWJy2nHxTnbTqqwjQMYTXmQlQsiwYzOhqnsfO4Nze8t
-# 0rUms9Ap/RFkU8jg3D0xb3xgQmwOPv6/nsJ1P1NaQ2RmxAXq5fN8jAsQPSOKmuKw
-# HRXCtaeSluwqaqZx/fTt9cBBsKjw8os2tRFsRh2/8aLO5/lY/nKYrOJHfEZAOLPy
-# vBKM9Jgf84ostynAiui5rD9oYWdyUS2hNPL6HPzg0kOSBXHrGk5kYcgISH2/zNVI
-# 42lfBcUAkONJxNcQ+GTNYSOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8LjxPB1M
+# G9JJJfdqdzxDMKdPsHAwDQYJKoZIhvcNAQEBBQAEggIAMV8uXUGuQgb0g5FExwsz
+# po6gozxLRo8tu93VicjjaaPnlglqMTOQ0X3COv61ncZ+Ld8yDcIsKyfTE80+6dGt
+# mMtOVdCzRwUmYZDKhNvq04aw7Ct3TKSfxJ3o50nES9l1x+5zpbzC/sghQlmVZr9r
+# C1r7KVXq4tewIlxfbk52U6+g814bjsupFWVn5qqdRUdUQ0Ajwzhsd+cmRj4LqFYg
+# 91VBzDVEY89fXXvtjvwuhmnbFacBTT4rFxjRU+Z217oXs6YdGJrozXY5jkgEIqm7
+# 7pOguTAAXADNFixAHax8AQ5ZsUi+JqitpqZNK/FyKDupiNoLr85mZz3WPIKZ/4sN
+# kxeBHiW/HmIGJojUbVBXbmIafIVJE3bGdhh3tgOBdbaWKZdlFj2zetj4MKlD9Y0E
+# e92LabD5LFXefkW4YH6B71mlo9rmwb1TaIZ9J0aH5jxB9ZBnbqsbiYqKw+Qpm1KR
+# +k0sIIOKJNDkfER4iOGrFRTw+Lz6PMiytrlOUeJqpdxrOiUlN6aE6m32qa3XGPrf
+# +nCoReSzyAVem1QcSm5LIRIW1KHuocanTJc4qeaNKImiTajzqC2L4DHUYZWqlozz
+# CHJhj3COgjfOGSFCAn73bx0cgCZZBo29suqWUM46se6aNNrBZWH7OI7nlZcwWh5K
+# Z2PUHF4IGCrrDPj5r2/I9GKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIyMDkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgHfS+Axthb5Wk7igY6KrDcNJe9gaCWA/fghk07wM2
-# zyEwDQYJKoZIhvcNAQEBBQAEggIAETffkDzmIcJepMaTGBLtMSQ5M5VE4JvN6jby
-# p3QxCWMb4RdG/jEL/CKvI7mFJzrjkL/9vHeO79UKj/EkhJmAbZYNo2ROqi6TWNnI
-# e11UVMGNHw1Yk0/lCwNMqZO8xiho/41Rz4dZbqmfbsU26SKhoMMlWuPn/H2gc3VZ
-# CFENwYoCTEQI5QYlJWoAw94ikkHVZyxvdLpDsSSkDkgOr2FskLQ0efUTsluDnH0Z
-# ekjf6Z716DrB2sXPYkeqAScg5D7zufRoxYZB4Q3lG/uo0+xkHi7TeR9O/0DNANs9
-# j6Ddg1Kjl9W5MB2BwZ2UAgRh74ouC1mJlZtjpC5YjhWO/WFTzApEY1awO6njEEwU
-# SQ34xKoqfA1wolofk3qzbbgWaqIukSTwa+2hV+gPR2ZUFCg+LK2GwjIaXkHtqwOr
-# s+m76Cu1Bc/c0eh/JdAPDGGZERy3VIAwCM9v4E5V1Qf3Wcy/uatVryL1r7pyAM2Y
-# 5gx319HBWhOtemHp35gGnSDbkTz9mZqdxZqKiaL97ZyGuma0JDKv5FSDMtnibt0i
-# QP0TfQfcP/ct7mC7vWNsTIa1mbsWDES4UGjRnkDPun8enu3gt3BAJwc+BPAOXK0m
-# E/9n+hcNpiiDXoZTQvrHeDUhyE0qbgceHLmjCe0PquhqLG0tAH49iVkIHa+bPtiR
-# K573ykA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIyMjMwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgxFf0VXrytbRUL0ovnymhUs0YCkHIgN/dA4RtZUcH
+# v9UwDQYJKoZIhvcNAQEBBQAEggIAK15RWE4gupluxbLemm+H4jJj3RWQlyvBMv66
+# 2cy1ZSbTgJWFNTqb0UbLGD1KYyMzBqtOWCuyoqXNM9y5YdcrLyFQBDxu6d3zLH13
+# bs/mQPErNENz5BoDiJi4j8R3wfeQBBKvXNQfc44Td47PYrkD4tjiKVSgZpNmNoXY
+# mgBBUPwkHiz4hEZJF+USiDk4zreYH7Yf+MIgaMTbP8VZMgznPSYZcak64Np1iv1s
+# tLrqLyeBQJsM52KQUNv2hUEJ2bpSB5Uti4Tm04aA3TJOtzYYwjFt5irhmQm2lIx8
+# ldRXWaenz2NZ0wkARBJFWZj0aHPcFs8UoITGQbz8awQYcRSqwZDshAv0W2JMNfkI
+# QgXcKnbaw2t5GaSF7NrXk3BQwgJ7NA6+7urrBOU2DoqygakxlbCEPwJMmLIcxx47
+# VtOj0GBZfNBE9sJNLzS3IGG/UvMtMniE6F9jpl3JTyrXXKgzSy9TjJiJS7CdO9fJ
+# +TBXZRkIFTTwdKKp0mhMm9oRg8meoO6bGXJYSE/ekqrv+iMz2iq+deyTPYdDt2+b
+# kNj7joA9QsssGWFbtfyOQ7yKsjNIUQqbdGBSz+eNwtCje6KQrx1u3LJ9OMCtW5en
+# yQHgVi9DFlrUm14XWfXD30LuKi/rZrODgUWrE2IMgPe0DsbXFipeIev1tKjaQGq3
+# iGLSuEE=
 # SIG # End signature block
