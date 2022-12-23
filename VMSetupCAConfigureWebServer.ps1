@@ -903,6 +903,24 @@ Begin
                 Install-WindowsFeature -Name RSAT-AD-PowerShell > $null
             }
 
+            # Test service account
+            # FIX add parameter for accountname
+
+            if (-not (Test-ADServiceAccount -Identity MsaNdes) -and
+                (ShouldProcess @WhatIfSplat -Message "Installing service account." @VerboseSplat))
+            {
+                Install-ADServiceAccount -Identity MsaNdes
+            }
+
+            # Add service account to iis_iusrs
+            # FIX add parameter for accountname
+
+            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$ -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
+            {
+                Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
+            }
+
             # Add CertSrv application
             if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
@@ -910,12 +928,25 @@ Begin
                 New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
             }
 
-            # Check directory browsing
-            if ((Get-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled).Value -eq $true -and
-                (ShouldProcess @WhatIfSplat -Message "Disabling NDES directory browsing." @VerboseSplat))
+            #####################
+            # Set IIS properties
+            #####################
+
+            $WebServerProperties =
+            @(
+                @{ DisplayName = 'Disable directory brosing on CertSrv';           Name = 'enabled';         Value = $false;  Path = 'IIS:\Sites\Default Web Site\CertSrv';  Filter = '/system.webServer/directoryBrowse' },
+                @{ DisplayName = 'Set maxUrl=65536 on Default Web Site.';          Name = 'maxUrl';          Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' },
+                @{ DisplayName = 'Set maxQueryString=65536 on Default Web Site.';  Name = 'maxQueryString';  Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' }
+            )
+
+            foreach ($Prop in $WebServerProperties)
             {
-                # Disable directory browsing
-                Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
+                # Check properties
+                if ((Get-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name).Value -ne $Prop.Value -and
+                    (ShouldProcess @WhatIfSplat -Message $Prop.DisplayName @VerboseSplat))
+                {
+                    Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
+                }
             }
 
             # Configure Ndes
@@ -945,33 +976,8 @@ Begin
                 }
             }
 
+
             <#
-            # Stopping MSCEP AppPool
-            if ((Get-WebAppPoolState -Name SCEP).Value -eq 'Started' -and
-                (ShouldProcess @WhatIfSplat -Message "Stopping SCEP AppPool." @VerboseSplat))
-            {
-                Stop-WebAppPool -Name SCEP
-            }
-            #>
-
-            # Test service account
-            # FIX add parameter for accountname
-
-            if (-not (Test-ADServiceAccount -Identity MsaNdes) -and
-                (ShouldProcess @WhatIfSplat -Message "Installing service account." @VerboseSplat))
-            {
-                Install-ADServiceAccount -Identity MsaNdes
-            }
-
-            # Add service account to iis_iusrs
-            # FIX add parameter for accountname
-
-            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$ -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
-            {
-                Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
-            }
-
             # Set application pool identity
             # FIX add parameter for accountname
 
@@ -980,6 +986,7 @@ Begin
             {
                 Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
             }
+            #>
 
             #############################
             # Set privat key permissions
@@ -1049,6 +1056,7 @@ Begin
             # Set registry settings
             ########################
 
+            <#
             $NdesRegistrySettings =
             @(
                 @{ Name = 'SignatureTemplate';       Value = 'HomeNDES';  PropertyType = 'String';  Path = 'HKEY_LOCAL_MACHINE\Software\Microsoft\Cryptography\MSCEP' },
@@ -1059,34 +1067,6 @@ Begin
             )
 
             Set-Registry -Settings $NdesRegistrySettings
-
-            #####################
-            # Set IIS properties
-            #####################
-
-            $WebServerProperties =
-            @(
-                @{Name = 'maxUrl';          Value = 65536;  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' },
-                @{Name = 'maxQueryString';  Value = 65536;  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' }
-            )
-
-            foreach ($Prop in $WebServerProperties)
-            {
-                # Check properties
-                if ((Get-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name).Value -ne $Prop.Value -and
-                    (ShouldProcess @WhatIfSplat -Message "Setting $($Prop.Name) to $($Prop.Value)." @VerboseSplat))
-                {
-                    Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
-                }
-            }
-
-            <#
-            # Start MSCEP AppPool
-            if ((Get-WebAppPoolState -Name SCEP).Value -ne 'Started' -and
-                (ShouldProcess @WhatIfSplat -Message "Starting SCEP AppPool." @VerboseSplat))
-            {
-                Start-WebAppPool -Name SCEP
-            }
             #>
 
             # Remove default certificates
@@ -1282,8 +1262,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXHsnf9HpghAOhXUgAdUQawOK
-# EOGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9gBhJGXxFskrTKFwLADPI+d4
+# Y7KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1414,34 +1394,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUG48EUWo0
-# siyQctv4++837qIID78wDQYJKoZIhvcNAQEBBQAEggIACOYsgJ47mE7Rp2PPoEVo
-# MexZqIzsK/RJpgG7V1yQLwPw83a3qZu2zYj/o8aHvCMsUkHvqBBGMw8b3CMwYK9Q
-# kaMYfxr2amNZcIbZAxMJvZ567bPpXM4fs56n5qA++B7/HS12XyUH2tVg/zc4xf+r
-# 0KpI2BfdauBQL84Fc9cW7NX3UnAATflwva+1fIm508HJVZo18cXRMGIU2zU5+oEx
-# tO+ytKf146F5cI1NO+4EJ+OAuMQltoLJa90XPnQh8yxG9taNQ92E1RaLPkYdfry2
-# HPNotTRF655P9PJV/JMvDjG2sYfhCdJ/58EKMgE1pQRdLdX8nms6mUxt13Smc9Ll
-# KHreH5pK1ZF5aVoEas4UKIOw2q81VpvGajUA/fUpnl6BvBM0KB63QPZWSt7pjHMJ
-# 8xdlJrwhMQYJ+evK+z3qr8vw699cDFzAyx48xU3vtWksiUKF0zefU5K8SopEe5GS
-# VpPco7qVNbYMb3LzktQLB+/Ubn7I7RtZD9NldXjIq6jfAbj43s8/NfGpKMIsuiCx
-# c5UkmNPuQs55uVC7gB5RMzlqeaMbbXWA3jSuTKyqQzGZoblmAh2IfFJ0o3ecyn3V
-# TDaEWIZtisunzZQ9miQ2OIVOY7e1/QFTtGYubT12vtfFdc6t6Dp9k/mJXC+WQ2EE
-# fhy4M8Pm1LafKe5nXQjR0kGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2Yl1h1z8
+# y7aFzpiikFIrITCtjTwwDQYJKoZIhvcNAQEBBQAEggIABxplGz7d9QyeRj2S7naR
+# 0USseg1v8v37BHEb0ukEUHAQYAIS/Tyc4D1a+kmri5QC/Nsmq+GFt4MhZE04t7tR
+# 1dMd5lhX+XCwRCZtXSAk33FstDdQarzC229rnwrTxz+G4cP67qH4toA+3JgAgQUk
+# nSFoTWx+1RpUIxhDQV7dl5T9c9XNeDHjUWRIlIEGw9boBKStp4+vQ7RC2nYikkWf
+# w1h35HPv+z3gYj2jmepsV39+LPzF6Eez8m1Z6CNez+sS3kPvEqHdhooW6nXnwvQK
+# hGyiS/FoHjYmkp0t7wxKRjTODYPKTdHUQZa5Ibfbllaan1Je21+h6tmZlxez9QY9
+# AtxiESD9Ll0sV/G4vwVGWdKm3gzMtyz+3DGeb6/o6utdn5hcTao3M6fHoReXM8zF
+# B9YsfUeHdFj9U+p4+yu/yXqn/+T/bPsCwFSMnuS22G4FuGe7BJJW3yBW8wW9i8UB
+# HNS8STD2ZXy3O08kyN+yuPn48EsnjP2Dn1e1qYKu89RTyBjDZc5Zz1eoi6W8fsny
+# FNf7aygJkin/50RTvZTu9UbSQB913J3FrjepHJ4EqKxWFQ2NxI5W5jmXQI6QaF9X
+# sIyMvsESST7bhLEYgLEXZbsWVEgxZ4Ww4AemxO3BTqJTj/yzeu/0p6rt/rJ83LcW
+# pIg7WzJZwfgPrEk207NumUGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIzMTIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgpErJwiMP62xn//mbc+s13S308M8szgXIrvjDlXyW
-# 3FwwDQYJKoZIhvcNAQEBBQAEggIARJFXOcJu4TCC9QPU21fPDVEdCF663p2RTUVj
-# 4bRp5zy9p+T5M/fdAu5uzm82uYvcByNuVYSSBZ62Gs2/rNwMr3c/V/tACBxebE+Z
-# kj5blUwRin5jKHyHSCQkR8CmBOjNAkLhfF13VBo8AbZdKWFnLut06q+VaHg+/haj
-# pN8uwvzXsDWjx0A6lebbP6JzYemxPAbmsuBjIYypmqkEYkIj0p+ltaFN14p2UNBa
-# 3Sa3GsEB0Hn+sWs3CnpTrYJrYUX0J/N6mCFeTBuYObCHW2TIdTxrc9IjsrQtGQ2u
-# PzF3x+QPrCllKBjejwR36DgVhKeKf8WmsYgHfSoTdN+hjaCmez/Z5b0zyNqwmK3z
-# soag91C+8tYBwuZspfS1sMlB4BTwKK6FGQWGIurcG53ngsuNHjEho2LuXoojjjzC
-# nsK9HnNJq6kgjCbKuo2NLoNeRyzvRacDTaoD0DVweVFW480d/mhshRyTZg3ToGfx
-# cX6b1GlvojDby4AaDahlV0T7OpZEgXM8X9Jjo+ai1UlbYe00NX6SPWZqBSHsMscv
-# wj2aGD9knb1XfegjykezosmXGCu2nWfzH0QMCC0g0F4WKC/pVOVHXqeCjJCSlgeJ
-# 3XU6vVYMSnGmmYFL4sWiaP5yT14cL/op8SsJPZUFsCq/fnE+ck0QoB0zOqW7naL9
-# HUbTalo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIzMTMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgRay4wLYQBuqU+cGRQhIjIgPRuhTcsm9yvqNKEEPo
+# v3kwDQYJKoZIhvcNAQEBBQAEggIAoRX1a0x57e7i0XM9Ih0tEEnryDPV5ZepMnrf
+# X86A3407pCOANJ+sEVTUcrTroGZ2Vyf8hleYdoOnlFEEsIs4sab3C4w5QW4vjrpj
+# DRKtWiTfJjdJ5F9+lkKaDJ61bhOwMp6p/ZzerdZgS+pkPQq1wMZmyvOODMKDxEuv
+# pz8PXfjW13hqgulwqB1xqghWJ/qcgdDgYNyeTtXAHb1/ALWVdWc2l0jei2wu2rd9
+# K0LbkHauXX63/FKFJOh+0wuVz/mb8pgEwJJmt5eeIfkfLtZnoDQ/DDy2BoN4p7MK
+# uWxKT4syCDF0z5a1x3XzNzFTdmzukFn1r/d0Vpdx5ozOkz0A1snXp+E6Qv/seKSg
+# LBTYOmsQqueS3EvZ9OarGcq+1L7YQ5Dr/bWzhOckDTkAPHDfM9G1mdAR0eOvJqAE
+# 0IZtK7r2w46XV2nEWPHq0qxvOH+/4SchS8LYU7JZirQI+VzyAxnZqkBzqOYhfL3p
+# POjy2cVTD3Taucf3cYTqVClgyvallhT8lWRTBHJdqaLpIYleipVsp/sWrRJKOOMf
+# mF8EOEd0Dc8DUSMJIxVvIKF9cnl0eKlfhrw3eF4I3w/b20tqBecglpFLuPu/OUy+
+# q2cbKjCrGJCGtdatg+C3efBcxR/kSYZj1KLlfAHuYZvUC38dyoxrF6EDq6+yOncW
+# jEoRs70=
 # SIG # End signature block
