@@ -903,7 +903,6 @@ Begin
                 Install-WindowsFeature -Name RSAT-AD-PowerShell > $null
             }
 
-            <#
             # Add CertSrv application
             if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
@@ -918,7 +917,6 @@ Begin
                 # Disable directory browsing
                 Set-WebConfigurationProperty -PSPath "IIS:\Sites\Default Web Site\CertSrv" -Filter /system.webServer/directoryBrowse -Name enabled -Value $false
             }
-            #>
 
             # Configure Ndes
             if (-not (Get-Item IIS:\AppPools\SCEP -ErrorAction SilentlyContinue) -and
@@ -1110,6 +1108,7 @@ Begin
             # authPersisSingleRequest true
             # extendedProtection tokenChecking Require
             # Remove providers, add Negotiate:Kerberos
+
             # setspn -s HTTP/hostname A-RECORD
         }
     }
@@ -1283,8 +1282,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhshLTWo02AxB3qRaIKa2i/Vt
-# HYygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXHsnf9HpghAOhXUgAdUQawOK
+# EOGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1415,34 +1414,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4s9P4jg2
-# bYo//waeZjDk+unGkekwDQYJKoZIhvcNAQEBBQAEggIAxQIL2IPjsoT3IxGMYn7h
-# Wjh5U7WNoowLv1Ap5Wba4gZT57hAcccJkqk4tV4PgrqwJt7rV0LRQEQLVPYq44yP
-# YiFTTkRk6wM0fbfeqI9VRsUnPuOy8B/h8/+lZqxoB/Wo2F6yCZzU+/yCb4hhZoYR
-# q911QgiTXLCmJaKHYk85dgS/k8W7/ZV4AYvLRZGaD1BBfF2d8ZVS5Ex9IT4FTfPX
-# 9BGs2m5/WzjHTM1uO12Yp1eZ91iN4fL2FQ0j73tUCm/jAaH+b/K8GG192wZY21pM
-# SCrNmi7tBTYBbOeqD7/QCVf3mi7t8c/E/BEMWPP3q2QdnWvSGUBjONfB0HV/n1JU
-# 76Xizm9IeLRvokjEy8nN8lnb3nPUMUV3gZrwpUq/+Y/PfBWKsVIApSHPYSMe2gCS
-# uDoJgxarYmATX64QBm1dwn9pvltregSIpI8buNtCfgUOoQ8H8yTmy0gPnUJ0eh4Q
-# ce9i5LsLME823wLzwoxxkzJLnw2HaiMhbSr1+FEW4VHeTTmMC7ljv+MKE8DOlPVu
-# Z02wLQEQOWYzt0NLA4PBkbTrmtGa88C9mB2Ib4SHjensNRslYmL84zO0DHKYoVKm
-# x0Ynxa+6G72e2FniKNVZFA6rxLOgWbnVrZlSUPRMGfYmdpnCBuZEMtSl6l0tKm+w
-# wLPHFb0QWdbvnpe53D2yIKyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUG48EUWo0
+# siyQctv4++837qIID78wDQYJKoZIhvcNAQEBBQAEggIACOYsgJ47mE7Rp2PPoEVo
+# MexZqIzsK/RJpgG7V1yQLwPw83a3qZu2zYj/o8aHvCMsUkHvqBBGMw8b3CMwYK9Q
+# kaMYfxr2amNZcIbZAxMJvZ567bPpXM4fs56n5qA++B7/HS12XyUH2tVg/zc4xf+r
+# 0KpI2BfdauBQL84Fc9cW7NX3UnAATflwva+1fIm508HJVZo18cXRMGIU2zU5+oEx
+# tO+ytKf146F5cI1NO+4EJ+OAuMQltoLJa90XPnQh8yxG9taNQ92E1RaLPkYdfry2
+# HPNotTRF655P9PJV/JMvDjG2sYfhCdJ/58EKMgE1pQRdLdX8nms6mUxt13Smc9Ll
+# KHreH5pK1ZF5aVoEas4UKIOw2q81VpvGajUA/fUpnl6BvBM0KB63QPZWSt7pjHMJ
+# 8xdlJrwhMQYJ+evK+z3qr8vw699cDFzAyx48xU3vtWksiUKF0zefU5K8SopEe5GS
+# VpPco7qVNbYMb3LzktQLB+/Ubn7I7RtZD9NldXjIq6jfAbj43s8/NfGpKMIsuiCx
+# c5UkmNPuQs55uVC7gB5RMzlqeaMbbXWA3jSuTKyqQzGZoblmAh2IfFJ0o3ecyn3V
+# TDaEWIZtisunzZQ9miQ2OIVOY7e1/QFTtGYubT12vtfFdc6t6Dp9k/mJXC+WQ2EE
+# fhy4M8Pm1LafKe5nXQjR0kGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIzMDAwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQgubMLEA2MqJXjaQdPly3Y6E5mE+lFppD/xcMBSjl9
-# pKEwDQYJKoZIhvcNAQEBBQAEggIAh4Kb/VMNFi13ev6TCz46ag5sc9+2GnFI9e6T
-# H6tBCQD7e2BkKuX7Mh+KeTnYXYyweMmb4VIOrKIrFq4Ooj3gym5L1WtqfBZR6HJA
-# ZOdoGHCPQQWcQIhWhrNkFqyyQOehN42VKuW4tTKjgs24qgRSKYB+kn7/6cuoiHVk
-# oSfmxvua7cALgLDdSmnJaThsxz19Cj42EpD8CiS4cLCJcfOgzJoYtTmUEZU0SbxK
-# cCPTGCJfh7eern6VfIj0+ZSexdRO9qZzFdbXMm+ncqV5ZQtuISQqBVKeQQPkUChQ
-# hBCjd5HzVVkCL22Nj3fWZRuYdzn0cGwQdg7bXkt4RMzPoySv10ypWZwFegFdf4kL
-# 1kdpwmCk+YYeyrdlFeWz7IbodMhde7aR8f4UFXdI+TXR2FkBglXPqgFh87MAk5eW
-# UcuksPaTM/lFMTRYqX9diUIegaJZO35h0G/v7SxEqJ7eWzyCYULesSo3qYsbxzPI
-# gFqDGbxJN3f3G8de79koSZuLh+FIrctqi3YxAmNQWW9muN/o04RWL8+DI+Qyfr05
-# UcmUNVhWu7DLD1RQ9FuQTIHg+Mq4V8WqnaiU+rM5BTiys4s60Ao5AlhWn9NKSjJo
-# zx5zFkKAeYkc3l1eOgOhJ8v3dghCvEsoD4pZxd0Dlj9fsVyq2s5bRcbm8oIDAcMv
-# 51jKCQI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIzMTIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgpErJwiMP62xn//mbc+s13S308M8szgXIrvjDlXyW
+# 3FwwDQYJKoZIhvcNAQEBBQAEggIARJFXOcJu4TCC9QPU21fPDVEdCF663p2RTUVj
+# 4bRp5zy9p+T5M/fdAu5uzm82uYvcByNuVYSSBZ62Gs2/rNwMr3c/V/tACBxebE+Z
+# kj5blUwRin5jKHyHSCQkR8CmBOjNAkLhfF13VBo8AbZdKWFnLut06q+VaHg+/haj
+# pN8uwvzXsDWjx0A6lebbP6JzYemxPAbmsuBjIYypmqkEYkIj0p+ltaFN14p2UNBa
+# 3Sa3GsEB0Hn+sWs3CnpTrYJrYUX0J/N6mCFeTBuYObCHW2TIdTxrc9IjsrQtGQ2u
+# PzF3x+QPrCllKBjejwR36DgVhKeKf8WmsYgHfSoTdN+hjaCmez/Z5b0zyNqwmK3z
+# soag91C+8tYBwuZspfS1sMlB4BTwKK6FGQWGIurcG53ngsuNHjEho2LuXoojjjzC
+# nsK9HnNJq6kgjCbKuo2NLoNeRyzvRacDTaoD0DVweVFW480d/mhshRyTZg3ToGfx
+# cX6b1GlvojDby4AaDahlV0T7OpZEgXM8X9Jjo+ai1UlbYe00NX6SPWZqBSHsMscv
+# wj2aGD9knb1XfegjykezosmXGCu2nWfzH0QMCC0g0F4WKC/pVOVHXqeCjJCSlgeJ
+# 3XU6vVYMSnGmmYFL4sWiaP5yT14cL/op8SsJPZUFsCq/fnE+ck0QoB0zOqW7naL9
+# HUbTalo=
 # SIG # End signature block
