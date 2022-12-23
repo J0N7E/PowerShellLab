@@ -947,12 +947,14 @@ Begin
                 }
             }
 
+            <#
             # Stopping MSCEP AppPool
             if ((Get-WebAppPoolState -Name SCEP).Value -eq 'Started' -and
                 (ShouldProcess @WhatIfSplat -Message "Stopping SCEP AppPool." @VerboseSplat))
             {
                 Stop-WebAppPool -Name SCEP
             }
+            #>
 
             # Test service account
             # FIX add parameter for accountname
@@ -1066,8 +1068,8 @@ Begin
 
             $WebServerProperties =
             @(
-                @{Name = 'maxUrl';          Value = '65536';  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' },
-                @{Name = 'maxQueryString';  Value = '65536';  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' }
+                @{Name = 'maxUrl';          Value = 65536;  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' },
+                @{Name = 'maxQueryString';  Value = 65536;  Path = 'IIS:\Sites\Default Web Site';  Filter = '/system.webServer/security/requestFiltering/requestLimits' }
             )
 
             foreach ($Prop in $WebServerProperties)
@@ -1080,12 +1082,14 @@ Begin
                 }
             }
 
+            <#
             # Start MSCEP AppPool
-            if ((Get-WebAppPoolState -Name SCEP).Value -eq 'Stopped' -and
+            if ((Get-WebAppPoolState -Name SCEP).Value -ne 'Started' -and
                 (ShouldProcess @WhatIfSplat -Message "Starting SCEP AppPool." @VerboseSplat))
             {
                 Start-WebAppPool -Name SCEP
             }
+            #>
 
             # Remove default certificates
             # Enroll new certificates from custom templates
@@ -1279,8 +1283,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtk+fXFTmz1u23q4cRyeqC/LF
-# Ol2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhshLTWo02AxB3qRaIKa2i/Vt
+# HYygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1411,34 +1415,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8LjxPB1M
-# G9JJJfdqdzxDMKdPsHAwDQYJKoZIhvcNAQEBBQAEggIAMV8uXUGuQgb0g5FExwsz
-# po6gozxLRo8tu93VicjjaaPnlglqMTOQ0X3COv61ncZ+Ld8yDcIsKyfTE80+6dGt
-# mMtOVdCzRwUmYZDKhNvq04aw7Ct3TKSfxJ3o50nES9l1x+5zpbzC/sghQlmVZr9r
-# C1r7KVXq4tewIlxfbk52U6+g814bjsupFWVn5qqdRUdUQ0Ajwzhsd+cmRj4LqFYg
-# 91VBzDVEY89fXXvtjvwuhmnbFacBTT4rFxjRU+Z217oXs6YdGJrozXY5jkgEIqm7
-# 7pOguTAAXADNFixAHax8AQ5ZsUi+JqitpqZNK/FyKDupiNoLr85mZz3WPIKZ/4sN
-# kxeBHiW/HmIGJojUbVBXbmIafIVJE3bGdhh3tgOBdbaWKZdlFj2zetj4MKlD9Y0E
-# e92LabD5LFXefkW4YH6B71mlo9rmwb1TaIZ9J0aH5jxB9ZBnbqsbiYqKw+Qpm1KR
-# +k0sIIOKJNDkfER4iOGrFRTw+Lz6PMiytrlOUeJqpdxrOiUlN6aE6m32qa3XGPrf
-# +nCoReSzyAVem1QcSm5LIRIW1KHuocanTJc4qeaNKImiTajzqC2L4DHUYZWqlozz
-# CHJhj3COgjfOGSFCAn73bx0cgCZZBo29suqWUM46se6aNNrBZWH7OI7nlZcwWh5K
-# Z2PUHF4IGCrrDPj5r2/I9GKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4s9P4jg2
+# bYo//waeZjDk+unGkekwDQYJKoZIhvcNAQEBBQAEggIAxQIL2IPjsoT3IxGMYn7h
+# Wjh5U7WNoowLv1Ap5Wba4gZT57hAcccJkqk4tV4PgrqwJt7rV0LRQEQLVPYq44yP
+# YiFTTkRk6wM0fbfeqI9VRsUnPuOy8B/h8/+lZqxoB/Wo2F6yCZzU+/yCb4hhZoYR
+# q911QgiTXLCmJaKHYk85dgS/k8W7/ZV4AYvLRZGaD1BBfF2d8ZVS5Ex9IT4FTfPX
+# 9BGs2m5/WzjHTM1uO12Yp1eZ91iN4fL2FQ0j73tUCm/jAaH+b/K8GG192wZY21pM
+# SCrNmi7tBTYBbOeqD7/QCVf3mi7t8c/E/BEMWPP3q2QdnWvSGUBjONfB0HV/n1JU
+# 76Xizm9IeLRvokjEy8nN8lnb3nPUMUV3gZrwpUq/+Y/PfBWKsVIApSHPYSMe2gCS
+# uDoJgxarYmATX64QBm1dwn9pvltregSIpI8buNtCfgUOoQ8H8yTmy0gPnUJ0eh4Q
+# ce9i5LsLME823wLzwoxxkzJLnw2HaiMhbSr1+FEW4VHeTTmMC7ljv+MKE8DOlPVu
+# Z02wLQEQOWYzt0NLA4PBkbTrmtGa88C9mB2Ib4SHjensNRslYmL84zO0DHKYoVKm
+# x0Ynxa+6G72e2FniKNVZFA6rxLOgWbnVrZlSUPRMGfYmdpnCBuZEMtSl6l0tKm+w
+# wLPHFb0QWdbvnpe53D2yIKyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIyMjMwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgxFf0VXrytbRUL0ovnymhUs0YCkHIgN/dA4RtZUcH
-# v9UwDQYJKoZIhvcNAQEBBQAEggIAK15RWE4gupluxbLemm+H4jJj3RWQlyvBMv66
-# 2cy1ZSbTgJWFNTqb0UbLGD1KYyMzBqtOWCuyoqXNM9y5YdcrLyFQBDxu6d3zLH13
-# bs/mQPErNENz5BoDiJi4j8R3wfeQBBKvXNQfc44Td47PYrkD4tjiKVSgZpNmNoXY
-# mgBBUPwkHiz4hEZJF+USiDk4zreYH7Yf+MIgaMTbP8VZMgznPSYZcak64Np1iv1s
-# tLrqLyeBQJsM52KQUNv2hUEJ2bpSB5Uti4Tm04aA3TJOtzYYwjFt5irhmQm2lIx8
-# ldRXWaenz2NZ0wkARBJFWZj0aHPcFs8UoITGQbz8awQYcRSqwZDshAv0W2JMNfkI
-# QgXcKnbaw2t5GaSF7NrXk3BQwgJ7NA6+7urrBOU2DoqygakxlbCEPwJMmLIcxx47
-# VtOj0GBZfNBE9sJNLzS3IGG/UvMtMniE6F9jpl3JTyrXXKgzSy9TjJiJS7CdO9fJ
-# +TBXZRkIFTTwdKKp0mhMm9oRg8meoO6bGXJYSE/ekqrv+iMz2iq+deyTPYdDt2+b
-# kNj7joA9QsssGWFbtfyOQ7yKsjNIUQqbdGBSz+eNwtCje6KQrx1u3LJ9OMCtW5en
-# yQHgVi9DFlrUm14XWfXD30LuKi/rZrODgUWrE2IMgPe0DsbXFipeIev1tKjaQGq3
-# iGLSuEE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIzMDAwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgubMLEA2MqJXjaQdPly3Y6E5mE+lFppD/xcMBSjl9
+# pKEwDQYJKoZIhvcNAQEBBQAEggIAh4Kb/VMNFi13ev6TCz46ag5sc9+2GnFI9e6T
+# H6tBCQD7e2BkKuX7Mh+KeTnYXYyweMmb4VIOrKIrFq4Ooj3gym5L1WtqfBZR6HJA
+# ZOdoGHCPQQWcQIhWhrNkFqyyQOehN42VKuW4tTKjgs24qgRSKYB+kn7/6cuoiHVk
+# oSfmxvua7cALgLDdSmnJaThsxz19Cj42EpD8CiS4cLCJcfOgzJoYtTmUEZU0SbxK
+# cCPTGCJfh7eern6VfIj0+ZSexdRO9qZzFdbXMm+ncqV5ZQtuISQqBVKeQQPkUChQ
+# hBCjd5HzVVkCL22Nj3fWZRuYdzn0cGwQdg7bXkt4RMzPoySv10ypWZwFegFdf4kL
+# 1kdpwmCk+YYeyrdlFeWz7IbodMhde7aR8f4UFXdI+TXR2FkBglXPqgFh87MAk5eW
+# UcuksPaTM/lFMTRYqX9diUIegaJZO35h0G/v7SxEqJ7eWzyCYULesSo3qYsbxzPI
+# gFqDGbxJN3f3G8de79koSZuLh+FIrctqi3YxAmNQWW9muN/o04RWL8+DI+Qyfr05
+# UcmUNVhWu7DLD1RQ9FuQTIHg+Mq4V8WqnaiU+rM5BTiys4s60Ao5AlhWn9NKSjJo
+# zx5zFkKAeYkc3l1eOgOhJ8v3dghCvEsoD4pZxd0Dlj9fsVyq2s5bRcbm8oIDAcMv
+# 51jKCQI=
 # SIG # End signature block
