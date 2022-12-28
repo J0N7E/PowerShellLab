@@ -17,6 +17,8 @@ Param
     [String]$ComputerName,
     # Force
     [Switch]$Force,
+    # Always prompt
+    [Switch]$AlwaysPrompt,
 
     # Serializable parameters
     $Session,
@@ -103,7 +105,7 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$PolicyURL,
 
-    $Policy,
+    [String]$CAPolicy,
 
     # Root CA certificate validity period units
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
@@ -863,33 +865,11 @@ Begin
         # ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        # FIX
-        # add parameters for issuance policy
-        # add oid parameter
-
         if (-not $CAConfigured)
         {
-            if (-not $Policy)
-            {
-                $Policy =
-                @{
-                    PolicyOID = '2.5.29.32.0'
-                }
-
-                if ($DomainName)
-                {
-                    $Policy.Add('PolicyURL',"http://pki.$DomainName/cps")
-                }
-                else
-                {
-                    $Policy.Add('PolicyURL', $null)
-                }
-            }
-
-            # Check if exist
             if ($ParameterSetName -match 'Subordinate')
             {
-                if ($DomainName -and -not $PolicyURL -and $PolicyOID -eq '2.5.29.32.0')
+                if (-not $PolicyURL -and $PolicyOID -ne '2.5.29.32.0' -and $DomainName)
                 {
                     Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
 
@@ -1304,7 +1284,13 @@ Begin
                 Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
             }
 
-            Check-Continue -Message "Proceed with CA setup?"
+            Write-Host "AlwaysPrompt: $($AlwaysPrompt.IsPresent)"
+
+            Write-Host $AlwaysPromptSplat.Keys
+
+            Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
+
+            return
 
             ##########
             # Install
@@ -1720,10 +1706,12 @@ Process
         Invoke-Command -Session $Session -ScriptBlock `
         {
             # Common
-            $VerboseSplat     = $Using:VerboseSplat
-            $WhatIfSplat      = $Using:WhatIfSplat
-            $Force            = $Using:Force
-            $ParameterSetName = $Using:ParameterSetName
+            $VerboseSplat      = $Using:VerboseSplat
+            $WhatIfSplat       = $Using:WhatIfSplat
+            $AlwaysPromptSplat = $Using:AlwaysPromptSplat
+            $Force             = $Using:Force
+            $AlwaysPrompt      = $Using:AlwaysPrompt
+            $ParameterSetName  = $Using:ParameterSetName
 
             # Standalone/Root/Enterprise/Subordinate
             $CAType = $Using:CAType
@@ -1750,7 +1738,7 @@ Process
             # Policy URL
             $PolicyURL = $Using:PolicyURL
 
-            $Policy = $Using:Policy
+            $CAPolicy = $Using:CAPolicy
 
             # Root CA certificate validity period
             $RootValidityPeriodUnits = $Using:RootValidityPeriodUnits
@@ -1924,8 +1912,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpPvqVK51hcFK1Ea0sMdACGrh
-# IfCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7GGFOhonAeXa/xO5kNtSvjpx
+# 5YSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2056,34 +2044,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUbA/T1HCM
-# 9pjdKaAwciwthiKK1HswDQYJKoZIhvcNAQEBBQAEggIAI9wqjPGH330RyVcy9gcb
-# W27PPNQIP/wm0m3E3dL3GmuSlYaKoGze4Dd3ys0wqIlFjQzUEsAVKxwd15Ym2Tw1
-# CHAhaa71BudnW7Yivti13X+a6FhryTRWym6WRy29OdbLsgL0xXjr9wSLMZ1ZWwoK
-# TRWavKqnzHQ89mC2tMN4sYjQhdHsl9Ap3O36Yqjm+cVJWQQpDIK9ras2joxiykI0
-# q4XoeDRORmQUfqcmosV35xRp2fQ57SICuUv+mmx2IVG9S+CvyF0rbcUR9oXUNbvz
-# dvO6Z8px3ygcAB5UKiZECTIWd/WFjly38YPWdPtHwavtl+WCYSEbkusXzBnf3Ons
-# Uisaf/8wzmeiledv48uaGz9FWHgkH+bnmkKI4CaPXBPVal+o3F9/Y+fE4gTvP0J7
-# w+HMjqfKODnx0pq/3PSERgPtb+OPNz/XQkF8A3d6erxfOW3zeZckhTq1l5nrAIxh
-# jUAA4FYUYcEVXY7ruo4OdCe/tIpYOFCqZqlBm/JxBiRUvc+kJeybYlh53n4C0pkg
-# fn2oOwmVdr40z1ZBUxt3P5F0kpyLCxYIf8nNBCvoF92AOw9kD/xC7yrADx73Alf/
-# C4zWj9oV5uxgEbPTjWe8sd9Xw9uHpCMQWKVkDUiIngDL3UdtWnKnVKYgUXMGTNht
-# Zj/ZScrVpw5LWZfZXH261wuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+9UmsrnV
+# w8Q5/uAJ0QFGKPt8uKYwDQYJKoZIhvcNAQEBBQAEggIAg384GrNs4IsfABNfEog3
+# i4lUrDDTgFJeHFb6mF+3l7yaEOK+750GEqor8F4tpCokYqrDY1cpKKEbDVZFRQ8Y
+# ifL+amoBzYl1hEpR6coJO0OFFUhhnV3hikYX3Lg4sFvELm01Wa9MXAl1mbxj+4I7
+# Z7s2Bvv3S81XFrGJGYKNQK71d+iZ8DOFBWJrhUDKSvObscvYOb2p5Ih4ghZ1FO5z
+# 7t6hhIP0GPCPH8NxF3avcstO8hNNRKiBIMkAv0V+cgb4zntzK42k5cpQ2OyVWQei
+# mh+SI9fw2dJS+snDxJ2mOgnDUDOyohj6VpVBeRUvQ85UNDStW66jaEFIVzCCp5Jc
+# BLF34MjeyJbEq808bV6uMhcpagcfP4++Qogxa6W6C5kLXT7A9lSBkKDEvlQGy29G
+# GFnv+MbkevZVJypZWOxnmI5t4weHYeEi21nASpeCTQJ3qL6YWManQ2mFZJx97HQf
+# 7uew7ZZ1r3l319yF/Z8RDi/i9i7pN6zGLSdbHF+KasX2xsf39Eitm088ylF8RlTI
+# dA7BOxf5L2OlYPbTmfVbf2/9BVAkFCXKzPDSFw3ScSyTA3c7uxd1UBW2i7cy9kvj
+# cPo2Q0txtzSOzMEfmkFmjkAehsO8MnkFXFcrKNNTehOWVuLrk2ZsEQQQBUyZeZZ8
+# BLbdSM3/bSk4YJyrtwPzg7WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjIwMjAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgbjXuDTRQarQ+p5U4f0Bp73cD3twiZIzVnmRoiShn
-# xNAwDQYJKoZIhvcNAQEBBQAEggIAHaErNZdgMaCUvuyxCekKlLn2ElVpopJgSD5w
-# KTVR1qzYp3PVn6yt0sqmIFqTWdcJ+9UdwpUAa/0dD4jLyrD+uSwyv5itfMCy8PIn
-# RVcMnWQnPQUOAfh00pI8YEphqYcF9zqTMZnH3GVysHzsm8QLc7/PVYSsAJDC8O2M
-# RBM0yiJNZTPcVQS57ph17SWFCq9w4Bb3C86b39eZRpx1ZYyRflY7ycXQ2g1tQptL
-# zZFPWk9/3mv0r5eEhRCAAElBYv6TU7p5av5kmRacEx39FZgptCiyZpfsEGJUOneg
-# RC/CkkEp58YLrMtD5ri9jiTgUp6lEtXhQL/m0MDIyfvQ24uRvTn4vxQNIpFSLtEY
-# HP16IG3a5DLtLZDBXO4ec0GopZ/1SIa/o1DXdZZk5w+MAHIeRyV6t/JQL+Ax2uv+
-# IAVpWLhfj7+SXbU0E1z3f1thfKT17CavxHQOxJCh5D2jNjxSdL9kCyMb5kvCQA6o
-# l6h5l/e/2EBOZd8hVntE9A9NcjhlC+2NveaKQlw4lhaxsMwxhUyoE2ioEiUqnZc0
-# LmY2EuDA04X0IQbI5JGPAUIQ9a9GdRuYNTr2E8koALLSEKKc27T9H7BH1TV8LqFO
-# m6vIU9GxIf0jXD5C1y+z+l50tidBZcjPDbULVJNvn4xG+jwOUlAC8WbmjFJ9vifV
-# Pd0Nm64=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjI4MjEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg6I75CZDK3ub3bU3AH9i42CZJmLE5KEhvCEJln3Vu
+# zEEwDQYJKoZIhvcNAQEBBQAEggIARMd8kCUmP6bCRziul6eXgVYMgWIWDFh4SCJo
+# Yt0GLZZG5ngUiB6yAgPA5Dd5SPj2UaODMmd6ROYLz7wESRZbjNCFae/rE3ViqHxi
+# 1Ks6ON+KpjAL4wuH8yB8jsXcwBGx1x7lqpJJxMnf8aQa7PBDt00UlKYIBv0cw+0R
+# DHwOuyIX7WDi8OjcY54ByrceA0BuCZCSHK1egnmtVitbnLddvcUzXt8tjMjO5O3G
+# 5oZqgYf7uIEQ2tiosftsh2XpIq/iKgFNhDZ163+vO7koZGmufPegdHHgewWyUwO2
+# 8D+T9X2LB2pL/sUi7FKYzFd2XAWew0FS+QsqSDXJb6owCpu/X7I0LVqPy9LFWEKq
+# 71u5OzzIuO6xyja7i+jvqk+LBvLatyetidF2OFABEm2GrRFTCcRcWspG3eyyWQQr
+# kelWO1Um69yaspklzNTAC5CLZgz1r0ZUbQKKBhZ0vcwyDr81dYFTG8FDqHWrYk6K
+# xhSO4/QeAK3SRuaj9bb8SAHPPHhUjgePWuXGsZ2DldZlFVT95gW4C2qJUpCaOZW5
+# 0Gg5j3A7CU1+xKRZQn85HMIO4hItWsYUE3HieFn6qRReGxkYIax5uFmF1tb2/R3Z
+# IqhrIxrojKv7Ia5SrmC7UXwI5KPIxGUsXWuQHSJX4fPl1AJXplOmK6Et+Y10OTN7
+# rKOJ5kk=
 # SIG # End signature block
