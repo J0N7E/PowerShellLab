@@ -59,21 +59,28 @@ Param
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     $CertFilePassword = (ConvertTo-SecureString -String 'e72d4D6wYweyLS4sIAuKOif5TUlJjEpB' -AsPlainText -Force),
 
-    # Certificate Key Container Name
+    # Certificate key container name
     [Parameter(ParameterSetName='KeyContainerName_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$KeyContainerName,
 
-    # Certificate Authority CN
+    # Certificate Authority common name
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$CACommonName,
 
-    # Ignore Unicode
+    # DN suffix
+    [String]$CADistinguishedNameSuffix,
+
+    # Root CA common name
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
+    [String]$RootCACommonName,
+
+    # Ignore unicode
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
@@ -83,9 +90,6 @@ Param
     [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
     [Switch]$IgnoreUnicode,
-
-    # DN Suffix
-    [String]$CADistinguishedNameSuffix,
 
     # Policy OID
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
@@ -105,6 +109,8 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$PolicyURL,
 
+    # CA Policy inf file
+    # FIX add
     [String]$CAPolicy,
 
     # Root CA certificate validity period units
@@ -125,10 +131,6 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$RootValidityPeriod = 'Years',
-
-    # Parent CA CN
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
-    [String]$ParentCACommonName,
 
     # Hash algorithm
     [ValidateSet('MD2', 'MD4', 'MD5', 'SHA1', 'SHA256', 'SHA384', 'SHA512')]
@@ -465,7 +467,7 @@ Begin
             if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
             {
                 # Check subject
-                if ($ParentCACommonName -eq ($CertutilDump | Where-Object {
+                if ($RootCACommonName -eq ($CertutilDump | Where-Object {
                         $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
@@ -487,7 +489,7 @@ Begin
             # Check if not found
             if ($ParentCAFiles -eq 0)
             {
-                throw "No parent certificate for `"$ParentCACommonName`" found, aborting..."
+                throw "No parent certificate for `"$RootCACommonName`" found, aborting..."
             }
         }
     }
@@ -1081,7 +1083,7 @@ Begin
             #############
 
             # Certificate
-            $RootCertificateHashArray = TryCatch { certutil -store root "$ParentCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
+            $RootCertificateHashArray = TryCatch { certutil -store root "$RootCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
                 $_ -match "Cert Hash\(sha1\): (.*)$"
             } | ForEach-Object { "$($Matches[1])" }
 
@@ -1090,18 +1092,18 @@ Begin
             #############
 
             # Create temp Directory
-            New-Item -ItemType Directory -Path "$env:TEMP" -Name $ParentCACommonName -Force > $null
+            New-Item -ItemType Directory -Path "$env:TEMP" -Name $RootCACommonName -Force > $null
 
             # Itterate all files
             foreach($file in $ParentCAFiles.GetEnumerator())
             {
                 # Save file to temp
-                Set-Content -Path "$env:TEMP\$ParentCACommonName\$($file.Key.Name)" -Value $file.Value -Force
+                Set-Content -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
 
                 # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$ParentCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$ParentCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$ParentCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
             }
 
             ######
@@ -1112,7 +1114,7 @@ Begin
             $ParentFileCertificateHashArray = @()
 
             # Itterate all parent ca files
-            foreach($file in (Get-Item -Path "$env:TEMP\$ParentCACommonName\*"))
+            foreach($file in (Get-Item -Path "$env:TEMP\$RootCACommonName\*"))
             {
                 # Get CA certificate hash
                 $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
@@ -1149,7 +1151,7 @@ Begin
             ##########
 
             # Remove temp directory
-            Remove-Item -Path "$env:TEMP\$ParentCACommonName" -Force -Recurse
+            Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
         }
 
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
@@ -1732,7 +1734,7 @@ Process
             $RootValidityPeriod = $Using:RootValidityPeriod
 
             # Parent CA
-            $ParentCACommonName = $Using:ParentCACommonName
+            $RootCACommonName = $Using:RootCACommonName
             $ParentCAFiles = $Using:ParentCAFiles
             $ParentCAResponseFiles = $Using:ParentCAResponseFiles
 
@@ -1899,8 +1901,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTBgMTsA+lYrguVb78wssyufZ
-# bl2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU33SX6Q6I+24gax1XBxO239W4
+# CfygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2031,34 +2033,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU1YCKeXLz
-# TUDDkqK8MoNzutfdApcwDQYJKoZIhvcNAQEBBQAEggIAney0Ts9FNMwglmFxM4zb
-# 3btrtmnK2sB0n1OqdynegQTO3JL3DBjm6VgKOy8B9t3PK1tU6EBJUnxnfUZ88ReF
-# 8bV3bDbg19JwvQvKH8bjwWsXECQcf82XCh2nBx+BDTcBfnK2LbgX9Gq8Qbgi16BB
-# 9K5UKjvRL+crOvvXJw802ZprDKIL4pmJhTYsmpnv42LLC1FbHVfoP0IJ3AWanpSP
-# ArpQsxf518IN7YaEIm0uKieaTBU6bX08GgiZBRrPt94cKeAzjAUHDZ3qL4s7tkzA
-# OSb2ey/NlASttdLaUw9Gx4HfQrWuGuoGTo4cOznHVh4a2UEO0L1j6Iz0DRmxtxxO
-# Gi8qhCEn+tkjZ1jxeyJYWxoXOQeWst8+6nNrlhsPDjV6pSdpg6wedwkfjyZDpD13
-# Mv/+FBBHtpdQWSsjrgWzjeZcqGXxNZjOruTUF5nQtiSjRUTAo55C6pF5zKsb7Ucr
-# ZyuKRX1xzTTT/5Cvu9LZ/69T2eQC14EMW8jXvRMGDS2FNpO0+2VWEWRXr7kfz04O
-# boSMhFL2hFI4e5gPmcNBECUTbCcEzPRQJRMrzxmD9lR7xiCZnPTGV2BNLMF4lirE
-# z5LRwC9DRs4BKoWRiHM7yehYOuEX/7gfa4SJshHP/Qbn5B6yzwoOOZyB1gOJcO9O
-# QXrjBTd6O+ZUUP2WFfznwy6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUddVQxC8s
+# bXr8wyqzM1hNi6+RHMkwDQYJKoZIhvcNAQEBBQAEggIAs5hSQkufCE6iDN7houYS
+# Vuj8rI7jWUzkDwRSAB0VNyi9/CVjn14AkdTIsdjd1Je8hBuf3LxftwDOUMlNY2ZB
+# i889QFmK/2wvluN+33gcrN7wDW9RxxQyv64AtZIqmBT1T8DlRdvtKk9iSvHhzm3q
+# H1GRQA68ah5mrONii4QZ+BjQmX4wS1uDZuoPQsaNDl7Anhkxyn8AV3s6YASrytgP
+# mbwJ8WDWvVKTKC0UQgCsB5ZuRbagvOm8zNWULBHw9tF598CC5+dL9O1zEs/CohI3
+# r0+T8CZsi4w1iK4tM9olBPgxhuP4kdpwkW0d+vr5qX9P+300m+VsyzRgnpHY8o9H
+# lHD1eiHbZrzpRpzstxTlEZYPV3BBJhsw+VuIluhYHWQeQgGxKnFrOP15f/P2fVFj
+# dG2oQ5/z6Uex161gjpp3iqYoL7T+hs8rDpYv4ZUtZRE/viGlBYCdVPUqrbwBztpf
+# qwBzAYmFUmO2aXq9Mgoo/w4wCWFpf2iy88IkvJGGcSYzroHZ+sevzvOkIVMr9sji
+# nlDtlWTpd+V6i66kgxkJ+oSh1UjVcw0gT4v+bQonWXOfJEHFDLv//+l1amJN4YuO
+# rURmJh7LiKHQ/QSVt/d4qIGYBDghyxGHl4vEqF+fpwzLd/unMGoHGmmwxdxcY9aN
+# TmwkcbkbsFK+7ELP29WD0tWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEwMjAwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQgDS1BQPJWnzelnNw5UF3XCgAifm54GWOJtBS+g/Wu
-# 4oIwDQYJKoZIhvcNAQEBBQAEggIAoCY922vk96ePZ9IzAEx4DPocFDmJk+SJAMyh
-# 6jgtOBn9zJhnHJTqGRVIcHtWMRXOrONciM6PCzo5RVURBgqRJM7YmnLacyxLlnEh
-# 9IoRMQHdokH17YsOQVy/xphj+yLND1OOrNaOUGfucbL5DPWuJL9YwNWIpojWBu+D
-# EY0kK3gpfAVqEsvW54fQkHV5v/VvBH2UsS8YHGxGrBQQPAgZZIqiN6uSNZI3MDw+
-# hOONZ8X86bM/uyODLGTbJ4DBuHiuvcmi4Y1347C5Hb0lZ7rxMTvloO4rupsxkexF
-# 7CkUsbLEFrXzWHM9Zcmjc9JMeF6IguSAORsOHqWfChvCkv25w5fifobX7DNR+jVS
-# mVntecY9p1xQ5KmnQg3XeGbpyCVRXV7dhY3WajTwgZLcoAUTJmPl7EfiqY6+fK2G
-# j8fXYT/6qClnhjR2IRB9yHgKp8SWdWSw9qXsPrL25UsowfldJs3GimCe5jdQSkfb
-# KuvmkHUusVFFBToqaloniOdPvpkWFJmD0tTrWFVNK8XQhybvYnajIkbAEUkxp2g6
-# siqvJl69dTpvjPcNONzFcxBsQSm/p+V/Ic6A21EerNZqD/P5FnvmrTt5sn8mxQfD
-# 6QW7XWMUlJ+EpU6q27vAXl7JkQ6I/7MzEQTPkqjsagHK9x/49603rQinCep8iIXn
-# 2fcdMMc=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMDAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgOdXGk/oYY8OxwpMMe+vPM9CSuiMw/x434MEf+Z/y
+# e/cwDQYJKoZIhvcNAQEBBQAEggIAZUatLmNaXmsoYBhO4el7MAyYe/kLLsM0/GE7
+# G3GCmlybp5Pbso7uPNUp7t4mDdsE2erKZwUNF7EzHk/L7ClJgWN1VLML+P6WnGLu
+# 3f1LNvXPm0/XbIODl3SfpVXFA+FClGgnVH0OOaHyqS9sjeZkMMedlMYK5jPLgleg
+# Kh2HJ6tXDzxfg1Q29d2sloTW6+Eeue2pr9vgwHAUVDCSE4LwzyO1p/tYZK7wAblM
+# hDt8MwiFlhgXFleQb4yULbsFpbz3Sz8CWXqrt3W96apFm0ZbOMqr1lf7NI/aEmNN
+# w3eS+2D3K8QMQfsKssqo0KJBBlGG5sNUrUgn2yh4ydij748av+JcjAUtCs3VE38q
+# noMC8AV9uC0C9nYCg17pUDwWxo3HoSTYO6GtKVY64guJwviXo6oWAmoKEASOfehS
+# O4xemt+qhbZaQnJWBRsN6HB7+Rcga1PjuFW7igWeLsy1XYBmDnbitNNaKycML5bV
+# 1fQ2UVt652nFWfC4nTh7oP4iAAVeQzJUURpOBiBvxMSF888WBQKPfxycZZDUS+ON
+# AXNzCh3qG7889JbVsZWylSL5d9USsz1h+wLuO5HvGqCdfaP36/F7hcoTX6QAWG+Y
+# VcGTkWjMb8lpMQIfHCO+QmrDbWaU5PIRN0aPYtGBPO2rCCAiyl70WndHzaFh/S/l
+# Zgi8FXs=
 # SIG # End signature block
