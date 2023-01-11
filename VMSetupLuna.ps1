@@ -22,12 +22,12 @@ Param
     $Session,
     $Credential,
 
-    [String]$LunaClientPath = '.\LunaHSMClient.exe',
+    [String]$LunaClientPath,
 
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
     <#----#>$LunaSh, #Serializable
 
-    [Parameter(ParameterSetName='Plink', Mandatory=$true)]
+    [Parameter(ParameterSetName='Pscp')]
     [String]$Fingerprint,
 
     [Parameter(ParameterSetName='Pscp')]
@@ -37,12 +37,10 @@ Param
     [Switch]$PscpCertificateToHsm,
 
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
-    [Parameter(ParameterSetName='Plink', Mandatory=$true)]
     [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
     [String]$HsmHostname,
 
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
-    [Parameter(ParameterSetName='Plink', Mandatory=$true)]
     [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
     <#----#>$HsmCredential, #Serializable
 
@@ -84,11 +82,11 @@ Begin
 
     $Serializable =
     @(
-        @{ Name = 'Session';                                         },
-        @{ Name = 'Credential';                Type = [PSCredential] },
-        @{ Name = 'LunaSh';                    Type = [Array] },
-        @{ Name = 'HsmCredential';             Type = [PSCredential] },
-        @{ Name = 'LunaCm';                    Type = [Array] }
+        @{ Name = 'Session';                              },
+        @{ Name = 'Credential';     Type = [PSCredential] },
+        @{ Name = 'LunaSh';         Type = [Array] },
+        @{ Name = 'HsmCredential';  Type = [PSCredential] },
+        @{ Name = 'LunaCm';         Type = [Array] }
     )
 
     #########
@@ -120,39 +118,42 @@ Begin
     # Get Luna Client file
     #######################
 
-    if (Test-Path -Path "$PSScriptRoot$LunaClientPath")
+    if ($LunaClientPath)
     {
-        $LunaFile = Get-Item -Path "$PSScriptRoot$LunaClientPath"
-
-        $SessionSplat = @{}
-        $ToSessionSplat = @{}
-
-        if ($Session -and $Session.State -eq 'Opened')
+        if (Test-Path -Path $LunaClientPath)
         {
-            $SessionSplat += @{ Session = $Session }
-            $ToSessionSplat += @{ ToSession = $Session }
+            $LunaFile = Get-Item -Path $LunaClientPath
 
-            $TestLunaFileBlock =
+            $SessionSplat = @{}
+            $ToSessionSplat = @{}
+
+            if ($Session -and $Session.State -eq 'Opened')
             {
-               Get-Item -Path "$Using:TempDir\$($Using:LunaFile.Name)" -ErrorAction SilentlyContinue
+                $SessionSplat += @{ Session = $Session }
+                $ToSessionSplat += @{ ToSession = $Session }
+
+                $TestLunaFileBlock =
+                {
+                   Get-Item -Path "$Using:TempDir\$($Using:LunaFile.Name)" -ErrorAction SilentlyContinue
+                }
+            }
+            else
+            {
+                $TestLunaFileBlock =
+                {
+                   Get-Item -Path "$TempDir\$($LunaFile.Name)" -ErrorAction SilentlyContinue
+                }
+            }
+
+            if (-not (Invoke-Command @SessionSplat -ScriptBlock $TestLunaFileBlock))
+            {
+                Copy-Item @ToSessionSplat -Path $LunaFile.FullName -Destination $TempDir
             }
         }
         else
         {
-            $TestLunaFileBlock =
-            {
-               Get-Item -Path "$TempDir\$($LunaFile.Name)" -ErrorAction SilentlyContinue
-            }
+            throw "Can't find $LunaClientPath."
         }
-
-        if (-not (Invoke-Command @SessionSplat -ScriptBlock $TestLunaFileBlock))
-        {
-            Copy-Item @ToSessionSplat -Path $LunaFile.FullName -Destination $TempDir
-        }
-    }
-    else
-    {
-        throw "Can't find $LunaClientPath."
     }
 
     # ███╗   ███╗ █████╗ ██╗███╗   ██╗
@@ -167,15 +168,6 @@ Begin
         # Initialize
         $Result = @{}
 
-        ##############
-        # Check admin
-        ##############
-
-        if ( -not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
-        {
-            throw "Must be administrator to setup Luna Client."
-        }
-
         ############
         # Functions
         ############
@@ -187,19 +179,14 @@ Begin
                 [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
                 [Switch]$LunaSh,
 
-                [Parameter(ParameterSetName='Plink', Mandatory=$true)]
-                [Switch]$Plink,
-
                 [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
                 [Switch]$Pscp,
 
                 [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
-                [Parameter(ParameterSetName='Plink', Mandatory=$true)]
                 [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
                 [String]$HsmHostname,
 
                 [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
-                [Parameter(ParameterSetName='Plink', Mandatory=$true)]
                 [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
                 [PSCredential]$HsmCredential,
 
@@ -408,11 +395,14 @@ Begin
         # Install Luna Client
         ######################
 
-        # FIX
-
-        if (-not (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\lunacm.exe") -and
+        if ($LunaFile -and -not (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\lunacm.exe") -and
             (ShouldProcess @WhatIfSplat -Message "Installing LunaCm." @VerboseSplat))
         {
+            if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+            {
+                throw "Must be administrator to setup Luna Client."
+            }
+
             Start-Process -WorkingDirectory $env:TEMP -FilePath $LunaFile.Name -ArgumentList "/install /quiet /norestart addlocal=NETWORK,CSP_KSP" -Verb RunAs
         }
 
@@ -424,7 +414,7 @@ Begin
 
         switch ($ParameterSetName)
         {
-            { $_ -in @('LunaSh', 'Plink', 'Pscp') }
+            { $_ -in @('LunaSh', 'Pscp') }
             {
                 $SafeNetSplat +=
                 @{
@@ -441,13 +431,21 @@ Begin
                         Timeout = $Timeout
                     }
                 }
-                elseif ($Fingerprint)
-                {
-                    $SafeNetSplat += @{ Command = "-pw $([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($HsmCredential.Password))) -hostkey `"$Fingerprint`" $($HsmCredential.UserName)@$($HsmHostname)" }
-                }
                 elseif ($PscpCertificateFromHsm.IsPresent)
                 {
-                    $SafeNetSplat += @{ Command = "-batch -pw $([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($HsmCredential.Password))) `"$($HsmCredential.UserName)@$($HsmHostname):server.pem`" `"C:\Program Files\SafeNet\LunaClient\$HsmHostname.pem`"" }
+                    if ($Fingerprint)
+                    {
+                        $Command = "-hostkey `"$Fingerprint`" "
+                    }
+
+                    $Command += "-batch -pw $([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($HsmCredential.Password))) `"$($HsmCredential.UserName)@$($HsmHostname):server.pem`" `"C:\Program Files\SafeNet\LunaClient\$HsmHostname.pem`""
+
+                    if ($Fingerprint)
+                    {
+                        $Command += " 2>&1"
+                    }
+
+                    $SafeNetSplat += @{ Command = $Command }
                 }
             }
 
@@ -627,8 +625,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUg44gJ3/jPy9WVBkTguwuJFCE
-# x3OgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjGgAvhTy7lLJ51NqcTa5ixyK
+# m9ygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -759,34 +757,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0HhHecpo
-# Zd/bkpHNQ499p9bFd50wDQYJKoZIhvcNAQEBBQAEggIAQTHLmtYyr4o1UqcE+quy
-# 3VnvqWIJFcyUTuKzD/qbSWOXBIfOCfl6P97GgITAkdX8o2hhiE2G3BupToqHcfBJ
-# dp+OeAhUNCg0spKe9zT5jMHG/tdkof+aCvW1zhoXy2L+a4tA+GhZs+NVBTgn+bv9
-# W9UUGQpVStWWze0txjoEUOIybzEP5ZVuZov/qTzDBrgx/7Q5G7xmC7Azgi1O+SPM
-# k9vJwOoY9XGJWTk4Ehsgv4r84rek15/aWSzim5FkoMlh71/+7LY++k9x/4eql/vy
-# aP+s2+pP/8AWnI5x8VHgsidJdzZ16FJyx5JqXML7cpnIbV4v70bUdKIlofcIZCAL
-# mhUihg4tC4lkYr93kNGrGlKz+soMjIRniCoWhh4E7nvWKvTwQ1ldmcG381nGrpKY
-# fvCjK4nw2+BGrBXBvz2RhvFzSAWWi94eLnfbsJqp8hkFzXmVf9XH3Yyk0o4s6xOD
-# wwCfYYY5LFxgsWprIfsSr9Em72e3YEiJk6Vxi1/u/SP9HKTxIFH4E68VeoTA+iLZ
-# /yQmejzt1rn2yWZqDdS/RdzBV72fPbQwBnhRgHCTENv7P2VnS6bV/R2TUw3kkuzv
-# pvEUil3eZOhs26SbjyojMFkhn7hqE/CfZFbffbC3K32F5lufdw5W4vNB1WD9RNGr
-# JVBlK3E/ff0+9lkmuPmAfDuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4RXAJ7qX
+# Dsvplslx+p6D69fRFHYwDQYJKoZIhvcNAQEBBQAEggIAFOIMI7r7VFhuGh/xs1fb
+# aaltqZgm7LzAbMtxu8I0zqjJdc7fp8qXlvm4GE6INR72tyxohvViH2yDWARrL1Kl
+# OQQDCiiBWRgHcFhRFJcmE9vpXIhqVXmKzFg2XLt+3/TPsbJZlz0JWQG8CehSIm9q
+# yzmnW5+r019mmKwK1Ibn83ps8wX9ka+rkhsnyj0Vl80yU9t+VQZPyzuejO07pWoW
+# xUic1g6RyiZK5kHHgG3UP3596Jok1j5HC4171dOTVRHq+6ViBAc/Xnd2Sve46Yx8
+# YSon2u6bUd8/G7p1hbOlvHW44caaE4CUmMmZNX+gTIihxms0M5yIYk4erPv8LcfV
+# iUgXt/G6sJisyji79tlv8pYtP2RbuSp1xZYpjHv4aO6jKaehToqWOyzOftMUVar7
+# DudlyFejwmmBXgV19CUn2M+ZaG+PtQbnk7D5Ms+VtwMAnVllWidZPoHl4apnAj/C
+# cDeq6MTC4Aq5uoR2I+LcMlGmImP1PsOPnas5MNFwH+ufvY3u9bb2N9MpENCHYUBp
+# swsztqwGklOcv0FB5bEc0b2f85zaM+hC1KfMXyp2JD6Sg/IQQ79VsPi7StbH2lJq
+# OtCesusJt7IcJOmyKRKgltYdZsUK4Sb6PDGrGQpd7QW3Wr+kDNPnX8zvNg8kicT6
+# 9k1XM1QjR1r9ku+ev0/3HFOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjIxMjA4MjA1OTU5
-# WjAvBgkqhkiG9w0BCQQxIgQgpvnrxKTsOf5wSP5N+HVHKBuOnR1e3hjlUNtfIIEW
-# AyIwDQYJKoZIhvcNAQEBBQAEggIAxIuhk6ddgjJ3D7cl5OJwbPwdcZ752pSaZpGj
-# X/7Z9UZQ5U7A/oVd0qchp/9GxkU8DgG43Xn26vvCSTi3gvHutiFu9Yuc5P8QFCva
-# kJxkbyNXVPeInfwXEsFXK76biyyuhqFPWcpaPgUHU7p/14Bbg3pTZEzWk/sa87gN
-# C9Ey+kw11HlrWyNjl1H4TT7Tt+2Q6UcLUGxw2f7Ti/nYUTzoiWYQGm8+q1wFxSaa
-# +vK4l7TB/o1PcP9xUij0TEg2DzU7RViAWQLqVGqphVqJO1j96jTQX39Ve2/sFHFe
-# 4NAJU/eCYzsvDsUvsW1HgyfD+05RSZL1/mYkMmG7Ygfr1MVbO0ec/mkvjZAiL2oC
-# ZscXLHhpISJh8qPxE0843xCiMhRiuY9g+Ll9IQDGhxw8VIdNaRq+zUC9yFeiP+YD
-# 8x6M5H78pl9S7ttyNy7cEcWPuxI7Ijmpe0PU4NKHqIgG+AF/aQMrTtlLG8kf3G04
-# 0qsQ4oDLRdm0qCJhpQss9fIZaZ16SHPvl0LNc0JDEclyaWmAvtd2CXCqtj5tbCeg
-# 6EGL63Ccpf/avWiOLqApytoPPRoT7E/L2pDFb/5dMGmAuEbjGvz/cAOCRLNtAtuK
-# wh2I359E7hHvZgiaDGscKUEsktAFDAnoDzYGqEVhb1vinMR8cdeksReHPsWqwrSE
-# GwKqUGQ=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQg6Kwh4oUXa2GlkcCaGTvE2gBavauMvR6C+7DgNeh6
+# 8LIwDQYJKoZIhvcNAQEBBQAEggIAh1gZYegD7MWL7ROdigcmn0Rt4gcs0Gjv97G3
+# je/JXJ7w8PP5q7RWTAwAwMtl6puz726losXEa6I7kqTwlwD0XHYiWL51rXxAfUXX
+# JyEm7Z2JIhQYjN4Gk3cUo/5bPFompwIJegWKXf2oeWkp7E6g5KxKv4cLkPseOZSI
+# fondtguYxDsV+qaLG7A6j9N2QDRLsh4qR6AD1auKIdYzWsfLR/e3Vo8xBNTjMEc+
+# 1gxuLHmJqCEwNcTr8u1Yo5FaWhr0UZOw86zxNVC8Fol6G7dLSmx/4JX4tRtYzMfK
+# IgdJeb/nz8WRcZnHJDk3cWeIMYLqnVvXLuVr1ltQRkuhtExLtxR8TqQ6Q4oLIUC/
+# qMQkX4F1c2TDBozPChhpEFRCDu1awjqxaM+TBuRL2I/WV96+fs7HJE5nhEcWUTnt
+# 7TG2rjQk8aZqEvcMOhfRg8ONNN7USVBU2Hf9NNlIATgI3hendCvIK2bfJIo/uuv3
+# Pqg4bIPtxkr9Jmi8kpXiSqNGSsHyDAmWuJF2gdF2A/rINtFhMuPeeuMLsN42d+30
+# wWyG4NA4sNCDqQ7Nq3oeX9gru0/DRM9ZnEJoqJ3lzegWrFyv/H+JQugy5ZH9S1po
+# WZWYJ8bQrBEgafKHLB0y91oS/ry383U/q5FDnrJFdiLQJdYDHcaRlVmAMLRXCrjP
+# lIc/vxE=
 # SIG # End signature block

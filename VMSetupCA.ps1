@@ -66,7 +66,7 @@ Param
     [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$KeyContainerName,
 
-    # Certificate Authority common name
+    # Certificate authority common name
     [Parameter(ParameterSetName='NewKey_EnterpriseRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA', Mandatory=$true)]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA', Mandatory=$true)]
@@ -74,40 +74,33 @@ Param
     [String]$CACommonName,
 
     # DN suffix
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
     [String]$CADistinguishedNameSuffix,
+
+    # DSConfigDN / DSDomainDN
+    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [String]$DomainName,
 
     # Root CA common name
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$RootCACommonName,
 
-    # Ignore unicode
-    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_EnterpriseRootCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA')]
-    [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
-    [Switch]$IgnoreUnicode,
-
-    # Policy OID
+    # Issuance policies
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [String]$PolicyOID = '2.5.29.32.0',
-
-    # Policy URL
-    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [String]$PolicyURL,
+    [Array]$IssuancePolicies,
 
     # CA Policy inf file
     # FIX add
@@ -279,11 +272,11 @@ Param
     # Set host for CDP
     [String]$CDPHost,
 
-    # Crl publishing locations
-    [Array]$CRLPublishAdditionalPaths,
-
     # Crl Distribution Point (CDP)
     [String]$CRLPublicationURLs,
+
+    # Crl publishing locations
+    [Array]$CRLPublishAdditionalPaths,
 
     # Authority Information Access (AIA)
     [String]$CACertPublicationURLs,
@@ -308,21 +301,22 @@ Param
     # Set log level
     [String]$AuditFilter = 127,
 
-    # DSConfigDN / DSDomainDN
-    [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
-    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [String]$AddDomainConfig,
-
     ###########
     # Switches
     ###########
 
     [Switch]$UseDefaultSettings,
     [Switch]$UsePolicyNameConstraints,
+
+    [Parameter(ParameterSetName='NewKey_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='KeyContainerName_EnterpriseRootCA')]
+    [Parameter(ParameterSetName='KeyContainerName_StandaloneRootCA')]
+    [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
+    [Switch]$IgnoreUnicode,
 
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
@@ -354,7 +348,9 @@ Begin
         @{ Name = 'Session';                                         },
         @{ Name = 'Credential';                Type = [PSCredential] },
         @{ Name = 'CertFilePassword';          Type = [SecureString] },
+        @{ Name = 'IssuancePolicies';          Type = [Array]        },
         @{ Name = 'CRLPublishAdditionalPaths'; Type = [Array]        }
+
     )
 
     #########
@@ -672,13 +668,10 @@ Begin
         {
             throw "Must be domain joined to setup Enterprise Subordinate CA."
         }
-        elseif ($AddDomainConfig)
+        # FIX Switch to DomainName, remove AddDomainConfig
+        elseif (-not $DomainName)
         {
-            $DomainName = $AddDomainConfig
-        }
-        else
-        {
-            Check-Continue -Message "-AddDomainConfig parameter not specified, DSDomainDN and DSConfigDN will not be set."
+            Check-Continue -Message "-DomainName parameter not specified, DSDomainDN and DSConfigDN will not be set."
         }
 
         # Get basedn from domain name
@@ -706,6 +699,104 @@ Begin
         $DatabaseDirectory   = $ExecutionContext.InvokeCommand.ExpandString($DatabaseDirectory)
         $CertEnrollDirectory = $ExecutionContext.InvokeCommand.ExpandString($CertEnrollDirectory)
 
+        # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
+        # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
+        # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
+        # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
+        # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
+        # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
+
+        # Install CA feature
+        if (-not $CAInstalled -and
+            (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Cert-Authority." @VerboseSplat))
+        {
+            Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools -Restart > $null
+        }
+
+        # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
+        # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
+        # ██████╔╝██║   ██║██║   ██║   ██║       ██║     █████╗  ██████╔╝   ██║   ██║█████╗  ██║██║     ███████║   ██║   █████╗
+        # ██╔══██╗██║   ██║██║   ██║   ██║       ██║     ██╔══╝  ██╔══██╗   ██║   ██║██╔══╝  ██║██║     ██╔══██║   ██║   ██╔══╝
+        # ██║  ██║╚██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗██║  ██║   ██║   ██║██║     ██║╚██████╗██║  ██║   ██║   ███████╗
+        # ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
+        {
+            #############
+            # Get hashes
+            #############
+
+            # Certificate
+            $RootCertificateHashArray = TryCatch { certutil -store root "$RootCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "Cert Hash\(sha1\): (.*)$"
+            } | ForEach-Object { "$($Matches[1])" }
+
+            #############
+            # Save files
+            #############
+
+            # Create temp Directory
+            New-Item -ItemType Directory -Path "$env:TEMP" -Name $RootCACommonName -Force > $null
+
+            # Itterate all files
+            foreach($file in $ParentCAFiles.GetEnumerator())
+            {
+                # Save file to temp
+                Set-Content -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
+
+                # Set original timestamps
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+            }
+
+            ######
+            # Add
+            ######
+
+            # Initialize arrays
+            $ParentFileCertificateHashArray = @()
+
+            # Itterate all parent ca files
+            foreach($file in (Get-Item -Path "$env:TEMP\$RootCACommonName\*"))
+            {
+                # Get CA certificate hash
+                $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match "Cert Hash\(sha1\): (.*)"
+                } | ForEach-Object { "$($Matches[1])" }
+
+                # Add cert hash to array
+                $ParentFileCertificateHashArray += $ParentFileCertificateHash
+
+                # Check if certificate hash is in root store
+                if ($ParentFileCertificateHash -notin $RootCertificateHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($ParentFileCertificateHash) to root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore root "$($file.FullName)" } -ErrorAction Stop > $null
+                }
+            }
+
+            #########
+            # Remove
+            #########
+
+            # Certificate
+            foreach($CertificateHash in $RootCertificateHashArray)
+            {
+                if ($CertificateHash -notin $ParentFileCertificateHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Remove crt ($CertificateHash) from root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -delstore root "$CertificateHash" } > $null
+                }
+            }
+
+            ##########
+            # Cleanup
+            ##########
+
+            # Remove temp directory
+            Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
+        }
 
         #  █████╗ ██╗ █████╗     ██╗ ██████╗██████╗ ██████╗
         # ██╔══██╗██║██╔══██╗   ██╔╝██╔════╝██╔══██╗██╔══██╗
@@ -853,6 +944,23 @@ Begin
             }
         }
 
+        # ██████╗  █████╗ ████████╗██╗  ██╗███████╗
+        # ██╔══██╗██╔══██╗╚══██╔══╝██║  ██║██╔════╝
+        # ██████╔╝███████║   ██║   ███████║███████╗
+        # ██╔═══╝ ██╔══██║   ██║   ██╔══██║╚════██║
+        # ██║     ██║  ██║   ██║   ██║  ██║███████║
+        # ╚═╝     ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
+
+        # Check if directories exist
+        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
+        {
+            if ($Directory -and -not (Test-Path -Path $Directory) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
+            {
+                New-Item -ItemType Directory -Path $Directory > $null
+            }
+        }
+
         # ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
         # ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
         # ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
@@ -860,88 +968,53 @@ Begin
         # ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        if (-not $CAConfigured -or $True)
+        if (-not $CAConfigured)
         {
-            if ($ParameterSetName -match 'Subordinate')
-            {
-                if (-not $PolicyURL -and $PolicyOID -ne '2.5.29.32.0' -and $DomainName)
-                {
-                    Check-Continue -Message "-PolicyURL parameter not specified, using `"http://pki.$DomainName/cps`" as PolicyURL."
-
-                    # Add default AIA url
-                    $PolicyURL = "http://pki.$DomainName/cps"
-                }
-                else
-                {
-                    Check-Continue -Message "-PolicyURL parameter not specified, no policy url will be used."
-                }
-            }
-
-            ##################
-            # Standalone Root
-            ##################
-
-            $CAPolicy_StandaloneRootCA =
+            $CAPolicy =
             @(
                 "[Version]",
                 "Signature=`"`$Windows NT$`"",
-                "",
-                "[BasicConstraintsExtension]",
-                "Critical=Yes",
-                "",
+                ""
+            )
+
+            if ($CAType -match 'Subordinate')
+            {
+                $CAPolicy +=
+                @(
+                    "[BasicConstraintsExtension]",
+                    "PathLength=$PathLength",
+                    "Critical=Yes",
+                    ""
+                )
+            }
+
+            $CAPolicy +=
+            @(
                 "[Certsrv_Server]",
                 "RenewalKeyLength=$KeyLength",
                 "AlternateSignatureAlgorithm=0"
             )
 
+            if ($CAType -match 'Enterprise')
+            {
+                $CAPolicy += "LoadDefaultTemplates=0"
+            }
+
             if (-not $UseDefaultSettings.IsPresent)
             {
-                $CAPolicy_StandaloneRootCA +=
+                $CAPolicy +=
                 @(
                     "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
                     "CRLDeltaPeriod=$CRLDeltaPeriod"
                 )
             }
 
-            ##################
-            # Enterprise Root
-            ##################
-
-            $CAPolicy_EnterpriseRootCA =
-            @(
-                "[Version]",
-                "Signature=`"`$Windows NT$`"",
-                "",
-                "[PolicyStatementExtension]",
-                "Policies=AllIssuancePolicy",
-                "Critical=No",
-                "",
-                "[AllIssuancePolicy]",
-                "OID=2.5.29.32.0",
-                "Notice=`"All Issuance Policy`"",
-                "",
-                "[BasicConstraintsExtension]",
-                "Pathlength=$PathLength",
-                "Critical=Yes",
-                "",
-                "[Certsrv_Server]",
-                "RenewalKeyLength=$KeyLength",
-                "AlternateSignatureAlgorithm=0",
-                "LoadDefaultTemplates=0"
-            )
-
-            if (-not $UseDefaultSettings.IsPresent)
+            if ($UsePolicyNameConstraints.IsPresent -and
+                $CAType -match 'Enterprise' -and
+                $DomainName -and
+                $BaseDn)
             {
-                $CAPolicy_EnterpriseRootCA +=
-                @(
-                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                    "CRLDeltaPeriod=$CRLDeltaPeriod"
-                )
-            }
-
-            if ($UsePolicyNameConstraints.IsPresent)
-            {
-                $CAPolicy_EnterpriseRootCA +=
+                $CAPolicy +=
                 @(
                     "",
                     "[Strings]",
@@ -959,103 +1032,64 @@ Begin
                 )
             }
 
-            #########################
-            # Enterprise Subordinate
-            #########################
+            ##################
+            # Issuance policy
+            ##################
 
-            $CAPolicy_EnterpriseSubordinateCA =
-            @(
-                "[Version]",
-                "Signature=`"`$Windows NT$`"",
-                "",
-                "[PolicyStatementExtension]",
-                "Policies=IssuancePolicy",
-                "Critical=No",
-                "",
-                "[IssuancePolicy]",
-                "OID=$PolicyOID"
-            )
-
-            if ($PolicyURL)
+            if ($ParameterSetName -match 'Subordinate')
             {
-                $CAPolicy_EnterpriseSubordinateCA += @("URL=$PolicyURL")
-            }
+                if (-not $IssuancePolicies)
+                {
+                    $IssuancePolicies = @(@{ Name = 'All issuance policy'; OID = '2.5.29.32.0' })
+                }
 
-            $CAPolicy_EnterpriseSubordinateCA +=
-            @(
-                "",
-                "[BasicConstraintsExtension]",
-                "Pathlength=$PathLength",
-                "Critical=Yes",
-                "",
-                "[Certsrv_Server]",
-                "RenewalKeyLength=$KeyLength",
-                "AlternateSignatureAlgorithm=0",
-                "LoadDefaultTemplates=0"
-            )
+                $PolicyStatementExtension = 'Policies='
+                $PolicySection = @()
 
-            if (-not $UseDefaultSettings.IsPresent)
-            {
-                $CAPolicy_EnterpriseSubordinateCA +=
-                @(
-                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                    "CRLDeltaPeriod=$CRLDeltaPeriod"
-                )
-            }
+                for ($i=1; $i -le $IssuancePolicies.Count; $i++)
+                {
+                    $Policy = $IssuancePolicies[$i-1]
 
-            if ($UsePolicyNameConstraints.IsPresent)
-            {
-                $CAPolicy_EnterpriseSubordinateCA +=
-                @(
-                    "",
-                    "[Strings]"
-                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`""
-                    "",
-                    "[Extensions]",
-                    "Critical = %szOID_NAME_CONSTRAINTS%",
-                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"",
-                    "",
-                    "_continue_ = `"SubTree=Include&`"",
-                    "_continue_ = `"DNS = $DomainName&`"",
-                    "_continue_ = `"UPN = @$DomainName&`"",
-                    "_continue_ = `"Email = @$DomainName&`"",
-                    "_continue_ = `"DirectoryName = $BaseDn&`""
-                )
-            }
+                    if ($Policy.ContainsKey('Name') -and $Policy.ContainsKey('OID'))
+                    {
+                        $PolicyStatementExtension += "`"$($Policy.Name)`""
 
-            #########################
-            # Standalone Subordinate
-            #########################
+                        if ($i -lt $IssuancePolicies.Count)
+                        {
+                              $PolicyStatementExtension += ', '
+                        }
 
-            $CAPolicy_StandaloneSubordinateCA =
-            @(
-                "[Version]",
-                "Signature=`"`$Windows NT$`"",
-                "",
-                "[PolicyStatementExtension]",
-                "Policies=AllIssuancePolicy",
-                "Critical=No",
-                "",
-                "[AllIssuancePolicy]",
-                "OID=2.5.29.32.0",
-                "Notice=`"All Issuance Policy`"",
-                "",
-                "[BasicConstraintsExtension]",
-                "Pathlength=$PathLength",
-                "Critical=Yes",
-                "",
-                "[Certsrv_Server]",
-                "RenewalKeyLength=$KeyLength",
-                "AlternateSignatureAlgorithm=0"
-            )
+                        $PolicySection +=
+                        @(
+                            "[$($Policy.Name)]",
+                            "OID=$($Policy.OID)"
+                        )
 
-            if (-not $UseDefaultSettings.IsPresent)
-            {
-                $CAPolicy_StandaloneSubordinateCA +=
-                @(
-                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                    "CRLDeltaPeriod=$CRLDeltaPeriod"
-                )
+                        if ($Policy.URL)
+                        {
+                            $PolicySection += "URL=$($Policy.URL)"
+                        }
+
+                        $PolicySection += ""
+                    }
+                    else
+                    {
+                        Write-Warning -Message "IssuancePolicies hastable in wrong format, skipping policy."
+                    }
+                }
+
+                if ($PolicySection.Count -gt 0)
+                {
+                    $CAPolicy +=
+                    @(
+                        "",
+                        "[PolicyStatementExtension]",
+                        $PolicyStatementExtension,
+                        "Critical=No",
+                        "",
+                        $PolicySection
+                    )
+                }
             }
 
             #############
@@ -1063,120 +1097,12 @@ Begin
             #############
 
             # Save CA policy to temp
-            Set-Content -Value (Get-Variable -Name "CAPolicy_$($CAType)").Value -Path "$env:TEMP\CAPolicy.inf"
+            Set-Content -Value (Get-Variable -Name "CAPolicy").Value -Path "$env:TEMP\CAPolicy.inf"
 
             # Move to systemroot if different
-            Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -Delete -Backup -TargetPath "$env:SystemRoot\CAPolicy.inf" @VerboseSplat
+            Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -RemoveSourceFile -TargetPath "$env:SystemRoot\CAPolicy.inf" -BackupTargetFile @VerboseSplat
         }
 
-        # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
-        # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
-        # ██████╔╝██║   ██║██║   ██║   ██║       ██║     █████╗  ██████╔╝   ██║   ██║█████╗  ██║██║     ███████║   ██║   █████╗
-        # ██╔══██╗██║   ██║██║   ██║   ██║       ██║     ██╔══╝  ██╔══██╗   ██║   ██║██╔══╝  ██║██║     ██╔══██║   ██║   ██╔══╝
-        # ██║  ██║╚██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗██║  ██║   ██║   ██║██║     ██║╚██████╗██║  ██║   ██║   ███████╗
-        # ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
-        {
-            #############
-            # Get hashes
-            #############
-
-            # Certificate
-            $RootCertificateHashArray = TryCatch { certutil -store root "$RootCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
-                $_ -match "Cert Hash\(sha1\): (.*)$"
-            } | ForEach-Object { "$($Matches[1])" }
-
-            #############
-            # Save files
-            #############
-
-            # Create temp Directory
-            New-Item -ItemType Directory -Path "$env:TEMP" -Name $RootCACommonName -Force > $null
-
-            # Itterate all files
-            foreach($file in $ParentCAFiles.GetEnumerator())
-            {
-                # Save file to temp
-                Set-Content -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
-
-                # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
-            }
-
-            ######
-            # Add
-            ######
-
-            # Initialize arrays
-            $ParentFileCertificateHashArray = @()
-
-            # Itterate all parent ca files
-            foreach($file in (Get-Item -Path "$env:TEMP\$RootCACommonName\*"))
-            {
-                # Get CA certificate hash
-                $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
-                    $_ -match "Cert Hash\(sha1\): (.*)"
-                } | ForEach-Object { "$($Matches[1])" }
-
-                # Add cert hash to array
-                $ParentFileCertificateHashArray += $ParentFileCertificateHash
-
-                # Check if certificate hash is in root store
-                if ($ParentFileCertificateHash -notin $RootCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($ParentFileCertificateHash) to root store." @VerboseSplat))
-                {
-                    TryCatch { certutil -addstore root "$($file.FullName)" } -ErrorAction Stop > $null
-                }
-            }
-
-            #########
-            # Remove
-            #########
-
-            # Certificate
-            foreach($CertificateHash in $RootCertificateHashArray)
-            {
-                if ($CertificateHash -notin $ParentFileCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Remove crt ($CertificateHash) from root store." @VerboseSplat))
-                {
-                    TryCatch { certutil -delstore root "$CertificateHash" } > $null
-                }
-            }
-
-            ##########
-            # Cleanup
-            ##########
-
-            # Remove temp directory
-            Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
-        }
-
-        # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
-        # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
-        # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
-        # ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║
-        # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
-        # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
-
-        # Check if directories exist
-        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
-        {
-            if ($Directory -and -not (Test-Path -Path $Directory) -and
-                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
-            {
-                New-Item -ItemType Directory -Path $Directory > $null
-            }
-        }
-
-        # Install CA feature
-        if (-not $CAInstalled -and
-            (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Cert-Authority." @VerboseSplat))
-        {
-            Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools -Restart > $null
-        }
 
         #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
         # ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝
@@ -1192,6 +1118,8 @@ Begin
             @{
                 'CAType' = $CAType
                 'AllowAdministratorInteraction' = $true
+                'OverwriteExistingKey' = $true
+                'OverwriteExistingDatabase' = $true
             }
 
             # Ignore unicode
@@ -1252,6 +1180,11 @@ Begin
                 elseif ($ParameterSetName -match 'NewKey.*Subordinate')
                 {
                     $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName-Request.csr")
+                }
+
+                if ($ParameterSetName -match 'Enterprise' -and $PartOfDomain)
+                {
+                    $ADCSCAParams.Add('OverwriteExistingCAinDS', $true)
                 }
             }
 
@@ -1464,7 +1397,7 @@ Begin
             if ($ParameterSetName -match 'Standalone')
             {
                 # Check if DSConfigDN should be set
-                if ($AddDomainConfig)
+                if ($BaseDn)
                 {
                     # Add domain configuration for standalone ca
                     $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
@@ -1709,24 +1642,22 @@ Process
             $CertFile = $Using:CertFile
             $CertFilePassword = $Using:CertFilePassword
 
-            # Certificate Key Container Name
+            # Certificate key container name
             $KeyContainerName = $Using:KeyContainerName
 
-            # Certificate Authority CN
+            # Certificate authority common name
             $CACommonName = $Using:CACommonName
 
-            # Ignore Unicode
-            $IgnoreUnicode = $Using:IgnoreUnicode
-
-            # DN Suffix
+            # DN suffix
             $CADistinguishedNameSuffix = $Using:CADistinguishedNameSuffix
 
-            # Policy OID
-            $PolicyOID = $Using:PolicyOID
+            # DSConfigDN / DSDomainDN
+            $DomainName = $Using:DomainName
 
-            # Policy URL
-            $PolicyURL = $Using:PolicyURL
+            # Root CA common name
+            $RootCACommonName = $Using:RootCACommonName
 
+            $IssuancePolicies = $Using:IssuancePolicies
             $CAPolicy = $Using:CAPolicy
 
             # Root CA certificate validity period
@@ -1734,7 +1665,6 @@ Process
             $RootValidityPeriod = $Using:RootValidityPeriod
 
             # Parent CA
-            $RootCACommonName = $Using:RootCACommonName
             $ParentCAFiles = $Using:ParentCAFiles
             $ParentCAResponseFiles = $Using:ParentCAResponseFiles
 
@@ -1764,11 +1694,11 @@ Process
             # Set host for CDP
             $CDPHost = $Using:CDPHost
 
-            # Crl publishing locations
-            $CRLPublishAdditionalPaths = $Using:CRLPublishAdditionalPaths
-
             # Crl Distribution Point (CDP)
             $CRLPublicationURLs = $Using:CRLPublicationURLs
+
+            # Crl publishing locations
+            $CRLPublishAdditionalPaths = $Using:CRLPublishAdditionalPaths
 
             # Authority Information Access (AIA)
             $CACertPublicationURLs = $Using:CACertPublicationURLs
@@ -1786,15 +1716,13 @@ Process
             # Set log level
             $AuditFilter = $Using:AuditFilter
 
-            # DSConfigDN / DSDomainDN
-            $AddDomainConfig = $Using:AddDomainConfig
-
             ###########
             # Switches
             ###########
 
             $UseDefaultSettings = $Using:UseDefaultSettings
             $UsePolicyNameConstraints = $Using:UsePolicyNameConstraints
+            $IgnoreUnicode = $Using:IgnoreUnicode
             $PublishTemplates = $Using:PublishTemplates
             $PublishCRL = $Using:PublishCRL
             $ExportCertificate = $Using:ExportCertificate
@@ -1901,8 +1829,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU33SX6Q6I+24gax1XBxO239W4
-# CfygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWY2IL0pO0ZlhOB36hudqYSYQ
+# lP+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2033,34 +1961,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUddVQxC8s
-# bXr8wyqzM1hNi6+RHMkwDQYJKoZIhvcNAQEBBQAEggIAs5hSQkufCE6iDN7houYS
-# Vuj8rI7jWUzkDwRSAB0VNyi9/CVjn14AkdTIsdjd1Je8hBuf3LxftwDOUMlNY2ZB
-# i889QFmK/2wvluN+33gcrN7wDW9RxxQyv64AtZIqmBT1T8DlRdvtKk9iSvHhzm3q
-# H1GRQA68ah5mrONii4QZ+BjQmX4wS1uDZuoPQsaNDl7Anhkxyn8AV3s6YASrytgP
-# mbwJ8WDWvVKTKC0UQgCsB5ZuRbagvOm8zNWULBHw9tF598CC5+dL9O1zEs/CohI3
-# r0+T8CZsi4w1iK4tM9olBPgxhuP4kdpwkW0d+vr5qX9P+300m+VsyzRgnpHY8o9H
-# lHD1eiHbZrzpRpzstxTlEZYPV3BBJhsw+VuIluhYHWQeQgGxKnFrOP15f/P2fVFj
-# dG2oQ5/z6Uex161gjpp3iqYoL7T+hs8rDpYv4ZUtZRE/viGlBYCdVPUqrbwBztpf
-# qwBzAYmFUmO2aXq9Mgoo/w4wCWFpf2iy88IkvJGGcSYzroHZ+sevzvOkIVMr9sji
-# nlDtlWTpd+V6i66kgxkJ+oSh1UjVcw0gT4v+bQonWXOfJEHFDLv//+l1amJN4YuO
-# rURmJh7LiKHQ/QSVt/d4qIGYBDghyxGHl4vEqF+fpwzLd/unMGoHGmmwxdxcY9aN
-# TmwkcbkbsFK+7ELP29WD0tWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUos210y0Z
+# CiUEU0MxpEJsj8VhoPgwDQYJKoZIhvcNAQEBBQAEggIAx+uYLSf7nl3M03o8c6rB
+# VuBd/d/p4F1ExyeGZTe39IgQWQKHKZfiHzh9k16b5ymWTE3TYl+uhtPbM+BdKJa3
+# scGI3p528SPJdYUfam1q76cxOLD18SaW7FHtXZZjwP2fP7sJgXqkR9z/0KI7Q9SA
+# zWpuzgbR1Hl9fbXRbD/awNut5yMvg/UYjq491PZWPrrifo/UqAZyxYoWHwfAyWBz
+# G1pRnpxkfCzC9Z3HRVYpClEzUjfg+optQimlwL7kYo2gng3ctERHUMTaNz0LAuHJ
+# nPBIodUZuboIP1mfLtglGt6G2YG4fX/kryEq7IQ5B3mC2eBr0otejYXC+umLPLaX
+# +QZuVKumeelbetaPLm2PNtWRnTsyoPEZyJ156WHAK2QDWfH6N6zQZaCQmQPoENFS
+# +Mh3JW3V6BX7tszLMNXbUHFM6f0rYrneOcDjuqziNH5VmiqCMyg2Vy4jBFRS88lM
+# g43hkgeS5SYFqGBSklNTeqJtdxnGCnKsO3n1QyfLwyMEsxDDwocD/gNSi66rlP/l
+# +ZBKBP/gUF9OqxIydBSyYQMaSQ/dTTB4PvdGx7XkEwQv7gacPoFZLKeuKVnF00mV
+# Qi094PK1DZbIpdttQJZO7dD19eOwpqAQtIoHOxjV4ZLyaorRVuKW5iSw+7z5NApu
+# pcBeLsnCRwMwENpE3Zdho2uhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMDAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgOdXGk/oYY8OxwpMMe+vPM9CSuiMw/x434MEf+Z/y
-# e/cwDQYJKoZIhvcNAQEBBQAEggIAZUatLmNaXmsoYBhO4el7MAyYe/kLLsM0/GE7
-# G3GCmlybp5Pbso7uPNUp7t4mDdsE2erKZwUNF7EzHk/L7ClJgWN1VLML+P6WnGLu
-# 3f1LNvXPm0/XbIODl3SfpVXFA+FClGgnVH0OOaHyqS9sjeZkMMedlMYK5jPLgleg
-# Kh2HJ6tXDzxfg1Q29d2sloTW6+Eeue2pr9vgwHAUVDCSE4LwzyO1p/tYZK7wAblM
-# hDt8MwiFlhgXFleQb4yULbsFpbz3Sz8CWXqrt3W96apFm0ZbOMqr1lf7NI/aEmNN
-# w3eS+2D3K8QMQfsKssqo0KJBBlGG5sNUrUgn2yh4ydij748av+JcjAUtCs3VE38q
-# noMC8AV9uC0C9nYCg17pUDwWxo3HoSTYO6GtKVY64guJwviXo6oWAmoKEASOfehS
-# O4xemt+qhbZaQnJWBRsN6HB7+Rcga1PjuFW7igWeLsy1XYBmDnbitNNaKycML5bV
-# 1fQ2UVt652nFWfC4nTh7oP4iAAVeQzJUURpOBiBvxMSF888WBQKPfxycZZDUS+ON
-# AXNzCh3qG7889JbVsZWylSL5d9USsz1h+wLuO5HvGqCdfaP36/F7hcoTX6QAWG+Y
-# VcGTkWjMb8lpMQIfHCO+QmrDbWaU5PIRN0aPYtGBPO2rCCAiyl70WndHzaFh/S/l
-# Zgi8FXs=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgnlu4K2U3zvUp6IS14xs46r7rNCIIJ9q2PlQ2msNS
+# eVwwDQYJKoZIhvcNAQEBBQAEggIAhUM6Mae3Rufm9Ls1v14t3o6wQFmXOsA8fL5O
+# g9+eUUT9dV85jZT/FD3YRJo3L29cuSQWC7fsfqx6wmhEf3zimv0TC8mMUQNdQtZQ
+# 5GtjsTGvfAtG+3ziEZCM4XIEK6fR6h2pxN1eQn8uLyK1ksAhHxtYTjWp4NWMrIUe
+# 7b/q/Y2taSTHDXmePd+ts4vqNNa1nsdAAsRiuWHmRrGvE31JlWtzyDnDL+5n+6Bu
+# quYFH5DzHUQfjeLlZ5FLgy80Sr/jsVaGycWkIl+Q6+O6ZxDANNCMYi6PrqwWE+dT
+# 8czbFZKMhQeifitIxxbeGC1E87dTTvOhUTnY0qMNGGXdolJBeiGe/TVEcBduCEBs
+# AKcGwWRtnqSQlDunI/FRc4b+HC3M+oiIV5r6DM5eJ0obt4xaSK/wEl7aS6p60T6N
+# Rj8Cewf3FATdXqChRKYqs607TayvmSh8BoM1uYBCWTd2j6ZUZkbXM0htAU3XDfnN
+# Sfj/5QEbwx53/8+z7IxrfmrTwiNJ/ZuG9SC0R2L/jbtDHa2crgkdWl+RnOaNoo8M
+# +GnKDPL0D2roJGT8zb614zEXtscSEX/wunOuxo2M92XX41Bipqf9pIgulLna/fSf
+# nGEtF7yiwNRRM4q1sqPNQ65cKXHCBFfo0yWn8CdVtTzJ4TUW3NdG/saGcmuD6W91
+# POgcXAs=
 # SIG # End signature block
