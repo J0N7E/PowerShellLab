@@ -27,15 +27,6 @@ Param
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
     <#----#>$LunaSh, #Serializable
 
-    [Parameter(ParameterSetName='Pscp')]
-    [String]$Fingerprint,
-
-    [Parameter(ParameterSetName='Pscp')]
-    [Switch]$PscpCertificateFromHsm,
-
-    [Parameter(ParameterSetName='Pscp')]
-    [Switch]$PscpCertificateToHsm,
-
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
     [Parameter(ParameterSetName='Pscp', Mandatory=$true)]
     [String]$HsmHostname,
@@ -45,7 +36,16 @@ Param
     <#----#>$HsmCredential, #Serializable
 
     [Parameter(ParameterSetName='LunaSh')]
-    [String]$Timeout = '500',
+    [String]$Timeout = 500,
+
+    [Parameter(ParameterSetName='Pscp')]
+    [Switch]$PscpCertificateFromHsm,
+
+    [Parameter(ParameterSetName='Pscp')]
+    [Switch]$PscpCertificateToHsm,
+
+    [Parameter(ParameterSetName='Pscp')]
+    [String]$HsmFingerprint,
 
     [Parameter(ParameterSetName='KspCmd', Mandatory=$true)]
     [String]$KspCmd,
@@ -431,16 +431,27 @@ Begin
                         Timeout = $Timeout
                     }
                 }
-                elseif ($PscpCertificateFromHsm.IsPresent)
+                elseif ($PscpCertificateFromHsm.IsPresent -or
+                        $PscpCertificateToHsm.IsPresent)
                 {
-                    if ($Fingerprint)
+                    if ($HsmFingerprint)
                     {
-                        $Command = "-hostkey `"$Fingerprint`" "
+                        $Command = "-hostkey `"$HsmFingerprint`""
                     }
 
-                    $Command += "-batch -pw $([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($HsmCredential.Password))) `"$($HsmCredential.UserName)@$($HsmHostname):server.pem`" `"C:\Program Files\SafeNet\LunaClient\$HsmHostname.pem`""
+                    $Command += " -batch -pw $([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($HsmCredential.Password)))"
 
-                    if ($Fingerprint)
+                    if ($PscpCertificateFromHsm.IsPresent)
+                    {
+                        $Command += " `"$($HsmCredential.UserName)@$($HsmHostname):server.pem`" `"C:\Program Files\SafeNet\LunaClient\$HsmHostname.pem`""
+                    }
+                    elseif ($PscpCertificateToHsm.IsPresent)
+                    {
+                        $IP = Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object -Property { $_.InterfaceMetric + $_.RouteMetric } -Descending | Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -ExpandProperty IPAddress -First 1
+                        $Command += " `"C:\Program Files\SafeNet\LunaClient\cert\client\$IP.pem`" `"$($HsmCredential.UserName)@$($HsmHostname):$IP.pem`""
+                    }
+
+                    if ($HsmFingerprint)
                     {
                         $Command += " 2>&1"
                     }
@@ -534,11 +545,12 @@ Process
             $LunaFile               = $Using:LunaFile
 
             $LunaSh                 = $Using:LunaSh
-            $Fingerprint            = $Using:Fingerprint
-            $PscpCertificateFromHsm = $Using:PscpCertificateFromHsm
             $HsmHostname            = $Using:HsmHostname
             $HsmCredential          = $Using:HsmCredential
             $Timeout                = $Using:Timeout
+
+            $HsmFingerprint         = $Using:HsmFingerprint
+            $PscpCertificateFromHsm = $Using:PscpCertificateFromHsm
 
             $KspCmd                 = $Using:KspCmd
             $KspUtil                = $Using:KspUtil
@@ -625,8 +637,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjGgAvhTy7lLJ51NqcTa5ixyK
-# m9ygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsaO/FlCmBiCs2owJHmttZsa5
+# YNqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -757,34 +769,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4RXAJ7qX
-# Dsvplslx+p6D69fRFHYwDQYJKoZIhvcNAQEBBQAEggIAFOIMI7r7VFhuGh/xs1fb
-# aaltqZgm7LzAbMtxu8I0zqjJdc7fp8qXlvm4GE6INR72tyxohvViH2yDWARrL1Kl
-# OQQDCiiBWRgHcFhRFJcmE9vpXIhqVXmKzFg2XLt+3/TPsbJZlz0JWQG8CehSIm9q
-# yzmnW5+r019mmKwK1Ibn83ps8wX9ka+rkhsnyj0Vl80yU9t+VQZPyzuejO07pWoW
-# xUic1g6RyiZK5kHHgG3UP3596Jok1j5HC4171dOTVRHq+6ViBAc/Xnd2Sve46Yx8
-# YSon2u6bUd8/G7p1hbOlvHW44caaE4CUmMmZNX+gTIihxms0M5yIYk4erPv8LcfV
-# iUgXt/G6sJisyji79tlv8pYtP2RbuSp1xZYpjHv4aO6jKaehToqWOyzOftMUVar7
-# DudlyFejwmmBXgV19CUn2M+ZaG+PtQbnk7D5Ms+VtwMAnVllWidZPoHl4apnAj/C
-# cDeq6MTC4Aq5uoR2I+LcMlGmImP1PsOPnas5MNFwH+ufvY3u9bb2N9MpENCHYUBp
-# swsztqwGklOcv0FB5bEc0b2f85zaM+hC1KfMXyp2JD6Sg/IQQ79VsPi7StbH2lJq
-# OtCesusJt7IcJOmyKRKgltYdZsUK4Sb6PDGrGQpd7QW3Wr+kDNPnX8zvNg8kicT6
-# 9k1XM1QjR1r9ku+ev0/3HFOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUffGszslQ
+# OBbnp2dDI0E6+FiJec8wDQYJKoZIhvcNAQEBBQAEggIAFNYDvlPLnbkzTHvjrAoW
+# 6xvYBsu/zY1hTUes8c3n2bGR19mCYVfXA2xS9YhziD5gr43S851wOsnNOiIpjqDd
+# wHoFFe3VGYtYfKVGYN9LF4R5um1hAPeziQzdUjIYpIIG74v/nHimKBsV2XXfhmbe
+# LknzNinlr4ww0L1ZkCjxGmYUfYcmpK79xQ4YxBjOPmmy5wu0WSWejrkrWSJMSf6c
+# qTfF/NuVmubmeIn5C+1O3/XkUQA0OJADKIMsVTmUYxy20tINvvUTmXEKSUUscbXz
+# 7r8aMkUbDGhfjxdnwgKtPi2F5FQL+lkiby0wXUNTMKzP/zCnRxx818MpMZ4QGsvN
+# hVuOwRa15CLbyqWxhWjucRka0JGGfllIU8Yp4psTsJsKijDM7C2J45RkCbjzdEnK
+# yDJQgEhOimUe0EtYi53lcrWgOW3MYBVEISvI25NBbKpiO9rZ06Yh6vjQwAs5rWo+
+# sPtit2Ukn1pg4ygqWHSmWveNM8StT6sIFpidS1NW7jraSB39bX1Cek9Jllakhj9y
+# DVrXh+CM4DnSy7TVpSUtPA6MrFHxqpQcRjA1iZEpO6KJSbmjgCO9vBsDU7spzh71
+# yo47ceADyAX/8vSBLuby2OCZ7OHmxU8gJTY+oZCzJ5rKd6zt4vS0wnoKnLqzTEQR
+# IetiJTGhl8MWeZAWqkC1Cg2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjAwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg6Kwh4oUXa2GlkcCaGTvE2gBavauMvR6C+7DgNeh6
-# 8LIwDQYJKoZIhvcNAQEBBQAEggIAh1gZYegD7MWL7ROdigcmn0Rt4gcs0Gjv97G3
-# je/JXJ7w8PP5q7RWTAwAwMtl6puz726losXEa6I7kqTwlwD0XHYiWL51rXxAfUXX
-# JyEm7Z2JIhQYjN4Gk3cUo/5bPFompwIJegWKXf2oeWkp7E6g5KxKv4cLkPseOZSI
-# fondtguYxDsV+qaLG7A6j9N2QDRLsh4qR6AD1auKIdYzWsfLR/e3Vo8xBNTjMEc+
-# 1gxuLHmJqCEwNcTr8u1Yo5FaWhr0UZOw86zxNVC8Fol6G7dLSmx/4JX4tRtYzMfK
-# IgdJeb/nz8WRcZnHJDk3cWeIMYLqnVvXLuVr1ltQRkuhtExLtxR8TqQ6Q4oLIUC/
-# qMQkX4F1c2TDBozPChhpEFRCDu1awjqxaM+TBuRL2I/WV96+fs7HJE5nhEcWUTnt
-# 7TG2rjQk8aZqEvcMOhfRg8ONNN7USVBU2Hf9NNlIATgI3hendCvIK2bfJIo/uuv3
-# Pqg4bIPtxkr9Jmi8kpXiSqNGSsHyDAmWuJF2gdF2A/rINtFhMuPeeuMLsN42d+30
-# wWyG4NA4sNCDqQ7Nq3oeX9gru0/DRM9ZnEJoqJ3lzegWrFyv/H+JQugy5ZH9S1po
-# WZWYJ8bQrBEgafKHLB0y91oS/ry383U/q5FDnrJFdiLQJdYDHcaRlVmAMLRXCrjP
-# lIc/vxE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjEwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgBKbuSuOS8Hh3UfEPlPSEIknQEEcUfjivXegVOULp
+# BMcwDQYJKoZIhvcNAQEBBQAEggIANrPHopxBRQnpJkEip9iqNrB6IsVlF6pW39lT
+# p4wqYvqDm+20uKp5lC6iQGCQnNokoWpqrvzzW3Q8hsJxfd1fTZghBRnf14xjk34s
+# K6LWjeIQi3eVuBa+bEEWfUh1YrZg220RMHGKcaUabs3I1zC9VLxA/m1r3LJOUv3z
+# guEKCthY7odTM6QUXgMwHCStUPwZDhpYXpQ37mfs06z+VVIr+ZWGBRdOfU2w3ftJ
+# xbAR8M+ETo/vU06hgKn+QumMu+MXq0ngGzbZff3DeyjUZDNzcga3Qqx2oJ5fbqab
+# njicOUELOgNYNHMM/6SaAMzLgHUFgxOGno1BET1LALB4aFG1w1Sd3s1A3sFr2Sbb
+# qk971QlZ+TvXILklhvx5LQd0ZLMAEPLY1oZe+p/Ahy0c1jHeMbl/w4X2TL+uTpz3
+# NDhe/2rvYywZruDZ+d2VJr14npmeRhHucaf6OiDMPqNfIZncQ8JFYESe+mMGOt36
+# TQiboc7Ks0YZYUzcjHs+AOeFPyDqv98Wf7DCoeQWcypnNIiRGyY59T5WWuONMOpJ
+# vv3dVMtMdBuP9lnOasTuZ0bCLKoOcRZJ3vgRiaJSQveJogFg+989osOBuaG30q/A
+# /fWV+qEq0Wv8RMOammc9KSxh3/NMjDhuJufYgv7h47nVFHSiFzya7B37eM3ZfGAx
+# zr8Ha+4=
 # SIG # End signature block
