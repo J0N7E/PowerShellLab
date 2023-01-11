@@ -22,7 +22,8 @@ Param
     $Session,
     $Credential,
 
-    [String]$LunaClientPath,
+    [Parameter(ParameterSetName='Install', Mandatory=$true)]
+    [String]$LunaClientInstallerPath,
 
     [Parameter(ParameterSetName='LunaSh', Mandatory=$true)]
     <#----#>$LunaSh, #Serializable
@@ -38,14 +39,15 @@ Param
     [Parameter(ParameterSetName='LunaSh')]
     [String]$Timeout = 500,
 
+    [Parameter(ParameterSetName='LunaSh')]
+    [Parameter(ParameterSetName='Pscp')]
+    [String]$HsmFingerprint,
+
     [Parameter(ParameterSetName='Pscp')]
     [Switch]$PscpCertificateFromHsm,
 
     [Parameter(ParameterSetName='Pscp')]
     [Switch]$PscpCertificateToHsm,
-
-    [Parameter(ParameterSetName='Pscp')]
-    [String]$HsmFingerprint,
 
     [Parameter(ParameterSetName='KspCmd', Mandatory=$true)]
     [String]$KspCmd,
@@ -118,11 +120,11 @@ Begin
     # Get Luna Client file
     #######################
 
-    if ($LunaClientPath)
+    if ($LunaClientInstallerPath)
     {
-        if (Test-Path -Path $LunaClientPath)
+        if (Test-Path -Path $LunaClientInstallerPath)
         {
-            $LunaFile = Get-Item -Path $LunaClientPath
+            $LunaFile = Get-Item -Path $LunaClientInstallerPath
 
             $SessionSplat = @{}
             $ToSessionSplat = @{}
@@ -152,7 +154,7 @@ Begin
         }
         else
         {
-            throw "Can't find $LunaClientPath."
+            Write-Warning -Message "Can't find `"$LunaClientInstallerPath`""
         }
     }
 
@@ -395,15 +397,22 @@ Begin
         # Install Luna Client
         ######################
 
-        if ($LunaFile -and -not (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\lunacm.exe") -and
-            (ShouldProcess @WhatIfSplat -Message "Installing LunaCm." @VerboseSplat))
+        if ($LunaFile)
         {
-            if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+            if (-not (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\lunacm.exe") -and
+                (ShouldProcess @WhatIfSplat -Message "Installing LunaCm." @VerboseSplat))
             {
-                throw "Must be administrator to setup Luna Client."
+                if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+                {
+                    Write-Warning -Message "Must be administrator to install Luna Client."
+                }
+                else
+                {
+                    Start-Process -WorkingDirectory $env:TEMP -FilePath $LunaFile.Name -ArgumentList "/install /quiet /norestart addlocal=NETWORK,CSP_KSP" -Verb RunAs
+                }
             }
 
-            Start-Process -WorkingDirectory $env:TEMP -FilePath $LunaFile.Name -ArgumentList "/install /quiet /norestart addlocal=NETWORK,CSP_KSP" -Verb RunAs
+            return
         }
 
         #########
@@ -448,7 +457,15 @@ Begin
                     elseif ($PscpCertificateToHsm.IsPresent)
                     {
                         $IP = Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object -Property { $_.InterfaceMetric + $_.RouteMetric } -Descending | Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -ExpandProperty IPAddress -First 1
-                        $Command += " `"C:\Program Files\SafeNet\LunaClient\cert\client\$IP.pem`" `"$($HsmCredential.UserName)@$($HsmHostname):$IP.pem`""
+
+                        if (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\cert\client\$IP.pem")
+                        {
+                            $Command += " `"C:\Program Files\SafeNet\LunaClient\cert\client\$IP.pem`" `"$($HsmCredential.UserName)@$($HsmHostname):$IP.pem`""
+                        }
+                        else
+                        {
+                            Write-Warning -Message "Cant find file `"C:\Program Files\SafeNet\LunaClient\cert\client\$IP.pem`""
+                        }
                     }
 
                     if ($HsmFingerprint)
@@ -457,6 +474,27 @@ Begin
                     }
 
                     $SafeNetSplat += @{ Command = $Command }
+                }
+            }
+
+            'Vtl'
+            {
+                if ($Vtl -match 'createCert')
+                {
+                    $Name = ([regex]::Match($Vtl, '-n (.*?)(?:$|\s)')).Groups.Item(1).Value
+
+                    if (Test-Path -Path "C:\Program Files\SafeNet\LunaClient\cert\client\$Name.pem")
+                    {
+                        Write-Warning -Message "Certificate `"$Name.pem`" already exist, aborting..."
+
+                        return
+                    }
+                }
+
+                $SafeNetSplat +=
+                @{
+                    Vtl = $true
+                    Command = $Vtl
                 }
             }
 
@@ -637,8 +675,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsaO/FlCmBiCs2owJHmttZsa5
-# YNqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpEd8YFiuwuNIodBO6fmROEyO
+# /MKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -769,34 +807,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUffGszslQ
-# OBbnp2dDI0E6+FiJec8wDQYJKoZIhvcNAQEBBQAEggIAFNYDvlPLnbkzTHvjrAoW
-# 6xvYBsu/zY1hTUes8c3n2bGR19mCYVfXA2xS9YhziD5gr43S851wOsnNOiIpjqDd
-# wHoFFe3VGYtYfKVGYN9LF4R5um1hAPeziQzdUjIYpIIG74v/nHimKBsV2XXfhmbe
-# LknzNinlr4ww0L1ZkCjxGmYUfYcmpK79xQ4YxBjOPmmy5wu0WSWejrkrWSJMSf6c
-# qTfF/NuVmubmeIn5C+1O3/XkUQA0OJADKIMsVTmUYxy20tINvvUTmXEKSUUscbXz
-# 7r8aMkUbDGhfjxdnwgKtPi2F5FQL+lkiby0wXUNTMKzP/zCnRxx818MpMZ4QGsvN
-# hVuOwRa15CLbyqWxhWjucRka0JGGfllIU8Yp4psTsJsKijDM7C2J45RkCbjzdEnK
-# yDJQgEhOimUe0EtYi53lcrWgOW3MYBVEISvI25NBbKpiO9rZ06Yh6vjQwAs5rWo+
-# sPtit2Ukn1pg4ygqWHSmWveNM8StT6sIFpidS1NW7jraSB39bX1Cek9Jllakhj9y
-# DVrXh+CM4DnSy7TVpSUtPA6MrFHxqpQcRjA1iZEpO6KJSbmjgCO9vBsDU7spzh71
-# yo47ceADyAX/8vSBLuby2OCZ7OHmxU8gJTY+oZCzJ5rKd6zt4vS0wnoKnLqzTEQR
-# IetiJTGhl8MWeZAWqkC1Cg2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUcmi9losb
+# 1OB1oYECPnGdW9kKZ1MwDQYJKoZIhvcNAQEBBQAEggIAEPyXFV6xmquJtU9ERwjy
+# npUAb4M49x50ajjqpTuaJ6NIECOTU1GwDbILHZt0p57Uij1y4TIn+8o7Xoj0mOGw
+# qjydQ9NeikWRpxrAG0Lzj02L5Y1KVbDvb4cmVmp4gqnBbnknV2rKVoYcxhShGJN7
+# 1j51a+q+bVXoKOafYThsrxhWS3cC5Rx3piUu0fSpM7KGl9PoRXiCkXoED/eaAV0L
+# 5CDbUrP/UrIOmaXwskr55Eaii5WQoKeAvY3yqYmeVk25ZC8N+aZS8s6UmznnYsAI
+# MGlc1CgmrI7jhBwGzlwXHvvfvdvp3joDpyMRMDGhxS0P8SsDIfknx5npfY8ZTUG8
+# xhJV5VOZYVpsIqM4OM7MpnNo1HyG4Ho6jsHnU9ygDoAWU4jGNYlLeUQFNq4GE79t
+# 8cAZz6t0RcxPQkD+542KFBJFWbZFR+KXbGXM8Fb9TF0NbGd7PuzcwGlPSfR2y0nE
+# tsGcnnkOCHjfOrW/9QG4znheXEgz5Efbc6C4cDYDjEv6hxy93E2HcDQHSsM8/GdH
+# 9e7GvX3jxg3OSqSVuxtKBy1nQWD2KQx1JIU31ZqcSA4JlUJwFGDUj0EQyELy4J/a
+# KzPm8z/VtJfK1vqicpb0FhLkwAtGAf5F/8txztONZxRH0U52nYecR/7q9g5G4Abw
+# Ica9NkvBh4K4mDmvAzEjZDGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgBKbuSuOS8Hh3UfEPlPSEIknQEEcUfjivXegVOULp
-# BMcwDQYJKoZIhvcNAQEBBQAEggIANrPHopxBRQnpJkEip9iqNrB6IsVlF6pW39lT
-# p4wqYvqDm+20uKp5lC6iQGCQnNokoWpqrvzzW3Q8hsJxfd1fTZghBRnf14xjk34s
-# K6LWjeIQi3eVuBa+bEEWfUh1YrZg220RMHGKcaUabs3I1zC9VLxA/m1r3LJOUv3z
-# guEKCthY7odTM6QUXgMwHCStUPwZDhpYXpQ37mfs06z+VVIr+ZWGBRdOfU2w3ftJ
-# xbAR8M+ETo/vU06hgKn+QumMu+MXq0ngGzbZff3DeyjUZDNzcga3Qqx2oJ5fbqab
-# njicOUELOgNYNHMM/6SaAMzLgHUFgxOGno1BET1LALB4aFG1w1Sd3s1A3sFr2Sbb
-# qk971QlZ+TvXILklhvx5LQd0ZLMAEPLY1oZe+p/Ahy0c1jHeMbl/w4X2TL+uTpz3
-# NDhe/2rvYywZruDZ+d2VJr14npmeRhHucaf6OiDMPqNfIZncQ8JFYESe+mMGOt36
-# TQiboc7Ks0YZYUzcjHs+AOeFPyDqv98Wf7DCoeQWcypnNIiRGyY59T5WWuONMOpJ
-# vv3dVMtMdBuP9lnOasTuZ0bCLKoOcRZJ3vgRiaJSQveJogFg+989osOBuaG30q/A
-# /fWV+qEq0Wv8RMOammc9KSxh3/NMjDhuJufYgv7h47nVFHSiFzya7B37eM3ZfGAx
-# zr8Ha+4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTExMjIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgRPEsfeew05J2X+z4r+4hO59Mh3t9H0g3w/HO00wk
+# diIwDQYJKoZIhvcNAQEBBQAEggIAuKZOn3H4V0UBSfH2akP/4lxOns/8JQjS0n9N
+# ImPyaRAgJ6jGyT1hpLBT8Vm3jjcXnX3TdT8MQxSOz64tzMlqIKCjwULarnihbqlq
+# u+y9jgkQk9iq+QXYbYU+SVz0djViU359Y0t9ESqsVBqa5Om5Pk5QaKjUD3+e9ao6
+# dtQhSV1KQBuzY4vEbYQvFZCBWkp2x/se5R5Yudjz3NvFWWaO5bf5vM311F9cney3
+# rftu8P3vqj8aAoQKxjDpmuXeYPh9OsvgEgX7Kfhggwal+FGsVVFSCuMFkZPXwOxD
+# ievSCD/pgv7/zOIiY/z/k00vMfUzrGd0Z0shGNFdIbItcFke7Q6ilKdpPflUU36R
+# DACLtv2buoWcafsgSuBzl2/orCEiLTdUwNj/bcEOfbo7J62dobrDioXzEZ+d93bs
+# /1lNm8H9yPpUB9e1vzuB1rZr/wz6ABN2Qyp9ykMFFKJE2PSBo10L949Qev6i3AUk
+# /2rX98itqoNAdk+s5iJQXoIaZxqpG4/YZZcjJ+bzK3hMMDkUiqlyOKpMcSk9pTOE
+# /tPI3U0p00p5IykIAot12yYa2lhllQFBr6efca6rTwjSoSUpywArPggW5lLVS3+U
+# qHNPgA571XJuNTf3dnR2z8YbIrkcOu90D5lhFjs1+nkHNEhXbn5DFyErifasW3Es
+# qyQZXtE=
 # SIG # End signature block
