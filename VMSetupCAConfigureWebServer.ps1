@@ -131,8 +131,9 @@ Begin
         try
         {
             . $PSScriptRoot\s_Begin.ps1
-            . $PSScriptRoot\f_ShouldProcess.ps1
             . $PSScriptRoot\f_CheckContinue.ps1
+            . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
         }
         catch [Exception]
         {
@@ -247,21 +248,18 @@ Begin
 
         foreach($feature in $AllFeatures)
         {
-           if ((Get-WindowsFeature -Name $feature).InstallState -notmatch 'Install' -and
-            (ShouldProcess @WhatIfSplat -Message "Installing $feature." @VerboseSplat))
+            if ((Get-WindowsFeature -Name $feature).InstallState -notmatch 'Install' -and
+                (ShouldProcess @WhatIfSplat -Message "Installing $feature." @VerboseSplat))
             {
                 Install-WindowsFeature -Name $feature > $null
             }
         }
 
         # Check if IIS drive is mapped
-        try
+        if (-not (Get-PSDrive -Name IIS -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Importing WebAdministration module..." @VerboseSplat))
         {
-            Get-PSDrive -Name IIS -ErrorAction Stop > $null
-        }
-        catch
-        {
-            Import-Module WebAdministration
+            Import-Module -Name WebAdministration
         }
 
         #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
@@ -1116,10 +1114,9 @@ Process
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_WriteRequest.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetRegistry.ps1
 
@@ -1171,10 +1168,9 @@ Process
         {
             try
             {
-                . $PSScriptRoot\f_TryCatch.ps1
                 # f_ShouldProcess.ps1 loaded in Begin
-                # f_CheckContinue.ps1 loaded in Begin
-                . $PSScriptRoot\f_CopyDifferentItem.ps1
+                # f_CopyDifferentItem.ps1 loaded in Begin
+                . $PSScriptRoot\f_TryCatch.ps1
                 . $PSScriptRoot\f_WriteRequest.ps1
                 . $PSScriptRoot\f_SetRegistry.ps1
             }
@@ -1255,8 +1251,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSIyrNcOuwiuIEbajcKkM8Fz8
-# Dt+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgeWatyHnWTi10QGi4V446pTn
+# RRigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1387,34 +1383,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgSijWjaq
-# 9B5Vy42bfeqZ1nJXRpIwDQYJKoZIhvcNAQEBBQAEggIAUlOEg54oww5eJAxrNlWC
-# btmn4wgoZPAH9Z1BiutAAPEcSMuiM1jRMQGR2qtXedRvcfcbsSe9YRVh+j0zCXMx
-# uKDpRGc7lHqx7fm9VfQ3npTg2ronwcUXHsf9VOxWWxI3J/3LGFapr7Jo+AJJhDPn
-# +RbRPIARooxV23lfbx34Mp3gHWHUzTDbpT8CFVX7KP6XW9yVjBGKT1V/jzMbuFUm
-# ARhmqC7gK01gri0Uuim+5bKpn6+eqj4iK1zfKglHdThFcMFSM49b3lQvCbxM60yl
-# +wOSLfl03erP05BuuMPVXcyWDoa8q2WQQqva45rK7kDpckVH6oXkZG+wq53cyASn
-# bWQVx1+Bb7kQHOgvuRLiFV/BMwNnHnoiAg+nvbf2VYhN8m57BNvj4qMStRxzevPD
-# iqnrpJ6E8hS3a0hFgnwXeYvjqsuy3JF2tV3GxHLNbn99g27S4AxThUnzHWISeczQ
-# YW4h9JkXH6eQhYPHNQffdVE1azZcCkYttFnu5/Af781Lu7J744gV8YizGGhnhjZv
-# qGI0QlXmBxqusafMxaMBh9dQRPmFnEZedOKN8XQ085iOkqaKGdnTKC24Gpy8jVDG
-# Zq6/Xo/0LlRcGAoprzZgrXFfWbtYI94YsHbl99Q0oQekRvFHMLRWsI1WDmL3v4us
-# dnwLdJmXtjfEmi+a70GfYFShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyOefu28F
+# aPNmppmY/TfgmE3Q2DswDQYJKoZIhvcNAQEBBQAEggIAWK+0rIPczKXyemQULqZT
+# 94qgSP1Kn7Xd8PU4uC5vJAyYuOasrarIFNZepM0C829vdLXEky9iQ9XVE8HYxO/N
+# HK24TmfMZ1XiLb3sCGiGClvqL9hMT8rKJwreKYJ8Gb/GJ2M2d7hgKTEzcZGmEG6t
+# JlhTN9zb8miOpoPWDOAuySzzQ1XhL1LsI5eGXVWd3OOnHOMu/lnWrveJk92Urib0
+# 3oYWPhEqFLjx8xZ23xtSUU70tGyqRTzIzsEpbbdwVGU1PunBJhZlrmQYAbm+ZJyZ
+# mwJ256W4y+98bxkY1OqZ03GlHcriEqu+OsS3ojtK+MRVEkk1MMKsO530bv5GFiHv
+# kOnltpSsilxqORCgpzPdfRWB/1aZ8f06w+v9G2lbm3C8EGBj0b2pSCA6AUrfR34f
+# IwhHCOaAG3UsjynEDKw+pSfjAjw0RVUOHMVJ294cA978GryCo2TbJffYS9B1cIet
+# mCoqIR94UVFqSQmBWCCWT2xi6f/4tvU/fbSaeWghV20qu/ckRzqEKVZ+Vi8nJwBp
+# fgtw3NLadKzNkBKap9Kv4tiqqENXl81NlSRi33grcN+TWnCb1jUwJBWq7lJ30Z4K
+# fVAXfDbX8p4pYGvbtzvbwX2cp4bsoKEKNBz21X5hTPUszhySVQLdCRIfZQeU9Ki/
+# slqSqSsO726i+g1fOiN/GXGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEyMTQwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgdtKf1M+iFSMM6I+ocCBDoWNlcmN7oZp5xvZ6GJTU
-# nGAwDQYJKoZIhvcNAQEBBQAEggIAn5/sp6wX78/5n5sT4shsjQCWT6G7ZeTR+5zr
-# lPEy0CCJdj90K/m2qV6G3fGIbLOb1ubLMHPTAkubs1K3qh/mH4WgBIIBANNsmgaD
-# YWTNuoNrERLtqcgAkTZXmsQEDNr64qPBZ7M9J1BX5WGqatNGEc63+ExySdUjF2GE
-# EoBSF9o2+E3pMbfJqM0mkuGtJnH9tbI9HdEd7Bfz/G1J5OqisqgAPr8Z6w/R6Dw0
-# diPQdDS8D7QC1r1w8NioOUA379vFR63vc+6jQskXkuugB+nl5LoCsv0/vNgE3gSC
-# 9CeWd/9Ad+rIdneu8jI1cpRG4X3RRaAHlMGC72XHfgu5qHixgtW49Bmx31wu6PIr
-# iCGUn3jWZQ9GYt9Yj1csUD7Yjgh1iQIdB+e35ptrtmeFDiQVZx0BSFiF4cjusgcb
-# n39ghn2MkbmwEujQPUa+AoWRa4yPqnrcbdN1gTLsARjgFseSoZ6LOMKpP0+6GfQR
-# ngxJiEIMcFWJfFRIVnEublj/98vh1vuJbDPctVrXGGAOnoHRK+BGUPkFl/NdEWjZ
-# ahTKxVM0FI1xjjaRETM0OgKEdyXp6QKINOtGp4u/letcS7quo037qGM9zhpFz/zQ
-# YsF29yqwStCBdl54hM0kAGAyHuwdDQ88vpREt9WZ26Ohwpcl2Ny90CUI9vEGGajL
-# p4j6S8w=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgRzXnFHwyihBcA0oRLkm3rrgVsLcy8nN7LQDULIZ+
+# i+gwDQYJKoZIhvcNAQEBBQAEggIAIDMe8Y0fU8WbL4AjPbEBqILOCNGtT3YHe/np
+# +TNUOoZLiibh6ukkwfDQ0N9J/yRdfq0+Y/p34gNlLgRvzVl2o8O293/B6oU/Kh2x
+# s1nLGHWWon55Mdo/SSHQ/CZcvG9Juw5+cc/0+4abL2r/C/w2hBrBa6Gp/L/Urn3W
+# 3jnDd8w1xWaye6GJaTOnibdb1V541C3fsjkHHhrFTEVgCbuvxBIMQrkBgiMjlVnr
+# wldE7CCxzDUgMA4weaA6po5uGytZ4EqCThPdEg6cYMIWO7urF2rmWn15rWOp1w0m
+# xF+g7X1Re7bx95JPk/6DGiSrSzQodv85jMf8gel7FbBc3WAps4pPqdM4MuPTe+OE
+# 8mm/cjzuua+dZd7Pm3vJbdYJtAuaTqCTvGASWmIKxFlII3xozmEe2bodyh+Gh2he
+# 83PbnR7TVHN0UVqgg4FPe78ficRNwOc/7waWDRzcOepckJb6Ljf1xEMHQkf/ONY2
+# 1iotMK1zj1gVdEwafbTjghHZADjgJY/tDzvoYuwkGjum2XmYx7Gv6DNZeZQSfKd5
+# OVYYrhGZ5UP3Ji6Nl/exagdrnMoQ2Y01p1KDG+AVE45LIOP2uIon0CMsu8Zkwbgc
+# hv3YVjF/6TBrx7IyyfPiDoMpjaCM7//BI8rzD8xNSxlIguvF45OldVnqFMFUN5wi
+# aKog+VM=
 # SIG # End signature block

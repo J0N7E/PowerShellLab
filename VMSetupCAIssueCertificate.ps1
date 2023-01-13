@@ -61,7 +61,7 @@ Begin
             . $PSScriptRoot\s_Begin.ps1
             . $PSScriptRoot\f_CheckContinue.ps1
             . $PSScriptRoot\f_ShouldProcess.ps1
-            . $PSScriptRoot\f_CopyDifferentItem.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
         }
         catch [Exception]
         {
@@ -242,9 +242,8 @@ Process
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_SetCASetting.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_RestartCertSvc.ps1
 
@@ -276,10 +275,8 @@ Process
         {
             try
             {
-                . $PSScriptRoot\f_TryCatch.ps1
-                # f_CheckContinue.ps1 loaded in begin
                 # f_ShouldProcess.ps1 loaded in Begin
-                # f_CopyDifferentItem.ps1 loaded in begin
+                . $PSScriptRoot\f_TryCatch.ps1
                 . $PSScriptRoot\f_SetCASetting.ps1
                 . $PSScriptRoot\f_RestartCertSvc.ps1
 
@@ -361,8 +358,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm3Ca66ugfe3os/5cV7VeyTSZ
-# 2JKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0ANfcyNDQqFOWBE1JrKi6WBZ
+# r4GgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -493,34 +490,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUYHwrfWii
-# E6la4CskPtq+H13UDb4wDQYJKoZIhvcNAQEBBQAEggIAO9VPj96ZpOcb2q/XlGQN
-# xDC+tikNvpRfT6Tgqou9+nfqR5pDjAqmWc7Vx78qXZIal9BiNMZBuKegPmVK5ytU
-# Q6nTPrQWSNh1W4GBSQDs3lA/OrSXvBm8VLcyauHOk4KAEu3C31VPO3MjVZQ3taIl
-# 1nlJGrKm0l1wOYhIceVoFi+N2jwHjh3mKtLuLGi57YbLDPr/zBnVV+qXBq4y7Z57
-# E24k/F7/Blenl9+tfpxxpafkgpv30LD1dFR5Kzo8RB4PHiOTGIuQm5iz9Wnom0Ke
-# mMmCtmcKEajWybGlXwXJXIgEypxnn2BaGYrZMVSVUF/506Rx24jB4yjBcWbYv8D1
-# YtX3LHhmdwbnf1hT3M5e3A+0oZ1Hmxo5uDACM5iBqMcyIjlB1VBj6kiTICIFTktk
-# 9BQpaksj1qX1x/ngrD7QpTEMlBQR98Sx6x7QjMGiFCdwYy2DVkaMhGv0ZtsglPlO
-# qikmtkYPVCJd5YYuH8KZ46+wJ+7szaeBY2b9FZneqk1m3jqvuUmCAWdknpiPVugg
-# 05u7CRIKqy6pPoF1m1UmyKaH1kafmE/STwu/Qvnf/oxnAgYDqYNVF/t2Kq2KM+AQ
-# uVUB+t6Cra5SYB2gbCBqfR4WA08mbwQKOnO4XQCubIXUlFrToTA4Wg3IEMtQe2qG
-# glwnd0enVQgxw30MBgkuFfehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6QWgw+JH
+# BW7YvKp/Yx8Kp0sUFLIwDQYJKoZIhvcNAQEBBQAEggIAjzonub54oV2PhKehn0IS
+# PZQJDZE4yAOJPSV9EgbxL0FY6bGTVOc+RYcY5ZZgY6pdOjoA1kV1LexSgdHvikDh
+# EJuncz+MbSfks0MvGDgOneO5g9KrGsy+HEszNFPVDXACWpTf7VffR8yqKYRYC/rz
+# S+gnifoueFtmfG+lMbxCJFd+BT2GhztsLGaH7mCrW+CgtX+pCGCpLIZLjWK2yGXg
+# x6AlykdBApF5xwnIBOKvAXsOZwBjROooQN/KWrEzYK87Y0vqn3+LCt8UPF3KTEVI
+# ED00FbnrKx4h8vdfxx56Jg8qn2LVtm8v7HkU4nLZbO4FiryJLlwBs6WXlkH8ldDQ
+# tyTyrEo0CVNOJE44ySwu6WAg1YuEXt8e25G4lnv+z525ovL6hxvyHMLt071R7+c+
+# j4onbtj8r9BrC4ArDrYiw8PNj3uZV/yZYNOXlAw6ePrKN03tQnPM3vwqzQUOhjuF
+# zQyw3PE88MVT4zwXapRiekJjPeOie25sO3/MF2lherR8KFihg7p9wWV75CAK/7l/
+# 09fW9acHimX5aHlZo8zqjAKoQB3Gqf72tpVHaT9Cx0mpuBBwzPZKk6NgD3WUV5jj
+# l/bMvjHmCweh1qn+foK134x8YCLeEyemDirZcUH2fKinsmsynFI4Q3DjS1Jki5dQ
+# KAx37rsC1meY88t7ZrZFJFmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgzIxNcm7v/wcupLFE9W7HVIB9DMKgyF581Oha/yOW
-# CGwwDQYJKoZIhvcNAQEBBQAEggIAockFPDNrs0LKzOHY5Zc18xMep4zDQSsDs9jL
-# KrZqdL3tIkNlUnn9o1xFmT8tLqTKS2h6sssWWCd0oSpUHa1xwHB7x+oLWmda9h8I
-# MH1498NrZPsSNuUKPsCfOMRjx2INwJUvqQtsNUtYMiT3h6mD+JYdkAl8New3xNLh
-# yXau5AShvqLW9p+GxQ7OXnId1AonGlvvBM/u7dmFi4/SCEsCj+/x6CZr6tpaUous
-# 59CggTdEu5jg2kp+EyAixfcGnnnlsmXGA9D0soLZbNGWDrdkSUUhIxJDcfaQCAFb
-# zmGRd34p++a92gisjARSjzm9tYKbftRm3+dFCGELK5Ut17boVEvpnEbHwDdc4Yqw
-# okUqVtk8bItQqawat84bRvgRYNXyqAJ1FjVX28HaczonHIdYBaUPFJTowXCqs07w
-# 1v5M2DSvIZwBkHpeCWwGwuSzlWT1H83Nvx107TSvUPStgaUG9IwcYaRcfZlrQ3gn
-# 7SQjhasuUIVMXERhcHqZ0dh6spd8/CxS/VkOCWBw2HFuCyjeqQcGOu9JzDBNPetY
-# g7yDa32bbAVzScgZHCPb0L8rOSzvkL3EIZkqrsl6jxlw3G0k+wOKGTfVB1UVdqNV
-# cj3N3MiX0IPWPfm3lgD2Z35OdtF6oqhhfP7x2+F137rYfPs2wIoVa+BSqjZx5Ler
-# mwLHZaE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgaXvg/vBimdc8rbgsjGCNz8TZbxOvXXIjNdkI+y8I
+# AJUwDQYJKoZIhvcNAQEBBQAEggIAs37+8RutpOxtyUHl/ll9G9Js3BzNgZVB4a2Z
+# f1B7bhYJr5FgAvrOHcTtkOe6rGHUhcS+6uoyJA50srWLNjRQCbX+z/+DfaL43cIf
+# iiwXIdhKzsPWKVHoLvVyYKknYt3VWH8PA7pRchaDzIjxB47N0ls1A1txRsfyLtLn
+# s4NUB9sUJyIntOPmCmhHX8wS4po8ioh6gRL1LVoJHPlROvdpkNUh1GAYycAOhfJ6
+# gNDhwbq3XZcLOBAPkFv6LIgGTZymTp/drZKGXqTxB96x/j16jzH+Au8NjkkfD0c7
+# raxpDWJqTS8JPd8vDJBy4pnqT7uMKYOLlq70DzmQRJUgVYfkO27eyJCjiPARvEQ1
+# 5t+FTLN+Rybik2Ox0OOEIpThknxZumGZtGrVhdHA2k1mh60aA0RAaaza2cgqnXmo
+# VfSFxYyOG29F6RphhMwxIfwTxe1ibFRBE0Tni7OkpaqJzJF5T0CZQWG6T7qXN/vt
+# vJQY8NReDzo0J2BvYtrqBB02Ab04JK2jqiXIHlvbO0t6E3RVeabasWiIlSdPm5Sp
+# VSn98nbzAkVbVnQONeXEvMyv6PzvDwDapUo1K2z/sui7wXr/Zpxm/3n2395N0iAI
+# +MWHe4MfHYjWabst3jO91dgRCK57PFJnMvj0xSdDOp5Q5axinCpIi33SG6v9pAW8
+# NcJC3ig=
 # SIG # End signature block

@@ -73,6 +73,9 @@ Begin
         try
         {
             . $PSScriptRoot\s_Begin.ps1
+            . $PSScriptRoot\f_CheckContinue.ps1
+            . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
         }
         catch [Exception]
         {
@@ -534,10 +537,8 @@ Process
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
+        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_GetBaseDN.ps1
 
         # Get parameters
@@ -571,10 +572,8 @@ Process
         {
             try
             {
+                # f_ShouldProcess.ps1 loaded in Begin
                 . $PSScriptRoot\f_TryCatch.ps1
-                . $PSScriptRoot\f_ShouldProcess.ps1
-                . $PSScriptRoot\f_CheckContinue.ps1
-                . $PSScriptRoot\f_CopyDifferentItem.ps1
                 . $PSScriptRoot\f_GetBaseDN.ps1
             }
             catch [Exception]
@@ -654,8 +653,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkK8MmdTChqQHykiUPPcg9lPA
-# +3agghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8Ar0BCNzvhyucAttfcOnWrZs
+# JNmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -786,34 +785,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7HipPNHF
-# 0kvoAPAMfTXht3EYLvAwDQYJKoZIhvcNAQEBBQAEggIAY6v3jnSRoJzA2X3PjVXk
-# LO0AW8uX/pJTOYQb3aXKbpdZjrXtGehz5o7IDmhywRPRK8QABpv30I5z+lh5f6IU
-# +yywoXuyDfTOwjoGBvgEh91Zz+lRlO9M4p4sxDogS2wzfp4dBp506jimYIzHyO/m
-# hnZz7JjAiYZJkkolrL4Lwi6jcL+aIPquGX//SkBThSNQpOdmbc9j9aCJq08r+r3y
-# 2VR5FMjrrtCy9O2q7FBxmGi3FuGEFROnI/eg4q5U0Q6Yscdy7CGKTGDpJqiEtULL
-# xDxLPXU1TdcgHi8LqWSLH+DNB8OHAgCWgxdlt5Akt2WTT3ubC0SOXNmxq2kmvHCX
-# GnUR2Y71td+j2QoeIk56gaOeiZuZxWIN/HIzQHYmghS40b2tmRUnmAZbKpgcwXy2
-# pcIueWMqACGDigM+OEvblbacYnpSErkZmSeLeUmbp8WiSj97AjHR7ImxpLwUsJLj
-# 8JlfsVdHx1gONbOADYiIHUUfmWCERB/HJFKRLfrHPvxhLeGBMta9veaCulU+7f/h
-# IkNPRIDlS6B78PcTJ1afxOyCZcMyE6uMvTgzOzVgq3IJiPaKjhNQOTnwu8Tszg71
-# BPccn3JE0caDX/TVQT8YHJhgr9wJZez0lrO1FOd/jWz8CR9CxwYFx5B56lLfa3kF
-# pNWXJLNEb6JWNxtwhATxgvahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3s8HMEkk
+# F9SEIa2N/rthS0BYqRMwDQYJKoZIhvcNAQEBBQAEggIAQDcPcG615BQxiwG+A/vl
+# PK+U49HqKpkA89z1FipyvNuLrvR4uZPQUZg31WwK+T9c/hszVC/6S7VcvXxjx0ET
+# 9QdgZViWsBq74RIBpiqAqyyKe/4zShKUKRzBFEoI7mKsTQiM4zSmaRuTUkN9uPSg
+# 4tgO5XFRDO50egdkm1rd/YtTlebVqVHg/3Nc24HXTCY2hPeo+nVAZp7uuwiSsTGK
+# OPzu3LPrajJb2gaYt+CV2DHyksQm1QIik/3o8VVhch9M9EcIUM71U/nkPvDjm+x/
+# /Y6JfRDvhjUGb3nLzjNfjAk35bnrXh+/aEiRZd8DBclmf9WXKP5Z/exAw1a7Cx0d
+# E1/Kyhyw8a6RVJbcTJW7xdajfn+tHVQYaiSfJRgD2Os7FE6h3iAO5+JtgQnqWkbJ
+# gpnJ9/V0nMqXGSQcv5TnR8MEqXmm+GydkGvf5DT0xPzMCBDbvYYbTsjMDhg2GsUN
+# GjPQN1dBgOCWEIepGXbP3rbLbwa9FzOhwEQBP323Rosnw9EIDBqB+P53mODAMhTf
+# Pl1xyYmT1YXV6395d+kBuFFzphtT1cF0j9DWyB1uMejUVijrHaI5TpaMkw3QLeqo
+# DvJ5kLBm0ac3RLkhoqry4GMpMJnpeAF1FDiAPKd4PJICupWyyWcnw88vNpnQr+P4
+# gEe3PTTNbXmb5dF/YwufXwWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEyMTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgBCuXqKnRQek2jOIzIVtYfnbYwhHz7PhVKRudvNYI
-# XWkwDQYJKoZIhvcNAQEBBQAEggIADqt+uZ33Qfybrnff9UTZKsCCx242eqjcAesQ
-# kDLfl4zTWz28YCaUzwE1K4vtsATnyp0oyVepYasLCQV66Q6bxXwY/WuAPAZy6oV8
-# Z+Z7hiUvHgj88+Ad00LIU9pV1Fgk6VWfeQzk12cGDbc7RrUV/PxHQDOI9U/JS3jz
-# TJGqeLegYSrwnEK0OpVnAaGzuz/PM9r1TUP/RHVUwWXDEQYGnVuSyhcHysma8yA4
-# cPkVZEYNavLFat8kAf5Z61nny84iiJWPy2NfACE3/36hZ6Zp5v6tKC6/hlCexLpC
-# lFlPdmd4PxOqC0g8XZ0ogjJW5t4Y29ckppsJjuS/2obYo3CnixCegq2lzCavrnCx
-# m759XzpC5B3Mas5/omwgNCkR4nsBFF4Cra88IIqd+yNH+wdEC8mRdzU1oAs8oAtX
-# xrUZl4MeM9vGWQQEvH0l+u4nX5dU6Uw3z12zCqL03odYDbLv0RBXm+2cr1Ye+wCK
-# L+bbsxC+H2rrypKiFIUicKb8BhlQ4MHKp7qMjhU3MRCppmePI1IgfeE4Jx9YQrAH
-# AvzPaJU+aYYlZUueMmsRjZyqlH+Atz7zNhbiUkp6LpN7azUJkGAdmuOPhZfnK+Zo
-# 7jcoVYw++zGYEdrzS+EA335MxVrDp+50sFcBrrnQRyQ5bGxIeN/uRA5Gmw2ZNotK
-# uA0dC0k=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjMwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgDVFEy3yMITj2inN5jauuTToxgsChqqwM4fZa0zTT
+# euIwDQYJKoZIhvcNAQEBBQAEggIAA6Beqr07Q8Vrd9Cb7Ee/382LUyhpCgk4mcqQ
+# K/16FIJ2Sqb/k1nVxsSxf1BHRarJ5Bbje7DEnBSmRBBIP+RpswQY52+RP1gG7Bnj
+# akXimU2X+Z8gjMCAi49msUrhVwyRhyQ8zzcIhLMLh7mw0LQd4KC7kfrWgMKSNUAB
+# xIthDtS/S5bul0DvXhZZbnpWPKEN01EXeQiibC5a+KsNi8Z1bu9b/UGD99bn1CF+
+# GEmx507hFcgD8DV5zAuMxZMFGd78lEMDs9pkYcLXT2HH0XJZNOzKuMb63PYAuty0
+# ueZf6gy3gY8lO+PrsQWFs1pZmudrhvFOO220xxfrg8xQ52rgqobPKwlXlauWVLCC
+# NOCCo3sXWkO9ES5Cl8B85AqSZbR7/lB8lBEfQWjOf8sME4E93J4KsRwpIdJ+LYOl
+# rTxmlWDRgrH0mU2j5GHb9lRLKoF8j0wP4If0GvMKfJ/iCnb0SM8nRq5T5Oc+oTBb
+# sebmCd1ltOGZseuiEzvaS+NgyawsISTiqr06GHzXfEHfbRTMgRggGBNmwua966qR
+# ldZjMNsDWC5DjdpYvV7GvtMX4yhaOyzOZ7S6xa5s/9OtuH+nd3+i+fNZ8kh8dgkx
+# QsAVm5EuJDj804oaDLqTMRhb5bHD4+G25zHvpBu7lobq06/1C+dhjbCpmEQtfT/S
+# hUi7smk=
 # SIG # End signature block
