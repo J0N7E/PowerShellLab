@@ -56,6 +56,9 @@ Begin
         try
         {
             . $PSScriptRoot\s_Begin.ps1
+            . $PSScriptRoot\f_CheckContinue.ps1
+            . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
         }
         catch [Exception]
         {
@@ -242,10 +245,8 @@ Process
     if ($Session -and $Session.State -eq 'Opened')
     {
         # Load functions
-        Invoke-Command -Session $Session -Erroraction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -Erroraction Stop -FilePath $PSScriptRoot\f_ShouldProcess.ps1
-        Invoke-Command -Session $Session -ErrorAction Stop -FilePath $PSScriptRoot\f_CheckContinue.ps1
-        Invoke-Command -Session $Session -Erroraction Stop -FilePath $PSScriptRoot\f_CopyDifferentItem.ps1
+        Invoke-Command -Session $Session -Erroraction Stop -FilePath $PSScriptRoot\f_TryCatch.ps1
         Invoke-Command -Session $Session -Erroraction Stop -FilePath $PSScriptRoot\f_RemoveKey.ps1
 
         # Get parameters
@@ -272,10 +273,8 @@ Process
         {
             try
             {
+                # f_ShouldProcess.ps1 loaded in Begin
                 . $PSScriptRoot\f_TryCatch.ps1
-                . $PSScriptRoot\f_ShouldProcess.ps1
-                . $PSScriptRoot\f_CheckContinue.ps1
-                . $PSScriptRoot\f_CopyDifferentItem.ps1
                 . $PSScriptRoot\f_RemoveKey.ps1
             }
             catch [Exception]
@@ -362,8 +361,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7CZmMYo+HS0bZO+NH22K0CF5
-# M1WgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDO3XtdTHKJU+cEOm1MNQq0gx
+# gQCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -494,34 +493,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNxevqlLt
-# 2vbkoHwib8Osi46vnZwwDQYJKoZIhvcNAQEBBQAEggIAUIL1fBD8vDPF2x0uL0H9
-# yz9IEd98qYYZoRFOss7GFLkGvkQdusgmSIk0lNY0tN381NuRKd3OGNcxW4F0/xNw
-# p0ijcSFvQ/5faJUFO5qBiQckPRUn5Q9uD97MzxqI1qJ7cblLuQBPYoIECE/R5Pmv
-# 2SeD+TTKWzL1KjODrzs1C9fqjOkt4zOehSonHiTRBzEZ/8iAxwXpTGNtCEWYHrpt
-# xCtKItdStiJsqN5NyzS8eGI9l2L6S+sNRp28DXBhFm55qQv6PniioxXZtFG+4gtT
-# RqlsTVnKVdOKYlK6xUgUp7a0plXbzaizQOgDwAQTy1Ag2JraItW/DvJBvloL8krK
-# +iHoY6hlDhwMsvEB31kFAfhRL0xeJSBlzIWIqNEepsKSXMdbugTQnuwV+jbjqQXR
-# ub9tA9gVv4jfmD9gNfCUJym2uNbnvEuBVDLn7Bnnt2Q/s2+IhIdPBQdbtYcInEq6
-# zc4+XJgJje9Ntb+hBOaSqZfvndQMXs4gNICnniJt7iFynFZ+2E3BvoiurUVyLpor
-# khBeQ93WrGW/b7Cz02ayach8UAyTaD0ABdZ8HubahaC3KINcdnNDs8FtHxbmONXP
-# mYHQPSO2VJkaFlV1YFPgWO5GJV8PdLVMK5D+yIsD/eUWLXcAbUyWWJZQ0u2+Ttm9
-# EagRmfTip90R/jldx0RlvwmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFFm3hJ/g
+# cfP7yOagrxY7CLEBdDYwDQYJKoZIhvcNAQEBBQAEggIAqwfpBSFtDsEyH96Fc0Iw
+# qSCf95EWcZVKig5dDQIvqSIE6n0icyzb4DuUFf06MhsdcClurN6vSLMpJsE6VCn0
+# 5U5Odt/CnLmQeMxAz97x976l3bsoUxj8WA/gRwZGkOoZDSn5DMrv8ClNEt81mdts
+# OVAHtpDQR/EvHQklyDmAVJem2p+qJbQtVOqMWnstaMm1QhZaG25RyWTpTVBcLEMW
+# SMFNa251N+XjGnn0mZrQCnttR4dbWeYgt08GXepteFWCKeP03FE7aSnioumjZUNl
+# bYEX0crQdFSyBx0H16vjIofSDl/6wQ0I7xyIKsM4WFyVEpFnH+LDrIEthmFatkbV
+# B4c+o8KiUH3q7QFqjoBBBoptXtCPxyU6BUGsQPZ/YqGfNBM6/CtK29zR9ipknmwL
+# GJYHAAOlpeal41oHFVm8SQgOM+RYPl0ILPq/mtoMNL/n2BXmJavrckAquBwHKT40
+# MkP3FHkutaJDW55PXcYJ0OkKNqBtFaxWUc7U45JUbkmXduoO/qrydhlPCVmOga2I
+# Nbm1tpgSLH3pIrZs4KfT2fNyTH1ySYqUvYcYfsasjthUp0strruPRzCer7r6hgH5
+# OHyZmjk1Uq1FVsa/ALVa9iGeEDMWcZysE/6xcPaQXQHyG43SgXi2x1bvcwjd7aJI
+# /i3eXWLQhwQCidH2vKuBfuyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEyMTUwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgpupb6crIv+zvz6fuZU1cafNXz222i1ccGTDVQALL
-# JQwwDQYJKoZIhvcNAQEBBQAEggIAg3t1rVsjIjzU4MmPgXFh0RiTf+zefNpDp+r7
-# 2YmRBtM/1xlkpxH59JHCpBYNRQZ/OixCEJHGuo3NgFhyBEhIiZrFXYECFg12LON4
-# 0E4QvI8Za8RWF9DQvbH95owMO7HyeVoZsMOmBX9ZylcDzvqITxiO5oMhtJGiVms5
-# mD8ibrXktCe3+YBcYEa66a9ID89BEP5+IEb368XMJJ1YcfTO8hSbTVX7uzI4sN5q
-# zPL4rBlb6M0mX2/XXYAYgbs35zSopfxqRDGksBVh6YAWIY9E6ZuzoXznoyKDXGDy
-# z8fCv6oWZmeBVtEbWT37IzpllK87NnxO4IyEmKFsrpSw/6fGqJofQwI/ohTlmBFu
-# vCT0k1w0rn/dVp+QEbqgg9Ox1ib4H0Ef0VG9/CipAKFsDcd0vlgcaDGl/Mx7B5iY
-# Qp+t+1HUeH32wAYfagduN6MN4bA/i0qF04zio5J2cPCY1zcAlZyqlWnqBawAW7P4
-# hKKVUWDrrdTA8zZNuaqhSjFxsEgs0Pqxjcu4XaOovx2mbcw1oY+UHJBb7HLGKXpj
-# OpxNzqusAY2fG8CZgfmrnNlq4MapvZaRk2Jbz9YqvwbrTr6Vw4fEwH+dI6UtfPv6
-# Jnc4d4CGH8QfD1ZvjKRcmImDysPSB6h77unU1aoeEGN93fF6hnHx+Zx2eGosuy9m
-# 20L1rTQ=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjIwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgTMx+g3JR6fOJTSR3OHs65mdf2NN6BJlrca7PZMk9
+# wPQwDQYJKoZIhvcNAQEBBQAEggIAK3uO4nZcSod/Hv70LcCuczt9QK8vMb9bIri2
+# CTbcdq1mYgVYMC5hzHkX/LJN/ipbq9aEuIvIkpGX0KGTzQpma0Lc05RTRCUhoecU
+# 3d+/m0ryIHgJF6dV+4/qNj3ECZT2OsTcw+MuSxb43Z8kjSeDFd/OvNfEf8WSMrJ0
+# FHdH4r8Xfo1JevZQyhdyHCGFBupGwBxR5wZKqzSF4xBnsh1FtyjM9qVlUF96OivM
+# lmbk0dh3g3Ne1KHiAxCkeGgJu1hkdlxNQsNahZ22T9vTUp+Sjgfp6dK2Lu6NsTC8
+# TjFbPbZKGf/aubMEf1Z4+7zO5/67mnsUDFB48G2vDXgYyqZJWb0wxVKf4XBMDb4g
+# jYSQxJWcb7HSGwERXQzXRcJRv0iZpBNEcFWI0oD02/l8FxS1skJ8Q1f81XfQ02E7
+# DFTfJOjDN98ofFgCYSSs/LNHcU++ljWDP59jgNuPZSh/MneceutFJB1/a7skf9jX
+# eMUcYN++RsxlCy4pk5QVeEB3tSJ7DKeJatMh1F3tv3wRCE8hNs+FCFpeJ6fhM+6h
+# F51sD3C6evcT54+RJ8I67w8NhOpYzqSRSXEr0HZEFxpqf5tBs4O6tzPWontUGma4
+# v4uN51xBRFyfZvMG2wBybKg7IbDw7TZlo5tWpWHj68xRbifhx9QOa+lNmHQnei24
+# ygwiQqk=
 # SIG # End signature block
