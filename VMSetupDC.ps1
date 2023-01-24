@@ -724,8 +724,7 @@ Begin
                     Workstation = 'Windows 10 21H2'
 
                     # FIX
-                    # Add baselines when released
-
+                    # Add baselines
                 }
                 '20348' = # Windows Server 2022
                 @{
@@ -774,6 +773,9 @@ Begin
                 @{
                     Version = '22H2'
                     Workstation = 'Windows 11 22H2'
+
+                    # FIX
+                    # Add baselines
                 }
             }
 
@@ -947,11 +949,11 @@ Begin
             $MoveObjects =
             @(
                 # Tier 0 servers
-                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'DC*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Domain Controllers,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'AS*' -and ObjectClass -eq 'computer'";     TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'RTR*' -and ObjectClass -eq 'computer'";    TargetPath = "OU=Routing and Remote Access,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*ADFS*' -and ObjectClass -eq 'computer'";  TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like '*WAP*' -and ObjectClass -eq 'computer'";   TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 0 service accounts
                 @{ Filter = "Name -like 'Az*' -and ObjectClass -eq 'user'";         TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN" }
@@ -1493,7 +1495,7 @@ Begin
             if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Importing ActiveDirectory module..." @VerboseSplat))
             {
-                Import-Module -Name ActiveDirectory -Force
+                Import-Module -Name ActiveDirectory
             }
 
             $AccessRight = @{}
@@ -1505,9 +1507,6 @@ Begin
             ########################
             # Create Child Computer
             ########################
-
-            # FIX
-            # remove create all child objects
 
             $CreateChildComputer =
             @(
@@ -2190,9 +2189,6 @@ Begin
                     }
                 }
 
-                # FIX
-                # Add try catch to set-acl
-
                 # Read acl files
                 foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
                 {
@@ -2269,9 +2265,6 @@ Begin
             }
 
             #>
-
-            # FIX
-            # setup logging
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
             # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
@@ -2501,8 +2494,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBbbYKJMd6jhzGz82IBWHMhxa
-# xg2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxyUMMzivP6dOdE4kpVHrGwcn
+# rsOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2633,34 +2626,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+g8IIjq0
-# GLYspUX/JVLKUgiAiacwDQYJKoZIhvcNAQEBBQAEggIAGn2LRzdAmDLq5Rg5c1n7
-# hVCQVmrNu/shZPPh78LKHdAiO9OK27rrTbX/MmSb8LeEHBnY5kYqTwt4WiB9kyHY
-# Ok3zFUgJrDKt0J/XraJeKrEzXxF97zY3leW2guV0qrFSiDdKJqSqU1BkujmdPG4V
-# 2SfrxYUlYJM1jn67/VsLx8wjqc9TUMZT98RLYIoEEJbHzLW/QEPatiADL0M3loBo
-# lQmNt07EktZsMdEOe3MWD8sk61m9FZ5DuA/pKneh+u5h4JzddsxsBddjyrQ4RKxz
-# LitFNUMBONKBHnKrQxcp7Y0klAqAlQTLiT9zFsrBp+4wCLx0GwIyZ5E6Hf6j1AH3
-# YNjvfr/1m7pGBFwu/DDRWhYcYdo0padxRFmQQ9tOyMneBb+eXNpGve8WjZqrmUoq
-# XRCIZvPT/RPtErad9o5Ilz50ndUJ25psf6AZs/8BKl/xRdVPmyWSDl319hauK78U
-# zJrmvLIGF+APgM6aGKGlJzqaPZrY3lXEZNyuwABCtS03lQHZMaCkbxnvn/dij/Lg
-# gQxw4/xCZ1KbcaOdkmQrPGNuU6RKnMLkzKqwu0Z0Amm9VlUr/S5+XUTxQ/sqPnoK
-# pHlzi0oIFgpTk+xmhOe7q7THG3b0ScvQaCvAma4xV9oFDNf/67QgeOYEWJnoYOuS
-# afKSy3EaCAl8/zNINAc1FfyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2y99I5jd
+# okghtx8xaunDbdIDCjcwDQYJKoZIhvcNAQEBBQAEggIAurg4Owaj6nLWbCM0eRHp
+# hsl7eSva75lef2y9XfEybglPJbaOOkKYOKb4An2zhZzbRRcVQir8RY4U9dVEJMB0
+# HEdKL9//m7+k8dZrlDxOcbw8KIxkzrAdZCII4G9uqSDcdHbVCSIw2U1XKj8bfidO
+# RnQAaaX6FtI3ElapmfiKHk+1GvIuwopQMppV8XNNO6Y8Oyjpop7D6Cz+C7dGXeeb
+# 4BqVv00nidY9G9qDK33ADfcTcRvHnNtfF678SsZjNXzCrtKjsRrc9a9HCfxzFLcP
+# dbb6MnH5u7alS/1HNQ6Zh7RkN7ByY/7BGxIikfzP2O8wIQGpM/K39Od4YYwQqVQ4
+# MPVhZL5JDPLckxlEQ8O/7Zem1jxwbw6XvXYnMQ9rTNjZXIFc7pxMU3vspebsm+4I
+# etvlHS3bSg5kXstuGvdL6jbQUvS6KRQtA1bpi2QgmbasZl2URxDB2M5YRpt9qAH1
+# t8aX3xfoETQepEMxSD8E+Nk0R/6cDhxkOjUUu/50aNS2siax+5vDgqZv26odkZvg
+# H4eDghz86geRxVJegSu55g7buKVTlqggvKWnKLIkkiwnLlxT8FxAOdyyNPWAIuPs
+# KyPadQIP6cYC2HWF2HbOpbANidwhn9iZ2Ob+G+i2p70BEdE+fifeaYyTaHyQTJMB
+# TrP958tkv3FJbwhOjk99xuOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjMwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg7HLuI64cHCp0KV96q2YxSAr4/A+/Esf0fgC6RIW6
-# 3UEwDQYJKoZIhvcNAQEBBQAEggIAVjxD+9BYukXzPX6zlGrbRlYYTHhi1Ti0WTvh
-# rnT8xI7C4gZA9hmKf45vW7SD4SiQBJRapztkyn0HGrOYvqDw+bG5ODLcfNDpObyD
-# 2r293zUoYf3COFZkP5ls5vBKfhNXI3+BIkepZo4wG30aUPI5U0f/mDobAHiEYYUN
-# I6x1xWfC9B0FKjzW20sGcDj7YCPe5JEYloojsmso3BSdJ0V1vDvFQRT0cxta9cCL
-# c6ZuPfRzEAw1Ksif+xVXul+r/3AVt85dHbWJsPaZMPscMYqstaQZZifz4NwlaJCP
-# yLYHQ77+eyHKclVMA8bg+h9c0ScsOwW61rZHtVyqdZfDC53qmP2umpTJeWfAd8SE
-# Wk+4ICXtiSBTB3QA7JmiRr1nvT4I3Xmht8I0UFFCcsfOjCQnlWTHoi7SifctIRdj
-# bBccQ7Hb0DbGtNgzJ2ieMyXCr+esRWwkjBDIBJ3CGj921zPKcWGAtGPk+zvWUC+/
-# Mq2QjioITQ0eg2KR7Lz3zRwjg1d9Jyo/SL4HdOwRIUM2j0+dDHQoFU9G8sOeauwz
-# fTVs6u7aut9K8XcPzyBrSpgWHo/Jr3qbdxhzhWtW7Qwu6V898LzjaOX3Nbdzf29I
-# xxQNvxuO3LqmdDUf6q9l2dfBVnkJHohrU8yyWcKPejaFjH8fbEPBferLSQXff5cW
-# z7oBSck=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTI0MTIwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgsxKG/jE9RMQlXvS5kKjKJx3BaIEss9NZYcKyTZkC
+# gREwDQYJKoZIhvcNAQEBBQAEggIAClAd/ZzvTpdlsKuBQfZIAdYQNlS9boKHsyvL
+# l1gGvkjo2oSi/a3tdVNY6ao1qjC1uw5un+yzz1yG6Ur/I3c9yCm/ZROpB4Rt7V6C
+# pjsi3yTbJ0Ot4g0VeY0E9Z0HYOY8cKdTzS3cVz2EuGf5xn6g5Efej3Gkt87KYyK8
+# P14W6sW3r6EjNSjy4HFXIpvBce/32K11wgNbxhyxLeTNW1k1NbUyPB2AbR4K97eq
+# UPT9PN40CVyNzymDTyiXZNoA32AfcFxDB+AHwfCqAsxIHPc2DtbaOU0+cwkRR6Q8
+# BTgR/RRtWiCkOOXNUB+SPwuF5yxhQ/cPKEm18Y0z9mIxKoJ0og+9BTCwNufe4jLQ
+# ZCxMZkv540OiBnRu0Ks3dIOyXDdpWj2XJxSTR3mdaMI00wbBf3xowemGNWQpFbru
+# RFHl8KD21t381tYJbED5k7r48mzrgA8rXbNOGLw/bk2hbXXm+XJv2Wdo9fMxiBWi
+# St0uQyDjmkyAo5kfKyjS6CjNZTX9mEtWxVtp3LEL/L3hyBibsR/hQAzSQvA0zX5N
+# GgoshVFw+KuwYkO2etnb4N/tZnlaGSkpALe0fG4JYm9xtIjWT5KuYxf0EodnmGg9
+# wyJZGAzLm4EK6+YMPNEod7LQBcesYBeErZP3Z7RuhDIjpDnSJjaruUV0lLr3Hrzd
+# 8F3O03E=
 # SIG # End signature block
