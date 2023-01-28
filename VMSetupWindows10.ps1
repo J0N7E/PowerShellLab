@@ -376,6 +376,12 @@ Begin
             # Hide task view button
             @{ Name = 'ShowTaskViewButton';     Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
+            # Hide chat button
+            @{ Name = 'TaskbarMn';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            # Hide widgets button
+            @{ Name = 'TaskbarDa';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
             # Hide search icon
             @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
 
@@ -383,6 +389,7 @@ Begin
             @{ Name = 'MMTaskbarMode';          Value = 2;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Use dark theme
+            @{ Name = 'SystemUsesLightTheme';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
             @{ Name = 'AppsUseLightTheme';      Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
 
             # Set accent color
@@ -481,8 +488,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFXFvfZRM2eCqVOfqHK227owJ
-# gjCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3Coqoa/wlbulzOqQyQIMAGho
+# JbagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -613,34 +620,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoKUt16Ht
-# GOaJGw4G9JxIUZGmwaswDQYJKoZIhvcNAQEBBQAEggIAu7XsnUr+o/2jgyYHca81
-# UkgVmVvB2OntdIoeXahfnphkvamzbncZr7yfC7Ir+PnFyzjGfS5pC5xALWSDVZGa
-# wbJ0yME9+UaD8J+rVH1NQO7yhOEhdWx0R71ig+YoJmiC2aos/OEAB+Dydy0MY9pA
-# R9PcahE8rvKLw6H7IvnwEvr6E85X/hznocsIqjfjUbBNap1qomqVl1D0akBeHuTi
-# sG8oLWkE59OoIbLavkxVB25fD2TKGyREBYT1LiOg1b1p+W/fMeLZmwjcIIvaj7Sp
-# KySGG3yRiYmG5z+O/a7hFFAkAEDShYOE9wjTvFjVKJyzFcQDE0rYZraW6Ahkc6QU
-# Wpxrx+143lf+J3yYV5XW77+jwc3RM86L3xPnaiFFEd3ww3ivo++NKT9imw/lT9ZP
-# VF0CtpUFbhc3UunL9uwSEKgk7kBFaQUboWwnSSBLOpfl1xxvE9hNYbCvZ2XXE3Yc
-# v0MamRLfmclkngUBcRL1F52HstmXTTe/ct2GKGvtbRBlWWt9SCNI/fuBMXQ7tW36
-# JYqd0J3Mu1XNEvrkF+Yd5v6wCdLI8qeCMw61GKqshM27rjnqksgTv0/ie8aPGFuo
-# eMgpI90KfZmwJQFZLar5PNnXyFEwp/VVeUcDayFRcflQqht85jU1VteYBq1OlX7z
-# k8kOQ1I3m6R8q3HXsdyNa7GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUP95zvXb9
+# TlMqCOBlwD8m1tnSvJEwDQYJKoZIhvcNAQEBBQAEggIAGG7pgvBhWAFmIi5XZJiA
+# Ga47c6nvt9UsWSjWqoBVYdjbKwLhtI+iHfgtUFt5vKPEJtx5PmVxLfLKujBxppe/
+# Byjtu2WA95Fqk7uIHuDIgI6LxbH2juUK5SEQlq2SB73FAU5IhXSkq43W5YgAriLJ
+# HiXDN4bQMPq56xWH2+ZLsJZFjWMfccown1/vVHwHyiznFvkOQEgMjuj2W5+iNQDz
+# 1Etf+tmbJGwUVIBOJYGGL7mrf1Q2IDIwab+9/dCXkZDApyeOLGyVUQAvadVAts5c
+# w5AuF6+8gLvcH2iEx8WPPY2Hqr1JDsf5ptL1CgVmVMLcaqq93jiGJFzEltZLazAM
+# hB5gYchhYT2bZYT1C0Jesr/aHR1b+gCniCKlQBQVPWZbfFlREo+KNsVfK8yzCwKL
+# ON328pzNj1h7CHDrdeDwHRA8V5EhBfvNhMFS11UXjH13PN3/sN57AZaF06At+V9l
+# TcAniDqz6KRf4xqxtYjjrm30xzEXToBTC4uPqvkVWrHlOPz+zTUDQm9rFgcSU9nS
+# drtb7E6gEp7JPsWHr5OwZT3Q9GMOvO5m+Vg2SlfxTDVGTQa6avknwQzNIHhBMRBS
+# /ipkGH0O1KjxplYgyWDr/n7CYAKyDEw03rSkQ0mR3QEodW0jTV05Bgd2/aY4Rjv/
+# Y4O0TSg+chNVRs+0PKg0mSmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTI4MTIwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgd0lqV01LPGq0BUQUAoM6YtAVJm+Q7QqbJPNnSQI2
-# qdAwDQYJKoZIhvcNAQEBBQAEggIAv+7GVB6Ftmp67Phi2zDF7cqIF7WTNnpkeCnS
-# JVYgU9HGl9WEMPIa75DqDoROijcuzNaBU2qnPEVHdkFg4r+uKQsLUutbIGIdh8IL
-# d8v1jHiQdKvFwKL1ynZYFESoF+2WlKxUSlO3BQr+PA+RDeQKoYAOQ3AHuKh72jgu
-# AROJwwfz153nWV6edKWUDULNznc73vde2k3W0S8L17V4zJhYU+I0zrF658Pb30q1
-# pxne6TpXhBvda8V6NmWyTKnllv2s1sle8+uoJaGfsm45wIxgE59rDKR9dwdwWUpp
-# noF44/+95ju5vF1y87f2fXR0pqtWZqvu2ztyDB/ialj4iiFNav3aLT+HCWcno/1K
-# WC2NTYpbg1+BfoyEb178hxcs0wvm7vwjGBwtA+wgjEmGvsZEMHqo1xijpzK/1AVg
-# C7B7IMew9WJnAOA6gJ98aQOn+cmm4PFerlT+CwsZ/t+wCKaq3g5nyYt3SZ8V/trq
-# PeDYEX+SZ5LQhoYB19vigYLrXtU6AYgltRPkKxLeJNWWx0nRASZYjvUksga4iM5a
-# 8w/hacXq3JRZc8R4p+SJ1dKr0VLh2oEBYthYy5E+jzUUhw9LsvMH6v0wdOY+ff4R
-# h6rypCeqVy3Nk4krUVPGCcjmEYqkHicx5I6hR+Un2ZIYQJbQRQbAYebXPL8uy3fQ
-# LqRQDx8=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTI4MTMwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgvHUcOhAMLfsL9fbE6Y5ku7J+rQDG4h2fA0slaozH
+# P1swDQYJKoZIhvcNAQEBBQAEggIAP/7IvnGRjWHnEvNWMuJjK6T4fAtsNozu6Pl8
+# BvbCHkqpzIhgpT8tj95PQM+XZgG0xvIqwfw8rkME2WjuhRUsANkWHxAi7rwnQ+DH
+# cWCdLLziKlHInn6WimYOcyJaogxi1uyqRt3v4ZNEZlVjI1Q8UJmrvIRGd+dGHTw3
+# JrsY5wLkOg3Gs9JDDf8SWdAifIUNSYf3HZQ8UXYHLpPjM3ik/6VGx0OLKQapZ6yZ
+# nNJo/zijeu6MaSumWCqcOmEbv1zZvUkF8pV5x5vfKnjIKr5gCGO7LDzdO3HeXRsq
+# PsF/K5jYlcK/z7Yr+ViSkiIi0Enh/6U09hJtHjrgi4zW5eY7joRgJHWXw9B5FwYB
+# sbUEBy7/N453Vg9oVrhYXgxUnNESbd7gv/Z6NXjcuMOd9gcWIz711a2CL3bqvZxJ
+# tDnsqq0eQcUOT80xrkirVO/yEeHKKVu/u2LcJtBw4nRB6ZTv8SnTfIRqwgttnmG5
+# xmlkmNHrG6rr8nXU5RYLZEvs0klfaXra2RZut6AqNcJe8G3ZcOi0SvqMQS1t3fDV
+# vdumE0v1POrZVFGYSB1Olo99hTKvNbdokN2tCO2OlWcf9TJCaKxHtuIothgtJsgx
+# YP9v4JHF8IMfwJWQCYXrBFDzDuS0n/lj+5/X2t16/eiDcZ4ttsRd6iGIlqPwxXaQ
+# NRZHgSg=
 # SIG # End signature block
