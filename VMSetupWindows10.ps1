@@ -120,18 +120,21 @@ Begin
 
         foreach ($Var in $EnvironmentVariables)
         {
-            # $env:
-            if ((Get-Item -Path "env:$($Var.Name)" -ErrorAction SilentlyContinue).Value -ne $Var.Value -and
-               (ShouldProcess @WhatIfSplat -Message "Setting `$env:$($Var.Name) to `"$($Var.Value)`"" @VerboseSplat))
+            if (Test-Path -Path $Var.Value)
             {
-                Set-Item -Path "env:$($Var.Name)" -Value $Var.Value
-            }
+                # $env:
+                if ((Get-Item -Path "env:$($Var.Name)" -ErrorAction SilentlyContinue).Value -ne $Var.Value -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting `$env:$($Var.Name) to `"$($Var.Value)`"" @VerboseSplat))
+                {
+                    Set-Item -Path "env:$($Var.Name)" -Value $Var.Value
+                }
 
-            # Set
-            if ([Environment]::GetEnvironmentVariable($Var.Name, "User") -ne $Var.Value -and
-               (ShouldProcess @WhatIfSplat -Message "Setting user variable $($Var.Name) to `"$($Var.Value)`"" @VerboseSplat))
-            {
-                [Environment]::SetEnvironmentVariable($Var.Name, $Var.Value, "User")
+                # Set
+                if ([Environment]::GetEnvironmentVariable($Var.Name, "User") -ne $Var.Value -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting user variable $($Var.Name) to `"$($Var.Value)`"" @VerboseSplat))
+                {
+                    [Environment]::SetEnvironmentVariable($Var.Name, $Var.Value, "User")
+                }
             }
         }
 
@@ -155,7 +158,14 @@ Begin
             @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$EnvDataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
         )
 
-        Set-Registry -Settings $ShellFolders
+        foreach ($Folder in $ShellFolders)
+        {
+            if (Test-Path -Path $Folder.Value)
+            {
+                Set-Registry -Settings $ShellFolders
+            }
+
+        }
 
         ################################
         # Remove namespace from this pc
@@ -488,8 +498,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3Coqoa/wlbulzOqQyQIMAGho
-# JbagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzZXO6P2XlzlcBp8HL2B1I327
+# B62gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -620,34 +630,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUP95zvXb9
-# TlMqCOBlwD8m1tnSvJEwDQYJKoZIhvcNAQEBBQAEggIAGG7pgvBhWAFmIi5XZJiA
-# Ga47c6nvt9UsWSjWqoBVYdjbKwLhtI+iHfgtUFt5vKPEJtx5PmVxLfLKujBxppe/
-# Byjtu2WA95Fqk7uIHuDIgI6LxbH2juUK5SEQlq2SB73FAU5IhXSkq43W5YgAriLJ
-# HiXDN4bQMPq56xWH2+ZLsJZFjWMfccown1/vVHwHyiznFvkOQEgMjuj2W5+iNQDz
-# 1Etf+tmbJGwUVIBOJYGGL7mrf1Q2IDIwab+9/dCXkZDApyeOLGyVUQAvadVAts5c
-# w5AuF6+8gLvcH2iEx8WPPY2Hqr1JDsf5ptL1CgVmVMLcaqq93jiGJFzEltZLazAM
-# hB5gYchhYT2bZYT1C0Jesr/aHR1b+gCniCKlQBQVPWZbfFlREo+KNsVfK8yzCwKL
-# ON328pzNj1h7CHDrdeDwHRA8V5EhBfvNhMFS11UXjH13PN3/sN57AZaF06At+V9l
-# TcAniDqz6KRf4xqxtYjjrm30xzEXToBTC4uPqvkVWrHlOPz+zTUDQm9rFgcSU9nS
-# drtb7E6gEp7JPsWHr5OwZT3Q9GMOvO5m+Vg2SlfxTDVGTQa6avknwQzNIHhBMRBS
-# /ipkGH0O1KjxplYgyWDr/n7CYAKyDEw03rSkQ0mR3QEodW0jTV05Bgd2/aY4Rjv/
-# Y4O0TSg+chNVRs+0PKg0mSmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrCjz3Y6b
+# WXdQz+I+vwde/PQGXN0wDQYJKoZIhvcNAQEBBQAEggIARcHn7rC7WUe/7wpOUTGd
+# aV3Hv0bFFHuQrhUoCElU8TrFrrISwE2d59y0d+UH2dNsr88WnMcwEpjzVFj3++3q
+# oO56apZXJ47MAphCGYUvdPWveT5JgE6atAwgx6aO0qvSX5ticTjHxHEdEdJPdNYh
+# ihUWvzfrbQ3u+D+g6z3h+nRPHrzLzvXIriU0kRVMWzjhFrkpX4mqBfZVAyBnXP1J
+# sWVsdZ04v7OYsruPXwb9e5Hij9Bf9im7gIqEzbKwXKx+V/vmii4R3Ph5lD2Zcg1R
+# Sfz3qwOZYGfmtqb/KrIpZ/E9Y4EopbMkIxrZhQvYrfgLVVCgf4sfLT7hdTRZ7ijV
+# JU4JBlhdkJ1AGuGiBb3eQ+JDARp9gFryMk5AZx0IKGLTCbprb0IaCN59MeCOBpg0
+# 1l0InnBXzQQ0rTk2HzdzK88k5pgLQLYiBn/G/N+xcZDozmgzWtderpHO0dnGh8u4
+# Dr3Qp3guAcN5GTS+VJLPAK9JY+H7A8AxXyORyrhztNXwSmxFOPboA6qvnDq1DP+X
+# IqS70PVZROzLwoyVUq1Yhx9Z9rwuSJSOao8QWDr6vUl0lPB9pLm1+76zEm+8IXlc
+# PkJLA1foBawZkWwMSBrrJNZBaGxOROQQI+QxH+mOTvY8tOAx7nsvUSjP80GaifSg
+# oViE0xuh7gR+q/ugPzcP8jKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTI4MTMwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgvHUcOhAMLfsL9fbE6Y5ku7J+rQDG4h2fA0slaozH
-# P1swDQYJKoZIhvcNAQEBBQAEggIAP/7IvnGRjWHnEvNWMuJjK6T4fAtsNozu6Pl8
-# BvbCHkqpzIhgpT8tj95PQM+XZgG0xvIqwfw8rkME2WjuhRUsANkWHxAi7rwnQ+DH
-# cWCdLLziKlHInn6WimYOcyJaogxi1uyqRt3v4ZNEZlVjI1Q8UJmrvIRGd+dGHTw3
-# JrsY5wLkOg3Gs9JDDf8SWdAifIUNSYf3HZQ8UXYHLpPjM3ik/6VGx0OLKQapZ6yZ
-# nNJo/zijeu6MaSumWCqcOmEbv1zZvUkF8pV5x5vfKnjIKr5gCGO7LDzdO3HeXRsq
-# PsF/K5jYlcK/z7Yr+ViSkiIi0Enh/6U09hJtHjrgi4zW5eY7joRgJHWXw9B5FwYB
-# sbUEBy7/N453Vg9oVrhYXgxUnNESbd7gv/Z6NXjcuMOd9gcWIz711a2CL3bqvZxJ
-# tDnsqq0eQcUOT80xrkirVO/yEeHKKVu/u2LcJtBw4nRB6ZTv8SnTfIRqwgttnmG5
-# xmlkmNHrG6rr8nXU5RYLZEvs0klfaXra2RZut6AqNcJe8G3ZcOi0SvqMQS1t3fDV
-# vdumE0v1POrZVFGYSB1Olo99hTKvNbdokN2tCO2OlWcf9TJCaKxHtuIothgtJsgx
-# YP9v4JHF8IMfwJWQCYXrBFDzDuS0n/lj+5/X2t16/eiDcZ4ttsRd6iGIlqPwxXaQ
-# NRZHgSg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTI4MTkwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgbVAeBooXax5oq8J2eCY5wiOS1339XQRihXxz842z
+# sdIwDQYJKoZIhvcNAQEBBQAEggIAGlXeIoSCwFp116XoYcK/BxE62OwwFzmPOJrZ
+# kndkKtwP88XDyz0k85XhiMC82Jl77nQ/H0DDKVnaIJC8mJguQGjyrjnC65dfbox2
+# umEtdgGuaIvEQQ7P5jthPJoks0+iAqt+K2LJmHyyTTgp+uq/JjlnTEbadFKy3h01
+# uPygIfO5eJb67G5MQMdPnYmuomCXCF2AKeWKInyj7gRYJ4YG7NJ3KY/oBPqk3vVo
+# uuHPNCuWbyxoEJmTTUl0SefrXtE9KpCkNV5PbQ/TvaVbWhk9F2mqWp3z6wpa+XbG
+# xFWtzQkuB3AjPoeQKcr+bEa6dwDjCDmnLsgtfwN76GGb3XSGRZ7PCCw98qC/IY4O
+# Eq0OyrXp1emF08qwUBmRhSeELNpL3mYKWjj8+y6Xx6vVWunnCDn1om8gNjEQG/Oz
+# w6wwFXrEdxzWZyi8wa65aUx926X6UJ57wFrpqloqVCIE8AyMptG34e/5WRJtN7cn
+# IpRagQNpSBU7Qm1v1uNkiIGPpKtxeIJAhMu5wPUai8r01FF+R2Fbhz8L2JPs0NDf
+# c3tX4jdkvYtuMK+i/6xP1Ok7VMbVroZv30e4dJLCV1K0126kwstkLKHkWY+z9BdQ
+# t9dByia8VNMcrs20Pb3CdATq4vk4uv1BeInNSx/djh/xINNQHtUICPPy9ggDiFkc
+# aDs8GhA=
 # SIG # End signature block
