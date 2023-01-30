@@ -22,7 +22,7 @@ Param
     $Session,
     $Credential,
 
-    $EnvDataDrive = 'E:'
+    $DataDrive = 'E:'
 )
 
 Begin
@@ -82,17 +82,17 @@ Begin
 
         $Folders =
         @(
-            "$EnvDataDrive\Desktop",
-            "$EnvDataDrive\Downloads"
+            "$DataDrive\Desktop",
+            "$DataDrive\Downloads"
         )
 
-        if (-not (Test-Path -Path $EnvDataDrive\Dropbox))
+        if (-not (Test-Path -Path $DataDrive\Dropbox))
         {
             $Folders +=
             @(
-                "$EnvDataDrive\Documents",
-                "$EnvDataDrive\Pictures",
-                "$EnvDataDrive\Music"
+                "$DataDrive\Documents",
+                "$DataDrive\Pictures",
+                "$DataDrive\Music"
             )
         }
 
@@ -115,32 +115,32 @@ Begin
 
         $EnvironmentVariables =
         @(
-           @{ Name = 'DataDrive';          Value =  $EnvDataDrive },
-           @{ Name = 'Desktop';            Value = "$EnvDataDrive\Desktop" },
-           @{ Name = 'Downloads';          Value = "$EnvDataDrive\Downloads" },
+           @{ Name = 'DataDrive';          Value =  $DataDrive },
+           @{ Name = 'Desktop';            Value = "$DataDrive\Desktop" },
+           @{ Name = 'Downloads';          Value = "$DataDrive\Downloads" },
            @{ Name = 'SendTo';             Value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -Name 'SendTo').SendTo },
            @{ Name = 'StartMenu';          Value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -Name 'Start Menu').'Start Menu' },
            @{ Name = 'AllUsersStartMenu';  Value = "$env:ProgramData\Microsoft\Windows\Start Menu" }
         )
 
-        if (-not (Test-Path -Path $EnvDataDrive\Dropbox))
+        if (-not (Test-Path -Path $DataDrive\Dropbox))
         {
             $EnvironmentVariables +=
             @(
-               @{ Name = 'Documents';          Value = "$EnvDataDrive\Documents" },
-               @{ Name = 'Pictures';           Value = "$EnvDataDrive\Pictures" },
-               @{ Name = 'Music';              Value = "$EnvDataDrive\Music" }
+               @{ Name = 'Documents';          Value = "$DataDrive\Documents" },
+               @{ Name = 'Pictures';           Value = "$DataDrive\Pictures" },
+               @{ Name = 'Music';              Value = "$DataDrive\Music" }
             )
         }
         else
         {
             $EnvironmentVariables +=
             @(
-               @{ Name = 'Dropbox';            Value = "$EnvDataDrive\Dropbox" },
-               @{ Name = 'Documents';          Value = "$EnvDataDrive\Dropbox\Documents" },
-               @{ Name = 'Pictures';           Value = "$EnvDataDrive\Dropbox\Pictures" },
-               @{ Name = 'Music';              Value = "$EnvDataDrive\Dropbox\Music" },
-               @{ Name = 'OPENSSL_CONF';       Value = "$EnvDataDrive\Dropbox\BAT\bin\openssl\bin\openssl.cfg" }
+               @{ Name = 'Dropbox';            Value = "$DataDrive\Dropbox" },
+               @{ Name = 'Documents';          Value = "$DataDrive\Dropbox\Documents" },
+               @{ Name = 'Pictures';           Value = "$DataDrive\Dropbox\Pictures" },
+               @{ Name = 'Music';              Value = "$DataDrive\Dropbox\Music" },
+               @{ Name = 'OPENSSL_CONF';       Value = "$DataDrive\Dropbox\BAT\bin\openssl\bin\openssl.cfg" }
             )
         }
 
@@ -177,33 +177,33 @@ Begin
 
         $ShellFolders =
         @(
-            @{ Name = 'Desktop';                                 Value = "$EnvDataDrive\Desktop";            PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-            @{ Name = '{374DE290-123F-4565-9164-39C4925E467B}';  Value = "$EnvDataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-            @{ Name = '{7D83EE9B-2244-4E70-B1F5-5393042AF1E4}';  Value = "$EnvDataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
+            @{ Name = 'Desktop';                                 Value = "$DataDrive\Desktop";            PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+            @{ Name = '{374DE290-123F-4565-9164-39C4925E467B}';  Value = "$DataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+            @{ Name = '{7D83EE9B-2244-4E70-B1F5-5393042AF1E4}';  Value = "$DataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
         )
 
-        if (-not (Test-Path -Path $EnvDataDrive\Dropbox))
+        if (-not (Test-Path -Path $DataDrive\Dropbox))
         {
             $ShellFolders +=
             @(
-                @{ Name = 'Personal';                                Value = "$EnvDataDrive\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}';  Value = "$EnvDataDrive\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = 'My Pictures';                             Value = "$EnvDataDrive\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{0DDD015D-B06C-45D5-8C4C-F59713854639}';  Value = "$EnvDataDrive\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = 'My Music';                                Value = "$EnvDataDrive\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$EnvDataDrive\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
+                @{ Name = 'Personal';                                Value = "$DataDrive\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}';  Value = "$DataDrive\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = 'My Pictures';                             Value = "$DataDrive\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{0DDD015D-B06C-45D5-8C4C-F59713854639}';  Value = "$DataDrive\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = 'My Music';                                Value = "$DataDrive\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$DataDrive\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
             )
         }
         else
         {
             $ShellFolders +=
             @(
-                @{ Name = 'Personal';                                Value = "$EnvDataDrive\Dropbox\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}';  Value = "$EnvDataDrive\Dropbox\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = 'My Pictures';                             Value = "$EnvDataDrive\Dropbox\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{0DDD015D-B06C-45D5-8C4C-F59713854639}';  Value = "$EnvDataDrive\Dropbox\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = 'My Music';                                Value = "$EnvDataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
-                @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$EnvDataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
+                @{ Name = 'Personal';                                Value = "$DataDrive\Dropbox\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{F42EE2D3-909F-4907-8871-4C22FC0BF756}';  Value = "$DataDrive\Dropbox\Documents";  PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = 'My Pictures';                             Value = "$DataDrive\Dropbox\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{0DDD015D-B06C-45D5-8C4C-F59713854639}';  Value = "$DataDrive\Dropbox\Pictures";   PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = 'My Music';                                Value = "$DataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+                @{ Name = '{A0C69A99-21C8-4671-8703-7934162FCF1D}';  Value = "$DataDrive\Dropbox\Music";      PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
             )
         }
 
@@ -476,7 +476,7 @@ Process
             $WhatIfSplat  = $Using:WhatIfSplat
             $Force        = $Using:Force
 
-            $EnvDataDrive = $Using:EnvDataDrive
+            $DataDrive = $Using:DataDrive
         }
 
         # Set remote splat
@@ -524,8 +524,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYyawpSEiL/CgMh5/zHugYq9M
-# lsmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXQ33nv6t5c7EwSnUrhP5pB6D
+# 7aigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -656,34 +656,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3RDBy29b
-# TDhNbBeo1DrqnezWFMkwDQYJKoZIhvcNAQEBBQAEggIAeTV4ZzI3ra1obRRAo5Oa
-# 10nLFVlaDa1gEmZIHnecLbTxyI/s4cJV0KIWcy2dUZyo9VEgnZzMLXNvX2mH7kqr
-# CV7g+dZLtqvRP3WVPvCWTM+2S9bG1vdZqjrbyfkE2bWbZ7jUAOY0hfoUwGJ2Vr0a
-# xzE5Hz346Gl6as5raIaDDv1Ti2HWJ4LClWk+qDk7+I76ZezOLB14BVLaTZ5ITw3s
-# xtu67upVY9bhpvDYKLUVm4IhDU2Z+kKMXBlbyyM6pH9WFlRFdIpPqD8/UTetTD2p
-# vMsoQK04vNNT11UxNDJtzDsz6uedc3HVCbe64duM6UiZsn3lUrdZALbvr0DpFTi2
-# pGMDL2Qsugd/0IELUI8WUlleBAfwHDBvT2J8aQPbQL1NpM8e11rCUR0sy+GdZFLl
-# r5Iipmib/yascKrPZGU3JqIh4ik/2lhLSdSOmj8fkhckOftgZmV2h4xIhCpYtdpF
-# xX1E5b29XXrOkB9X5OWI5uPdjRjDraj1N46MCwosWmnpv8uroB3Tz/d5HKDpIjwm
-# hr0E4/hOQ5wEK3VBglWdfX2/irv5/8cayJocwmycnm6XPFaCbK7wB4rT4Lz7lw9s
-# AOeZoqdiscq4BuNCmtQB8UTgdzBcZOe7tuHKbd3AkIMIxYdK7aSghh4YCyORb4/1
-# sYm9KCaRVsNSuAr/Knb5u0OhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUerlLdyUF
+# HbinHxe2ILHm+iHeDLIwDQYJKoZIhvcNAQEBBQAEggIAthSnARDUqvtcwT5TQvzS
+# 2jyOgyq69br43Vi6yXFXk90CA9y4mDH2Vq8e7Yua3JZAkypwsfQ3uBTRf0s0Z2DO
+# xmAq59LimNZ4P/d+AxHcngVMcm5jffCJwTNJe68WTh1nn/p6OJAj+EZ5E4OyTgcM
+# KJD6+6CuLM9Cf9LDYMsp4WFAduQY4P10yAJOCX1vuC3nHAU+3Sv1Fa7HtgasS9yN
+# 88r/0FZqtiTVRYbFmCcWY4dgjmpL4ifuYNiJlgPnG4obK+1KgkzRwl6FxaDrxmnj
+# w9lTpHei/WzZiL6Enp1mlkaduL7faZn+MOUIfWegKVi6/Z5phbJlWUWTfTC0epUs
+# thO+oTtTaNuwK0PEG5Sj597QaAWZJgrxN8ZO+prsbm0GdEs4NHJSmGHj2AncDNti
+# QLaopET4o0sUvmr6zfHV3PhlxqltCayU9Le3hWSveK+rpjVrOdFenWnUNyvTaJqO
+# qGNVoUyPfeaOY8WrKT60sD3AjTIgaeyMo6M2n2vKkQ9rTEQDj1DFd4nzhqBum+Ld
+# 7bvfadTisxUdy3aRJ6QTUr3aNwo40JIlt/fqxxA52En8uUmQu7RqKctZKCzl6A20
+# +THSUxTEBYJ2FRq2Z999vf2NYIxBXefmeKOLOqM69APkY9SHKIqDgG9bDExy0KwG
+# Wy3uRtrGzocOG6t4KpLtSjahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTIwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg6W5sAFHFIzW1hg2lTFdZd5NUpWIXmFIMAUbE3gyX
-# JdswDQYJKoZIhvcNAQEBBQAEggIACGK0YkM/gxiuA/MdiAAxZhSj6FF9AZqjD217
-# w1htnLm8hQgC1kNKHLSdntepZMOOg3EniLLp2aFvAtW6/IB956eZeLqBIjVHLj01
-# sfdoWTYfKBTlrpObHzs1M1fozqlSWc/Zcl8J4TazVl6dAles7/OcBhecLpaa9xCu
-# PcIwdh8/xoVwcM+vIVRv2raW4vN2e+oUwGbvTln3Aga7PRsV7KuUbXwPqysJQbTX
-# YNvPeIAcW5TgP/3yLPNjKO/rOCD+7TgmQs95OLFDaejA3/nyO7o9V1Bdi4rJgJc5
-# oW6CGEGVWgZrVy3kkNRYIhIVDLs/LAYflRUyCwlKteeCBkwY4Rs/x1Mc2Ci/5h5Z
-# flhGspoKcQTwR9VT7WQ7R18HLE2m3Qkjgm8LCtQCITC3yzXjwq0wA6oKX9eWIU7v
-# mW6kCz2N+eMRXPl+D60Vi2+x55ZLStx9pNfGgh1SsuqMleJQJvh1SlhKkDva+IAg
-# twUj+15QmHO5I8F8cZ7oZ2JozH+fD7QN7nEI3h2fwQim9ObEmedPAM7jOi+Q4GRq
-# mjo5OyLYSQu2AT11RX+66yzMGgiNWx/vKczelOmC/0WCCCihupQS3g6eJfNoLV5q
-# OEJZek2zY03YRYr+C9PpLhOx+OYhxBL/r0fSPu1G31O28NEVDYPtqwDOVCQtKVNf
-# 6p7bt6w=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTgwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgBWzIkkh1aJgD83Wua/fguTz55WP3bKVy+ytNdRnd
+# kFkwDQYJKoZIhvcNAQEBBQAEggIATugYeFvMnEXlSdJV/pUEKUDvxO8K3iWGeT6G
+# wjo/AyOKErf1DSeDSj7I8xxCgGE5k4hpxVLpycDKpPVAbsZA7dVYzC1YBjHge6yS
+# 6EXx4YBIF6XJIE/3q3y4vYEHhtZijTroEhUD8vCGUSjGlaZbCuDlSPQsB5E8kvHS
+# gOTVtdcE86TXYzrdhHtLxCvLNA7G37p29Fbjw8Ln489olnzfJuk24sHzk4C1eb3l
+# qwPUA9lqQyaJv4X47d/4VljvXQ7Hh047sC5Rx5O1IXGYbTcZFhuWTe0n/SOf5xEf
+# /+fqXoUM6Q5/jSykO9T/tAB6VfFwQGegPmi3RsQmuUGMJzCYiatfA4ZRUXvSNkGD
+# xDejCeFzfJGHvzM54zj74jviBWHzjEKggR4vX9RQIb8zpNUrmidLZ6MvHD4gFDU+
+# fP5TX/8UWCT3rTPIbM7ecVwwYlMFjyBaQvKTQuMMWKjyEI0k5wommGe9kwuUN/Dv
+# OaEfht8FYwyW/L3H6KVq0WYOG5q0T0wCKa/t4x3g7V7iyMm7KJ31mE2WenbA5L8v
+# DzN4xgRbRlQsRk0wUboEgcuelDvjzCahwbd7JszRnx0eKn5nsN4JKWIivjY/kvQh
+# Kqh3NTlCBZGD3r+50CwOJ7DmiT5OUZAIWBjq17zP9+gmzJE/LVd2ieukL1O8uTag
+# Nt74aCg=
 # SIG # End signature block
