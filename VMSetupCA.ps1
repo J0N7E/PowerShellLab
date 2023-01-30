@@ -1374,31 +1374,30 @@ Begin
             $CASplat =
             @{
                 CACommonName = $CACommonName
-                InputFlag = $Restart
             }
 
             if (-not $UseDefaultSettings.IsPresent)
             {
                 # Set validity period of issued certificates
-                $Restart = Set-CASetting @CASplat -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits
-                $Restart = Set-CASetting @CASplat -Key 'ValidityPeriod' -Value $ValidityPeriod
+                $Restart = Set-CASetting @CASplat -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
 
                 # Set Crl Distribution Point (CDP)
-                $Restart = Set-CASetting @CASplat -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs
+                $Restart = Set-CASetting @CASplat -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
 
                 # Set Authority Information Access (AIA)
-                $Restart = Set-CASetting @CASplat -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs
+                $Restart = Set-CASetting @CASplat -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
 
                 # Set CRL settings
-                $Restart = Set-CASetting @CASplat -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits
-                $Restart = Set-CASetting @CASplat -Key 'CRLPeriod' -Value $CRLPeriod
-                $Restart = Set-CASetting @CASplat -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits
-                $Restart = Set-CASetting @CASplat -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod
-                $Restart = Set-CASetting @CASplat -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits
-                $Restart = Set-CASetting @CASplat -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod
+                $Restart = Set-CASetting @CASplat -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting @CASplat -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
 
                 # Set auditing
-                $Restart = Set-CASetting @CASplat -Key 'AuditFilter' -Value $AuditFilter
+                $Restart = Set-CASetting @CASplat -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
             }
 
             #############
@@ -1822,8 +1821,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU916OnJrFTlsgulZJVdkz1YAu
-# LVOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU0ftVLWrN6YJcEv6Cqqj8+yx
+# unegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1954,34 +1953,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUigjiOHvT
-# 1osHCTzgbJ0ky3h3BhkwDQYJKoZIhvcNAQEBBQAEggIAjFPV0DUCzf3liR7fh9pJ
-# DTPVJx5rQNitTyqpNbS5dCmw+CdVEQDSnnJmtJ9s6LE9hNtnXIaZ2owgl6S5qhco
-# 2tkixLZxSEWlaXz+Jc0sm1++9lRDD+q1KZwVLw+x/XLUTpION6A7WjrcjmKHUNsN
-# d+0y43gubZ9vcZEWSyDYLeH4K05Lww22Fwza/wnBL0NZ1XMtc0QVSE1JxsDSpk/W
-# xdvv/8De7NNnqQ5uBYnjGVCCTSZ1FtiJhzIooZEQi2y4rRPtEwlzTFdeW929h47A
-# bVD6uPxLHkQu+FDTJpAOTZnIyWCURVzUHfpyfxv4whQ6xGegp+CE84TzenLnXNjc
-# qnT7BNaIllZEQHa3RswAo+XksRHCl9jbHbnDilc27OS77qH8b6QI3TQvIo4kOBCT
-# aiEHhWs5q031KErX0dqYqwLtDo8sp1YC9UMmLE5lFxlwd90bijHixFsJl63yUqUp
-# l+vDWYDUThJtGhAsZXFjH68BQezrDKnSRN4pXhnfkUKfx9RrPpALZ8gglDMp7u20
-# xDxNvqw1uebTDDgiDzcJ/Wt9d5lDOFS50ZE7O3GYZGswoenSBksfE1VCrQGcO+4D
-# T7eDy1PN2PZQDT607R1dAKQtlerkCEEvv/q7zxXWzyk28ipi8gwaQ68BFrpxyMPK
-# KmMQfeYTc9snFR26N39Q+SChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxsK+djlj
+# U4kVQLNS/M5C1snRf8UwDQYJKoZIhvcNAQEBBQAEggIAnNEeJpCG1jB9+4GspwnG
+# 3yPBlmLrNvMCoZZj+M+CsqE2xhcVxqMjtWqbz9apeZfwpuaWP582vroPob7GybHZ
+# XYflHvdfZIb/2lJCVdes/5HmprFjN05jociu+cLcmXnVKtBDkL1efXi1SGIJumuo
+# nlOWOfQhjDjjXwHM7FqQfYBFAUoCMmNoRD6ylo7JeG7ooKjbM+y7NiRqviAJd5gB
+# srD7OWBsDTle25PLfl2MHjkPvUQA/yZ/YU0Rllke1z3O2yRTapWgxYgKebPkU9Dw
+# qW4tmDMBQhHiy5PtoRBlll4fijn2ncACTVD11sDBnrzUWUHpxREPPbRo/3YOFoTO
+# +2NwR3286QpSg4wgSZz0qrUB+3IM3hN8D6leiFT3VfqZUxd8y+LPq+FEvoaeqI9A
+# KA/iBD+6qvimUTyNLzgyL4QgYSFqLIAkNt0sAZ091VyIKp7CDRnw0rDMNdlh1N37
+# W0eXlS2sc3hXaQFpg/FLM8QGOGmhNTkMbtCKgZ537a1CfEbuRc/29PDzhKF9iZWx
+# kvDZ822vYMKjcAOujQHqKgiRoO7banKp8zvSUogtrU2aDBevI7NJtpS2a1itWBh+
+# WRZADJXFMO1y1B1j/W/oe2e0rBE3CBVN7uLSynru1P+7qOlcNAOfYSRx0IGdz5Xy
+# nHKHFz+sMAycAtMZjOBCLyqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTE4MTEwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgKCxubbb2DNOBS/evwFXvqEv1m2L/Rvu36gmt8iGS
-# YzMwDQYJKoZIhvcNAQEBBQAEggIAb1mEu0A1cxTeEY/UN+4/ESNRmblg0HK6pMFv
-# wtVrBAgnhcHZ32kYorqJpAm15UOQcYFnDwnEdh6Nssl0FONpgx3yvbpBV1RtdTgW
-# pV/9d23700Y8n+VuwQrvo0u7jJF3+IpbRSwFoCbY/8cWugjBUmEKdUFY/Qfj1bbv
-# HIIxJgPBiZSiJSuHu7EzGVwrKjM0I65/UEPFoMH33XwkilQWzBzH+2PCk+0Hv8FZ
-# ee4OhOs1p1TffoWizYcFB2V7eXxloivVCGVktazdSsPmIdYpKM4+JHwU5Fv9YmSo
-# DRlCwuUP3316NGEUtUJ0X9s9guF2Ye6EXJkbOCbOmeZSXZnkdxhN5OniI1b/N7IA
-# 7siWhMbg1La3kHOmiKBVbUSw9qx08xc4s4mino94dSjl0OC4fqhUUB7ZDZ+kwozk
-# hwcsVlv8tcCtftvQ2ZQNhJS4TsR/fGB7GMHayVKNKVL1CcstOEGlfuZJZL0B9z9/
-# WxSta8nAnSnnPj5ov9DIf512nd0qrFFWGb5gEp4MvFRCAB/V9WGGlBp5eDYhEsEY
-# 89OqpHevqlmsR9hLn5bnW3JIDTzdDV6IJuNXytVsD+HOF9IgrUhDG4R2hfhzbYKq
-# YfnKWfeVWJAVUGtMuANNne2iLNeo5DNzoDaC0BvRLiT19UlpCwjDSG+kJ8TSzsVj
-# sR/q5Mw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgA0/oIRX4WzpfrozpmGpdUp7/vdiPR0PLG+QcjaWk
+# skcwDQYJKoZIhvcNAQEBBQAEggIAF8SCIqmZkpDPLaDcrSgKVa2AvZMIrGCSIqk7
+# 7l+3QiQreWgYHCNVIA+GxoLF7+ETkCtyoz10GuaJk6nWZ1ZN/2kAKGbVrz+yR8JX
+# W4R+jFZWL/H0lWnCLIrNvD6hrZoagAtZz+3O/QXA9n/B8zGHhhjDxGiAO18XeTGn
+# dKadUEFlHNTyil3c2EKDYOH5jazFvwjSEN15rEmvQswxKTqX3+RNe8zYolFavjAC
+# CzxDNMagArSKJpSxEBpHSt/v/qITcvx1brB6BF3LUAWDh0gyR4Zt4HqYWtAc8J1p
+# Yoc+aHRIV/FRf4l+aFt3OWEc8VEiqId3nVQALG1nrPLXl0oebI8UItthpyDD2EKi
+# NdhTSUH6VPP7EGEHgwybre2LrUS0p8hZphGzI8xV/NFXrJ6ZRvktwrWj9veVUJih
+# RYFnh/sMpGyYNz7Hx8Hqq32kr9V5BGKFTGH2q7bvLzrWIJ8BfuMkl4nAFplzNcHg
+# 13QU6rvZyhUvdxgT2cq3/nn584ApoWLVKiprE3Q+h2/sMYTqLEoDh48rXjyLBwAF
+# /KNriLnmkz+vS+0UpKoaePyRQ/YH6S4bJBD1VQIT5BmXoD180WL+By2Q2hZcwPcV
+# WWBGHgAO+9pcfgA7lmkWn5ZP8syBJTi4+JIY5K2roLLBdkfqeGSRYyqeLf9+5pXF
+# 9D28AQg=
 # SIG # End signature block
