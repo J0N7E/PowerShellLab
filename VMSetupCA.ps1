@@ -1407,7 +1407,7 @@ Begin
             if ($ParameterSetName -match 'Enterprise')
             {
                 # Add logging for changes to templates
-                $Restart = Set-CASetting @CASplat -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD'
+                $Restart = Set-CASetting @CASplat -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
             }
 
             #############
@@ -1420,23 +1420,23 @@ Begin
                 if ($BaseDn)
                 {
                     # Add domain configuration for standalone ca
-                    $Restart = Set-CASetting @CASplat -Key 'DSDomainDN' -Value $BaseDn
-                    $Restart = Set-CASetting @CASplat -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn"
+                    $Restart = Set-CASetting @CASplat -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
+                    $Restart = Set-CASetting @CASplat -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
                 else
                 {
                     # Remove domain configuration for standalone ca
-                    $Restart = Set-CASetting @CASplat -Key 'DSDomainDN' -Remove
-                    $Restart = Set-CASetting @CASplat -Key 'DSConfigDN' -Remove
+                    $Restart = Set-CASetting @CASplat -Key 'DSDomainDN' -Remove -InputFlag $Restart
+                    $Restart = Set-CASetting @CASplat -Key 'DSConfigDN' -Remove -InputFlag $Restart
                 }
 
                 if ($ParameterSetName -match 'Subordinate' -or $OCSPHost)
                 {
                     # Enable ocsp extension requests
-                    $Restart = Set-CASetting @CASplat -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5'
+                    $Restart = Set-CASetting @CASplat -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
 
                     # Enable ocsp no revocation check for standalone ca
-                    $Restart = Set-CASetting @CASplat -Type Policy -Key 'EditFlags' -Value '+EDITF_ENABLEOCSPREVNOCHECK'
+                    $Restart = Set-CASetting @CASplat -Type Policy -Key 'EditFlags' -Value '+EDITF_ENABLEOCSPREVNOCHECK' -InputFlag $Restart
                 }
             }
         }
@@ -1821,8 +1821,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU0ftVLWrN6YJcEv6Cqqj8+yx
-# unegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSFQI5HNJZYq9NAvppFL4jA/L
+# IbCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1953,34 +1953,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxsK+djlj
-# U4kVQLNS/M5C1snRf8UwDQYJKoZIhvcNAQEBBQAEggIAnNEeJpCG1jB9+4GspwnG
-# 3yPBlmLrNvMCoZZj+M+CsqE2xhcVxqMjtWqbz9apeZfwpuaWP582vroPob7GybHZ
-# XYflHvdfZIb/2lJCVdes/5HmprFjN05jociu+cLcmXnVKtBDkL1efXi1SGIJumuo
-# nlOWOfQhjDjjXwHM7FqQfYBFAUoCMmNoRD6ylo7JeG7ooKjbM+y7NiRqviAJd5gB
-# srD7OWBsDTle25PLfl2MHjkPvUQA/yZ/YU0Rllke1z3O2yRTapWgxYgKebPkU9Dw
-# qW4tmDMBQhHiy5PtoRBlll4fijn2ncACTVD11sDBnrzUWUHpxREPPbRo/3YOFoTO
-# +2NwR3286QpSg4wgSZz0qrUB+3IM3hN8D6leiFT3VfqZUxd8y+LPq+FEvoaeqI9A
-# KA/iBD+6qvimUTyNLzgyL4QgYSFqLIAkNt0sAZ091VyIKp7CDRnw0rDMNdlh1N37
-# W0eXlS2sc3hXaQFpg/FLM8QGOGmhNTkMbtCKgZ537a1CfEbuRc/29PDzhKF9iZWx
-# kvDZ822vYMKjcAOujQHqKgiRoO7banKp8zvSUogtrU2aDBevI7NJtpS2a1itWBh+
-# WRZADJXFMO1y1B1j/W/oe2e0rBE3CBVN7uLSynru1P+7qOlcNAOfYSRx0IGdz5Xy
-# nHKHFz+sMAycAtMZjOBCLyqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULtRyvM0c
+# AaSs9eA18++ycD4gY2UwDQYJKoZIhvcNAQEBBQAEggIAflgJa6gWOxPa6HmuWUaY
+# 1q4HuRDLZUrFiujOr3AmLbRTGiY7HNaLQhKLEnRjVq5YU68XqFd6FzCWC+jC3bOs
+# W+5DGpyhsptaePYTEMO+cNkRiGqJob3QBWtoJ8lIwgtprxPBTOIWXvW0jw9i4kDj
+# aynOD9bRtqolilosCkeJ+Bql0qDwrOxrOtNdMbtFx4wutNsp/+KgFE2X/9Co0Xdp
+# aNjORDekOguSpjVzVtsvs2LNxDObHzCt2B1yaUkNCQ6LTg8mJYtJZ17RZeL/GRo/
+# KL2+lY7yw8Z4u1Y2KkD7KOzlpWhr8u9cp6zXvDI4B+/sAANgnumx9vsqCOYXv7UG
+# oi+/RG+R34i9i6UMwKeNgydOckx5iu0SBkHbkgvGqXQmBradiiGp2+x+OVgBZf09
+# 7QZ4fJj8jz7aXmeAQcoeUFCqcB65ghJepFwpm43vq3Iv/YOsSsk0Q16GCyo1wl+d
+# ANIQksUNOas+PH0lfaIwCi2jRYbNAV341mzeq7822SWGxcRR/WfFIx6KL5y0ucRJ
+# mn6LnJ5WaSR+FU0K1mF7djwoISEspd9ots+lLfH5HWbiTRIgZTBmajRCdWdnPyYu
+# AMDOKSvi/GzeG2gfKoA5Hoc2r6e0D1+0IxTkUTxAasYPiHm5k3ajmus2KiNwrLuw
+# +YY9mItUbserVhYNYdbsMEuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTMwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgA0/oIRX4WzpfrozpmGpdUp7/vdiPR0PLG+QcjaWk
-# skcwDQYJKoZIhvcNAQEBBQAEggIAF8SCIqmZkpDPLaDcrSgKVa2AvZMIrGCSIqk7
-# 7l+3QiQreWgYHCNVIA+GxoLF7+ETkCtyoz10GuaJk6nWZ1ZN/2kAKGbVrz+yR8JX
-# W4R+jFZWL/H0lWnCLIrNvD6hrZoagAtZz+3O/QXA9n/B8zGHhhjDxGiAO18XeTGn
-# dKadUEFlHNTyil3c2EKDYOH5jazFvwjSEN15rEmvQswxKTqX3+RNe8zYolFavjAC
-# CzxDNMagArSKJpSxEBpHSt/v/qITcvx1brB6BF3LUAWDh0gyR4Zt4HqYWtAc8J1p
-# Yoc+aHRIV/FRf4l+aFt3OWEc8VEiqId3nVQALG1nrPLXl0oebI8UItthpyDD2EKi
-# NdhTSUH6VPP7EGEHgwybre2LrUS0p8hZphGzI8xV/NFXrJ6ZRvktwrWj9veVUJih
-# RYFnh/sMpGyYNz7Hx8Hqq32kr9V5BGKFTGH2q7bvLzrWIJ8BfuMkl4nAFplzNcHg
-# 13QU6rvZyhUvdxgT2cq3/nn584ApoWLVKiprE3Q+h2/sMYTqLEoDh48rXjyLBwAF
-# /KNriLnmkz+vS+0UpKoaePyRQ/YH6S4bJBD1VQIT5BmXoD180WL+By2Q2hZcwPcV
-# WWBGHgAO+9pcfgA7lmkWn5ZP8syBJTi4+JIY5K2roLLBdkfqeGSRYyqeLf9+5pXF
-# 9D28AQg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTQwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgGpTlOlCGEzq86d0w8/hEB63YXtcKAQ48DdF6CaUl
+# QZIwDQYJKoZIhvcNAQEBBQAEggIAXJrD++IGFM2GcKxrwDc0cQ7aQx0PCuU2qPT/
+# u5gZNYzwtvJVtkEriVw6eIvzpg8Pu4AH/b3YGCjxMnSlYW3ihg3CHXOBLkx8bH20
+# 2wY5yIiC5E/pRGrSdNTMiwcgHXjjUnQiVo9eDWU4Yj7d01fRuuOPOjnS2jqS0iSd
+# Z3CUUVewP/EUVfP5dB2cBUiprp+MSmIpFAzGTSxau0E6c7CalUaQgk3aQ7574Y37
+# /xw+iBkfU5rmDiGk/w8XxbZQTVZkL9C+D+y/BF9QnqcJsXQpQ8P9lfJ/uu9Q7IvG
+# Uz3+LmRQJHnpfzoYS+dgKUf9izXUf6r/p9cezvpQRBYyp6TtSENcgUOoKsWg/455
+# k/wKKCFONEjnWcUhG1d5eWjW9Dyb0i847l7dEUfULYNu4afDG4cBQigVnnbzNk7k
+# OzvP98a9NSwn5JdYM2IMCdXaSwDMV/awFC1Rcb4QMyxRClSnlZDuUgyVoV9oiKuU
+# h2NmV8yd4dF47iqcldDgSpLemTfSiVY/89oOIjDI41haorpGmRx6IA6u+cJ+Jw7z
+# xNsQpkyEKKRlrAi7DGtdwiIw6OGuvbcIiw1Sai9fS/f9PFzi3a7iRX3+0Dj2U/FL
+# QdFqFap2tULcxmWIydxU7p5wG9rNgNHcnsP092JrdEhOUIibOaD26gyXtVtiFxv5
+# 9fDZqCU=
 # SIG # End signature block
