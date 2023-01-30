@@ -433,20 +433,18 @@ Begin
 
     if ($ParameterSetName -match 'NewKey.*Subordinate')
     {
-        # Itterate all posbile parent ca files
-        foreach($file in (Get-Item -Path "$PSScriptRoot\*" -Include '*.cer', '*.crt'))
+        ######################
+        # Get parent response
+        # for Subordinate CA
+        ######################
+
+        if (Test-Path -Path "$PSScriptRoot\$CACommonName-Request*.csr")
         {
-            $CertutilDump = (certutil -dump $file) | Out-String
-
-            ######################
-            # Get parent response
-            # for Subordinate CA
-            ######################
-
-            if (Test-Path -Path "$PSScriptRoot\$CACommonName-Request*.csr")
+            # Itterate all posbile parent ca responses
+            foreach($file in (Get-Item -Path "$PSScriptRoot\*" -Include '*.cer'))
             {
                 # Check issuer
-                if ($CACommonName -eq ($CertutilDump | Where-Object {
+                if ($CACommonName -eq ((certutil -dump $file | Out-String) | Where-Object {
                         $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
@@ -456,16 +454,20 @@ Begin
                     $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
                 }
             }
+        }
 
-            #########################
-            # Get parent certificate
-            # for Standalone CA
-            #########################
+        #########################
+        # Get parent certificate
+        # for Standalone CA
+        #########################
 
-            if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
+        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
+        {
+            # Itterate all posbile parent ca certificates
+            foreach($file in (Get-Item -Path "$PSScriptRoot\*" -Include '*.crt'))
             {
                 # Check subject
-                if ($RootCACommonName -eq ($CertutilDump | Where-Object {
+                if ($RootCACommonName -eq ((certutil -dump $file | Out-String) | Where-Object {
                         $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
@@ -1821,8 +1823,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSFQI5HNJZYq9NAvppFL4jA/L
-# IbCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKoVZQPB3Sp8mE6BPxs6wonsZ
+# bcmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1953,34 +1955,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULtRyvM0c
-# AaSs9eA18++ycD4gY2UwDQYJKoZIhvcNAQEBBQAEggIAflgJa6gWOxPa6HmuWUaY
-# 1q4HuRDLZUrFiujOr3AmLbRTGiY7HNaLQhKLEnRjVq5YU68XqFd6FzCWC+jC3bOs
-# W+5DGpyhsptaePYTEMO+cNkRiGqJob3QBWtoJ8lIwgtprxPBTOIWXvW0jw9i4kDj
-# aynOD9bRtqolilosCkeJ+Bql0qDwrOxrOtNdMbtFx4wutNsp/+KgFE2X/9Co0Xdp
-# aNjORDekOguSpjVzVtsvs2LNxDObHzCt2B1yaUkNCQ6LTg8mJYtJZ17RZeL/GRo/
-# KL2+lY7yw8Z4u1Y2KkD7KOzlpWhr8u9cp6zXvDI4B+/sAANgnumx9vsqCOYXv7UG
-# oi+/RG+R34i9i6UMwKeNgydOckx5iu0SBkHbkgvGqXQmBradiiGp2+x+OVgBZf09
-# 7QZ4fJj8jz7aXmeAQcoeUFCqcB65ghJepFwpm43vq3Iv/YOsSsk0Q16GCyo1wl+d
-# ANIQksUNOas+PH0lfaIwCi2jRYbNAV341mzeq7822SWGxcRR/WfFIx6KL5y0ucRJ
-# mn6LnJ5WaSR+FU0K1mF7djwoISEspd9ots+lLfH5HWbiTRIgZTBmajRCdWdnPyYu
-# AMDOKSvi/GzeG2gfKoA5Hoc2r6e0D1+0IxTkUTxAasYPiHm5k3ajmus2KiNwrLuw
-# +YY9mItUbserVhYNYdbsMEuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmkI6xQIT
+# WATtylpvT5wK+Mt4nykwDQYJKoZIhvcNAQEBBQAEggIAWAZqtAjGs0qzGdsNVGyW
+# 7CCbslMMGrc+uhJyeQg8O/YOFt8+sQ3h4gO11bglnIXOabDQHe8kHM2Fswj+q4Xn
+# 1GV5PUOg44ts8qjjnFGrVN/H15mmR/er46zoLF356tPF/EFPOO0NvYX0tcmF8MGW
+# d2BEcNhm7iQm2svJtyA6tY7one4gaOJ4WUk15xxB9z7zva0YYPIB7ejSc0l47D/q
+# loC5dU1Eq31xaYx/VehRPyWJ8DysIp4I8ZpmguCBnksJ0JqnIrwt5VRc6LMb1qKk
+# qS/Yz3E2ulc2XH3UsaJ8GeZnYl4jJh7Zgw3JkFWSjAvTFRPueu3tQd++2ZlU0eCT
+# //yIIaIkRe+6goC4ig9wG9Ck7PBvq2HVbmEkiPxA06eBX9av8+hqMCZY+45dJuEL
+# UI0o+/R6lXKt8sqlYx0gZrEtdwYAvegOXPBh8fl/0WYh8Z0O11foafm1NhYISrD5
+# o1iq/POK+aYaE5nEeonDOTA9WteFckrRh95GYOpC3qGPumfnHqBthUNFKzjbRBd5
+# xpO/ioIOasbAJt0Q1kL/G9WTnFTqOeX9FPYuC8kmpV3s3KqcUEDb2cY5Rmsq2ppO
+# xbMvv4N1WCcy+6+5iHm0/wEJ5BsELkY1Vq4vaDVIwA/A31tnZIwaajAv8Ek4si7M
+# RZtuYvx1au9bqIJ5Eto0jHGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTQwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgGpTlOlCGEzq86d0w8/hEB63YXtcKAQ48DdF6CaUl
-# QZIwDQYJKoZIhvcNAQEBBQAEggIAXJrD++IGFM2GcKxrwDc0cQ7aQx0PCuU2qPT/
-# u5gZNYzwtvJVtkEriVw6eIvzpg8Pu4AH/b3YGCjxMnSlYW3ihg3CHXOBLkx8bH20
-# 2wY5yIiC5E/pRGrSdNTMiwcgHXjjUnQiVo9eDWU4Yj7d01fRuuOPOjnS2jqS0iSd
-# Z3CUUVewP/EUVfP5dB2cBUiprp+MSmIpFAzGTSxau0E6c7CalUaQgk3aQ7574Y37
-# /xw+iBkfU5rmDiGk/w8XxbZQTVZkL9C+D+y/BF9QnqcJsXQpQ8P9lfJ/uu9Q7IvG
-# Uz3+LmRQJHnpfzoYS+dgKUf9izXUf6r/p9cezvpQRBYyp6TtSENcgUOoKsWg/455
-# k/wKKCFONEjnWcUhG1d5eWjW9Dyb0i847l7dEUfULYNu4afDG4cBQigVnnbzNk7k
-# OzvP98a9NSwn5JdYM2IMCdXaSwDMV/awFC1Rcb4QMyxRClSnlZDuUgyVoV9oiKuU
-# h2NmV8yd4dF47iqcldDgSpLemTfSiVY/89oOIjDI41haorpGmRx6IA6u+cJ+Jw7z
-# xNsQpkyEKKRlrAi7DGtdwiIw6OGuvbcIiw1Sai9fS/f9PFzi3a7iRX3+0Dj2U/FL
-# QdFqFap2tULcxmWIydxU7p5wG9rNgNHcnsP092JrdEhOUIibOaD26gyXtVtiFxv5
-# 9fDZqCU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTUwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg3fE773RiD2+LfiSRk9RifTPsDcRk5lptA6KEsQ+R
+# UvcwDQYJKoZIhvcNAQEBBQAEggIATJ1pvMfUB7QG+decNbQWI7ENZa482dVcru3W
+# xxEU8FER3t13vLS/dcs7UUuTlafHWbd0F2AHGtp1bnhf/NT1ORNBIz/PWcO9eRgW
+# 2UmtDG3Bfq9g8AnWKbxp5tjtUhIGbVi6LTZ5b8VL03GHY+pS2isRpztp+or3OK6x
+# oEpe4pw5Xo8dGnZGiVtrzcYJQgAYShtNs0YX34urTX5OiiPSyB5o0spQnAI/bRvS
+# G5MEwMnxHLTlWPP/8hnJR0jctQPUSmBHI4nVCQLM1UpnztxhQA3dI+KTm8vv7xu9
+# NnLfbrRiBv9yZL5ag1aMJfvVHB9Kg8M6dCr49coimjBqwvxRYhZasUW0Tp7xzt4s
+# hc17sBnflLiff9KkqXBpvamEeXExSOEeyNP+pNdUP+bOdfrWukWV95EtIAL68x38
+# g3Za3/OaSxVXSCps3reuW3jZqipZbj5H/fYoXdEAM3jw29ytFAGuGibpueWWsaQf
+# dmm0swgd5uvZKDr3nQPqATplg4gqlVayurEmjPxD8toFrVFOZF7PbJ7ejfEAQreV
+# hRx2HeqleSeA9H2Uf9WdhndIrq3nYRt0uU4hwUfVzSmRNZYaDHgE0nDT5gjni9Mb
+# F61AvDrbl9lwWuVX1V0AXjeoJKic9RHqyb0aCpEt8tSc7VOVFPuz+5LjMIaxCQQf
+# ovq8k7M=
 # SIG # End signature block
