@@ -2122,17 +2122,19 @@ Begin
                         # Oid attributes
                         $NewOidAttributes =
                         @{
+                            'Path' = $OidPath
                             'DisplayName' = $NewTemplateDisplayName
                             'msPKI-Cert-Template-OID' = $NewOid
                             'flags' = [System.Int32] '1'
                         }
 
                         # Create oid
-                        New-ADObject -Path $OidPath -OtherAttributes $NewOidAttributes -Name $NewOidCn -Type 'msPKI-Enterprise-OID'
+                        New-ADObject -Name $NewOidCn -Type 'msPKI-Enterprise-OID' -OtherAttributes $NewOidAttributes
 
                         # Template attributes
                         $NewTemplateAttributes =
                         @{
+                            'Path' = $CertificateTemplatesPath
                             'DisplayName' = $NewTemplateDisplayName
                             'msPKI-Cert-Template-OID' = $NewOid
                         }
@@ -2191,7 +2193,7 @@ Begin
                         }
 
                         # Create template
-                        $NewADObj = New-ADObject -Path $CertificateTemplatesPath -Name $NewTemplateName -OtherAttributes $NewTemplateAttributes -Type 'pKICertificateTemplate' -PassThru
+                        $NewADObj = New-ADObject -Name $NewTemplateName -Type 'pKICertificateTemplate' -OtherAttributes $NewTemplateAttributes -PassThru
 
                         # Empty acl
                         Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
@@ -2503,8 +2505,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7aVMM5V1Up2+JwvO112gDfKf
-# 4rWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy4SdCncUWk9yeRMG/BGhYwN/
+# BRigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2635,34 +2637,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUL7NCs+uB
-# erUKd7T4/Cc+RQRRVx8wDQYJKoZIhvcNAQEBBQAEggIAzDVoGaaK/nnd1YByO/J7
-# 9eMrd4NmoUWSpvCQ3oTo17pnPMr/YfH8pIpM2XWmBTwSa6l6Hz32RsyBruwjFThG
-# eiYLQrXV9HZQSQnfBWe6+AgBMWuB7PbojN4Kkaa4fJTVIPf670/KKGNim3yaHc88
-# 7eXxQo0T1wrDgJPG0jYgXbI5KYr/GM6v0ewMEM/c6kHeG9XjL3iPRLCbnet3Yh7Q
-# rrE0Q/qQD4UG/fveyBG/2qv5K3/bfGQINxLuB6gu0nHoOozQfmzvZu0PUUu7GPo2
-# UGSHP0Enim2Xb6jzxokK3BJ2Mq5SrEBpQoEXjRg+bTU5+l7GFjbgVwoBeHpnHh57
-# bqxawo1bAVfnIDtKXqIx9sTtx8dIOvuXxAKsoxdOaL9vU38a7p/+AHlyOIBh0nBQ
-# vrQqc2TqTxUT+dhnAlgByMUqR17AQZu0B5b50eBMhsPfHFKIbfp0BSYMX/A7fbvd
-# OhJKeFORwlcxtviIBwJiCRxQCfjzxYX7x3kiB4xthIMv9Oqb0SysZQbflUUk/vFc
-# /jYQKauSaloTMEKBIIEnmzeDDJ9oW6Do097HZsyCDucrMmMbsT/S3RLH5bxRpwJS
-# DHz0YbNu4rf/jm1JGqWFjfybMzS4LcZd/fyS+wMZ1V+zNDckdZLFrbeOO30pqRb9
-# Yr8NBAGHdgsiQBxP1Kkffa+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUYLd0edm/
+# L19zXTQLRSpHcpFiZH0wDQYJKoZIhvcNAQEBBQAEggIAQzvMsSccn8DryB2ZP7LV
+# cHIk5PJ7T8bh/SiKviDg+DTz0LUtW2GnTmYvwniBNknJ0Tj0uUWcSpzQhdJTMaU1
+# UjWdLxRrY4C2YT/XZF6n1yseZRb9SE2TlwHqyiGMY4ajmayo8yAtcWLunMyora4N
+# XOA64LJimN9yqnOgzHux+w11eCxHOePQn1sjIhP3uGfY/PQGXWDcgUnJLqUTTahL
+# +XvnLAHpbKubqJfJzBwdWA2aESoEkLzOpG8fm+jf9ZyjFckjWTUdnlfFJaVH2LC9
+# ujrQU1tRpA/xdVcn7smtpXeKrl/ZNLG4LgOQdFws37ma0M0HzodJOYxPkiCt0EJ8
+# +e771mLGP4zaJiod7S4wPxP8KgnV5MVOi3X7m4WRKfmI8Jexet2ZQapZZUBvYzU0
+# cDza6bjSwJLQrNZOxyluC+YG2O2mSEjLnp+sSF220VBm2gFAZJkT7Tb/YnEp2G8z
+# 6ltIzaEetjJ2p10Ca9XfUgMtpbRIClYw6nHe44wi4ACj+nvTDf8ozRsoPCDJdZ38
+# 03v7zPMM2368C3wmlDMDY358KZW92HAdJlNYNU4P9QSKpEPUAYBmGHUUQLuoiA3A
+# CEdbicLpfDda6rHKPOLof7m6bFMMwVRu2P9vttArw6+oQbB9Sx1nGXCWDlmecdpS
+# e2UXjSsZbVhdEVzSyIR0jw6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTMwMTkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgl5v0brp1trC+o4WdRfmBNQWMzuW4J4piZbmmE+fv
-# gukwDQYJKoZIhvcNAQEBBQAEggIAVpwF46U1XRI5pD+w4xDM2ei/KUBjsLqt0kx+
-# 1oVGbDW/s2Wz4zXM2glCMUnyRsDzNVZ6iw5eEp8xj0hu69Jy1IXUD/WIv2HMt76t
-# 12/QlIgJy5fbMPvg48e0h87JZfzgQ5aRpPzh3OP7+cEZdgZ8Bz3/BPJj1tcYWGTt
-# QMxhBuUv3n4u2tfhVWRuaikgYOS41hEO4DY9NPFqwQGAHNc2vApwyVBS1Zi3zjBQ
-# 9J7QeqkmuaT6ZpK9GAxY97iAv/j7dvZMp+iREMppoMoVCrqpSfzDxYflKb9rkZcS
-# deE06jg7Pvm8/g+i5x9eHd1qy9aUQ9X3uoKf7b5hk509YuDjVrsUsDc9AyH81mOh
-# NVdcYqvMiPzh6+JGLoEiVew+XzE5MvRFZqAugLj7QiobZSy8oClZ4UdpJsenKj+H
-# jk28hUIOY7vREHJuznKi73libC3///5b7Sv0fzwWXYcpjsFUyb58P4tHQ1P71my8
-# /cy8vSTFfnzmjvmHk97Ufafpj82PKEGzdsxoK4Zs5Lpf6dXNSy2g5pj5SDRw5O9k
-# EqFPHW7oPPWUWjnLAJ0chCqw80wTHx8d4yG0Dd8Po7fTizXvWKaLD58ieKJPfkzn
-# BWQBvKmN2grJTXOG21s3+cRSVUlkGXlY4i9SvC34jSv+TH7Zm9eNc0PqKp/VfXqm
-# BZMKKh0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMjA5MjEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgPRGCaytzDPISPcySbRp/Upx4fEu7Hz6cyQlrLl61
+# pCowDQYJKoZIhvcNAQEBBQAEggIACyEZ2poGUUiPP0qgyp2xeBEGe8o8ViqctpRt
+# YtM18JBBc/q0Bnr1gW3MTq71XI0nKI3SVR4ZZ6Yh+5s6SmNkI1evwgSxbuHQSvb5
+# bHeX8xdvmQGj5AdiBNYPHkuTf5GniMCEXxPzRwk0s3Kb6VSbBHRoEY0cSEeDSDrK
+# yYMM7S4NbuZT3s3DyWDXr2jI0TsKiymqUGAbyZUz1vFyx2myqE9HdnnUikOa3Lb7
+# WuahCECrFrzQjFF3mNFkYiFYG1lLN4ZsCtdK+IVuzU8hQ3IleWbTF6Lu8Kh+LUXE
+# 4LdSVhlaE6uSX699QGkFX52cW3r0ZFlSPfhlzOOkhdoAZqpuWW1UCKyrBkajMUjQ
+# oZ5Sn/Bwypxog+M2pEOco/8b3GRrxMVrPP8ATi8CVcSlmGsR3DN9fTNbw0EZQKpN
+# 4T+kT8wEGhHPw3pU7g0zRR7OiJultA01ogDPfAqW5Ohah9kLXtL38r4kMhu8FAgu
+# 9isb08KIS/eGOdateKX0lf9S8xzW8Q3DzWSDO1O3hmpziS3UfnZ0p3JOpz2uGQvL
+# z7hx+ya2ZlVeHHMTjMTjFbMEZDw7aUv8P6aHi1MvkqH/04Cyjmto6uvFyTNYNS6j
+# o+5ynmxcmdChRXo63JUF/wynxtUFGBw47XQCSOK+BLmFjNCG774TZpwutqHD94wg
+# 8VatPkM=
 # SIG # End signature block
