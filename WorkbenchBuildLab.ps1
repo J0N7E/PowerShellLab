@@ -189,8 +189,6 @@ Begin
                                 return
                             }
 
-                            #'An error has occurred which Windows PowerShell cannot handle.' {}
-
                             Default
                             {
                                 if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
@@ -425,20 +423,20 @@ Process
                                              -DomainName $Settings.DomainName `
                                              -DomainNetbiosName $Settings.DomainNetBiosName `
                                              -DomainLocalPassword $Settings.Pswd
-            <# Backup
+            <#
              # Get session
              $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac
 
-             # Remove gpo backups (run multiple times)
+             # Remove gpo folder
              Remove-Item -Path "$LabPath\Gpo" -Recurse -Force
 
-             # Copy gpo backups
+             # Copy gpo backup
              Copy-Item -FromSession $Session -Path "C:\Users\Administrator\AppData\Local\Temp\GpoBackup" -Recurse -Destination "$LabPath\Gpo"
 
-             # Remove templates
+             # Remove templates folder
              Remove-Item -Path "$LabPath\Templates" -Recurse -Force
 
-             # Copy template backups
+             # Copy templates backup
              Copy-Item -FromSession $Session -Path "C:\Users\Administrator\AppData\Local\Temp\TemplatesBackup" -Recurse -Destination "$LabPath\Templates"
 
              # Remove session
@@ -493,7 +491,7 @@ Process
 
                 $Wend = $false
 
-                # Check group policy
+                # Check group policy result
                 if (-not ($Result -and $Result.GpoStatus -eq 'AllSettingsEnabled'))
                 {
                     $Wend = $true
@@ -504,7 +502,7 @@ Process
 
             } -CatchBlock {
 
-                # Debug all
+                # Catch all other errors
                 Write-Warning -Message $_
                 Start-Sleep -Seconds 60
 
@@ -582,10 +580,11 @@ Process
                     if ($_ -match $MsgStr)
                     {
                         Write-Warning -Message "$MsgStr Retrying..."
-                        Start-Sleep -Seconds 5
+                        Start-Sleep -Seconds 10
                     }
                     else
                     {
+                        # Catch all other errors
                         Write-Warning -Message $_
                         Read-Host -Prompt "Press <enter> to continue"
                     }
@@ -820,8 +819,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj4HXuG1+rlrKd56lH/yH3EA/
-# kj6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBUw3MY9wRFsjVUsXNVNP+Ocu
+# iRCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -952,34 +951,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/bxJz2G9
-# ttgKeB4bdgjiUhzFAaAwDQYJKoZIhvcNAQEBBQAEggIAwEa2qNgDHNb7nPbn5oLX
-# hRcWL9fmR/5C7BMacj91flX139xgFxWYDy4IoHNCOjN5riN4zVePXF1bEfonkb8k
-# /YRoPoHBRm8xOvmmA/Ze9nQAcXBPfc66fnVvef9rz+cFYXsCPRA+oY/HN6UACYnc
-# nQ3k28JA+YtI8413X/4Lf3jky/b0TDj7bcLX8RUNV/R07gaNIfleR3TIjKG6hDVb
-# Qyw355K58qPaOzUYaDwVTWvQE3oMDc8VHM2LxE3Fg0rNfUVLmUhcbqNrr8LJGe2Z
-# jVzBFOn1wZrDX4qNTdrED11dzoTtU1EwY2mFy2oIWf6fNRJkyp9rn9jNUEBER/tz
-# Wo0j4x43Zo63Qgh82oeHLVykIWyWpYYsWUdlZq87mbRzzgj9xX328mBIQQu5igDt
-# p6BFlcIRe5QeK09/swYr+4+D63bgIO336zak+a7+rZS5O5r2EYOoF1aICoG4ap3+
-# 2Y56q4narEILFU2pwT9ivt2El5EPCE3EjbKDeGTXxNbqbssXryCvMK6rAlgByXCl
-# c0csQPI8V20gHuD/cKtreVWa0RIxjlavqQQsEpJ4H/Pyges2TSMbQ5OjfIxxWwQK
-# BKItwL64e4nMyOsx05rFCEC+uuybH1RVjKyqxV5GxmNmQCj3Jf77h7HQOwgBYzBv
-# bZWfLzUxY6wVqCp2Uhqg5uuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKmq47Eg3
+# MLVh+HbPZu5qHxKjIhgwDQYJKoZIhvcNAQEBBQAEggIAPJSk4c3pOHBTRS/xIa58
+# d+wBgntVTMxuZlV3X2RJKyvQ/N1JzGoGjTAY3LGY0Qq5zpSCVjO8H/YYnJh+tGt+
+# 0esn8Y4/3f4TDGMV3/AkHWoKd0NFCZ5JYwYHDGsV7nLAyxoLulbQ8g+SUQKlcYuT
+# ts+kkJvYqX4bMBz0yqXC8HYMlbmALmxt3QlnOaThR6wfXCLaPqa3X37Os6CvtwI4
+# yqkZh67T3JLGxXxOT9A8z+/fSGYmRLfP6pp8d0w6njz62+vt77stcPbeDxol8tgG
+# +0YlKZeK/OS8IZnXRPX0I/QXvaZVzmC52d9tJfk9AwNu8xYoDYKH/65q6zsapjTw
+# 1ccwGx+AYuGX6vjgI9b16FWUhsWiThX+8Zv4GIW/3CzUzZayR58WuW3tBzKAvZPv
+# vZdTl36bOG/CQlQIUEBdXbZbm/b23YObANSVOdZ97gsB3xmL1ZYsEfzxCi2NucWp
+# cu2Pw38EP/cQGZ/+NZW6I4aYP8oL5tllz1bWVvGyXu1eGq13nxfrSOK5/m88GNj2
+# v3YMHdM1/sUMZEy6O7ZvS7nZQzL3PnT6kqt4tPhi1AXrZP3wyxD7+hbdHyRXnF+S
+# nwFWpwe1r/Ky1v+CS4gaQczB/51rKLk3JDIR6LMLk+VOQNsMswRO/yH/TEHOiF/I
+# s+TqhOMv2Ls1GIgOG3yM7wmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMjE1MTcwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgrQX4T7eSGCLm2lI3jmZUFZSw47KSYChUxeTwVS4q
-# y2QwDQYJKoZIhvcNAQEBBQAEggIAhXxSMXNAR80WHVU4JjtfnhATZ13tmGHFBTj0
-# FKv8He1bfR2fNM4nlEJ5I1XgLYDk/oOKhbKK9ciAu2OAX+qsPdNoUZ/NbnN4y7bm
-# Fob8McyvLuCQlXp16jmZmRdkxjWNijEZTcidqEi995wjmAZ/7mPBR0JEV7a0Yx53
-# vl/Izf2WGixjSP2kD8gSThRW+1nwvrZLesS+NLhTLgN6OY0s6kYXfdrzXvYl0JQJ
-# LElYYmLR9dgwM2VGI4jdIIxvD3k70CKk5PuTMsDShruQGZWQVS7N8UNdV29sKP3v
-# 9tUUemLR5Lfzv8AcWhHy+RTZZFoB+Q+kWlO6TzCBP49vgGEvWg5q+zQYcn8ODuPR
-# TObrrpmjGtwztosICKJ6hnns1QKBEAwdJQwki+zHh9I1KR0RvFfRaonrVkHRIpSJ
-# +lV3y8hjkwP0CLXUUdeJfSrJGLrSd9b2mOe5ZzUpe2TrFJNxdsoMQ0ctQvrtpI5V
-# U5jgQ7/wz72+OCQ3Ip8QX0NThtTHPak0GOzOXWGoeEDXstDoZznr8PwUJVxAER7N
-# QQenJ9YmIWiMVN0muf/ZXSt7kchWDdWTji+2kNCfWh7oayLm4FyaKOjhs4QTY3Dv
-# +p/65H8+W2EqdWJ4wSerSpD+UZY9Q4KIiRtHusmOxA+NDfQPG8mBB1BMA5HqXls9
-# xal2UN4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMjE1MTkwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgJjxhbuTFKQ3tgDsRfxlwLOEvvfokjm7LsXSVyvy4
+# WugwDQYJKoZIhvcNAQEBBQAEggIAeI3SyYiC9nJ5bK8pT3Kx17q0PVCjTBBlFziC
+# LV0Hy2Z0WtPzNF0PchKBkcQtoRphxyBO8R94kBUFgGyWJsATpKey1Ka8mZfUd88W
+# fYzU1a4336EYN5y1F9kCYuuY0HsRCg9g7zNeWqeIVhS9hmmZ4bCQdrPy44ffWWrk
+# /pi/JZ5khkwl9ilyMMJ1YUquOQDzmJ2YoXC6yL9QPOwQZUK0ybLl/+vsxf0MmLzd
+# nyWRbWhHS9NTgbqK0AwP+Ywy1VqBfhqFwN9nkxntJO7ogdgZuiVMD/sI1Q5vwR4N
+# r5LH6Dnr8O0xC520oLIiVciuwFA6NmvdPBZIlF0mZE/mWZiLsNVRDEQnWok+4b8j
+# /Y1SjVyq+Xr/7XC2gTX6O8xDWjtRhnvo1kz0rM7ojxiYght/EiUhHpuPcwKBOL9L
+# pxgCrM2XaufZw401+SnuZK455B+YJ+wk0xHNV4VNyF25wEH3LZ6aUdeWINTQv2Sa
+# kAFXVoa1tsUgib3Isb0CAeagtdST5bITTefZk99U7DygEd+0i3pewOe40Z8YbOdm
+# jozu+ieGbqWhXAGjFPvzOEVc/rdAXwNPPXSF3DWpGaAUkth0XSNuQz3/r/Mh4Q/t
+# B4sU0p52wPt7EogpYkhELhX24jwu0RITGmaq9LcoWjnVymLd/wal9cjJmvbcLumD
+# +AdvXaE=
 # SIG # End signature block
