@@ -149,7 +149,6 @@ Param
 
     # Switches
     [Switch]$ReuseKeys,
-    [Switch]$ConvertCryptoProvider,
     [Switch]$ExportCertificate
 )
 
@@ -295,15 +294,8 @@ Begin
         # Change provider
         if ($ProviderName -ne $CAProvider)
         {
-            if ($ConvertCryptoProvider.IsPresent)
+            if ((Read-Host "Procceed converting cryptographic provider? [y/n]") -eq 'y')
             {
-                if ((Read-Host "Procceed converting cryptographic provider? [y/n]") -ne 'y')
-                {
-                    break
-                }
-
-                # Get temp
-                $Temp = $env:TEMP
 
                 if (-not (Test-Path -Path "$CertEnrollDirectory\$CACommonName.p12") -and
                     (ShouldProcess @WhatIfSplat -Message "Backing up CA private key to `"$CertEnrollDirectory\$CACommonName.p12`"" @VerboseSplat))
@@ -311,29 +303,30 @@ Begin
                     TryCatch { certutil -p $CertFilePassword -backupkey "$CertEnrollDirectory" } -ErrorAction Stop > $null
                 }
 
-                if ((Test-Path -Path "$Temp\$CACommonName.p12") -and
+                if ((Test-Path -Path "$CertEnrollDirectory\$CACommonName.p12") -and
                     (ShouldProcess @WhatIfSplat -Message "Importing CA certificate as `"$ProviderName`"." @VerboseSplat))
                 {
                     TryCatch { certutil -f -p $CertFilePassword -csp "$ProviderName" -importpfx "$CertEnrollDirectory\$CACommonName.p12" } -ErrorAction Stop > $null
                 }
 
-                if (-not (Test-Path -Path "$Temp\$CACommonName.pfx") -and
+                if (-not (Test-Path -Path "$CertEnrollDirectory\$CACommonName.pfx") -and
                     (ShouldProcess @WhatIfSplat -Message "Exporting CA certificate." @VerboseSplat))
                 {
-                    TryCatch { certutil -p $CertFilePassword -exportpfx my $CACertHash "$Temp\$CACommonName.pfx" } -ErrorAction Stop > $null
+                    TryCatch { certutil -p $CertFilePassword -exportpfx my $CACertHash "$CertEnrollDirectory\$CACommonName.pfx" } -ErrorAction Stop > $null
                 }
 
                 Remove-Item -Path "Cert:\LocalMachine\My\$CACertHash" -DeleteKey
                 Remove-Key -CACommonName $CACommonName @VerboseSplat
 
-                if ((Test-Path -Path "$Temp\$CACommonName.pfx") -and
+                if ((Test-Path -Path "$CertEnrollDirectory\$CACommonName.pfx") -and
                     (ShouldProcess @WhatIfSplat -Message "Restoring CA certificate." @VerboseSplat))
                 {
-                    TryCatch { certutil -f -p $CertFilePassword -restorekey "$Temp\$CACommonName.pfx" } -ErrorAction Stop > $null
+                    TryCatch { certutil -f -p $CertFilePassword -restorekey "$CertEnrollDirectory\$CACommonName.pfx" } -ErrorAction Stop > $null
                 }
 
                 # Cleanup
-                Remove-Item -Path "$Temp\$CACommonName.pfx" -Force
+                Remove-Item -Path "$CertEnrollDirectory\$CACommonName.p12" -Force
+                Remove-Item -Path "$CertEnrollDirectory\$CACommonName.pfx" -Force
 
                 $Restart = $true
             }
@@ -731,7 +724,6 @@ Process
 
             # Switches
             $ReuseKeys = $Using:ReuseKeys
-            $ConvertCryptoProvider = $Using:ConvertCryptoProvider
             $ExportCertificate = $Using:ExportCertificate
 
             $ParentCAResponseFiles = $Using:ParentCAResponseFiles
@@ -834,8 +826,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo1LQ0Y9HAZbU76w9jYs5Ywd3
-# at6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY1Nu4uFhcZWzka00KlnqQ+Um
+# 9cGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -966,34 +958,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUjfGofjs
-# XjOe/Q2rBySEFbmF1H4wDQYJKoZIhvcNAQEBBQAEggIAfu22u3naVyFCPq1lGHr2
-# zgvP4yjPFcG1BJah1xIuMcw9wv7PsRRgnvNI2r+g+NHrFWlmwBSB/l7X0TB5UhYf
-# 1xUDuxqQiN7U54S7yvRofbrfckEFsZeRozR2YVb6+omDMn8EsCaAGx0rkKushjIe
-# JCBdl9B1Yd7aT78F5Hy0wpGLGKZOkGszlYnHrlNIkin9xHl8LK9A4kSmApgCi10Q
-# BJ7j24SCNgsTVPMuy0BKkyq0OBfdOBWszkERazrUHZdGg8K8aBg8ruFm+2GqpCqS
-# kI/ATdGbDqfIQ4DKF+OWhnfqyiClPWc3TYZ6vlikB4bAGrsVYa82Skt0REMqiOq1
-# 4HeT1AOjQuIH+qN96B3eu9d0wKzHbBJjrfZMad7cM5kRQ/GIfmWCXhG++nPOGe46
-# j0NmYBpjZQR+pe1Qc4XXxg7Do5LpUFlQF4g6wz9tVlYx6FY4BWtzESnHCtyuMnC3
-# /AHYz6hieMON0n+wYd42gyIZuiqu0LndwNj/1/I2ZKjOUUuo5oZ748Km6UK4kpV2
-# Z0rYPFEwR+vMdwMqSuBZqZSq5sGbn/dEG2ZdH4wU3Rm3nn5rLgKW2ABMDGwmVkDs
-# P3b2U3Hld1svOxRiYqsU+SBCkb+u4jyrWcLAmgqiIO8cX3wzQon2V0jV3H1Wy4HK
-# du0u5g1pk+dS9V/D6wNaA2ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUH1l2pdgO
+# wGdw8MAYOowdbj1sl3AwDQYJKoZIhvcNAQEBBQAEggIAHQdXPMhACVZreXhE+zfV
+# dn7o0A9ebKv5pAGPisDrVCRTSYDDYKitQZpoJVJmoAXaJ9c9VadVroRw62m1F3Zj
+# W5oLaCvIuz+qwINx2fe0wE+Or9U5ixOzO1begMtvsRtacsbE79TVDpIsIV1Anph+
+# BgzTF3ibIn3dRokq8e2VBqA111lVkwITTCuYLZOx38fGsEfZyGil2RqIvJS94cPM
+# b3xw+VznzdvIAy7IkOriIhwDZOy2blmdkLdbSeZNvGAHpjRe7VbOYf5XdA10Y1Ms
+# 9/V3F7sefbufsvOhQotcA7QCwtM3mB2KQQWf9J8tXknn8Vp7xoWd+Lynu05satCW
+# LzxeuCdYP8kMkpCBltymgC/mcre+7l0cBoipcUmMiND1JvWPYzQ6NKqNy3jFZjLj
+# mgApQ4vaK6CBQWSyfpl72njL//usOpBO5M4tjgl4YP1whozLhCfQcUEDSwCZvJLy
+# jiO+8Tv7h12VR78zqHYEnRcrQhbrVK3PK7SH3DQHM4nge6KTr9f0AyXhY4bhOXg5
+# 0BpbJXSHw+4AvHeBJTJAgQABGiTfFCV6c8vu3P5B1NQ/YyA785nkZLtkZZuDP89C
+# BDmcgZC4uTloMEo1kGdkH45zwX7RvnGM/AnNIcazdK93xRp8ADo0gbyfdjr115li
+# ipgpnTRghbukeODucB4mjHKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzA4MTA1OTU0
-# WjAvBgkqhkiG9w0BCQQxIgQgQ+lqWn6gIMcREcVYufZlfKYhUkJ8WRPqxvi/pH8n
-# ZMAwDQYJKoZIhvcNAQEBBQAEggIAHVoiZBWQCOM0uFGuZLJu6/76zE4pJZPHYrVq
-# tzlz9FiMoQL0bEPxE3dZGapbgUOqMeQzy8XUNrhRXy0/uPdrngOyrTt9HCmo0JUE
-# zyO+YZFE5B4Au84M4Sz6EJ8JllB5DGy96snAc60dL4OtBU130OX76DlnsKjXvXTd
-# DZ9/xNhI5qEgZiHIOkeNH/7xN2A/libJ5O50NkIm1yV8Bv91g30Et0e5/JNng6m2
-# J8qhYEpweXjj9cqcxx6JDQIFmmXL+3/ohLSvYqG3A07jHvpKhXfE7bS4h3PJKQ9T
-# GnCsZhCCbB6ziuwU6Y6qYlZjiibgsCgucCyNJ4o0v8lMsNXPq64mLMD0jIFzT+ji
-# +k7pmymlTew99X5Qv9AuR+pjiq6Irs2i3Gf1AGRBzJBqP5ax9iIOLBKz5iyif1t4
-# FQE7YiJCsjd+qqngnPWqMEInWMpMg9FNTiCi3TQZJsf0j6TNDOYrZCLDwY0vZU29
-# EN+Vmb78UGAp/IVbBNGKv09+8rMWYpmzAXhYB56J1xZK4UPIas16zKOaFJPK6TIr
-# 9+BGmANiuBsZdKmmlTXtCX/qt0mQDGDVPNaQanLx/GLWJC884v3c4/PNRhNXkc7p
-# 3GR0v+M4RmOzL5gDjWqxnme0aZXIsm7DZ7iQJYaX0NJtYoprHhzTnLwxpUsNqkIP
-# cFHbDEA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzA4MTE1OTU0
+# WjAvBgkqhkiG9w0BCQQxIgQgd6SKEndL44PIgHq4szkp7VV8PfGjVdIoQNhYXxph
+# yqowDQYJKoZIhvcNAQEBBQAEggIAIqp3SqiBONVm6sQKDkKTWWMmzK78dMFiKihw
+# o7EkGCRR+seYm9oJPBrH/TcU8OpmTd16VnmiV+KnXcTLS3dD8SQGzbJFTlFquOis
+# GFF/KNrEndqyKncQDuxR+nxLhzIBmbgyktG+oQTOLo2HC68GsTA9yKoDH9DQdXaj
+# PzFS5WwCwDvUkEPpqfH+qOHF5nv8TdBGNM5+aUrxumlKmWK9afXmYnPQJOACJlrC
+# LE0IqoyOZhZBFlnivFA/AR3tLTz41MUD9R3D8QkoffgmiGd+o+ekmMCVnZ8GNLsA
+# IjrEa5sPQLD6V8cRtFOwCyz6TgphefGay1XfQduQL5oLfIeU9TlnXy71uB/qQ+Co
+# QWAbOn5WYIWrkqZxkp6jfJnUzI+XtsQ8Qf6SwSAyi763YLAbAilMCuJNZ1i3UErg
+# nnfgycrmFoIdzcCuu9McZyFSZzkTWvxeGBnEbMmlV+ZShfTty5uIT8qpu+YrZ6WA
+# u4NF5k8fh7Zj55dlx5yRU4Xel+xxkCnojv2GolVzUepcdvqcDzptlAzumHudatKw
+# ezcN0fLdOUIx9N0u9syScDTOhSbJ3v5U9cidy5UL23T7s8DUGBD+6PGqS/xBdT32
+# ji2Sbz0NYuwTdCu32oeNiszerbllFr2LafoctCimoAvOTTsVq0j02ufVv+iLOSU2
+# gPfDUBo=
 # SIG # End signature block
