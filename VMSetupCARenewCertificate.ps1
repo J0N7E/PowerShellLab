@@ -247,11 +247,6 @@ Begin
         # Get common name
         $CACommonName = $Configuration | Select-Object -ExpandProperty CommonName -ErrorAction Stop
 
-        $CASplat =
-        @{
-            CACommonName = $CACommonName
-        }
-
         # Get CA type
         $CAType = $Configuration | Select-Object -ExpandProperty CAType -ErrorAction Stop
 
@@ -289,7 +284,7 @@ Begin
         $ProviderName = $CryptoProviderName | Where-Object { $_ -match "(?:.*#|^)(.*)" } | ForEach-Object { $Matches[1] }
 
         # Get CA provider
-        $CAProvider = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\*\CSP" | Select-Object -ExpandProperty Provider
+        $CAProvider = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\$CACommonName\CSP" | Select-Object -ExpandProperty Provider
 
         # Change provider
         if ($ProviderName -ne $CAProvider)
@@ -298,7 +293,7 @@ Begin
             {
 
                 if (-not (Test-Path -Path "$CertEnrollDirectory\$CACommonName.p12") -and
-                    (ShouldProcess @WhatIfSplat -Message "Backing up CA private key to `"$CertEnrollDirectory\$CACommonName.p12`"" @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Backing up CA certificate to `"$CertEnrollDirectory\$CACommonName.p12`"" @VerboseSplat))
                 {
                     TryCatch { certutil -p $CertFilePassword -backupkey "$CertEnrollDirectory" } -ErrorAction Stop > $null
                 }
@@ -310,7 +305,7 @@ Begin
                 }
 
                 if (-not (Test-Path -Path "$CertEnrollDirectory\$CACommonName.pfx") -and
-                    (ShouldProcess @WhatIfSplat -Message "Exporting CA certificate." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Exporting CA certificate as PFX." @VerboseSplat))
                 {
                     TryCatch { certutil -p $CertFilePassword -exportpfx my $CACertHash "$CertEnrollDirectory\$CACommonName.pfx" } -ErrorAction Stop > $null
                 }
@@ -319,7 +314,7 @@ Begin
                 Remove-Key -CACommonName $CACommonName @VerboseSplat
 
                 if ((Test-Path -Path "$CertEnrollDirectory\$CACommonName.pfx") -and
-                    (ShouldProcess @WhatIfSplat -Message "Restoring CA certificate." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Restoring CA certificate fromn PFX." @VerboseSplat))
                 {
                     TryCatch { certutil -f -p $CertFilePassword -restorekey "$CertEnrollDirectory\$CACommonName.pfx" } -ErrorAction Stop > $null
                 }
@@ -331,8 +326,8 @@ Begin
                 $Restart = $true
             }
 
-            $Restart = Set-CASetting @CASplat -Key 'CSP\Provider' -Value $ProviderName -InputFlag $Restart
-            $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\Provider' -Value $ProviderName -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'CSP\Provider' -Value $ProviderName -InputFlag $Restart
+            $Restart = Set-CASetting -Key 'EncryptionCSP\Provider' -Value $ProviderName -InputFlag $Restart
         }
 
         #############################
@@ -368,8 +363,8 @@ Begin
         }
 
         # Set provider type
-        $Restart = Set-CASetting @CASplat -Key 'CSP\ProviderType' -Value $ProviderType -InputFlag $Restart
-        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\ProviderType' -Value $ProviderType -InputFlag $Restart
+        $Restart = Set-CASetting -Key 'CSP\ProviderType' -Value $ProviderType -InputFlag $Restart
+        $Restart = Set-CASetting -Key 'EncryptionCSP\ProviderType' -Value $ProviderType -InputFlag $Restart
 
         ####################
         # CSP\HashAlgorithm
@@ -388,7 +383,7 @@ Begin
         }
 
         # Set hash algorithm
-        $Restart = Set-CASetting @CASplat -Key 'CSP\HashAlgorithm' -Value $HashAlgorithms.Item($HashAlgorithmName) -InputFlag $Restart
+        $Restart = Set-CASetting -Key 'CSP\HashAlgorithm' -Value $HashAlgorithms.Item($HashAlgorithmName) -InputFlag $Restart
 
         ########################################
         # CSP\CNGHashAlgorithm
@@ -453,7 +448,7 @@ Begin
                 $Splat.Remove('Value')
             }
 
-            $Restart = Set-CASetting @CASplat @Splat -InputFlag $Restart
+            $Restart = Set-CASetting @Splat -InputFlag $Restart
         }
 
         ####################################
@@ -473,8 +468,8 @@ Begin
             $KeySize = 2048
         }
 
-        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\EncryptionAlgorithm' -Value $EncryptionAlgorithm -InputFlag $Restart
-        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\KeySize' -Value $KeySize -InputFlag $Restart
+        $Restart = Set-CASetting -Key 'EncryptionCSP\EncryptionAlgorithm' -Value $EncryptionAlgorithm -InputFlag $Restart
+        $Restart = Set-CASetting -Key 'EncryptionCSP\KeySize' -Value $KeySize -InputFlag $Restart
 
         ########
         # Renew
@@ -826,8 +821,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY1Nu4uFhcZWzka00KlnqQ+Um
-# 9cGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3eAeOsgXGTkZkwnQONK8RdHx
+# 7lOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -958,34 +953,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUH1l2pdgO
-# wGdw8MAYOowdbj1sl3AwDQYJKoZIhvcNAQEBBQAEggIAHQdXPMhACVZreXhE+zfV
-# dn7o0A9ebKv5pAGPisDrVCRTSYDDYKitQZpoJVJmoAXaJ9c9VadVroRw62m1F3Zj
-# W5oLaCvIuz+qwINx2fe0wE+Or9U5ixOzO1begMtvsRtacsbE79TVDpIsIV1Anph+
-# BgzTF3ibIn3dRokq8e2VBqA111lVkwITTCuYLZOx38fGsEfZyGil2RqIvJS94cPM
-# b3xw+VznzdvIAy7IkOriIhwDZOy2blmdkLdbSeZNvGAHpjRe7VbOYf5XdA10Y1Ms
-# 9/V3F7sefbufsvOhQotcA7QCwtM3mB2KQQWf9J8tXknn8Vp7xoWd+Lynu05satCW
-# LzxeuCdYP8kMkpCBltymgC/mcre+7l0cBoipcUmMiND1JvWPYzQ6NKqNy3jFZjLj
-# mgApQ4vaK6CBQWSyfpl72njL//usOpBO5M4tjgl4YP1whozLhCfQcUEDSwCZvJLy
-# jiO+8Tv7h12VR78zqHYEnRcrQhbrVK3PK7SH3DQHM4nge6KTr9f0AyXhY4bhOXg5
-# 0BpbJXSHw+4AvHeBJTJAgQABGiTfFCV6c8vu3P5B1NQ/YyA785nkZLtkZZuDP89C
-# BDmcgZC4uTloMEo1kGdkH45zwX7RvnGM/AnNIcazdK93xRp8ADo0gbyfdjr115li
-# ipgpnTRghbukeODucB4mjHKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFZgyKdoM
+# HVRIeIOMXecFv4ViefcwDQYJKoZIhvcNAQEBBQAEggIAuHZUlEWb1/APN5PT588W
+# MKr9Is3Nc5oSMHmXkoseIOBc73IUtL2FtbYTeVewtZQBEciZZpoiz1Oz1gXDPC8K
+# f72RpdDfmuY0WAP03/0XSWO+smSkcu8GqCAvKWmiuxCPwXGJumPjdKqzSaXooPFB
+# M4GuA3QVUVaVwJVpV9/jKHQETNusTW8gm8p1gwrLEwzjuGgQivCaNKoGduTCKune
+# z1LyWtuhx1/I9qKqInbqjio4Fq5yMUZwiqbFjobe6vDx2+S0RGgOtY45POODZtcs
+# +trIRXKbZkZlSjx3CIPRApSOOzm6yVL4EXN88C0ETZSVNt5lRvmDH4VFMF25fRny
+# 2Z17Ns7cZRtb5FCEBSYnq1vd3f49ujJAj4wl4r6cBv1tpRBfuY54B38WwR8bJELb
+# kAx/XouEo81jw1X7O450g6mtLtVwwZtzRRr34880pc4JbIBho1R44b64pgmMkWp/
+# O5ki0Dx1dc4bO2TYmrFsyA3xglzTGIpGMQMJ+1E1SDDQcvWO2rMSv9DiU2tjkRdE
+# HEDSr+dgJg0xvgAJ2A50VhLNIGoKJVimayKoF1WPj/AKvy3vzc4mrXw1w1LOe5Q1
+# sDcGLmgY+N7v2MHy8O7UIIDIPtWwRz8jTfF5H6nVDQOXvA+LiWT8bFx4zszX/G8W
+# v4JySn1D/DM3kJdwiOaSGHGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzA4MTE1OTU0
-# WjAvBgkqhkiG9w0BCQQxIgQgd6SKEndL44PIgHq4szkp7VV8PfGjVdIoQNhYXxph
-# yqowDQYJKoZIhvcNAQEBBQAEggIAIqp3SqiBONVm6sQKDkKTWWMmzK78dMFiKihw
-# o7EkGCRR+seYm9oJPBrH/TcU8OpmTd16VnmiV+KnXcTLS3dD8SQGzbJFTlFquOis
-# GFF/KNrEndqyKncQDuxR+nxLhzIBmbgyktG+oQTOLo2HC68GsTA9yKoDH9DQdXaj
-# PzFS5WwCwDvUkEPpqfH+qOHF5nv8TdBGNM5+aUrxumlKmWK9afXmYnPQJOACJlrC
-# LE0IqoyOZhZBFlnivFA/AR3tLTz41MUD9R3D8QkoffgmiGd+o+ekmMCVnZ8GNLsA
-# IjrEa5sPQLD6V8cRtFOwCyz6TgphefGay1XfQduQL5oLfIeU9TlnXy71uB/qQ+Co
-# QWAbOn5WYIWrkqZxkp6jfJnUzI+XtsQ8Qf6SwSAyi763YLAbAilMCuJNZ1i3UErg
-# nnfgycrmFoIdzcCuu9McZyFSZzkTWvxeGBnEbMmlV+ZShfTty5uIT8qpu+YrZ6WA
-# u4NF5k8fh7Zj55dlx5yRU4Xel+xxkCnojv2GolVzUepcdvqcDzptlAzumHudatKw
-# ezcN0fLdOUIx9N0u9syScDTOhSbJ3v5U9cidy5UL23T7s8DUGBD+6PGqS/xBdT32
-# ji2Sbz0NYuwTdCu32oeNiszerbllFr2LafoctCimoAvOTTsVq0j02ufVv+iLOSU2
-# gPfDUBo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzA4MTI1OTU1
+# WjAvBgkqhkiG9w0BCQQxIgQgiKyTUrvtbQTsDw//7SgkBxemSugDBuLF7g0Fm37K
+# cHwwDQYJKoZIhvcNAQEBBQAEggIAuGqnhjBbrj+KV6Phnxklyl96QatUXU+s2v24
+# FVIwHIUgob5rKTv6neRy0wO94e8+Qynm+V/qRSSD3eD4nWn3w6DWZwN+4rGOhax4
+# PGtzAN7V5xpg2yzc/mIi9T0TQXAQH5KZfnNVrm2XMUU9D17cV9w2F8kMlvo8/P6R
+# dKckBsnqTnUnqSdWiWny3I5mE3ZjkYAehznrVQCqikK1jIG64EQBj0DuT8M3IVQH
+# QJ1AQI1QW5tUP4b88rTPEAODp2OuuHtk9b4njGFnEAOzgGWLulA2oYgBu0vJ+6jq
+# UemC6Cq21Xmz7lRZFifQsHShHmKkPpNevqosqe82DZMd182y9qhhqkGcZkIesFcu
+# ki6FHUD0P2+QpJOBZ5YRFh7VtnJIrwfNebkQFoUxKSK2264E5UbdWst1tsWFu/Ai
+# D3TjBlRSZh2NSu2g1H5ofXrbY3Qds9+oMaJrHiV3jWX1V7vedW7Gl1UcVPTKP49X
+# b8FyG+UYCY0/oDZZvTj1tNHRwvDWp57g0yHon5P8fDJSZWiLUn5M4b02mmy2FpN3
+# A/MLDYTGXaDKhan/8D0GwoyZGbELsd7KMmyPOai81bGp+rFFCz7iN17DKaaCdZJM
+# P8hnnGllNT16Y3uA86B5Z//5L25wpUIvrl++bmOE94zFZjrv59PFiCfef203EJ2Z
+# bx16AGQ=
 # SIG # End signature block
