@@ -248,6 +248,11 @@ Begin
         # Get common name
         $CACommonName = $Configuration | Select-Object -ExpandProperty CommonName -ErrorAction Stop
 
+        $CASplat =
+        @{
+            CACommonName = $CACommonName
+        }
+
         # Get CA type
         $CAType = $Configuration | Select-Object -ExpandProperty CAType -ErrorAction Stop
 
@@ -333,8 +338,8 @@ Begin
                 $Restart = $true
             }
 
-            $Restart = Set-CASetting -Key 'CSP\Provider' -Value $ProviderName -InputFlag $Restart
-            $Restart = Set-CASetting -Key 'EncryptionCSP\Provider' -Value $ProviderName -InputFlag $Restart
+            $Restart = Set-CASetting @CASplat -Key 'CSP\Provider' -Value $ProviderName -InputFlag $Restart
+            $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\Provider' -Value $ProviderName -InputFlag $Restart
         }
 
         #############################
@@ -370,8 +375,8 @@ Begin
         }
 
         # Set provider type
-        $Restart = Set-CASetting -Key 'CSP\ProviderType' -Value $ProviderType -InputFlag $Restart
-        $Restart = Set-CASetting -Key 'EncryptionCSP\ProviderType' -Value $ProviderType -InputFlag $Restart
+        $Restart = Set-CASetting @CASplat -Key 'CSP\ProviderType' -Value $ProviderType -InputFlag $Restart
+        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\ProviderType' -Value $ProviderType -InputFlag $Restart
 
         ####################
         # CSP\HashAlgorithm
@@ -390,7 +395,7 @@ Begin
         }
 
         # Set hash algorithm
-        $Restart = Set-CASetting -Key 'CSP\HashAlgorithm' -Value $HashAlgorithms.Item($HashAlgorithmName) -InputFlag $Restart
+        $Restart = Set-CASetting @CASplat -Key 'CSP\HashAlgorithm' -Value $HashAlgorithms.Item($HashAlgorithmName) -InputFlag $Restart
 
         ########################################
         # CSP\CNGHashAlgorithm
@@ -455,7 +460,7 @@ Begin
                 $Splat.Remove('Value')
             }
 
-            $Restart = Set-CASetting @Splat -InputFlag $Restart
+            $Restart = Set-CASetting @CASplat @Splat -InputFlag $Restart
         }
 
         ####################################
@@ -475,8 +480,8 @@ Begin
             $KeySize = 2048
         }
 
-        $Restart = Set-CASetting -Key 'EncryptionCSP\EncryptionAlgorithm' -Value $EncryptionAlgorithm -InputFlag $Restart
-        $Restart = Set-CASetting -Key 'EncryptionCSP\KeySize' -Value $KeySize -InputFlag $Restart
+        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\EncryptionAlgorithm' -Value $EncryptionAlgorithm -InputFlag $Restart
+        $Restart = Set-CASetting @CASplat -Key 'EncryptionCSP\KeySize' -Value $KeySize -InputFlag $Restart
 
         ########
         # Renew
@@ -829,8 +834,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwNrE1X0ocTusj280/dWuvM94
-# XaygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo1LQ0Y9HAZbU76w9jYs5Ywd3
+# at6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -961,34 +966,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhso19PDv
-# b34BUw/JkD3KryGrEGAwDQYJKoZIhvcNAQEBBQAEggIAIY3rqvUopouv9Tw/y0rW
-# hTor2PvQT/O6wu6nRA0zymksBDEwL32f+vmagc9ubKC67/fDBYAEElV9Fs9fnGNf
-# nSrH4hcAA6Daqqo0XgszysOu8thtaEhGIeAjyFtYCXeec18tl9fShtgwEM4fh0Ic
-# byfNRa/ExeogQTW6TMaV0ib1D6bZ5VVXHagGALDJIrUPuIsMA/iFixfVCIR76vqr
-# HTocqLZsDauL9p00e/D2mhcDCbv+IRUk3v/QVvKr/416CyJwdm2deZXJC/ArhdCP
-# IxM1zbj8syv7YgKsEGhdGxQTUoNwj99oEoOFdTtTdjEXrvczbWrazRnkmz04EC4z
-# SGc49MJrra5k/EE4FmziaYIF6rgpcCv75UaKSqJ2p8PWOvfdcn1tP5Ji/NR5AYe+
-# qDRyaClxt9oM2kfmpTC8kBoofbb84Uw5mBHPMCIM+ydisVaTx8g05Q7OQS3u5VKa
-# cP9Boa+v83DzEw+2HThk2rhmWVlfWqsbrgBHs3RLhM6F4dtyrxgjdtWvqLNc3zUG
-# I2d5fZLBYoD5Nr4lRzvmeULMHeDT9qJSsLeIQHH3c1Pc2/VwamdZNe6nggobHCWk
-# ATmbP071qfquvWllzqypplMLXvyXsUITR4CnJUb08Th9mi7vkPyvN+nfdQJU4rmq
-# FXByvXG5Ks4XChqyHTSL76qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUUjfGofjs
+# XjOe/Q2rBySEFbmF1H4wDQYJKoZIhvcNAQEBBQAEggIAfu22u3naVyFCPq1lGHr2
+# zgvP4yjPFcG1BJah1xIuMcw9wv7PsRRgnvNI2r+g+NHrFWlmwBSB/l7X0TB5UhYf
+# 1xUDuxqQiN7U54S7yvRofbrfckEFsZeRozR2YVb6+omDMn8EsCaAGx0rkKushjIe
+# JCBdl9B1Yd7aT78F5Hy0wpGLGKZOkGszlYnHrlNIkin9xHl8LK9A4kSmApgCi10Q
+# BJ7j24SCNgsTVPMuy0BKkyq0OBfdOBWszkERazrUHZdGg8K8aBg8ruFm+2GqpCqS
+# kI/ATdGbDqfIQ4DKF+OWhnfqyiClPWc3TYZ6vlikB4bAGrsVYa82Skt0REMqiOq1
+# 4HeT1AOjQuIH+qN96B3eu9d0wKzHbBJjrfZMad7cM5kRQ/GIfmWCXhG++nPOGe46
+# j0NmYBpjZQR+pe1Qc4XXxg7Do5LpUFlQF4g6wz9tVlYx6FY4BWtzESnHCtyuMnC3
+# /AHYz6hieMON0n+wYd42gyIZuiqu0LndwNj/1/I2ZKjOUUuo5oZ748Km6UK4kpV2
+# Z0rYPFEwR+vMdwMqSuBZqZSq5sGbn/dEG2ZdH4wU3Rm3nn5rLgKW2ABMDGwmVkDs
+# P3b2U3Hld1svOxRiYqsU+SBCkb+u4jyrWcLAmgqiIO8cX3wzQon2V0jV3H1Wy4HK
+# du0u5g1pk+dS9V/D6wNaA2ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMTEzMjMwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgFtzv86ypytbnWi/W4q4SsdcQzKm+UPOecmgLa503
-# Lv0wDQYJKoZIhvcNAQEBBQAEggIAZ4seE7TM0aQFdEjWf3uD4HSWVKZDzx0+QWsv
-# jEyDbUkw2xMLtwRL0vak8JZd8gH0qpyRRNdZwvctsRiiUIbQp33G+JNSR8EaMXys
-# mf11TBdYN6fp09LxAl/fPKC5UM8iH0d4mw22At26yk1jOeZaobW6jsZFy1vraHi1
-# L9JqNAKstZPUfTd5thqYHp0HLB5mUAOfXNGpVk1hv0EkoMlrkjvE5qvC0zZurAbD
-# BFBBGHnCHzd+cGrCVJKTJVPK93R0n2nBDEgUQauNeKK3ArAkXqxfH5qFLcGR/g+q
-# 8q7OQRPxkAlvaymkv1SYMCN52bcR2UAdtvOFUm4ibIBVPQkKx/Ba7CUkkpO41b5l
-# pgc/rMaYxUHHdYUbLLL6y0J6iq7dvLlPN6453i0G6K7kmypVIrLghaBGOuLuVh76
-# H2x25HntyXQd0pfckzWkCrGJEEOwdoTTlD67+WYobel8FHU4s0mAgFDJbdTxxSPQ
-# Nd3saWSSwNSqEWlbR3tUQO43Ie2t77+Wp+pEjZYvBTl4505SnVI1OA1dqqhXBURc
-# lE/7VPGJoimnEwLpaCZ+flUv2X+32cgL/8i08SdlbL/+jRl5NxLBa/wGH3PxFU0g
-# 4ndxiGu/zFOTzNW3UnNRxDWPpHnZxDX+GdelL7IkL0wGAvk9N1WKv7m3sXrsv5wz
-# 97G7dNI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzA4MTA1OTU0
+# WjAvBgkqhkiG9w0BCQQxIgQgQ+lqWn6gIMcREcVYufZlfKYhUkJ8WRPqxvi/pH8n
+# ZMAwDQYJKoZIhvcNAQEBBQAEggIAHVoiZBWQCOM0uFGuZLJu6/76zE4pJZPHYrVq
+# tzlz9FiMoQL0bEPxE3dZGapbgUOqMeQzy8XUNrhRXy0/uPdrngOyrTt9HCmo0JUE
+# zyO+YZFE5B4Au84M4Sz6EJ8JllB5DGy96snAc60dL4OtBU130OX76DlnsKjXvXTd
+# DZ9/xNhI5qEgZiHIOkeNH/7xN2A/libJ5O50NkIm1yV8Bv91g30Et0e5/JNng6m2
+# J8qhYEpweXjj9cqcxx6JDQIFmmXL+3/ohLSvYqG3A07jHvpKhXfE7bS4h3PJKQ9T
+# GnCsZhCCbB6ziuwU6Y6qYlZjiibgsCgucCyNJ4o0v8lMsNXPq64mLMD0jIFzT+ji
+# +k7pmymlTew99X5Qv9AuR+pjiq6Irs2i3Gf1AGRBzJBqP5ax9iIOLBKz5iyif1t4
+# FQE7YiJCsjd+qqngnPWqMEInWMpMg9FNTiCi3TQZJsf0j6TNDOYrZCLDwY0vZU29
+# EN+Vmb78UGAp/IVbBNGKv09+8rMWYpmzAXhYB56J1xZK4UPIas16zKOaFJPK6TIr
+# 9+BGmANiuBsZdKmmlTXtCX/qt0mQDGDVPNaQanLx/GLWJC884v3c4/PNRhNXkc7p
+# 3GR0v+M4RmOzL5gDjWqxnme0aZXIsm7DZ7iQJYaX0NJtYoprHhzTnLwxpUsNqkIP
+# cFHbDEA=
 # SIG # End signature block
