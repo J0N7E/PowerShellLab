@@ -371,7 +371,7 @@ Begin
                 $Server = @{}
 
                 # Define server records to get
-                $ServerNames = @('ADFS', 'AS', 'WAP', 'UBU')
+                $ServerNames = @('ADFS', 'AS', 'WAP', 'curity')
 
                 foreach ($Name in $ServerNames)
                 {
@@ -408,7 +408,7 @@ Begin
                 }
 
                 # Check if UBU server exist
-                if ($Server.UBU)
+                if ($Server.curity)
                 {
                     $DnsRecords += @{ Name = 'curity';                 Type = 'A';      Data = "$DomainNetworkId.250" }
                 }
@@ -534,16 +534,18 @@ Begin
 
                 $DhcpReservations =
                 @(
-                    @{ Name = "WAP";   IPAddress = "$DomainNetworkId.100"; }
-                    @{ Name = "ADFS";  IPAddress = "$DomainNetworkId.150"; }
-                    @{ Name = "AS";    IPAddress = "$DomainNetworkId.200"; }
-                    @{ Name = "UBU";   IPAddress = "$DomainNetworkId.250"; }
+                    @{ Name = "WAP";    IPAddress = "$DomainNetworkId.100"; }
+                    @{ Name = "ADFS";   IPAddress = "$DomainNetworkId.150"; }
+                    @{ Name = "AS";     IPAddress = "$DomainNetworkId.200"; }
+                    @{ Name = "curity"; IPAddress = "$DomainNetworkId.250"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)
                 {
                     # Set reservation name
                     $ReservationName = "$($Server.Item($Reservation.Name)).$DomainName"
+
+                    Write-Host "Reservation name:" $ReservationName
 
                     # Get clientId from dhcp active leases
                     $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -eq $ReservationName -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
@@ -2507,8 +2509,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8EzD4xtW4QF3lrgicWxjgMwQ
-# edGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpstCoyjb+KDm6RPgHtvPfbvc
+# dqWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2639,34 +2641,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4Nr8JUrf
-# woUc3FHoq+gzhz/90S4wDQYJKoZIhvcNAQEBBQAEggIAHTCNVo1OPfvGTvdltTuW
-# JfdICrpVRQrzuEpqXVAF8GQOitGegWDWo49fBiJkdqN1rlTIMmcgoXOKWi2W1hyd
-# pBxZtP5v1GLwvuD46qe+UIe4BQdmJEc2B0WYrrc/xrUeI02gfkp+stv0pQV5Au+x
-# wKdeKICNGukv4dgGddGssFhr7x4Glzi8kBDsSQ+Z7xVE0ZxaVXvq5tC/MbUwuZVs
-# +w98tz7hl5CUqnluhpN2wM4gPewzJ7LP84ST21tF2I/0pCNZuy1qsc+xKpwWF/x9
-# sKp2WqZpIJiIncEHLzgTPVu6by5NOBGN/1qGjdy97VwDflgwYxgSRFU9xjhlmobC
-# DIp/QOXYaerUoc0Q5ZhMIu9vAGSF/NZpOTk5+BZTz+8cozmJjvIcTpoDoDkqL0SM
-# KWzRAxW5Po8fxe+25oT1sqlpdmWGYciuI0qN7icGXaI69Xa4ONBT0gYeRfCgo76p
-# A8XlCKY3OfbMjLhLiRoXpNnYmE/wKyZ0rtWEuJ/DgpfYaMHqO42AJtPoL8Kk/64P
-# 65tl7VWFltdMRSHOW7PsflxRSqL2r3pFcnNkO3usCg+vz5swcGtTHA/6ht9w5nKB
-# pOsC5wsrKHwZdGp8Ck3MLgG8jJyNqGkN1JnWmnnrbFFJGxwCJMcARcixqSX8j+pZ
-# s667FC35e1DrZPwiz3wZblOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXwUMQjtE
+# /GllNtemvYFnLcpN1NgwDQYJKoZIhvcNAQEBBQAEggIAVE1DkziDjnNjgHdBiZkn
+# Qze2Kx98G8agzFb9hZrR0lsFamZQ5ofRALLTPfy0vztB4feVQpXZyq7fZM/QJEN+
+# Efrc+KRcwH3uw1cVg0r04Ws0ayzXMFm8hXx4yfGJMPekj5xvOW9mAa3l68rZ88ja
+# Z3wbNLr6sySGYFd/+MHLMG0fDjBqAEj56jzvgqWbtPApihC/xwP4YXQEULnIsMuh
+# yhdSwX8Q96WUpC0bhlmtDzL+g0uYaQ71x7AbJqPAg0CNglB11USteBLYBalC0AeM
+# Goq4NnpOXxi7VokTJolfYyH0uxNeRUH6p1vVa4E68hwHL/zVoIG/wvvqnPTzaoh8
+# ai6B6M+WtybFaCjT5oCjVtXMuQmvnLXCNiluiyE+f+eFg8etJCeoATP4gb2DDWxv
+# /53LKofVKD0OO3m8YmZMdZP8mqYIms1egBbfHVwZkt4nQpfVDCHk196LMRjGnLGn
+# We1hC63DjOYCqdDHsCrG9kJc8GfxQQyzDbAObId70Kzv0N2yDHpoaRgaoqj/aINo
+# JOxDXbeBkQnNuq3fGytj0Vm2WSz5mn3gw9SF00qYho79wFMWoZH4iu/NIuk1eFQo
+# 3yfBIvMY0BErNjYOLYZ1lRZDBfYp9P/3ApZxIgExD+6Gd1TbqTX4yVntNZKnwVmU
+# P+xocDWKOqJCXr488qtbAhahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMjE3MTkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgAZojfAMr3Wo+gL85w/Io/vyudv1c66RhRNEeSg7L
-# cAgwDQYJKoZIhvcNAQEBBQAEggIAbF0lY8Egs/6hBC5jVVJkblL1jmbRYcjl/LXs
-# ++YwqILZucElUKY/ceqGK2K8zyO1Lcv3jd0SchFy9sWZe3Lv2Q5MRC0OvFW9yWzZ
-# 3XpXMBq7giZ47hZHJEo6pi8dbDdNM20A0KjUmc6cWIpbKogZi0gmOxA9hA0gdNHZ
-# ypPGuUrDKFExAnS5FDfTVz0Ydf1Yy/OzSQOFSPncEZcE6w+akGAjd5KK+E1e/5sx
-# BFsisRxDAHVjlP2KdKzbIyxxpHvcpcDah4TQKYzgYohAv9+tV5b4Em4bS98QmgrU
-# 2yrfBcoY0zY867i4wOfrf55zEI3jTCy85U/x9rbKTPodKh2i7zkyEKVK3EcfcvNH
-# GB+getHKT8Ma52Rkgs3ASXxa9oUkrpAnTSggesvweSDVWKT6egLoFBfldKUHaNRp
-# 1v2+BYUWd0bj6WugPgGP1eY3RoHnGiqbCO1nFZOF+DYqSRxqLpBp+J6Hk8gNFleR
-# gavPO5RJcBizcPJek3XY68DFGVmsfpTi6JVxAl/0vU3Ul+UJlYkxKS2nbbVUtlCw
-# P9Rxy48HXboM84xxV2C9RAR+184QCDjP2ua2XlIQbtZS21VVYVUPW7MN36uIqiuM
-# XEToiSOsMud4m2TqY290AZwdG14UNa4N15V3aPaHNDlvCWfLX1ei5Ydg3Xhg2hp8
-# jvVzPoY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzEzMjA1OTUy
+# WjAvBgkqhkiG9w0BCQQxIgQgupDHhQhSSL2acyHBLkpY2K8frkbeZLAEsETwC0rj
+# ljQwDQYJKoZIhvcNAQEBBQAEggIAN+8uvwz11OlrtIER/yvsOZvwWLgO8qOSOMHZ
+# daECU6CPutAi0lNkLTKx+ipko/bgu0mMlvYPOKqshyMLkvB7sQ72QhrAYE76EAAy
+# RIu6Wvi4Fc7fD3e3sK0HcpXLFt3JB2AajCkaqrYhP4QYkIsQYONiCSji6polQt+Z
+# NvE8HCA2x48Xx7jguTk6wCd3dXD72WjJzaS7JZQCwG4XyY5o8fFd87e+YnP2pWwi
+# x/uIieqfyzK6ritWAfxDDzNIIFYY3HvwKTzuvDPlgGzJIG/Mbm2mAWQvrG5bxp8n
+# JeFwLJ2suFVZboS1F//A3la/eKZGNtfvrNrO5yHXrgugAC37346V1gRv4n1H/h+c
+# I02fR1dDXSzZRDo8pH7H+7PJuUT1JrDiDY0dCRxU2UbV8jxjiF/F+bmc7ezeMfhh
+# WWV+U+EodGKhRDm2UmHfQJDGDYFMITGvUMtN3h9HprwTXrF1q0nvR+Q5nRsKnBHq
+# FhP594GfJ4b3uhvcS+eHtQeWHnG68HPWA63nT1owXgkisylTJp+Xodk2RYFHWPof
+# Dz0F0zy0WogmJRFV9lRqKyI9utBCyWAvi0v8JyiiTzb6HC6Jn2y7rhxD2MNzbhAc
+# LsjTkwISIq3wSggmkhTSJ4R+jnFDxsC4kXwfca8RoVhYhJ75exQNJ6GjZuiC1vA6
+# gJTD9wM=
 # SIG # End signature block
