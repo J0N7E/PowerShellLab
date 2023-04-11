@@ -451,7 +451,7 @@ Begin
                     Write-Verbose -Message "Getting parent CA response file: $($file.Name)" @VerboseSplat
 
                     # Get file content
-                    $ParentCAResponseFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+                    $ParentCAResponseFiles.Add($file, (Get-Content @GetContentSplat -Path $file.FullName))
                 }
             }
         }
@@ -474,7 +474,7 @@ Begin
                     Write-Verbose -Message "Getting parent CA certificate: $($file.Name)" @VerboseSplat
 
                     # Get file content
-                    $ParentCAFiles.Add($file, (Get-Content -Path $file.FullName -Raw))
+                    $ParentCAFiles.Add($file, (Get-Content @GetContentSplat -Path $file.FullName))
                 }
             }
         }
@@ -501,7 +501,7 @@ Begin
     if ($ParameterSetName -match 'CertFile' -and
         (Test-Path -Path $CertFile -ErrorAction SilentlyContinue))
     {
-        $CertFile = Get-Content -Path $CertFile -Raw
+        $CertFile = Get-Content @GetContentSplat -Path $CertFile
     }
 
     # ██████╗ ██████╗ ███████╗███████╗███████╗████████╗███████╗
@@ -746,7 +746,7 @@ Begin
             foreach($file in $ParentCAFiles.GetEnumerator())
             {
                 # Save file to temp
-                Set-Content -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
+                Set-Content @SetContentSplat -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
 
                 # Set original timestamps
                 Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
@@ -1109,7 +1109,7 @@ Begin
             #############
 
             # Save CA policy to temp
-            Set-Content -Value (Get-Variable -Name "CAPolicy").Value -Path "$env:TEMP\CAPolicy.inf"
+            Set-Content -Path "$env:TEMP\CAPolicy.inf" -Value (Get-Variable -Name "CAPolicy").Value
 
             # Move to systemroot if different
             Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -RemoveSourceFile -TargetPath "$env:SystemRoot\CAPolicy.inf" -BackupTargetFile @VerboseSplat
@@ -1143,7 +1143,7 @@ Begin
             if ($ParameterSetName -match 'CertFile')
             {
                 # Get content
-                Set-Content -Path "$env:TEMP\CertFile.p12" -Value $CertFile
+                Set-Content @SetContentSplat -Path "$env:TEMP\CertFile.p12" -Value $CertFile
 
                 # Certfile parameters
                 $ADCSCAParams +=
@@ -1285,7 +1285,7 @@ Begin
                 foreach($file in $ParentCAResponseFiles.GetEnumerator())
                 {
                     # Set file to temp
-                    Set-Content -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
+                    Set-Content @SetContentSplat -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
 
                     # Check key id hash
                     if ($CsrKeyIdHash -eq (TryCatch { certutil -dump "$env:TEMP\$($file.Key.Name)" } -ErrorAction SilentlyContinue | Where-Object {
@@ -1326,7 +1326,7 @@ Begin
                     $CsrFile = Get-Item -Path $CsrfilePath
 
                     # Add file, content and set result
-                    $Result.Add($CsrFile, (Get-Content -Path $CsrFile.FullName -Raw))
+                    $Result.Add($CsrFile, (Get-Content @GetContentSplat -Path $CsrFile.FullName))
                     $Result.Add('WaitingForResponse', $true)
 
                     # Output result
@@ -1571,7 +1571,7 @@ Begin
         # Itterate CA files under certenroll
         foreach($file in (Get-Item -Path "$CertEnrollDirectory\*$CACommonName*" -ErrorAction SilentlyContinue))
         {
-            $Result.Add($file, (Get-Content -Path $file.FullName -Raw))
+            $Result.Add($file, (Get-Content @GetContentSplat -Path $file.FullName))
         }
 
         if ($ExportCertificate.IsPresent)
@@ -1586,7 +1586,7 @@ Begin
             $CACertificateP12 = Get-Item -Path "$env:TEMP\$CACommonName.p12"
 
             # Add p12
-            $Result.Add($CACertificateP12, (Get-Content -Path $CACertificateP12.FullName -Raw))
+            $Result.Add($CACertificateP12, (Get-Content @GetContentSplat -Path $CACertificateP12.FullName))
 
             # Cleanup
             Remove-Item -Path "$env:TEMP\$CACommonName.p12"
@@ -1791,7 +1791,7 @@ Process
                 else
                 {
                     # Save in temp
-                    Set-Content -Path "$env:TEMP\$($item.Key.Name)" -Value $item.Value
+                    Set-Content @SetContentSplat -Path "$env:TEMP\$($item.Key.Name)" -Value $item.Value
 
                     # Check if certificate or crl
                     if ($item.Key.Extension -eq '.crt' -or $item.Key.Extension -eq '.crl')
@@ -1831,8 +1831,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUux8rofNimd4h4dKBUkqKjAv0
-# u8KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUV04fK9ZOZR+72Q+EA3PWlS2n
+# bzegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1963,34 +1963,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHl5Do3QC
-# CThRb6Yx30v3F906n6EwDQYJKoZIhvcNAQEBBQAEggIAtFd2mSeEsyomtmBRjBik
-# IsDAhR5aKsCpjuj+ObH19FDTn8voG8cXRiE1eXfMjN/Zit8fuR4Oaw4jCV0Qvvqi
-# KmpU8kp/WqTNylab4wiv30BVbGPBIg8YPZFXKh2HeL8NqTam4oggTdhS+b5n/iGO
-# ivY3HWY5HJs/shkKUFrwvGurVpvkJIo1nBWy2EWbtahDfKY5NCm4aKmySuciQRfO
-# FM9bS9wmfWsohe4cu1w/3JSCa0/rwXegTx7o7Kh2dS79rijyw7NgOKR410gye6k1
-# +jUux0F41BCvwciuIpBCYY5+ClYOUIoWDqyRRqSNqn4R/p7anC+BnbUws6wwd8Wq
-# JKljk1ZzeQdJFxDWdSB47JjPflTf9qvzC9H5RlzOP3qcoFpMbZGIvTCrnl/AExv7
-# MXWW7ypo7ZOzHm6RqhaDbLwYfoetFdbCCXJKX+lmpQZVf/wpp/0BsE370mgO7f7p
-# WthsejN01G4kGZwk+92+AztuSxQzgTCUb+lCjDoNesJH7rRDiVWQOODsnhunjs3f
-# KXU66Jm14sfjPmvesgZyEdX3Fd75Ldwbskl+N1CUvpF7HqOOikjdrg8uNJKlw0iZ
-# QuxnXPWPVDguoGMoZ/xJEf9pHBqkkeA+jbeQIqPwEM5ZI4ryDF7HubtNX1I1DQ5B
-# +xzalTNsjZq36qvFeNOfrDehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUlPcCd8Vi
+# MWk0EGDGQDnj3tuc7j4wDQYJKoZIhvcNAQEBBQAEggIAJJycLFXszGvx4d6XnE68
+# V6QW+fNnEt9UIfpO+XtQQy2XW5TA7+HKwjqyVEEZoKY5xXRdbn4skieKtIY7WBOi
+# PexrwIbNVSl73adzJy+XFgx6YAd8Vc+Cj1s/jyYcwKo4T2+6urM4hEilnvTdJqyU
+# 77tJGOQ9Pp5MpbxKq6y2mvjCXxrf6mcEAzb8gdxs0KciMhjbusCWnVR2OUMQ1Hmq
+# bAG0oRamaHmlLqrzIfq5WiDuzajORUUJvKGMfXvl7eH1oF2ky8cdaNaRr9iuOh/3
+# aT9CcVCx1lVKmfgjI9MSfJ1WdDx8+9gaHNInWmQ7HcerSDhTRefW5048fkw4o6rm
+# eD0dPaakY6hFojroMtwYF2TWW4Vwy+qdxI/JJNvvAHH7yrmFoZLo4UmQ1E6ohvq+
+# X0GSHmopdO/lGqqzjfVm7QDxPnoVlsMx90uTD1PNtUMfD9dd9XZ1q3+ckXbwDgMC
+# KfgBfR1IqM06uzZm4F9S5dH0pnpNyqYeoACpCYfp6oMIAre7A/uVQ6W/aXU5Z1WD
+# 3w+mIAKSltuDHJZsLlUSTKX6miGVP/QLB6Af076GVJbAaKdQKdMr9Ew3e+PUIXIg
+# lcOn6ZeUFUFNez+Cwb17NA2aAZjvdO+0kRVvwFiVfDpRZkx8Pc4G9hEhNX3HQ5Ix
+# Aj8Vt+KIHuwFiJC3N7Jwf52hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwMzEwMDg1OTUz
-# WjAvBgkqhkiG9w0BCQQxIgQg+mJQ/jtxA0sLxfbZlxFOC7kkjDuDoXoNfzZ2qq6a
-# dtQwDQYJKoZIhvcNAQEBBQAEggIAR5dXU4DWrf2y9ccmoCSioBAme1G7dt2yHc9F
-# DJHS5BKJDZUuV7EE/cMlVHgrUQlm9gWqAhDIqWcYMd1YG9i6irNyIp5oCTGPd8BB
-# wU0ErfncMwsFHO9dUanO0LxqQUHiW6B8x4t0cxB9gOCOHZaqZZFCx6eF1WzrghPk
-# xr1O+hFsDphmx4S/vqHGq8z5XEQCcQYQltCK9QGwriqZ0fE5DD5H86iejfZe5pl0
-# Qm9wQ+L8SQaWie7dFhnr/mAjTBgIm0xptSh6/OC607Rr5gVkXlfpwwa8xw30polS
-# U3G7beQzW83kAyO5XEUBY00oCBEbXj+bGkVSU7Aj3FlV+CXnZOlXiEAvRxit30FU
-# vHv0MxdapZOT474aYnX7ktdjl+JjyD7ws7Ge+05G29/m3SFni8sY+cpz9wa83dK6
-# WePjSKpH27BFLEPt+S6tNy505q57Mu0O19o3djgyGwElw2i3Fhz7/UAPxWwIHbw8
-# F76GIIZxbEKEMA+rSeYTfWPSwYKpo3BUkKfFgDw2Sm0TpUcLSPxFSjKRdgVM2toB
-# bnTx3VHQvXQJo6yPKoMkfXtD79CC57Fdo1s2pPdW0c+0Dm/b6GrqLn0S2Q2ebh84
-# RtZLezyD4GCA0JP93pt1/QW8KScwKv5z+y9Hm2z2T6Y+Mwj53AcZXGLLlpWSoVNb
-# /aoVU20=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDExMTAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgKmO6hQPLamD7LFSXKQdQ834qEAVeqKxnALFwC3oG
+# DHQwDQYJKoZIhvcNAQEBBQAEggIAjuCEjCpuVKR6cCHPY+1x+JTw68jp0LLgqppo
+# co9Tc6MDyZtwJ5W+mS/IrBnNtT+8wpnNGZCZkOBBXwQ4qETIM+332RqeMwIEZDb7
+# tG/4LxCUJSDAqdrfGhIvXoWMa/rpKXzd/1Rs4oRsWdcqjsi2Y0XO/YKSYn0hu9MJ
+# e5EGMsCzDfgDldNGzQRprPk4hyJCnEP/ayk5oGe4V3lhfTCU3LvU5+rEcZ+eqMsI
+# ppfj76RSAmMHGcfoaf6gdWXh7t8STG2YDOYu/FnwntlmtWjMVwXs97eJ5NLgxjpW
+# iCFJt3unlPSnvvk8QwNI5B0JJhQHZJDxznaGj4x79MgH8RRnPaIjkidPccg4tCD/
+# PgeEYOa+Lo5ZPtG/vh7+hOmElpenIurbirTFhRMtr0H++pVT+M9UiQf09V7GRN6m
+# 5A1me8LMlBpdOXa9QHDFSWyRm9bSH/o6UM1poKpWMJPEcTGaplPHDVHvhMC7HnIA
+# TqvZK6J+b4ESIKF/adva0f8W6KFzF2s98w0MLR4I+v89nP5/rOPexZhsDtuXaAV7
+# KY2Kceyb2Th/VoaBrSr1ljh0lFXMbVBN51EQ+c9op2u3EdPKxPhkoqnihlCoDhl7
+# 8BnzNgANtbT3jgzBx7QAyVSnbYktNmVMDS3G9uecu+vyK53BprZfnu08ov5LFUNC
+# F/pgHFY=
 # SIG # End signature block
