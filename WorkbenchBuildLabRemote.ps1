@@ -10,6 +10,15 @@ if (-not (Test-Path -Path $LabPath))
 
 Set-Location -Path $LabPath
 
+if ((Invoke-Command -ScriptBlock{ pwsh -version } 2>&1))
+{
+    $PowerShell = 'pwsh'
+}
+else
+{
+    $PowerShell = 'powershell'
+}
+
 ###########
 # Settings
 ###########
@@ -106,7 +115,7 @@ return
 # Root CA
 ##########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac) -Restart"
 )
@@ -116,12 +125,12 @@ Start-Process PowerShell -ArgumentList `
 # Step 1
 #########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac) -Restart"
 )
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
     "-AdapterName Lab",
@@ -131,7 +140,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 # DC Step 1
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
     #"-BackupGpo",
@@ -166,7 +175,7 @@ Start-Process PowerShell -ArgumentList `
 # Root CA
 ##########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCA.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac)",
     "-Force",
@@ -178,7 +187,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 <# Remove root CA
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac)",
     "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`""
@@ -192,7 +201,7 @@ Start-Process PowerShell -ArgumentList `
 
 # Wait for DC to setup domain
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
     "-AdapterName Lab",
@@ -202,7 +211,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 # Step 2
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
     "-DomainNetworkId $($Settings.DomainNetworkId)",
@@ -219,7 +228,7 @@ Start-Process PowerShell -ArgumentList `
 #########
 
 # Publish root certificate to domain
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     "-CAType StandaloneRootCA",
@@ -228,7 +237,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 <# Remove root certificate from domain
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     "-CAServerName $($Settings.VMs.ROOTCA.Name)",
@@ -237,7 +246,7 @@ Start-Process PowerShell -ArgumentList `
 #>
 
 # Domain join and rename Sub CA
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.SUBCA.Name) -Credential $(Serialize $Settings.Lac)",
     "-JoinDomain $($Settings.DomainName)",
@@ -245,7 +254,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 # Rerun DC setup step 1 to configure Sub CA in AD
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     "-DomainNetworkId $($Settings.DomainNetworkId)",
@@ -263,7 +272,7 @@ Invoke-Command -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Lac -Scrip
 #########
 
 # Domain join and rename AS
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.AS.Name) -Credential $(Serialize $Settings.Lac)",
     "-JoinDomain $($Settings.DomainName)",
@@ -271,7 +280,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 # Rerun DC setup step 1 to configure AS in AD
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     "-DomainNetworkId $($Settings.DomainNetworkId)",
@@ -284,7 +293,7 @@ Start-Process PowerShell -ArgumentList `
 Invoke-Command -VMName $Settings.VMs.AS.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
 
 # AS Step 1
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS.Name) -Credential $(Serialize $Settings.Dac)",
     "-Force",
@@ -298,7 +307,7 @@ Start-Process PowerShell -ArgumentList `
 # Step 1
 #########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCA.ps1 -Verbose -VMName $($Settings.VMs.SUBCA.Name) -Credential $(Serialize $Settings.Dac)",
     "-Force",
@@ -318,7 +327,7 @@ Start-Process PowerShell -ArgumentList `
 )
 
 <# Remove sub CA
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.SUBCA.Name) -Credential $(Serialize $Settings.Dac)",
     "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`"",
@@ -327,7 +336,7 @@ Start-Process PowerShell -ArgumentList `
 #>
 
 <# Remove sub CA certificate from domain
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     "-CAServerName $($Settings.VMs.SUBCA.Name)",
@@ -336,7 +345,7 @@ Start-Process PowerShell -ArgumentList `
 #>
 
 <# Configure sub CA in AD
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
     #"-RemoveOld",
@@ -350,7 +359,7 @@ Start-Process PowerShell -ArgumentList `
 # Root CA
 ##########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAIssueCertificate.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac)",
     "-CertificateSigningRequest `"$LabPath\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)-Request.csr`""
@@ -368,7 +377,7 @@ Start-Process PowerShell -ArgumentList `
 # Step 2
 #########
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS.Name) -Credential $(Serialize $Settings.Dac)",
     "-Force",
@@ -377,7 +386,7 @@ Start-Process PowerShell -ArgumentList `
     "-OCSPTemplate `"$($Settings.DomainPrefix)OCSPResponseSigning`""
 )
 
-Start-Process PowerShell -ArgumentList `
+Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS.Name) -Credential $(Serialize $Settings.Dac)",
     "-Force",
@@ -388,8 +397,8 @@ Start-Process PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxIFvhcZ9yLo2DC6JoCDTAxDn
-# e7+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURPA3kHscpoaTjfuXegxtFLv3
+# GMugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -520,34 +529,34 @@ Start-Process PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUsFNu8/56
-# TpzDpeaAcyj7j1sjynQwDQYJKoZIhvcNAQEBBQAEggIAjha1qquvGxvKTDshwYL2
-# 63UjfSdlJdz2IMOrENm79l3kXAlrPtnD0Tk7SGyxSIT8mERK4hgOlALZAgXgjaAz
-# 4OzrD1WWxpAzckddvWZ9atblJMyIMmviJOZUnPH393OuPJMTStgqF/rPf3GL/qP8
-# BypmwKeRhFt1f+bpCVBGUwpDDxO1Lm/TBIqDQ0lQoKYiFhySZu6jYbq01PRnfU+x
-# faUabgYRqqxnfRXEYRNhwomEDDX9jbmLqPW8KOmLBUt1PEHF3TkbcZYR3mtg/U/9
-# cVOz+DIMVQ5+LreWGHw64Pe8Lw/onaSYGrn7w2OzlBPmhdZpbhL6tRNm7Id2lGqg
-# x8MVkuh2YkIuH4B37GnzK8CksIyFbvtv3ev4Klbzzej1GyZCDw3wUAUDmy3F3THy
-# 4NvdQAtCaO26bcIq4Eh9dv/1IX2UnPLLOoFWvPBApy4wU7hPoQXwQjeERzSl2+P1
-# ViYPs0mrJVrD0uVfWrstV68UURh/vIi+mgdeSk1+Usy4yNQVoLoZGQXo+IZmgdHQ
-# ruCORWk88ipDt64AMa90h2p58FGbNB5YTmOc9DzlKL1fdHKMHTxREcbgvzuLsXoy
-# cNsr7qJJBK4HQNCLR8VrvF6KjR9EuAg1ocne9YsmkE3UUt18srvjKiPlZEd4oojP
-# /HTjW088w4HDE5i2lEY/ehihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVfD/EWJd
+# g0EUxo9kqWy0Fx2lYRAwDQYJKoZIhvcNAQEBBQAEggIAQ8AAM1c9yPtzZa1k50Nj
+# xpUUoEIi2rGROhp2h5zOervSlyRKzn+sdfaslx/Lc+hF05Ljn441+hmAe+96bzot
+# Jx3ckJc+PI4YIeMu1HqvqKNdxtBbDcwFaG958RiGN/JoFaPLO/x+52AScZjHJLfw
+# ylHxJHoHPWdfNvh0iKb7a1CLqThgaGxmKoGWn8DOITJLn/XTErxGHC5iAGm7JjjI
+# 2hCh+Oc3QU2NCVtBugjcpzhuB4BTyUPstTAHxesxUu5m72JPhPPPqjcyyISa33n4
+# 4qZ7G+df2bPGix/LYheJOa/r/kmEgzZTUzK8a9Gy4XtSIe43T+HOE9ZJ3LRWxn1g
+# TeTIFbka8Y3tdVRMZzPXQ4aOslZw50K5Qzk8Y38hB/qI00Fv1gaUR/e9eseT/yw7
+# SfHIX0CbHwmDKcg0Vc1J6RJfthrLICQ3DW3wxxdgAI7yYqmaPcrXr7jMcZ0s1437
+# ALkDc8QHH+zNJKEWj2RTJERjWJd08pXVEY64IEhtt6w7Q06U0zg4Nu23xxHZtjMW
+# Egvg2wqTKmjJxk4MvhhGJtCTPUFnCBXbhOd//ICLpGcEL2Y8J4D1HPO4l9aPkFpO
+# Ng8hMBfDbNHudABJDqoJNnqf35H6RgGv+NsEiEhOyEDy4i54fWhgiv8CeNfJdya3
+# /gjUqQlCbDtSQnGhdfReGRmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDAzMTMwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQguZbbD5P393SMvaH1dy/KKwS9AkWlyWjwIAdrUUZg
-# oJwwDQYJKoZIhvcNAQEBBQAEggIAVREDs5PNWzkZH+k//t4sKIhLNMqrb2DUjDBQ
-# Pfl5bI7w+uWJuLB/GZreidvazRLac53cBn5hfUdLDo3mZqCEwDBs+TZOF2HWb0EM
-# sHoopaNTF77GklN0ryU/aXtexg5+fr70nzELBTs6BZWP3Ec7uo0XYo0PCSNvX6s0
-# Yv6Xja/1FJuXJ+MN8dDNXnU+gd+4OITL88QLkVSEBZ2i4fQcWfeCFHlXHYSPJlEB
-# 4BdJbcsAj1Q3sAUzibYqR4DbtXbGRGMQBkq2An98B/wh0v7nLFEgG54633ZxLXQ2
-# JgECYK/6FFpxMWoxuJnaXdeqqjLc4TdY1r7VkYoL9vvPPThVWDepYqpB1DUKq3TY
-# M+z6/ohhnc/CyJtLGyzHd9OiDRP4PAu0AsDHXs/REDwX8wBoQWW51aN7eDfYSjzb
-# sSPhE2dr+dySK5IxohAnKFwPCyN51QoL9P9+9Crv0hrLmtZ1Nd7B6qwGJPU+hFsO
-# BM4fZocCqbuWQ3U4T1PF6v51fpq+1nhvMVEUH8ZPBJRCkJwJZUE65PO10K+AQnuy
-# +Xf2a3PRw/rlE41KR4EXpaONtXVDZ2MImO6IrYvTTfqdn59IuhgKsJc42Cq6uiAm
-# 2Poa8uoBfevQCrI0Szjbz4nI7o2Zsscnabl2GILTPOT5MSHtGb3qk6Jqdq/gh8rE
-# cIHKZSw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDExMTIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQg6A2+VTfKH1YfO/eZY9eMVkKwlgEm6I2zuROvSmbs
+# UFwwDQYJKoZIhvcNAQEBBQAEggIAmu+J6p3yMe8ikfhJt0UlCyxKXtDHvpfbsF7J
+# uBvVgKGkyWK0SYn7MO0K2dfkLY0KLhdsb+GzvsNUtYD+XUwdac8MbZVJaCtxa91k
+# BHpZlKD1s8q0v6CVEUPQmL3T0/etmFrDr+OW5NrUs6/1M0LMIB3qaMPEi0repVEk
+# ysqdbVUTtt+aqI+oOeDK7CVioXi7SV5QRlwZ8DtgZ3BuGeK/HEBUGpOu6JpRse3a
+# eKiqi27suT5M+oOHJdIC8ywutemrD8TOY4a2ZhBlClJtVIzJ92sSGsnWFDpfBjp6
+# kFUrqyRJDL9aJRc1FBwXxkTHLm5QFctdJiHRL5lHixMiAk+ZrYnSbVGd7nnTqBZf
+# KhY5knmwlL2k8qXcqxuWB9PfELnqNlcsw59v5CnVxbKfMips+/pvsD2Ch9LaDjH8
+# A8ZuMeUo5jbxYLo8WjBW8BYsJVJddL+0JymJbXxNp9mCBDhoa+poalblTWYrV23N
+# TsvdRYDgKm3lPc9N3iNRaB73LlZouXiq+DX5cNrPXWY8cFyxjTDXwJX7ipO1Ppk/
+# jmYC1y0etRkDEXwLKrnTGeZUaZHnSJUJ4KjW/y5/kr87RVsdPGzTjs8M5tLnJhlx
+# pRsGUMQ7+Zauo4KN1MM0t2aodifCtBtgGlBIhTb43oaFAplDSJI8avWsRfkzDCiy
+# Bye/V/s=
 # SIG # End signature block
