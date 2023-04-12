@@ -958,7 +958,7 @@ Begin
 
             $MoveObjects =
             @(
-                # Tier 0 servers
+                # Tier 0 computers
                 @{ Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Domain Controllers,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
@@ -976,13 +976,13 @@ Begin
                 # Tier 0 users
                 @{ Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
-                # Tier 1 servers
+                # Tier 1 computers
                 @{ Filter = "Name -like 'RDS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Application Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
                 # Tier 1 admins
                 @{ Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
-                # Tier 2 workstations
+                # Tier 2 computers
                 @{ Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'";  TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" }
 
                 # Tier 2 admins
@@ -1104,10 +1104,10 @@ Begin
             }
 
             <#
-            # Add DCs to tier 0 servers
+            # Add DCs to tier 0 computers
             $DomainGroups +=
             @{
-                Name              = "Tier 0 - Servers"
+                Name              = "Tier 0 - Computers"
                 Scope             = 'Global'
                 Path              = "OU=Computers,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                 MemberFilter      = "Name -like 'DC*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
@@ -1180,10 +1180,10 @@ Begin
 
             foreach($Tier in @(0, 1))
             {
-                # All servers
+                # All computers
                 $DomainGroups +=
                 @{
-                    Name              = "Tier $Tier - Servers"
+                    Name              = "Tier $Tier - Computers"
                     Scope             = 'Global'
                     Path              = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                     MemberFilter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
@@ -1191,7 +1191,7 @@ Begin
                     MemberSearchScope = 'Subtree'
                 }
 
-                # Servers by build
+                # Computer by build
                 foreach ($Build in $WinBuilds.GetEnumerator())
                 {
                     if ($Build.Value.Server)
@@ -1213,10 +1213,10 @@ Begin
             # Tier 2
             #########
 
-            # All workstations
+            # All computers
             $DomainGroups +=
             @{
-                Name              = 'Tier 2 - Workstations'
+                Name              = 'Tier 2 - Computers'
                 Scope             = 'Global'
                 Path              = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
                 MemberFilter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*'"
@@ -1224,7 +1224,7 @@ Begin
                 MemberSearchScope = 'Subtree'
             }
 
-            # Workstations by build
+            # Computer by build
             foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 if ($Build.Value.Workstation)
@@ -1783,6 +1783,12 @@ Begin
             # Enforced if ending with +
             # Disabled if ending with -
 
+            $FirewallPolicy =
+            @(
+                "$DomainPrefix - Computer - Firewall - Basic Rules+"
+                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+            )
+
             $SecurityPolicy =
             @(
                 "$DomainPrefix - Computer - Sec - Enable SMB Encryption+"
@@ -1795,6 +1801,13 @@ Begin
                 "$DomainPrefix - Computer - Sec - Disable Netbios+"
                 "$DomainPrefix - Computer - Sec - Disable LLMNR+"
                 "$DomainPrefix - Computer - Sec - Disable WPAD+"
+            )
+
+            $ComputerPolicy =
+            @(
+                "$DomainPrefix - Computer - Windows Update+"
+                "$DomainPrefix - Computer - Display Settings+"
+                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
             )
 
             ####################
@@ -1823,28 +1836,29 @@ Begin
                 'Default Domain Controllers Policy'
             )
 
-            ###########
-            # Computer
-            ###########
-
-            $FirewallPolicy =
-            @(
-                "$DomainPrefix - Computer - Firewall - Basic Rules+"
-                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-            )
-
-            $ComputerPolicy =
-            @(
-                "$DomainPrefix - Computer - Windows Update+"
-                "$DomainPrefix - Computer - Display Settings+"
-                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
-            )
-
+            #########
             # Server
-            $ServerPolicy = $FirewallPolicy + $SecurityPolicy + @("$DomainPrefix - Computer - Sec - Disable Spooler+") + $ComputerPolicy
+            #########
 
+            $ServerPolicy =
+            (
+                $FirewallPolicy +
+                $SecurityPolicy +
+                @("$DomainPrefix - Computer - Sec - Disable Spooler+") +
+                $ComputerPolicy
+            )
+
+            ##############
             # Workstation
-            $WorkstationPolicy = $FirewallPolicy + $SecurityPolicy + @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+") + $ComputerPolicy
+            ##############
+
+            $WorkstationPolicy =
+            (
+                $FirewallPolicy +
+                $SecurityPolicy +
+                @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+") +
+                $ComputerPolicy
+            )
 
             ########
             # Links
@@ -1875,9 +1889,9 @@ Begin
                 "OU=Domain Controllers,$BaseDN" = $DCPolicy
                 "OU=$DomainName,$BaseDN" = @("$DomainPrefix - Domain - Client Kerberos Armoring+")
 
-                "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" = $ServerPolicy
-                "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" = $ServerPolicy
-                "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" = $WorkstationPolicy
+                "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" = $ServerPolicy + @("$DomainPrefix - Computer - Tier 0 - Local Users and Groups")
+                "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" = $ServerPolicy + @("$DomainPrefix - Computer - Tier 1 - Local Users and Groups")
+                "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" = $WorkstationPolicy + @("$DomainPrefix - Computer - Tier 2 - Local Users and Groups")
 
                 "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
                 "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
@@ -2071,25 +2085,36 @@ Begin
             # ██║     ╚██████╔╝███████╗██║╚██████╗██║███████╗███████║██╔╝   ███████║██║███████╗╚██████╔╝███████║
             # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝╚═╝╚══════╝╚══════╝╚═╝    ╚══════╝╚═╝╚══════╝ ╚═════╝ ╚══════╝
 
-            $AuthenticationPolicies =
+            $AuthenticationTires =
             @(
-                @{ Name = 'Tier 0';  Liftime = 60; }
+                @{ Name = 'Tier 0';  Liftime = 45; }
                 @{ Name = 'Tier 1';  Liftime = 180; }
                 @{ Name = 'Tier 2';  Liftime = 480; }
             )
 
-            foreach ($Policy in $AuthenticationPolicies)
+            foreach ($Tier in $AuthenticationTires)
             {
-                if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Policy.Name) Policy'") -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Policy.Name) Policy`"" @VerboseSplat))
+                if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicy -Name "$($Policy.Name) Policy" -UserTGTLifetimeMins $Policy.Liftime -ComputerTGTLifetimeMins $Policy.Liftime -ProtectedFromAccidentalDeletion
+                    New-ADAuthenticationPolicy -Name "$($Tier.Name) Policy" -UserTGTLifetimeMins $Tier.Liftime -ComputerTGTLifetimeMins $Tier.Liftime -ProtectedFromAccidentalDeletion
                 }
 
-                if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Policy.Name) Silo'") -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Policy.Name) Silo`"" @VerboseSplat))
+                if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicySilo -Name "$($Policy.Name) Silo" -UserAuthenticationPolicy "$($Policy.Name) Policy" -ServiceAuthenticationPolicy "$($Policy.Name) Policy" -ComputerAuthenticationPolicy "$($Policy.Name) Policy" -ProtectedFromAccidentalDeletion
+                    New-ADAuthenticationPolicySilo -Name "$($Tier.Name) Silo" -UserAuthenticationPolicy "$($Tier.Name) Policy" -ServiceAuthenticationPolicy "$($Tier.Name) Policy" -ComputerAuthenticationPolicy "$($Tier.Name) Policy" -ProtectedFromAccidentalDeletion
+                }
+
+                foreach ($Member in ((Get-ADGroup -Filter "Name -eq '$($Tier.Name) - Users'" -Properties Members).Members +
+                                     (Get-ADGroup -Filter "Name -eq '$($Tier.Name) - Administrators'" -Properties Members).Members +
+                                     (Get-ADGroup -Filter "Name -eq '$($Tier.Name) - Computers'" -Properties Members).Members))
+                {
+                    if (-not ($Member -in (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'").Members) -and
+                        (ShouldProcess @WhatIfSplat -Message "Adding `"$Member`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    {
+                        Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$Member"
+                    }
                 }
             }
 
@@ -2547,8 +2572,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs/bpAjBKdMOxO0CJboNmeVbq
-# Ae+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0csnBKR5cfNyjEjOjLTuuEHJ
+# xHygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2679,34 +2704,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZ1I9z/Bj
-# H/LxB3pU5Oubtp4WEsgwDQYJKoZIhvcNAQEBBQAEggIAT2blEMboCddnEBkX2tVB
-# xg3goWyKk5NV2/sc14JAUGzG7tAeyeWoz27ZocoQ/1mmXh8XygDazCs1mY4iThNl
-# 2WFbf0LBXL4DLu9iSNjvtC7uLmbtBtcDwhYR95cufn8uDyezLijSVBaEt0HqCDkn
-# 93r1Sw/KF6fFa4nnEpqhTdOXGf85QiUYvdWtNC7kpPAA8Q1Td+j+Sfw2zKd5KpCc
-# iS7y/1Izh4Cx6uo8CRM9u7/u4Pai3Zb05e9xJCGCndp16GSHLNbLKgFRfAHb8X/q
-# b9XT0Njh773q9HT2yshR+MIASFJSLUrzRA1hmOwDh+J0FNxr0QBAUh8kBjYenmyZ
-# hLcw7SICS5tcbiuUuhVTjHDdilJUAhiZ5/HO6IowOsRuPV8Y1zlU58fdohHuLoeE
-# sYX8EoQgx3DhDVWE/TZpft6n/6He0/6xb1CirrmbsP0wgQl4o+DPZOLxwP/GUzQP
-# 6PyJjYCszvwcxyfKgjXhSN82AmAVS4Kr2uNNd9yL9OJOTE0tGgPZSDbLPxKTSg8k
-# 0EaJlt+Hbn30yd6uauxGJIx6nVRU6cj/RlN66c/6bsMbdyDW7IaJco1lfQRxRGPN
-# 3/EugETK6SMMqthhcEQ9VlJKJgS+IxTlBcGg99UmwfnvS9lSGMZxdC00mCIeoo9t
-# oFhU3Cu0QvidpjOhSRR+yeShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUe+qWZlSU
+# tdxHQF0rLtXhgEqBZCMwDQYJKoZIhvcNAQEBBQAEggIAx3yYPoTQ60O9K87/jusH
+# 6W3o24hpcE6ihJXei/GT3Tjd9HEWeh+6Gip9qnfZlu+/+1H28lv9ecdc0ihCsXoM
+# BOpuabDt4shhrgkwEIZtdtmbwmiK1CgsE5sVtp6dz6lZMMH8+kLxO/ScFKKCki4a
+# nRg8B+B+Kdo6CGeuaSfPAn7WeQSpWYAQtSDdWAqAuAnlt+RYNNlTQZZNVF+2rGex
+# qLpXYofvrakgjx8gX7yuZJ1AYa0QbyZ5Jlou4YnT21hrd4KTFGTEA+iFnzYDGd0Q
+# CK1BNpSUMdUQO/A1Ft0WvcuTW5FxdUg6kcIO/Z9ADnkMnQFHIdHt3ed3X7DA2vp0
+# 8/VUAMuadvp2S11Y9RxEhUzA22huJnZHXoAHsElck18aUt1BoTDqVsxNXCEvKyo8
+# WRMv9Qz6qRMXplDeaO7GlbuxtcJMgORuedzjJeC05IUcrnf4z3CkxFbC3RSzn1Jw
+# z1aMOpH0RXfmFt7nIEqTCpIfKdvr3TWQzPnx9Bby9ALzK76ycE8K93Te6KpHKfNA
+# jcC9WzX/BIcLBg65jt5OQRrfutAWewMOsgZtM4zKLmsm8BgtO+kbavAY+nPahI2i
+# 0h96YrDE2A+Y30hc7ARIJHRkAYCyfb9FxyI8ETkDlBw/teNruRYj++8nwZOmKTIX
+# G7ZQmDrJ88ID8YwkCMZeUFGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMjEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgKboJ9tP1cYNpnE3m8G/oiCuIXsvZ5u8szffIbR5N
-# UIkwDQYJKoZIhvcNAQEBBQAEggIAY3aGvZ/ybgOxk2xvo314ex3FUvX0Yqpz67qP
-# wp5gMwi7P+klb/KFF3oLdOepP29mBZ6QmqUhUOiFqQiojXI8iQ3COZikucaL8/M3
-# hTmsDS0QQGHM1cZ5AImyw77YLIbMV/IlPM4n/lS6S18teJ2pl4P1b7kMslIsiCdc
-# qpQkmFVATxoUQZV+4OEu246c0+02QEJF6eE5u/jfrZdATSCDG0pRxjqPKztlYQwW
-# 0sGRNUBxBcR4mqBg555KfYns+LUYq+ay1t2zCpU6LBnD0nyJzUh8dK0PnOk8FAbq
-# LVfhqNwJaTINS8ZbHHImzwTnq/BxjN8ZurA3D+O8KYp8hxQEla0rKOR3UuX5P0sd
-# mfvJWsYynJLI3eYk/WNvx19J+CedE8PoQ31sw2KocqmuY8zx0ypf1I6i90FEoeRO
-# A9/HhLDEJ2mLDDPooyKZGe3Y3p1Jl0K9TUjtP3Cde0HtHlFSFKl75NfwnMifGdW8
-# ya+T9xr70xlIkLcDhqvUEpq+Tq/FvQ1w8rgQRtgYHIcRM0pq5aF8rbqIW1Md6WcY
-# ODTYfz3Oe+HvQSy6lp6UzrpxYe6Anq+IZZ+rbjQFF/oOZQWR9zyVre4Pe/a9F7pU
-# thhEodF/jmW2QRbLvyf8UA4bNil3mqBXmNSHSRVJN2BL5Ivu6xiFAh1Vi2bOK6Y3
-# aAoNpJ0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMjIwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgJMSFZx2DL6TAMhpN6MHb20jGey5esGP3aYPC9mSR
+# 8c4wDQYJKoZIhvcNAQEBBQAEggIAwpAon4bJp0WUa/cU2GEto8JpdyQ23IUUvHMQ
+# M7mVMuFqsrwMeMQhwIXg+koFJ8QrxnAXOYzpIGWFJSc/6PWASMGOmruDjvBflnv2
+# bdj9+bN3yYG4yhINxL5S+xihCroMkCNuBfIfJPEge6hXmPhKMrDJP9nRKSuzHDa5
+# hVE17DSQ3zNXnhsLGOPEVdxyTyYR+UWF/Qh3lcGS6ALq5z3RMZf11DQTEi/WCnvY
+# XUEP3+sSPFyKvcixwgq3QURIitW9eJMnOAvQd96QIggyz1CvWFh9loIylYgZ6Yne
+# r+6Pj2pfdbZ0ji3o3cjWXwLp332tCk8NE9f6ZFdlU64NBHViQggJ2Qe+7bvt9urw
+# fGFSeboEGsmC2rlI8mNT7L9S0CsB9F2y6toEqnctvaTaCHHL8r6AQLSyDTHkThcx
+# kZB3JIAxE1FfUocBxlWEkVTW16Fw7w+ANzYWLfHl/TvTsVKJ/PaRLpH3gIi69rBz
+# qkf7LE8bbDoCwd1Rn4zrJ242nkUu/vbR8ZDV0p2GwfPezYYyODR/CGHwVi9VpyNQ
+# kfvPMU6+dSVRFsxxfW8am5mIeHr67DaO77e2U6Qp5c8S/OlrHqw9pwhpq34ij88C
+# NPmDSXpRecxHkMUMzJ3LUQXMnR8EAUffS8hymnJiJ+8QTIc4nD6tGgFaSgmNcGxs
+# QRibImA=
 # SIG # End signature block
