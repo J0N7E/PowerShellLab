@@ -1808,7 +1808,7 @@ Begin
             @(
                 #"$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request+"
                 "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                "$DomainPrefix - Domain Controller - KDC Dynamic Access Control+"
+                "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                 "$DomainPrefix - Computer - Firewall - Basic Rules+"
             ) +
             $SecurityPolicy +
@@ -1886,7 +1886,7 @@ Begin
                 )
 
                 "OU=Domain Controllers,$BaseDN" = $DCPolicy
-                "OU=$DomainName,$BaseDN" = @("$DomainPrefix - Domain - Kerberos Dynamic Access Control+")
+                "OU=$DomainName,$BaseDN" = @("$DomainPrefix - Domain - Client Kerberos Armoring+")
 
                 "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" = $ServerPolicy
                 "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" = $ServerPolicy
@@ -2096,13 +2096,13 @@ Begin
                 if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Policy.Name) Policy'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Policy.Name) Policy`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicy -Name "$($Policy.Name) Policy" -UserTGTLifetimeMins $Policy.Liftime  -ComputerTGTLifetimeMins $Policy.Liftime
+                    New-ADAuthenticationPolicy -Name "$($Policy.Name) Policy" -UserTGTLifetimeMins $Policy.Liftime  -ComputerTGTLifetimeMins $Policy.Liftime -ProtectedFromAccidentalDeletion
                 }
 
                 if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Policy.Name) Silo'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Policy.Name) Silo`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicySilo -Name "$($Policy.Name) Silo" -UserAuthenticationPolicy "$($Policy.Name) Policy" -ServiceAuthenticationPolicy "$($Policy.Name) Policy" -ComputerAuthenticationPolicy "$($Policy.Name) Policy"
+                    New-ADAuthenticationPolicySilo -Name "$($Policy.Name) Silo" -UserAuthenticationPolicy "$($Policy.Name) Policy" -ServiceAuthenticationPolicy "$($Policy.Name) Policy" -ComputerAuthenticationPolicy "$($Policy.Name) Policy" -ProtectedFromAccidentalDeletion
                 }
             }
 
@@ -2560,8 +2560,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpUdpjouUtA7xHCSftbQ2yH5C
-# HwqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9UyD0AKq8Cx9iuANwoDAzYZN
+# HpGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2692,34 +2692,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUu15L+FYo
-# tJUgRaqUsG/zExxKnsIwDQYJKoZIhvcNAQEBBQAEggIAx/mLGfV8sR8jR/TsqU8T
-# zCMI66bAYgPc22DpZ9K0jS+eF1HxOmHqZeOatwsXMdvW5i04rmQYSUv32hhh4aba
-# V41KSBc4jGDycK0uPmogTRerxJZS+n9P9Cb/5Ch8ZyMrnZZrbCMNgWWgg4JJBwFg
-# uMrDE6KddUyfl0H2McP4TP9h/jZzYOOPLDU3g4WuV5t/tAmVfORaz9XwEAIbnqCZ
-# TaUKFeVrgDJ6Mk+vNUzYrKqIF0WrITm0iVA9q/SHKL00UrRnKgVjgiIwl8UfoGpa
-# DqJQfihG7s+l/+v7GW1zh4o16Fxj/XLyIZ3DyLAZD4EWWg2/tCITuKu+GawH05gm
-# frwpwNq+WlYbLnVTXq02x0k3jMy6aD4D2uR7onBeKgnXCorUljI0kFKiL8/fEeH2
-# 6my5SYllk31Z1PsDdINxsZ/RqTKDcLYNbgqhozBosEgLE1u2/j4nu8jLREgboohH
-# xdLfC6wv5Gbi0mW402nlombQlCY1Gw9b+4svGh85/rnZ5wOLwlsB7OUsdxMDbMRX
-# iEVxCEKWgdbr5kvJnU3Cujg0KT5QOd074Oym1o8SKIJjvzuR+6vnDtqIfDN+Og5X
-# Fvd10puBQtyYTI+NcekQ/SGiYCWF7wyvLvcDKG+mickyUszjBbSulb2qAGm3EpXL
-# Li4/tkz+A/D9kB4/LCywwx6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXMbPry/8
+# HUcwJq0exovihmADuRUwDQYJKoZIhvcNAQEBBQAEggIAJPebyjTr/I0Ec5LtYmhH
+# pL6bZX/M4hEN5MkW0gT8GohD5y6NAADum+er0j5QvLa5Dar/7PK4ZYTm7AplOWuk
+# lKlg/zabsolIt5YQ9wgtCUz7/zih3lOZkOdHss2K6fcejP8LGNu4a9/dAGNsubwZ
+# RT/m3v3AZ9X1kh21Pw+4/p5rHufWJKrG1mKFZQ+f8PMbzz2QNOsm8F1pvYA8tXqk
+# Sqh0vxR6VCyToIzmssDjsapzFiemHIDNOPfRlZtjjIAe1XzzinHvm1kahh7xybmR
+# 1k1CsuoZdrM4cDDSH3SONaNEO76a4s0SbWyPdsPz7HF84K+yOK5IDUL9/ZrgfR1c
+# dwkCyKq5I53hBiVMH0ko7FgybrssrtdFpVigVw+Xm65LT3Dk2RPUMiESqSjAcSzt
+# SN4jPYqBNTol1Tx3dx9L6C0dIcqF1hVyhgnfi+e4Hb5mqyze3fU6NU+HxPuT0eK4
+# LT3jkdtn8h7LH+97vICgGjgvo/zQHpi6YN9by8cimIp6yv4/6Yo7Cfk8jWcvfCl7
+# 0rO/ofaTpbu+Pr2HQ6qvxVYJJTH8T0MrxERskOADOfRIgRsQnd8qQDL8KHdOnEbH
+# 7iuN0fGKePanvvLdpojzJDw6MMD1XRwvNH7CdhhQfi73m80ecO8ey4veRWdx3ZPZ
+# lJ/Zl57bB2gWTdOL/ezfmEChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMTQwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg7o4uaFQTJKzgteVIskhjLs5wrqUwu9VJFdMeIQ4x
-# iUowDQYJKoZIhvcNAQEBBQAEggIAhuEPFEJhCPEPiovMSRzNBpAF/dbjBUUwKO46
-# 4GoEa33CN44jco30YwP1pZNZq9pxQExaaIz2M9XUBQJaHb98FtWK8xE/36Cjc/aq
-# KdKBcBX5wXAF76IhLkFQ2SkXu90h5jq3OzBjZ0BbAtvfXvMTUfh4ePebKgvdW40h
-# I/hZsdJj2AF8PCWWheiAJGP59nXz0rbRp2DbAtuKLp8r9VeZsNn8kPGiEKwvElWo
-# im/ywzEBv1s0q+1+M82YHUrzo2tNuVfKdR4+bRO4yaFNqi0NJ5lTRAuY7hTeb1JU
-# bCGmKF+p0yHKbqAIYk8V2ypwVw/Z5lCYJlSe4gBdWwRnIRqf0neMJE1HlTEco1wO
-# mCSSNtNiysoGEzrhFs2h6SkUqwjzi1oEXzSoLo49aRWrW3Uw4GNYJ9F8MkZhxMqn
-# pfqgfXYd08oo3qWDtdL+nSm/Ock5GOb85s5GfoH+//Hyojq3suqvKDFb+i2KaK1g
-# jlrtsD63HNf5I23T6Z+WTHpH2fiD/8BWZeg6Ycyay6UCnNYI4AwQVA7cmA3y9D59
-# lokBKDrJ+GOvhca/Fg/sdACpHu8Nfi4eNFwaag/8wpJ6HY3j0sM8Cl9hKOMNGwJR
-# y9LTWiAmtCiho+p5TvKNgbwHTYCaVABrgO/BLLf4Uk58O2+XlpR53dKBKGnljt3n
-# THldCc4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMTUwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgjCNKBdap8GLmwmowwSyVOxjac351rsy6nYLSPex3
+# ENAwDQYJKoZIhvcNAQEBBQAEggIANyIEdEHd0XuXIMCXi/6E4INQIUc6osgyqHFY
+# EZDRaDLHJn7/JvHLBXtXc3OP81IwbhrFA4IOWLnSVdhwSBoOVcGiPcF+7sYzzK53
+# nAzjsdEWvJJfVeK/1U3dfVbnzPua/H3c2+8OKNiy/3bhFXNXgKCxmrABcSGVXtyG
+# +11xe9HQ54lxqu1iDzDIl2bdo8OJrdEKH5D610oUfGI2vfW6y35C0LEjjEGdk4BM
+# eSQG7iXzBfyxoooI41OmdkeVUEc8VkZuC4pjbQwwkT97Xh1xKVW04DCP2vQaXHy+
+# k8gN0EXfluJ8IQ3fHBnwi3f3ADNSXvSy7+Kv5UEAJ7TElIlbX9J7h5Um9gpCsr/e
+# jMuAWbItKSbbRIs849wdcOpKdfaQcShRwtRD4QTCsMIFYqgexptJkxVNlY6AOOJY
+# VAeiyTux/mMaGLKQp7OcY6reexJ6buBufazG9TbqGI+snqBQF0mIRVIrHD2y++f9
+# kGB36TPMg/HAsAWcOChCYGiC5JvPejgviNUFPp9LpYpq+Q6OvAeHYa0MtRBMiPBa
+# pwew0kTqg0xFKwu640spNSvZ5MdG0GI2RrKgmqNSUCvGHbUw5j5157ttW0qBEvcH
+# RpWfrj6UsJSCOmuw87r70lJmSEMpHpXamWK7cL0UA0oDFYGwHJCj+cHTiud2EBtJ
+# dh8fPQg=
 # SIG # End signature block
