@@ -1823,41 +1823,28 @@ Begin
                 'Default Domain Controllers Policy'
             )
 
-            #########
+            ###########
+            # Computer
+            ###########
+
+            $FirewallPolicy =
+            @(
+                "$DomainPrefix - Computer - Firewall - Basic Rules+"
+                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+            )
+
+            $ComputerPolicy =
+            @(
+                "$DomainPrefix - Computer - Windows Update+"
+                "$DomainPrefix - Computer - Display Settings+"
+                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+            )
+
             # Server
-            #########
+            $ServerPolicy = $FirewallPolicy + $SecurityPolicy + @("$DomainPrefix - Computer - Sec - Disable Spooler+") + $ComputerPolicy
 
-            $ServerPolicy =
-            @(
-                "$DomainPrefix - Computer - Firewall - Basic Rules+"
-                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-            ) +
-            $SecurityPolicy +
-            @(
-                "$DomainPrefix - Computer - Sec - Disable Spooler+"
-                "$DomainPrefix - Computer - Windows Update+"
-                "$DomainPrefix - Computer - Display Settings+"
-                "$DomainPrefix - Computer - Local Users and Groups+"
-                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
-            )
-
-            ##############
             # Workstation
-            ##############
-
-            $WorkstationPolicy =
-            @(
-                "$DomainPrefix - Computer - Firewall - Basic Rules+"
-                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-            ) +
-            $SecurityPolicy +
-            @(
-                "$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+"
-                "$DomainPrefix - Computer - Windows Update+"
-                "$DomainPrefix - Computer - Display Settings+"
-                "$DomainPrefix - Computer - Local Users and Groups+"
-                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
-            )
+            $WorkstationPolicy = $FirewallPolicy + $SecurityPolicy + @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+") + $ComputerPolicy
 
             ########
             # Links
@@ -2560,8 +2547,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDurX9rXwuzf/vZPAAAxauMF/
-# 2OSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs/bpAjBKdMOxO0CJboNmeVbq
+# Ae+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2692,34 +2679,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUA6GELYM7
-# qM5yiKM3VdpZ8arA930wDQYJKoZIhvcNAQEBBQAEggIAyJOdWPIwBS46H625SNof
-# tv8oyRlMEMiVel82Nr8Nh/10p/8PSORwfUptoCrY/zCYsiKI13imBNfK5ZFp1piy
-# BChekawfXJxDYmD4nIWTzTY4NljR7V34GPe3UHzMsuqn3uPLwg160J1VUcq2NJCj
-# ZLvpTPGBYL3yBP/wuZX7poWtee7sUzHhZH7b0tGa9Ea3gL9P6vs0eUHLDRrC7PjE
-# YweCLKJYWP6IcC06dPaZLmpQee4nHx/gUTQt2DcA2N27ZVgkdGNSdzilzpmIj5a+
-# XkprfGj6dVdxJ1L2xNw5NQiBdXhKIetwAOi8vNYsmRR1sVrtqLsZqus0QUJ/V45N
-# JOocVWSE1OMBS6xqNalQyEiYOGJ8Z1zXHLV30XJ+y8xNSfw1BNPTbCiCNDAueEI7
-# pVEDOpxz6FgnJpy0yPoms3umlZPtcDYpVlpP/DN9eTsA57iUm17D7HMajf0k7TEy
-# kZgb25uLFHtWvdz7162puEOndWTmhOr/fBoe3raIiU4aQMHf+wu14HYcHV4L5wlj
-# UTfkwM7pZo7TLuRm0Wpuy8OJ7F48BD6PnYJo9GH2AfJIyBwURC2uVPk0nG9Pk/sX
-# limqiWOVDeHQW8B+LC39jWve4jfRQsKpRnNy/5CtVZYIHVt8lFvJ2i4hd/p7e1Ma
-# N5u6Q97P5hUovw7IvFqp2u6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZ1I9z/Bj
+# H/LxB3pU5Oubtp4WEsgwDQYJKoZIhvcNAQEBBQAEggIAT2blEMboCddnEBkX2tVB
+# xg3goWyKk5NV2/sc14JAUGzG7tAeyeWoz27ZocoQ/1mmXh8XygDazCs1mY4iThNl
+# 2WFbf0LBXL4DLu9iSNjvtC7uLmbtBtcDwhYR95cufn8uDyezLijSVBaEt0HqCDkn
+# 93r1Sw/KF6fFa4nnEpqhTdOXGf85QiUYvdWtNC7kpPAA8Q1Td+j+Sfw2zKd5KpCc
+# iS7y/1Izh4Cx6uo8CRM9u7/u4Pai3Zb05e9xJCGCndp16GSHLNbLKgFRfAHb8X/q
+# b9XT0Njh773q9HT2yshR+MIASFJSLUrzRA1hmOwDh+J0FNxr0QBAUh8kBjYenmyZ
+# hLcw7SICS5tcbiuUuhVTjHDdilJUAhiZ5/HO6IowOsRuPV8Y1zlU58fdohHuLoeE
+# sYX8EoQgx3DhDVWE/TZpft6n/6He0/6xb1CirrmbsP0wgQl4o+DPZOLxwP/GUzQP
+# 6PyJjYCszvwcxyfKgjXhSN82AmAVS4Kr2uNNd9yL9OJOTE0tGgPZSDbLPxKTSg8k
+# 0EaJlt+Hbn30yd6uauxGJIx6nVRU6cj/RlN66c/6bsMbdyDW7IaJco1lfQRxRGPN
+# 3/EugETK6SMMqthhcEQ9VlJKJgS+IxTlBcGg99UmwfnvS9lSGMZxdC00mCIeoo9t
+# oFhU3Cu0QvidpjOhSRR+yeShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMTgwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg5wcDhEjdNVHtjtrnY2ot04FJRuP8cvvXWl6q2/xC
-# gD4wDQYJKoZIhvcNAQEBBQAEggIAU7kp6eO5Ov+16o3mrKIGgq0DKNEt+Ut/iRwk
-# m2exyASpqg7y1nvTlWEC2ANwtRXKn0rVGzP+lrnZUoyDVenZOR4adoL/Jmo9obzY
-# 3WHQOS4G6w7ELLSsHbDaxVs0h2JqPSDeRmIHTk1o8iMiuJuAXRmI0aaVS5vJJ8x4
-# ipsNhzyqnXxF+qZgpwFGluDcBvc/SPHBUVWh/znOSIpnzmev020QmV+6Qeasvhby
-# wJoZkHKd98MLxTwRSA7oT1R5G6wzlh/wQpJbrXtzoMGR1Unjw0HPSWDor2HlQXIU
-# KPX3FeLpCkC73b+Xm++ZGfgrdMvr8AR3HQzBLVZ8ROpR/1pO0CCgTm03DU6891H7
-# 6JiO5pEHAsE6w9OgmA4/Q7O88dtDIyMBUju7MhOzkLgqIa/6E/UjwiPM4vsHbFc0
-# t83grmMH8Q74mVKUEpnk6VAqOMbYvImWjJGeWvRswGq/3iFeu9A1408pFlVX5qJP
-# bl2vDeOKY1bwrHW/RTDuwboS/m5r3oW/zMmieoR3JcJCGaM419KyG/SRxjQoffyj
-# IlzovSs+pEKa294b3zm9l660nPgHhG9jNCSZClgCE/pNSgmhkWffqcZL3gykfX1Y
-# JK0xqdwlfESf5RfE9AyfrUhKUgLNVbbjhJ1Q+edWj/aWyW7lfBKibrebETKTTrbc
-# i7iT3nY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMjEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgKboJ9tP1cYNpnE3m8G/oiCuIXsvZ5u8szffIbR5N
+# UIkwDQYJKoZIhvcNAQEBBQAEggIAY3aGvZ/ybgOxk2xvo314ex3FUvX0Yqpz67qP
+# wp5gMwi7P+klb/KFF3oLdOepP29mBZ6QmqUhUOiFqQiojXI8iQ3COZikucaL8/M3
+# hTmsDS0QQGHM1cZ5AImyw77YLIbMV/IlPM4n/lS6S18teJ2pl4P1b7kMslIsiCdc
+# qpQkmFVATxoUQZV+4OEu246c0+02QEJF6eE5u/jfrZdATSCDG0pRxjqPKztlYQwW
+# 0sGRNUBxBcR4mqBg555KfYns+LUYq+ay1t2zCpU6LBnD0nyJzUh8dK0PnOk8FAbq
+# LVfhqNwJaTINS8ZbHHImzwTnq/BxjN8ZurA3D+O8KYp8hxQEla0rKOR3UuX5P0sd
+# mfvJWsYynJLI3eYk/WNvx19J+CedE8PoQ31sw2KocqmuY8zx0ypf1I6i90FEoeRO
+# A9/HhLDEJ2mLDDPooyKZGe3Y3p1Jl0K9TUjtP3Cde0HtHlFSFKl75NfwnMifGdW8
+# ya+T9xr70xlIkLcDhqvUEpq+Tq/FvQ1w8rgQRtgYHIcRM0pq5aF8rbqIW1Md6WcY
+# ODTYfz3Oe+HvQSy6lp6UzrpxYe6Anq+IZZ+rbjQFF/oOZQWR9zyVre4Pe/a9F7pU
+# thhEodF/jmW2QRbLvyf8UA4bNil3mqBXmNSHSRVJN2BL5Ivu6xiFAh1Vi2bOK6Y3
+# aAoNpJ0=
 # SIG # End signature block
