@@ -917,7 +917,7 @@ Begin
             $Users =
             @(
                 # Administrators
-                @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Group Policy Creator Owners', 'Protected Users') }
                 @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
@@ -2077,12 +2077,12 @@ Begin
                 }
             }
 
-            # ██████╗  ██████╗ ██╗     ██╗ ██████╗███████╗███████╗
-            # ██╔══██╗██╔═══██╗██║     ██║██╔════╝██╔════╝██╔════╝
-            # ██████╔╝██║   ██║██║     ██║██║     █████╗  ███████╗
-            # ██╔═══╝ ██║   ██║██║     ██║██║     ██╔══╝  ╚════██║
-            # ██║     ╚██████╔╝███████╗██║╚██████╗███████╗███████║
-            # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝╚══════╝╚══════╝
+            # ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗███████╗███████╗    ██╗███████╗██╗██╗      ██████╗ ███████╗
+            # ██╔══██╗██╔═══██╗██║     ██║██╔════╝██║██╔════╝██╔════╝   ██╔╝██╔════╝██║██║     ██╔═══██╗██╔════╝
+            # ██████╔╝██║   ██║██║     ██║██║     ██║█████╗  ███████╗  ██╔╝ ███████╗██║██║     ██║   ██║███████╗
+            # ██╔═══╝ ██║   ██║██║     ██║██║     ██║██╔══╝  ╚════██║ ██╔╝  ╚════██║██║██║     ██║   ██║╚════██║
+            # ██║     ╚██████╔╝███████╗██║╚██████╗██║███████╗███████║██╔╝   ███████║██║███████╗╚██████╔╝███████║
+            # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝╚═╝╚══════╝╚══════╝╚═╝    ╚══════╝╚═╝╚══════╝ ╚═════╝ ╚══════╝
 
             $AuthenticationPolicies =
             @(
@@ -2096,7 +2096,7 @@ Begin
                 if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Policy.Name) Policy'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Policy.Name) Policy`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicy -Name "$($Policy.Name) Policy" -UserTGTLifetimeMins $Policy.Liftime  -ComputerTGTLifetimeMins $Policy.Liftime -ProtectedFromAccidentalDeletion
+                    New-ADAuthenticationPolicy -Name "$($Policy.Name) Policy" -UserTGTLifetimeMins $Policy.Liftime -ComputerTGTLifetimeMins $Policy.Liftime -ProtectedFromAccidentalDeletion
                 }
 
                 if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Policy.Name) Silo'") -and
@@ -2560,8 +2560,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9UyD0AKq8Cx9iuANwoDAzYZN
-# HpGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDurX9rXwuzf/vZPAAAxauMF/
+# 2OSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2692,34 +2692,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXMbPry/8
-# HUcwJq0exovihmADuRUwDQYJKoZIhvcNAQEBBQAEggIAJPebyjTr/I0Ec5LtYmhH
-# pL6bZX/M4hEN5MkW0gT8GohD5y6NAADum+er0j5QvLa5Dar/7PK4ZYTm7AplOWuk
-# lKlg/zabsolIt5YQ9wgtCUz7/zih3lOZkOdHss2K6fcejP8LGNu4a9/dAGNsubwZ
-# RT/m3v3AZ9X1kh21Pw+4/p5rHufWJKrG1mKFZQ+f8PMbzz2QNOsm8F1pvYA8tXqk
-# Sqh0vxR6VCyToIzmssDjsapzFiemHIDNOPfRlZtjjIAe1XzzinHvm1kahh7xybmR
-# 1k1CsuoZdrM4cDDSH3SONaNEO76a4s0SbWyPdsPz7HF84K+yOK5IDUL9/ZrgfR1c
-# dwkCyKq5I53hBiVMH0ko7FgybrssrtdFpVigVw+Xm65LT3Dk2RPUMiESqSjAcSzt
-# SN4jPYqBNTol1Tx3dx9L6C0dIcqF1hVyhgnfi+e4Hb5mqyze3fU6NU+HxPuT0eK4
-# LT3jkdtn8h7LH+97vICgGjgvo/zQHpi6YN9by8cimIp6yv4/6Yo7Cfk8jWcvfCl7
-# 0rO/ofaTpbu+Pr2HQ6qvxVYJJTH8T0MrxERskOADOfRIgRsQnd8qQDL8KHdOnEbH
-# 7iuN0fGKePanvvLdpojzJDw6MMD1XRwvNH7CdhhQfi73m80ecO8ey4veRWdx3ZPZ
-# lJ/Zl57bB2gWTdOL/ezfmEChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUA6GELYM7
+# qM5yiKM3VdpZ8arA930wDQYJKoZIhvcNAQEBBQAEggIAyJOdWPIwBS46H625SNof
+# tv8oyRlMEMiVel82Nr8Nh/10p/8PSORwfUptoCrY/zCYsiKI13imBNfK5ZFp1piy
+# BChekawfXJxDYmD4nIWTzTY4NljR7V34GPe3UHzMsuqn3uPLwg160J1VUcq2NJCj
+# ZLvpTPGBYL3yBP/wuZX7poWtee7sUzHhZH7b0tGa9Ea3gL9P6vs0eUHLDRrC7PjE
+# YweCLKJYWP6IcC06dPaZLmpQee4nHx/gUTQt2DcA2N27ZVgkdGNSdzilzpmIj5a+
+# XkprfGj6dVdxJ1L2xNw5NQiBdXhKIetwAOi8vNYsmRR1sVrtqLsZqus0QUJ/V45N
+# JOocVWSE1OMBS6xqNalQyEiYOGJ8Z1zXHLV30XJ+y8xNSfw1BNPTbCiCNDAueEI7
+# pVEDOpxz6FgnJpy0yPoms3umlZPtcDYpVlpP/DN9eTsA57iUm17D7HMajf0k7TEy
+# kZgb25uLFHtWvdz7162puEOndWTmhOr/fBoe3raIiU4aQMHf+wu14HYcHV4L5wlj
+# UTfkwM7pZo7TLuRm0Wpuy8OJ7F48BD6PnYJo9GH2AfJIyBwURC2uVPk0nG9Pk/sX
+# limqiWOVDeHQW8B+LC39jWve4jfRQsKpRnNy/5CtVZYIHVt8lFvJ2i4hd/p7e1Ma
+# N5u6Q97P5hUovw7IvFqp2u6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMTUwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgjCNKBdap8GLmwmowwSyVOxjac351rsy6nYLSPex3
-# ENAwDQYJKoZIhvcNAQEBBQAEggIANyIEdEHd0XuXIMCXi/6E4INQIUc6osgyqHFY
-# EZDRaDLHJn7/JvHLBXtXc3OP81IwbhrFA4IOWLnSVdhwSBoOVcGiPcF+7sYzzK53
-# nAzjsdEWvJJfVeK/1U3dfVbnzPua/H3c2+8OKNiy/3bhFXNXgKCxmrABcSGVXtyG
-# +11xe9HQ54lxqu1iDzDIl2bdo8OJrdEKH5D610oUfGI2vfW6y35C0LEjjEGdk4BM
-# eSQG7iXzBfyxoooI41OmdkeVUEc8VkZuC4pjbQwwkT97Xh1xKVW04DCP2vQaXHy+
-# k8gN0EXfluJ8IQ3fHBnwi3f3ADNSXvSy7+Kv5UEAJ7TElIlbX9J7h5Um9gpCsr/e
-# jMuAWbItKSbbRIs849wdcOpKdfaQcShRwtRD4QTCsMIFYqgexptJkxVNlY6AOOJY
-# VAeiyTux/mMaGLKQp7OcY6reexJ6buBufazG9TbqGI+snqBQF0mIRVIrHD2y++f9
-# kGB36TPMg/HAsAWcOChCYGiC5JvPejgviNUFPp9LpYpq+Q6OvAeHYa0MtRBMiPBa
-# pwew0kTqg0xFKwu640spNSvZ5MdG0GI2RrKgmqNSUCvGHbUw5j5157ttW0qBEvcH
-# RpWfrj6UsJSCOmuw87r70lJmSEMpHpXamWK7cL0UA0oDFYGwHJCj+cHTiud2EBtJ
-# dh8fPQg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEyMTgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg5wcDhEjdNVHtjtrnY2ot04FJRuP8cvvXWl6q2/xC
+# gD4wDQYJKoZIhvcNAQEBBQAEggIAU7kp6eO5Ov+16o3mrKIGgq0DKNEt+Ut/iRwk
+# m2exyASpqg7y1nvTlWEC2ANwtRXKn0rVGzP+lrnZUoyDVenZOR4adoL/Jmo9obzY
+# 3WHQOS4G6w7ELLSsHbDaxVs0h2JqPSDeRmIHTk1o8iMiuJuAXRmI0aaVS5vJJ8x4
+# ipsNhzyqnXxF+qZgpwFGluDcBvc/SPHBUVWh/znOSIpnzmev020QmV+6Qeasvhby
+# wJoZkHKd98MLxTwRSA7oT1R5G6wzlh/wQpJbrXtzoMGR1Unjw0HPSWDor2HlQXIU
+# KPX3FeLpCkC73b+Xm++ZGfgrdMvr8AR3HQzBLVZ8ROpR/1pO0CCgTm03DU6891H7
+# 6JiO5pEHAsE6w9OgmA4/Q7O88dtDIyMBUju7MhOzkLgqIa/6E/UjwiPM4vsHbFc0
+# t83grmMH8Q74mVKUEpnk6VAqOMbYvImWjJGeWvRswGq/3iFeu9A1408pFlVX5qJP
+# bl2vDeOKY1bwrHW/RTDuwboS/m5r3oW/zMmieoR3JcJCGaM419KyG/SRxjQoffyj
+# IlzovSs+pEKa294b3zm9l660nPgHhG9jNCSZClgCE/pNSgmhkWffqcZL3gykfX1Y
+# JK0xqdwlfESf5RfE9AyfrUhKUgLNVbbjhJ1Q+edWj/aWyW7lfBKibrebETKTTrbc
+# i7iT3nY=
 # SIG # End signature block
