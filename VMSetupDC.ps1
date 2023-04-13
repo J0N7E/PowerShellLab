@@ -918,9 +918,9 @@ Begin
             @(
                 # Administrators
                 @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Group Policy Creator Owners', 'Protected Users') }
-                @{ Name = 'Tier0admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Tier1admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Tier2admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
 
                 # Service accounts
                 @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
@@ -971,7 +971,7 @@ Begin
 
                 # Tier 0 admins
                 @{ Filter = "Name -like 'admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
-                @{ Filter = "Name -like 'Tier0admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 0 users
                 @{ Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN" }
@@ -980,13 +980,13 @@ Begin
                 @{ Filter = "Name -like 'RDS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Application Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
                 # Tier 1 admins
-                @{ Filter = "Name -like 'Tier1admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
                 # Tier 2 computers
                 @{ Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'";  TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" }
 
                 # Tier 2 admins
-                @{ Filter = "Name -like 'Tier2admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN" }
+                @{ Filter = "Name -like 'Tier2Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN" }
 
                 # Tier 2 users
                 @{ Filter = "(Name -eq 'Alice' -or Name -eq 'Bob' -or Name -eq 'Eve') -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" }
@@ -2094,34 +2094,59 @@ Begin
 
             foreach ($Tier in $AuthenticationTires)
             {
-                if (-not (Get-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy") -and
+                # Get groups
+                $UserGroup = Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members
+                $AdminGroup = Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members
+                $Computers = Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members
+
+                # Set sddl
+                $Sddl = "O:SYG:SYD:(XA;OICI;CR;;;WD;((@USER.ad://ext/AuthenticationSilo == `"$($Tier.Name) Silo`") || (Member_of_any {SID($($UserGroup.SID.Value)), SID($($AdminGroup.SID.Value))})))"
+
+                if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicy -Name "$($Tier.Name) Policy" -UserTGTLifetimeMins $Tier.Liftime -ComputerTGTLifetimeMins $Tier.Liftime -ProtectedFromAccidentalDeletion
+                    $Splat =
+                    @{
+                        Name = "$($Tier.Name) Policy"
+                        Enforce = $true
+                        ProtectedFromAccidentalDeletion = $false
+                        UserTGTLifetimeMins = $Tier.Liftime
+                        ComputerTGTLifetimeMins = $Tier.Liftime
+                        UserAllowedToAuthenticateFrom = $Sddl
+                        ComputerAllowedToAuthenticateTo = $Sddl
+                    }
+
+                    New-ADAuthenticationPolicy @Splat
                 }
 
-                if (-not (Get-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo") -and
+                if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
                 {
-                    New-ADAuthenticationPolicySilo -Name "$($Tier.Name) Silo" -UserAuthenticationPolicy "$($Tier.Name) Policy" -ServiceAuthenticationPolicy "$($Tier.Name) Policy" -ComputerAuthenticationPolicy "$($Tier.Name) Policy" -ProtectedFromAccidentalDeletion
+                    $Splat =
+                    @{
+                        Name = "$($Tier.Name) Silo"
+                        Enforce = $true
+                        ProtectedFromAccidentalDeletion = $false
+                        UserAuthenticationPolicy = "$($Tier.Name) Policy"
+                        ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
+                        ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
+                    }
+
+                    New-ADAuthenticationPolicySilo @Splat
                 }
 
-                # Initialize
-                $GroupMembers = @()
-
-                # Get group members
-                foreach ($GroupName in @('Users', 'Administrators', 'Computers'))
+                if ($Tier.Name -eq 'Tier 0')
                 {
-                    $GroupMembers += Get-ADGroup -Identity "$($Tier.Name) - $GroupName" -Properties Members | Select-Object -ExpandProperty Members
+                    $DCs = Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members
                 }
 
                 # Itterate all group members
-                foreach ($Member in $GroupMembers)
+                foreach ($Member in @($UserGroup.Members + $AdminGroup.Members + $Computers.Members + $DCs))
                 {
                     # Get common name
                     $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
-                    if ($Member -notin (Get-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" | Select-Object -ExpandProperty Members) -and
+                    if ($Member -notin (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'" | Select-Object -ExpandProperty Members) -and
                         (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
                     {
                         Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$Member"
@@ -2591,8 +2616,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUK7kWCjAhK+yY+vDzWLvBtCfm
-# ab+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+VthjyJGlY5jq6/M7OTUJ+rY
+# 9sagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2723,34 +2748,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUo2uPp+Ng
-# FjLq7sSPk97EVHb1rSMwDQYJKoZIhvcNAQEBBQAEggIAsZ4rLKj4uUVHX/iuVJjg
-# QihJd/P6v0BACLzrfN68HJzi8xFSznqGIZmnvvjYCqNdCZmRSx8zl1JQ+E+079WP
-# pH+g+PDdYE4Rg/4btHZfr+9tgHen0JBmhw6g0zxq5VvKsMI9q/IS/wYkz8/ZqO0m
-# nHeary3tQTcQkt1oIRHvDLQ6LSOglBH8/mAgUxTsCAedVwtz0A/698THPREplpNA
-# DuIN/yeo/jNtoeT9zkJuNXpxMDxK/tobK8tk2zaAZoPZRgEX2902U/rJpw1zw3+X
-# /ZHQfq5yUebEaBSZDYCAf0X7o3p8oPhP8iWilM0WfmmmW1eXYIFksO2wDlmdvw1T
-# GRF2obl+1vIJi/x1lTELpLT3dk02hN2DOnd8/sCrRkf3w8QqVXomSBVCQ8lKH/E7
-# D/dImr3ApVrcu3rHPNF25scdkpS3PqnQEA8QxRutSJqaYR6bV8WrcnUFrgVArH91
-# HG1Ym/xvp936gS7jq6VK4BL1eN3WV0XP2jpAotUve38tZMxEGN0lnK6usKlrC+CA
-# 5ngFXRUo4UCDeOFvXHpUWskN6Er9hLK5YDB6pfYIdCr9Gyl0YU8dsaAQtaD4luOS
-# SeJOXIkyzscgpNM/Z4GXACe9OYhW1VZLywDzHKLGi9+7iUCDn6iGfWJIpAq079fE
-# KIRIC0lGXBPvHrBKi2i5QQyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeeC2TGA+
+# OKFAvYNme32CcXUSMoMwDQYJKoZIhvcNAQEBBQAEggIAuXjAqAAo8R2IoKOsDmvU
+# ZMXC/1KcrjNl4aug1eNUoD9/DPoqotGKw/dFynbTBNkrHHWjddWZIqu6ka+JDdj1
+# 2wPrE5Z6W5PaOfAaymZkWM/V9zLinpz7VT+AWAhiQiCwBREyY0CFjSw24fCtTDvx
+# Yl6cxG1aQbUt/++zKlRJtZpSQYFPliKPwhYKlYjui1xUwgpQlgVHGc5ZuFh9CdIp
+# kInEaWt9b7pcTgJcIgHVK6XNQeQSRz7l76n/f+qid/WxSgBWuumQnt6wZOVXbtwK
+# XEcLPmfjT6aXif8e1w2CdULIuHsh6kMLKO/STl2xBYIod6IqojPZsOvIxFhNDocO
+# uEC2A8ai+Syf18xM1etLkZB9IqcNkqRt29paCtK8werP46I1HfxgfuLLGTLAgYnx
+# /BMC7MP6pUdBqGU1iOODU0ZycWxUrULMItXuGS307WRmPApzQ0XucMRw6BnTXSga
+# u+KK+CEIISt8b/NJuVhwzGXB+Gi/kqnpVkNElHM92h+iEnWJiO+6r2cdlUtHhwy5
+# qPXy+IqWMvkL0dJ9kOx0QvArXtCFbKs6C1GiMNsRdAK+1qiRwXv4kC/FqaypJbPR
+# 6RYVzT2o/HGMRMJk5vBYuwInMwyjrHSJ4yu7snetaB023MVKoJjrT5I6VvTfLv6R
+# NwwA+ORX7senPNSp1hicvh+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMDAwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgUt/KMOfXu1JQ5a0m06J9kdSe3ly8PnntN0Auo825
-# 0AgwDQYJKoZIhvcNAQEBBQAEggIAxWWkBojoVxR6c1k9Kj/IlLighqnYhUPho/J9
-# XsTlpCZkMgAQbzKE5N2eftMqs6RoBQHfHdyCSpyQuJxCl99wdZbv5mIcbpJI2mAn
-# QfR4sONksOUvhxFzBEEl3b3rNklFBFkJuJtKxTA4PgAODyN0CXcMRGmjDG8GTOKc
-# 4D2rw5fDLmovXiZcIGq55oZ6uQw4H+Di6P5n3xnkuWrTlIQPUGHD5+e4aeQh+7of
-# ghZ03Ewy4PuJXJ/IBlO5gYAVKr/zIOVqD/2PFP0RXmLjLHGs0t1yJBp8RNWgyv1o
-# uCSYaiZcVKQig1yrthWJtUC5c854DkZtsEV7a58lHGwuKrJc8xNft2anK9xUPX0x
-# 7CwbAkHBJIuosD/4iJ5Jbhf7zK+ilQwr12AgIqsmN0iyx1qd+OU60D/FHByER+E/
-# S8jOTbf1jBJxfk8YiR77Dslf+DsPe2nMQTfPegU8jYqq+h+iLadCe/64SA7LmHxk
-# fUzwvJINWJP6kGnWWYjTPMFo8TsT0BWHcv4DLvQcljKee17aHYG1p8Gl6P07f5qb
-# 5nj/bxykPCxFUu6DOePH94teTBpClan3blbXpGgYcBJutAdgrqPReQvK1BM5u/KC
-# wktaNkLGLBtjtu7cKSzCypMnvfNgDBC4UzhRWonTDXN91Qp6x4j5B3hBu2xUM+6O
-# GXJthSU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMDIwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgab0wM7pIN6iDtuwjhgTDzdTy/R26kcdLm6Gb910X
+# Sc8wDQYJKoZIhvcNAQEBBQAEggIARN/OkExYC1zXf552V6uzjtyX/UWy4pGUUJnV
+# sTNCO/ma76BAQ3tPkwQqyfls5ogkMQOqfnF8xGPYj4zjb7lxi59vArJBIa+P4j08
+# dVdm5scB/NW7BUj7IGLSxvYH/EZowKDjSXwjjOype5/4afd94ofFU9h6+jJKaJOD
+# CvH6BhLC5HV2qjZcbVhJlNCTInoTP3ZKGxPoLtg1ID99nz1VTtMs9i50LaWkOkkS
+# nkIJp/k5c1lVnmet3Roy2DGtNKUsv04C1j75Hjb0eEw7KvRp2jYObSxwYo8ZviSV
+# QPs7i1Q3NC0HxnunEe1XAsqz0x+FCDJ6shfXK9MOaMv8qiBy1Gkh8xkQI/EfRGyl
+# rJ4ta+pcDE3kVwrtgwcOEiuzkGeoPDI23thHKnjvXBO337HQYkzefr3lgYcFN/pl
+# ZAon2aKE61dvFjO1YvPnBSVSsxHQe905ISHirANE/zuahvE1anncJgBtUwBdHW5d
+# fdy58QKYR6gqaU0+gMd9n0fbWsLTucrRYz66BZHSbioukzWU1cX67OxZ7xEEzKPj
+# 3+CQlb39fGXQ5qGmI9pEhWeLZHPPqcqh9EVkrG96nV+Ql87wzWstiHf7MkUdrtDR
+# aoSCrhIUiceO7EDpIw4Q7L7FLRHdfXpdqrOX3pwhsgWLW09okV/5U4Gfslw3kRD5
+# AzTcfro=
 # SIG # End signature block
