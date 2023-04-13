@@ -2099,9 +2099,6 @@ Begin
                 $AdminGroup = Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members
                 $Computers = Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members
 
-                # Set sddl
-                $Sddl = "O:SYG:SYD:(XA;OICI;CR;;;WD;((@USER.ad://ext/AuthenticationSilo == `"$($Tier.Name) Silo`") && (Member_of_any {SID($($UserGroup.SID.Value)), SID($($AdminGroup.SID.Value))})))"
-
                 if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
@@ -2112,7 +2109,7 @@ Begin
                         ProtectedFromAccidentalDeletion = $false
                         UserTGTLifetimeMins = $Tier.Liftime
                         ComputerTGTLifetimeMins = $Tier.Liftime
-                        UserAllowedToAuthenticateFrom = $Sddl
+                        UserAllowedToAuthenticateFrom = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo == `"$($Tier.Name) Silo`""
                     }
 
                     New-ADAuthenticationPolicy @Splat
@@ -2134,14 +2131,21 @@ Begin
                     New-ADAuthenticationPolicySilo @Splat
                 }
 
+                # Get DCs from tier 0
                 if ($Tier.Name -eq 'Tier 0')
                 {
-                    $DCs = Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members
+                    $DomainControllers = Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members
                 }
 
                 # Itterate all group members
-                foreach ($Member in @($UserGroup.Members + $AdminGroup.Members + $Computers.Members + $DCs))
+                foreach ($Member in @($UserGroup.Members + $AdminGroup.Members + $Computers.Members + $DomainControllers))
                 {
+                    # Skip join domain account
+                    if ($Tier.Name -eq 'Tier 0' -and $Member -match 'CN=JoinDomain')
+                    {
+                        continue
+                    }
+
                     # Get common name
                     $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
@@ -2615,8 +2619,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVvyuIquP1PspPf1aYKQuHUNa
-# /VGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHWbQwo8RQWlBGgPJKDMsSlqR
+# WJSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2747,34 +2751,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJRMBgvAu
-# U8ifL7rIHw0ubIol6zUwDQYJKoZIhvcNAQEBBQAEggIAzEv8dpDUgBx/nMY8I86p
-# U2IbCEublBnc70uVjtjfO5c84lnkjV15cgyO5LPvyUqjWcGgyo2cUrJjbX5MRjMA
-# 3OeOyDZcPTv0e78OHk9VbfYFMXSBUUlxgmB/ARcWiwD8Mt93vaBW3HPOGRXXG+VK
-# 56zOhTq5uHAjx20rtceE7oeryqdQTns9bjz+rxQxlYzCH/DFxrRNB/RnF0iM+D0C
-# Wwih8hZFbv+mgrdiykCdDxCTMSg3H+Oxr7uujFiu0xw77nLB5b2fofh3b5pj3vZD
-# IHJK20HJ3X/WeUqFjEddxa815Ou3JcvDTikPHcdb72XysEyPBTXZLzZvwbxDH0Qa
-# wobrrE0c3Mtyl+AAoGMT5gRoQNiJ250hNeCFEpbzsMOhORwyJolU3mju6Dp3Sy6q
-# +wSBxTBTJ1YYYyymbfsyOqTOa1Dz5YFSqA9Axu+hP+OBatfm34ZBvE+FIotCv2L4
-# lVl+stDKWQtV5vSiUdelSntz5L3tVQoyvOQ2KTYz56Tt1tXe8uMlZNY7359pG1Gl
-# JOQ7RAnHziIeauc03NDW1dpmgagi8y4c4w7Jg/nFBSFW4xnwSj3eqlGK4knHCxlB
-# W7zpOPmA+1JMG9l2Itq7RjCDlFqkdDuKICmEY7EhDdKD6c7JJxz92KCEP3WXcBiQ
-# rlTexasBu/QmeM8qjVqPU4ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUu4iDcv+y
+# Ty3oraivgpz8m1d2tTowDQYJKoZIhvcNAQEBBQAEggIAnFirhlq10mOb/XbW4zve
+# tSqidHp3yOCqDIwdn4CGfw4DTcZT1138CxX9Vrwo8P4xhrozzGMAnR+Snb4M1ib3
+# Kpy5/L78WD+DIZk75r3JR++ALJYY3ykKGS3Hef8Lhhde20rU4A8xTpdKIWdoq0Cc
+# CrWDXD85aH6qACe2YWZ6DqMEFdNN4iYIrqLqEzFddUROam4q2YE2frOPRoP3+X5J
+# zebWPrHLxwxHClp4lf4Tv7yXOWq2mgmn5llskwuI/0Ubmx18jvkepeDyzUTmUyNt
+# MYdlMtyJ73MCgh8rDdR1g1B/QKeXml7jG6eWo87Wbp9YGgqxLyx8lBIRfyNArrDB
+# AOgjjqz9x+GiyMt0O2skFiox8DmfGUDXM+X9GiG/kSxOpkd6OHabamumOm0KeHK8
+# ixOCCd5Z+KyN0EB46buaJcmYJNCoAMeFJC4G0sQFq5u/Ew+xfMbIitA/itlMW2QW
+# cImAndxLhaq1U2WE9KU9QGFXfmYccZJCUTWlkHJuZNBKXv5Kn+Bwg2x4N2jijUUe
+# G5TxmJcRJ8aVib4hTYSXp2ViNr46gGPXmxveGvcUxGwJx1oIjI9A93mJi15n8SWM
+# 8cypvOU1EWOM6fP99AEnQPX5c50jfgP56VA4ndcqjFoYSGG/eDq1doZQtngf1evC
+# szAL3lq/zqg3nF4aLNk7wSqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgqMnSaYKnB25CUt8HiIjiN2zpdO0QlRTls69pHYPY
-# JmwwDQYJKoZIhvcNAQEBBQAEggIAod10UV8TUfvOhaHP32n0AiVVgOvXckbcD7Tm
-# hoA7aZrkIXygXay+5zeuIli3QzMrM5JplzuIslUvixFjuP2UkpPN8DyTRXl7ePTW
-# LcGg2U2tpFWXdwqtMqHc/TGAcr12c6RY66+GNhgWLAflzpUKFIdoY3dPeccd7NS0
-# uB8oZuufhWD+cQ9wVJzKDvJwCO3xbPRFQosJjlmK4pAyQNP2hiHpBVhwz2YXsA6f
-# 6TQ9qGydfKv02guhgDMOJgXkEXcBGhhOUW1z381d4cLQtpCxD8zVRGwzqWEZFfAn
-# TtUGZPxtZHzdux/PBLDS1qLOzlWhzicdSIqmSQKMhZoXa3evopeQnTfymHZm2XOA
-# Qdb1ncWM08T1hwbpvcmMs7ooZG7+P379derJlGPtiyLv6u1ACyDtN413A5a3N/jM
-# 2RBIRvw+4j1aQI7uSFkH+Vcq0CMoRkB9xIKbLjWQo1DYDTuLph4mQqzTsdNCS7N8
-# HB388J9hzMQUzZ6ccimdyU4ysIi9R0LiPdKnwYK9ti4CRfj/nIGAspBydHSMb4dr
-# 1qnut92V5PGBfu0QPC6UiK4hX21M+AYLrz5m48S7w1xrs7ivPwqJbhiB528TS76p
-# monqAkrlA6MHvCouClpgT42GXOcNiN+FaCDx4MkaC4n8e6v7pfOGwpr9sWY4dmYm
-# 2OqjLQM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTIwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgIQMGqvyimPGxvTHnUOJTiMIL/erLDyikYoo3gc0a
+# DlkwDQYJKoZIhvcNAQEBBQAEggIAC+OpNawayd6XFFWcorgauyde6gBCfQSjjbtD
+# vt93QiPqPz6yv08jSujW9D/PZ5PsOG5m/eqnYipVlLIbTcrVhTJND7NCWqqiV0bN
+# YK1UjMSIeTvwPuKxNw2TUhr9z8K9whMPN40eNgSUEaMfzkU3tDPXVt1ic65abUsJ
+# q1jx8lkeyYrsVlPzyZcklG0CzrWKL0wy9Vo4TjYCYN83hFB1MqEviYqdWXEASKk/
+# O6Ytp+DyZk17fwEXEpkLYcdvtpTeQcHH8FH7HT0wrS+Tq+3FfgoJJwGeQUBYQScZ
+# Nl3vgsNFdv8z3p4i36mc7DB3NCZSS1r2Sm4LQaL4tZwqCe57imReEAEjMjit/7hX
+# 3lQeEC0qeXbhyWJkHORyO4fS6z+oC31N1qaNSpJaddBka8BRyMqbyxylms2KKncb
+# C7cy4lCDXKSZo+RR74rsLMcP/fZgJzOky/DzTt3x4RAJVU5ABWwLr1DQiXFw9GPd
+# QsHc5cZ+lUgI6tZg2coaBvEoV+6ypy5qPd547+hIQSbvu4tvzuDCCxb3+qNDKBsp
+# rGCXCumgJ5vAPFk7+dq1rrOXHejC/utwbuqmUmUFGZRmh2ddvpWh7m7Ka5kHpbbD
+# Aln4wU1qWG2qLr1HGdjfHWF7IjDeTSkHCcqxGNCOZb2yy41HU7wWQmUsHmjf+F08
+# N6kAxqw=
 # SIG # End signature block
