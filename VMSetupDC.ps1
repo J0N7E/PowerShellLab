@@ -917,7 +917,6 @@ Begin
             $Users =
             @(
                 # Administrators
-                @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Group Policy Creator Owners', 'Protected Users') }
                 @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
@@ -925,8 +924,11 @@ Begin
                 # Service accounts
                 @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
 
-                # Tier 0 Users
+                # Join domain account
                 @{ Name = 'JoinDomain';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+
+                # Test admin account
+                @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Group Policy Creator Owners', 'Protected Users') }
 
                 # Users
                 @{ Name = 'Alice';            AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
@@ -961,6 +963,9 @@ Begin
                 # Join domain account
                 @{ Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,$BaseDN" }
 
+                # Test admin account
+                @{ Filter = "Name -like 'admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,$BaseDN" }
+
                 # Tier 0 computers
                 @{ Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Domain Controllers,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
@@ -973,7 +978,6 @@ Begin
                 @{ Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 0 admins
-                @{ Filter = "Name -like 'admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
                 # Tier 1 computers
@@ -1897,19 +1901,20 @@ Begin
 
                 "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" =
                 @(
+                    "$DomainPrefix - Computer - Tier 0 - Deny+"
                     "$DomainPrefix - Computer - Tier 0 - Local Users and Groups+"
 
                 ) + $ServerPolicy
 
                 "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" =
                 @(
+                    "$DomainPrefix - Computer - Tier 1 - Deny+"
                     "$DomainPrefix - Computer - Tier 1 - Local Users and Groups+"
 
                 ) + $ServerPolicy
 
                 "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Computer - Tier 2 - Permit+"
                     "$DomainPrefix - Computer - Tier 2 - Deny+"
                     "$DomainPrefix - Computer - Tier 2 - Local Users and Groups+"
 
@@ -2165,8 +2170,9 @@ Begin
                 # Itterate all group members
                 foreach ($Member in @($UserGroup.Members + $AdminGroup.Members + $Computers.Members + $DomainControllers))
                 {
-                    # Skip join domain account
-                    if ($Tier.Name -eq 'Tier 0' -and $Member -match 'CN=JoinDomain')
+                    # Skip join domain & admin account
+                    if ($Member -match 'CN=JoinDomain' -or
+                        $Member -match 'CN=admin')
                     {
                         continue
                     }
@@ -2644,8 +2650,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUN86zKQReqS91xBNDKq1GzZGf
-# LcigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUriWZ168x6SQs6jq8ViKdu1M1
+# EK+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2776,34 +2782,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUd73SicKu
-# LvG7NG8KLihMW7/Z68YwDQYJKoZIhvcNAQEBBQAEggIAAo+39IFPqlPFvANuHSP9
-# 0pGrft3R1IMjY3jeTck02SCOpE2sCAct0drlR+Ux/7qKnK8+zkCguLRPQDXzYp6n
-# R/66R0tJL6L25//fCtbKktg0zjWoN7yroPytOThC9ZArAf54AnsDMHgzKtr53XzO
-# tEWqInYMrn07OYmo9iuupuxCodHD4bO46LaRaNvdwbTttO5W06Hbrb4eKImhSj9i
-# MmbKrRlsOBPXuy9wqCZdM0cZ4R+gwJEOYyzB3Hlw9qZBK56O8XBDla4oczD08B9m
-# x7NH3e/MkImg7YUX4nTER9gUerI3HsNx7QUW57zRH+pJqXq9qWI+KSnlY0vOqo13
-# R8gV9tRd/Qfi1QU2mxY4eXM3CrxQM6FqODRqnfuCK/qP8o7O2b2CIG81Bq6kFGL/
-# gDB7UTPgC6Qo+kRc5IXgLyV+chFQs0/VDoXr9ANzrgWUimJK3OP6YGlqsYYyjLaj
-# IAoYN8ta7/PUDX+Bkcvtc/OFIzYbb4zdrWiImkO4QtTRwjbxiLEJqh7GGk999tzC
-# zxgf3NtL5ya3MZNXkbAuxyQl0x1eb/lxf/ZKH/CPjYboQjc86uKFkbpujJNaOvpf
-# hawueA2rrve3Z1RYwe4LZwb2tkPx0BFjFxZhTFgVPs6FJ0/c5AF4PLu8CBb5aI/f
-# WClqe8DjS4+KRmHxPql44IuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7ct088C2
+# /aabRHmww9hq6fdBPvgwDQYJKoZIhvcNAQEBBQAEggIAvgj/zfdmiYbJKeckKQ6G
+# xkriTlBBTG2mFavNg33p0ScmZr83XFwiKVRRLXgjNPEO+S+mBCjya8FV2c5veFFO
+# 5dT56mJbVYAS49CrLFRlnuSTbykRHzI1Y6yo9L0f2vGs4VllNKLvL3Wud9R2IAy5
+# tPgA0A08+4jn5XgQYiBzw5XHW2EPQYEQSGQx4jYY70p6Bnju2zhmQWIYrzVMqg7C
+# C4nEK2vApH5X77XIhlx9Piu61bONh50ra0fWbJkqlDGgPionedEDIha4bh4PXJnI
+# 1fk+OUuVgUR8XVHEwz5zEme5dAkBKnexQTmZ9FkVGfPXiHkOQ2CDTYY1H+bd6tTr
+# 0HM5B8084WQ2dcuWEVUUNm5fkIcGgEts27wMC1pipe9aYEWUPbHmNnXX4mJ1wmyF
+# njqtl987S8PRpTHorvdFI7wjxACh6HtHA5xQ729WM67nVPQWA9+NKrfkDRN3QW34
+# 7Iv9VqnDWwWnENvLu+TKaGD2+6lZ8DJV5ZkBpzVwRFTxvLJjcXJzR6swLIfmPz4e
+# Qq54MGX1Aqv44tYHQb3gNzKNb3/dDeam9SoxhIk/7nCfx83KJDmOPzB96dPvnedr
+# Ba3snTpi8Leu/rAVkJJVM2rbSINaAznVcK3lIyIQ2MqH3/Z7QyO6b6vd4/o4zWVx
+# 9VqGA+v3S1PNT02V3rcHHO6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgG1s/Bb2rGBIKsixcN754wGNl6rxds0owqAvyL5Fv
-# u5gwDQYJKoZIhvcNAQEBBQAEggIALNwE8VtyBu3Os0VOEcYJ9v52S3lBu+TNItdf
-# Mut+HtiUHaQ0q29pFCZyGyZCvclnNDm0f5qcVVA/7reJpktY0JTm1znd70cf8F73
-# UiPYtMFCFArgk0tjzpql51fFOEiDUrc3CLUtO3hr2+pgjvR2FvZNmDyWprq1CY2e
-# Ivu7kdxfGPUzXSlPOIHAUBENdu9R1UYjLwtRM+ZK/0slXePo4znf3B8l1TvYePtY
-# sAoXwoG84CfRBSi863jg7TSwMN/qbTZXo1WiKIEPlLV0AYUJPl0IopRZwIebJzDS
-# AOMJExZaK110p7rjUDbUyEZj5j7vEtHiquJ0BDAnoIm/K351/qYY2uFOUpCUMCBg
-# GmxkNM6Ti3Uzzme/FV/N/5IRNUj49O0rh7fwZEjkBc9CkhbPZuaW+U0EGNZFAn2g
-# JIhUGmAK0ZqCizV96PfsTEv61zLlu5FYDnZs3s7QNl5Oxc7S2jJbKFS58Fsr9mg+
-# CXkEI08SF06dL8P8NxTHIG32U3Fl1BoegaIiTvbWl/TVuebDnPYRyuwearrDPjoy
-# MI7NKavSToqWZ1rQUW7X0sUxzBO0mn5Bn5O79K3aPRDYovLw962YmROQq+ev4lxX
-# cgFpR7WCD6+pEBkT2zA6mnm5CakYDzAAjWyphSzgvLcUKWXSnESVU4qp6YxE1e+/
-# wyVHEZo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTYwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgnMNiWaPJvlSt0FyFuR/kv0av+8E3X5yXhTh7L9K8
+# 1cIwDQYJKoZIhvcNAQEBBQAEggIAcELqD7Ato+4nxXaIRAln8Rx5TSL4ZfrWtidE
+# ELa62McgS/jQOSJvgPdnBoikR4D5w3laDw6ggtRYjJ86RZqUib+ECCkOz5f9T8b5
+# Q4Xk6itwCueNftCtL6/vehqYx0w4ZkJYxq2gVBSr6pR1UlAD9tujGyF+JvXjWdFm
+# WXyRgYlOsv5IzJQ3rC4IZoGfn3p3lgHvqVKGPZwlHIXBFUgA4EAKWo5mmwGXNRuA
+# Oq0J4ooMdSgWrLJcFFWTF2sIk2JrmXR6ucL9SKiWkfccFwLQcfJy+P2hMguFaQQy
+# oN90RmOjxBKJXk3K6ERB486Zt86GZzmN6hI7+Eiy/BhPcafr0e9P77GKlr2f3qqg
+# H2n7G0sVbj4AiWmGq3dTcYdA/hyx6j6i5morN4bE8Z1I0uBjK/+IlTQ4L6l4JcaN
+# VipjKz6tKeLiZscHUGpRg2OTnDutOPi4ss9YXRBa0MZAX9PEY8+NIBkBjkQYU4ZY
+# 91/ZuG+kGjHDHI++OhhPSG0C3efsy4J+MI/KIfk2U9zYWdjVIzE4Ou6lM6YTZxn5
+# 8aCSZp4gRN+AVusFgg4p8uEPOfRpo1NMJNXqXDGwCFpBrXysc+30R3SIFEvkK1Db
+# TT8mZav4cW5b7D/Fdkux0BhP/A5t8UVFCnfgK9drNJIzqew2a+HTFUgu8kKjpevI
+# WoD2qcM=
 # SIG # End signature block
