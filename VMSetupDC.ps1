@@ -927,9 +927,6 @@ Begin
                 # Join domain account
                 @{ Name = 'JoinDomain';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
 
-                # Test admin account
-                @{ Name = 'admin';            AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @('Administrators', 'Domain Admins', 'Group Policy Creator Owners', 'Protected Users') }
-
                 # Users
                 @{ Name = 'Alice';            AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
                 @{ Name = 'Bob';              AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
@@ -962,9 +959,6 @@ Begin
             @(
                 # Join domain account
                 @{ Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,$BaseDN" }
-
-                # Test admin account
-                @{ Filter = "Name -like 'admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,$BaseDN" }
 
                 # Tier 0 computers
                 @{ Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Domain Controllers,$BaseDN" }
@@ -1260,9 +1254,6 @@ Begin
                         Name              = "LocalAdmin-$($Computer.Name)"
                         Scope             = 'DomainLocal'
                         Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        #MemberFilter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
-                        #MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        #MemberSearchScope = 'Subtree'
                     }
 
                     $DomainGroups +=
@@ -1270,9 +1261,6 @@ Begin
                         Name              = "RDP-$($Computer.Name)"
                         Scope             = 'DomainLocal'
                         Path              = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        #MemberFilter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
-                        #MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        #MemberSearchScope = 'Subtree'
                     }
                 }
             }
@@ -2650,8 +2638,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUriWZ168x6SQs6jq8ViKdu1M1
-# EK+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgftQoI6gtXYV2VGBjHSIvoVA
+# R1WgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2782,34 +2770,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7ct088C2
-# /aabRHmww9hq6fdBPvgwDQYJKoZIhvcNAQEBBQAEggIAvgj/zfdmiYbJKeckKQ6G
-# xkriTlBBTG2mFavNg33p0ScmZr83XFwiKVRRLXgjNPEO+S+mBCjya8FV2c5veFFO
-# 5dT56mJbVYAS49CrLFRlnuSTbykRHzI1Y6yo9L0f2vGs4VllNKLvL3Wud9R2IAy5
-# tPgA0A08+4jn5XgQYiBzw5XHW2EPQYEQSGQx4jYY70p6Bnju2zhmQWIYrzVMqg7C
-# C4nEK2vApH5X77XIhlx9Piu61bONh50ra0fWbJkqlDGgPionedEDIha4bh4PXJnI
-# 1fk+OUuVgUR8XVHEwz5zEme5dAkBKnexQTmZ9FkVGfPXiHkOQ2CDTYY1H+bd6tTr
-# 0HM5B8084WQ2dcuWEVUUNm5fkIcGgEts27wMC1pipe9aYEWUPbHmNnXX4mJ1wmyF
-# njqtl987S8PRpTHorvdFI7wjxACh6HtHA5xQ729WM67nVPQWA9+NKrfkDRN3QW34
-# 7Iv9VqnDWwWnENvLu+TKaGD2+6lZ8DJV5ZkBpzVwRFTxvLJjcXJzR6swLIfmPz4e
-# Qq54MGX1Aqv44tYHQb3gNzKNb3/dDeam9SoxhIk/7nCfx83KJDmOPzB96dPvnedr
-# Ba3snTpi8Leu/rAVkJJVM2rbSINaAznVcK3lIyIQ2MqH3/Z7QyO6b6vd4/o4zWVx
-# 9VqGA+v3S1PNT02V3rcHHO6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURoUVpb8B
+# rWuZfcuLXYbMyILsCE0wDQYJKoZIhvcNAQEBBQAEggIAoO4Dz9tpPj4bAMGUIjuI
+# 1M8ZyWQ4J5O0PC5GzAbFxq6qGVzQ67SqUFS7tG+Mcvu1VDyOoBdLWP6bOjESm1fr
+# mU1QEATj30dlf/nXBceTqqfXgzFt/tmsT6PT2QAXk/VvxzUjTEwl2XBkuHwBUoYc
+# whMVo9HEQFyb7AboUpBqaH+jT88CdrPnWer1AzvIiBFT53QPMLRwVeGcmv0Un63U
+# A/SkVYobYGLeIvgUMwebXzwOf/OoyQJqHd077QvmzcOA7EH/c1AJvBGdH5WokRD6
+# j7Gvm4bVAMrfvh1BeHau6IVw4xQhSoVyr4iKemKv+EcvX4KFYaAou97byLNiWaSr
+# +H9SITYeQeqoF1OQZ5gP2pNp0e3qMA2tIpLU7YXOQ6te/Vez9rHIrO6sED9kGaJx
+# vILR4w0Y3A6mQyfH53ZUuG9z+V1hCc20qXRc/Zsq9Aw2e9BkDSiBxdAqpBxnqPUi
+# lheBRxcf1BQOAO2OlSnYyhCnZlQqE/wJSoBbac5zDIUH/TqiK+p5Jw69ie+tIxpW
+# IBdGO1qk5aPHu2Ht760HC0rAaWiQxZ8BK80jspffvPsYTX1S+c2NCxiQGrMR1DUa
+# RHB5L+IRqSmxtkA5qC1c3tXDvPKqkyCY9oUgaPshGVRSeNbjQq7VYRTf797z9kzY
+# Kry+MU0HCAFuX3T0AH6Pa/+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTYwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgnMNiWaPJvlSt0FyFuR/kv0av+8E3X5yXhTh7L9K8
-# 1cIwDQYJKoZIhvcNAQEBBQAEggIAcELqD7Ato+4nxXaIRAln8Rx5TSL4ZfrWtidE
-# ELa62McgS/jQOSJvgPdnBoikR4D5w3laDw6ggtRYjJ86RZqUib+ECCkOz5f9T8b5
-# Q4Xk6itwCueNftCtL6/vehqYx0w4ZkJYxq2gVBSr6pR1UlAD9tujGyF+JvXjWdFm
-# WXyRgYlOsv5IzJQ3rC4IZoGfn3p3lgHvqVKGPZwlHIXBFUgA4EAKWo5mmwGXNRuA
-# Oq0J4ooMdSgWrLJcFFWTF2sIk2JrmXR6ucL9SKiWkfccFwLQcfJy+P2hMguFaQQy
-# oN90RmOjxBKJXk3K6ERB486Zt86GZzmN6hI7+Eiy/BhPcafr0e9P77GKlr2f3qqg
-# H2n7G0sVbj4AiWmGq3dTcYdA/hyx6j6i5morN4bE8Z1I0uBjK/+IlTQ4L6l4JcaN
-# VipjKz6tKeLiZscHUGpRg2OTnDutOPi4ss9YXRBa0MZAX9PEY8+NIBkBjkQYU4ZY
-# 91/ZuG+kGjHDHI++OhhPSG0C3efsy4J+MI/KIfk2U9zYWdjVIzE4Ou6lM6YTZxn5
-# 8aCSZp4gRN+AVusFgg4p8uEPOfRpo1NMJNXqXDGwCFpBrXysc+30R3SIFEvkK1Db
-# TT8mZav4cW5b7D/Fdkux0BhP/A5t8UVFCnfgK9drNJIzqew2a+HTFUgu8kKjpevI
-# WoD2qcM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgOA0GfciSbyWkleZKpaTO7k+wXGpUJpmUhf+1xLWS
+# taowDQYJKoZIhvcNAQEBBQAEggIAA4RgwP+1V7F6BKgL+bNfyPFrzkE+bgizrUdQ
+# LWsnVCMogaeqlw56Mt6aqaKZdMYahUqUyUp3i1dzz8HYwDu2yVFK0feRANWJguDv
+# WwinNCZ/Upe1Mo1cP5T0+B6jRzzrHJJ2JSu8v/XL4MzxmOFuwUC0yp03TTocPk6Q
+# xj9tIGjs5DkqNByByqB5okcPp3yR8Vgi29kRi7r2PGhm+UWUtRtR9xWNdphj1SGG
+# /mzWLvO5JZu1yXRaa9Arz5184raEmhs5VusKh3sTyubaKROriXTTlimh0RPswuwl
+# HpD+LTqdeHFAUnzyfKfdU7r/NLGAMEPbE8RLjfEnKxFGcklhUidW49YzlnV+f+ng
+# BpeoTqbDVr09zJMTTN+v8ZWPrI8OTRrEVamDxcTQNVY1B+lary0YE4k2QrdKIHiV
+# ZkD1VI5a0P5ptGiVMLnkoMnD0ZHKUP10yrtLD1tMx8t3v2ETb0+yF8mToTaeuRLq
+# mmInlnlfs/h8xtO78n9maLAoDHD4qsJHwNyp8niC9G0aVU83n3yDbzVqbJx+8V98
+# EKfqs9G9PcUkJ6Ycmg6xcW/XLIgrEUmKlPltIOf3SyCl4i0W+EvvRWaKYpp99XQs
+# uVBGMhDKOPCXOX9Foiq+gZjTqL1lulKrZCBVVsdIuUOLFxEZlmYVpxF66bmV51+k
+# Ch7ko1w=
 # SIG # End signature block
