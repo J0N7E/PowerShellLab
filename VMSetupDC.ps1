@@ -390,27 +390,27 @@ Begin
                 # Check if AS server exist
                 if ($Server.AS)
                 {
-                    $DnsRecords += @{ Name = 'pki';                    Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
+                    $DnsRecords += @{ Name = 'pki';                     Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
                 }
 
                 # Check if ADFS server exist
                 if ($Server.ADFS)
                 {
-                    $DnsRecords += @{ Name = 'adfs';                   Type = 'A';      Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'certauth.adfs';          Type = 'A';      Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'enterpriseregistration'; Type = 'A';      Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
+                    $DnsRecords += @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
                 }
 
                 # Check if WAP server exist
                 if ($Server.WAP)
                 {
-                    $DnsRecords += @{ Name = 'wap';                    Type = 'A';      Data = "$DomainNetworkId.100" }
+                    $DnsRecords += @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.100" }
                 }
 
                 # Check if UBU server exist
                 if ($Server.curity)
                 {
-                    $DnsRecords += @{ Name = 'curity';                 Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
+                    $DnsRecords += @{ Name = 'curity';                  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
                 }
 
                 foreach($Rec in $DnsRecords)
@@ -590,165 +590,19 @@ Begin
             $WinBuilds =
             [ordered]@{
                # Build
-               <#
-                '17763' = # Windows 10 / Windows Server 2019
-                @{
-                    Version = '1809'
-                    Server = 'Windows Server 2019 1809'
-                    Workstation = 'Windows 10 1809'
-                    Baseline =
-                    @(
-                        'MSFT Windows 10 1809 and Server 2019 - Domain Security'
-                        'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 1809 - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 1809 - User'
-                        'MSFT Windows 10 1809 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 10 1809 - Computer'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 2019 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2019 - Domain Controller'
-                    )
-                }
-                '18363' =
-                @{
-                    Version = '1909'
-                    Server = 'Windows Server 2019 1909'
-                    Workstation = 'Windows 10 1909'
-                    Baseline =
-                    @(
-                        'MSFT Windows 10 1909 and Server 1909 - Domain Security'
-                        'MSFT Windows 10 1909 and Server 1909 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 1909 - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 1909 - User'
-                        'MSFT Windows 10 1909 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 10 1909 - Computer'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 1909 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 1909 - Domain Controller'
-                    )
-                }
-                '19041' =
-                @{
-                    Version = '2004'
-                    Server = 'Windows Server 2019 2004'
-                    Workstation = 'Windows 10 2004'
-                    Baseline =
-                    @(
-                        'MSFT Windows 10 2004 and Server 2004 - Domain Security'
-                        'MSFT Windows 10 2004 and Server 2004 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 2004 - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 2004 - User'
-                        'MSFT Windows 10 2004 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 10 2004 - Computer'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 2004 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2004 - Domain Controller'
-                    )
-                }
-                '19042' =
-                @{
-                    Version = '20H2'
-                    Server = 'Windows Server 2019 20H2'
-                    Workstation = 'Windows 10 20H2'
-                    Baseline =
-                    @(
-                        'MSFT Windows 10 20H2 and Server 20H2 - Domain Security'
-                        'MSFT Windows 10 20H2 and Server 20H2 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 20H2 - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 20H2 - User'
-                        'MSFT Windows 10 20H2 - User'
-                    )
-                    ComputerBaseline =g
-                    @(
-                        'MSFT Windows 10 20H2 - Computer'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 20H2 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 20H2 - Domain Controller'
-                    )
-                }
-                #>
-                '19043' = # Windows 10
-                @{
-                    Version = '21H1'
-                    Workstation = 'Windows 10 21H1'
-                    Baseline =
-                    @(
-                        'MSFT Windows 10 21H1 - Domain Security'
-                        'MSFT Windows 10 21H1 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H1 (Windows 10) - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 21H1 (Windows 10) - User'
-                        'MSFT Windows 10 21H1 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 10 21H1 - Computer'
-                    )
-                }
-                '19044' = # Windows 10
-                @{
-                    Version = '21H2'
-                    Workstation = 'Windows 10 21H2'
-
-                    # FIX
-                    # Add baselines
-                }
                 '20348' = # Windows Server 2022
                 @{
-                    Version = '21H1'
-                    Server = 'Windows Server 2022 21H1'
+                    Version = '21H2'
+                    Server = 'Windows Server 2022 21H2'
                     Baseline =
                     @(
                         'MSFT Windows Server 2022 - Domain Security'
                         'MSFT Windows Server 2022 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - Computer'
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
                     )
                     UserBaseline =
                     @(
-                        'MSFT Internet Explorer 11 21H1 (Windows Server 2022) - User'
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
                     )
                     ServerBaseline =
                     @(
@@ -2638,8 +2492,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgftQoI6gtXYV2VGBjHSIvoVA
-# R1WgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWcGM0fHezyqoEXOg1WHVQQka
+# zYCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2770,34 +2624,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURoUVpb8B
-# rWuZfcuLXYbMyILsCE0wDQYJKoZIhvcNAQEBBQAEggIAoO4Dz9tpPj4bAMGUIjuI
-# 1M8ZyWQ4J5O0PC5GzAbFxq6qGVzQ67SqUFS7tG+Mcvu1VDyOoBdLWP6bOjESm1fr
-# mU1QEATj30dlf/nXBceTqqfXgzFt/tmsT6PT2QAXk/VvxzUjTEwl2XBkuHwBUoYc
-# whMVo9HEQFyb7AboUpBqaH+jT88CdrPnWer1AzvIiBFT53QPMLRwVeGcmv0Un63U
-# A/SkVYobYGLeIvgUMwebXzwOf/OoyQJqHd077QvmzcOA7EH/c1AJvBGdH5WokRD6
-# j7Gvm4bVAMrfvh1BeHau6IVw4xQhSoVyr4iKemKv+EcvX4KFYaAou97byLNiWaSr
-# +H9SITYeQeqoF1OQZ5gP2pNp0e3qMA2tIpLU7YXOQ6te/Vez9rHIrO6sED9kGaJx
-# vILR4w0Y3A6mQyfH53ZUuG9z+V1hCc20qXRc/Zsq9Aw2e9BkDSiBxdAqpBxnqPUi
-# lheBRxcf1BQOAO2OlSnYyhCnZlQqE/wJSoBbac5zDIUH/TqiK+p5Jw69ie+tIxpW
-# IBdGO1qk5aPHu2Ht760HC0rAaWiQxZ8BK80jspffvPsYTX1S+c2NCxiQGrMR1DUa
-# RHB5L+IRqSmxtkA5qC1c3tXDvPKqkyCY9oUgaPshGVRSeNbjQq7VYRTf797z9kzY
-# Kry+MU0HCAFuX3T0AH6Pa/+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUL734Tyta
+# /a1OrqavA5JFo9p5AEcwDQYJKoZIhvcNAQEBBQAEggIAZSE4ZTJ255q2gG+/DuK/
+# RKsKK9itR2K0h5JE6M8BBlz54lNI98BoSav4Ysr4/PmnQY3efro3sb3TbUObJDnU
+# Z73koY2498SrGOa6n5w0Yu/ULwpsGfZmfHaTRiYVFAl7hbWhdDK3upboFichPiaO
+# ehESuln95bq5qZBudhgofr/9TeGnGH2CtZetsOVQTELd231TETzmXtNRCBv06ldC
+# Wf5LudSE5BPkXD4g2J6W3PYFOUCxJ9htxhOQkroTIstiVI4mxRO7FU8RKMWHfwtj
+# +NrVsq9PeF44WzeCuRnf+2miPlI/8h7Th7xZ1s6c2cG4/PrunEd9DZDX8RdRYz76
+# dugWSYU1ZtN1IyaUqc80YhwsmvSzrBB5h6rM15YXkGvsJnK+JrvvR0IaP+dTtXwU
+# BnPIY1FStNWzJOUfSE0bpR+CyX1PLGwJjhVrTwKwrkkbsWo0wNkXjl23X9WDSx2t
+# fnP2AQqkqRVK6PD324WV96U4e4RQFAunFoMdLjxgk8y6omWZxSxHVxIXYnJTBfX6
+# WjfWSUrzqlWnM9g3jA0+YBQhFkxyIxEeh3RZHu6KJRbINJYzsgMfYPNiawLXH8uS
+# v0M7G1GGoL0+K/JsQhMgZT77L400UxIQMD6AeUXee7AhO8t9t2dhLm6pjjZWfANI
+# p0Jwji66S0vOwA1R+Ajg3cOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMTkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgOA0GfciSbyWkleZKpaTO7k+wXGpUJpmUhf+1xLWS
-# taowDQYJKoZIhvcNAQEBBQAEggIAA4RgwP+1V7F6BKgL+bNfyPFrzkE+bgizrUdQ
-# LWsnVCMogaeqlw56Mt6aqaKZdMYahUqUyUp3i1dzz8HYwDu2yVFK0feRANWJguDv
-# WwinNCZ/Upe1Mo1cP5T0+B6jRzzrHJJ2JSu8v/XL4MzxmOFuwUC0yp03TTocPk6Q
-# xj9tIGjs5DkqNByByqB5okcPp3yR8Vgi29kRi7r2PGhm+UWUtRtR9xWNdphj1SGG
-# /mzWLvO5JZu1yXRaa9Arz5184raEmhs5VusKh3sTyubaKROriXTTlimh0RPswuwl
-# HpD+LTqdeHFAUnzyfKfdU7r/NLGAMEPbE8RLjfEnKxFGcklhUidW49YzlnV+f+ng
-# BpeoTqbDVr09zJMTTN+v8ZWPrI8OTRrEVamDxcTQNVY1B+lary0YE4k2QrdKIHiV
-# ZkD1VI5a0P5ptGiVMLnkoMnD0ZHKUP10yrtLD1tMx8t3v2ETb0+yF8mToTaeuRLq
-# mmInlnlfs/h8xtO78n9maLAoDHD4qsJHwNyp8niC9G0aVU83n3yDbzVqbJx+8V98
-# EKfqs9G9PcUkJ6Ycmg6xcW/XLIgrEUmKlPltIOf3SyCl4i0W+EvvRWaKYpp99XQs
-# uVBGMhDKOPCXOX9Foiq+gZjTqL1lulKrZCBVVsdIuUOLFxEZlmYVpxF66bmV51+k
-# Ch7ko1w=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMjEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgwdCvATnanJqNDU8ICG+qi0wfVLafrxyLq1GuvxUy
+# r74wDQYJKoZIhvcNAQEBBQAEggIACZ1klEQxA9+J/dXJjSGLomNjBauW5mMLO7u8
+# bKVJWsvgqJg6mBTWXjhvvG2JupogsNG9sqNORpgPsSb4ebf4aoZi9Ez6tHgSMYaA
+# x/3DmAxu1x8FxMVeKqYoXwlZ65MCyewXip9p+wnDTMzgif5ux/BZFMwHs+IEyajW
+# I5ruISxWMAkUU8xjVPCV7VFfZvv1/6f2s8pcJ8P8bYKWuIv6KO2abeWCMUfGMOPF
+# 4Ws94BDnISdJea0g911ogVziJQVml37hZhpBcGK7xVO6MbG71+PeEroEAsyaLyMn
+# vKhDr3lZ3+J9NShF3wu1Z/bs4iDCE4jE6Fw+LmPkVhtVKVd/+0zxqBxpCJExQpXR
+# bYyPAe3vn5j6dI/K848RLVj+HRsh3DRC1L23Iw9k5YP9ESGFAtsz7Igeu7CnDGiD
+# VFpuL48Y4brR9FvmXiHXdy/TXSnBWADqpTUYVNLENNvposfTl/XgLoh6gRznLvHT
+# /SzYY6yiWB2r1ICGCxRM8e7IERYQ6gBZ8MRNm7IYYmGSogXF8fOFRDcHISHq/8Fc
+# Pb8dmYdgPbvGd5p2JC8rD63mzOB43lSXj+0XCsJ8zYvSizrgvMN6zUswJ6UGMKkH
+# DN8K8pfgXrfuGoqyBVM1sujSnJdmqUFdCbMhc5zjq5GpjKinYFh4Pjdrrl7vmuDh
+# sZY9NV8=
 # SIG # End signature block
