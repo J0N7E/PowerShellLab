@@ -1668,6 +1668,7 @@ Begin
                 "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
                 "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
+                "$DomainPrefix - Domain Controller - Revert Baseline+"
                 "$DomainPrefix - Computer - Firewall - Basic Rules+"
             ) +
             $SecurityPolicy +
@@ -1711,11 +1712,17 @@ Begin
             ########
 
             # Initialize
+            $UserServerBaseline = @()
             $UserWorkstationBaseline = @()
 
             # Get baseline for all versions
             foreach($Build in $WinBuilds.Values)
             {
+                if ($Build.Server -and $Build.UserBaseline)
+                {
+                    $UserServerBaseline += $Build.UserBaseline
+                }
+
                 if ($Build.Workstation -and $Build.UserBaseline)
                 {
                     $UserWorkstationBaseline += $Build.UserBaseline
@@ -1724,7 +1731,9 @@ Begin
 
             $GPOLinks =
             @{
-                # Base
+                #######
+                # Root
+                #######
 
                 $BaseDN =
                 @(
@@ -1735,11 +1744,15 @@ Begin
                     'Default Domain Policy'
                 )
 
+                #####################
                 # Domain controllers
+                #####################
 
                 "OU=Domain Controllers,$BaseDN" = $DCPolicy
 
+                ############
                 # Computers
+                ############
 
                 "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" =
                 @(
@@ -1762,13 +1775,36 @@ Begin
 
                 ) + $WorkstationPolicy
 
+                ########
                 # Users
+                ########
 
-                "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
-                "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
+                "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - User - Display Settings"
+                )
 
-                "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
-                "OU=Users,OU=Tier 1,OU=$DomainName,$BaseDN" = @("$DomainPrefix - User - Display Settings")
+                "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - User - Display Settings"
+                )
+
+                "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - User - Display Settings"
+                )
+
+                "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - User - Display Settings"
+
+                ) + $UserServerBaseline
+
+                "OU=Users,OU=Tier 1,OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - User - Display Settings"
+
+                ) + $UserServerBaseline
 
                 "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" =
                 @(
@@ -2492,8 +2528,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWcGM0fHezyqoEXOg1WHVQQka
-# zYCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjCl/A5PHx/mei2AKaRcgTisM
+# Fs+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2624,34 +2660,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUL734Tyta
-# /a1OrqavA5JFo9p5AEcwDQYJKoZIhvcNAQEBBQAEggIAZSE4ZTJ255q2gG+/DuK/
-# RKsKK9itR2K0h5JE6M8BBlz54lNI98BoSav4Ysr4/PmnQY3efro3sb3TbUObJDnU
-# Z73koY2498SrGOa6n5w0Yu/ULwpsGfZmfHaTRiYVFAl7hbWhdDK3upboFichPiaO
-# ehESuln95bq5qZBudhgofr/9TeGnGH2CtZetsOVQTELd231TETzmXtNRCBv06ldC
-# Wf5LudSE5BPkXD4g2J6W3PYFOUCxJ9htxhOQkroTIstiVI4mxRO7FU8RKMWHfwtj
-# +NrVsq9PeF44WzeCuRnf+2miPlI/8h7Th7xZ1s6c2cG4/PrunEd9DZDX8RdRYz76
-# dugWSYU1ZtN1IyaUqc80YhwsmvSzrBB5h6rM15YXkGvsJnK+JrvvR0IaP+dTtXwU
-# BnPIY1FStNWzJOUfSE0bpR+CyX1PLGwJjhVrTwKwrkkbsWo0wNkXjl23X9WDSx2t
-# fnP2AQqkqRVK6PD324WV96U4e4RQFAunFoMdLjxgk8y6omWZxSxHVxIXYnJTBfX6
-# WjfWSUrzqlWnM9g3jA0+YBQhFkxyIxEeh3RZHu6KJRbINJYzsgMfYPNiawLXH8uS
-# v0M7G1GGoL0+K/JsQhMgZT77L400UxIQMD6AeUXee7AhO8t9t2dhLm6pjjZWfANI
-# p0Jwji66S0vOwA1R+Ajg3cOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUuZqK/ZIM
+# icd2l+Ikx9/XG4oI15cwDQYJKoZIhvcNAQEBBQAEggIAUtTHGTihw1//shzsmPLI
+# erhdHnIxkIMR9hE6ze1VT4x5G/BmyHEE6RFTFQ0KA0wi7maFlF6QuYRHMQfWJaFF
+# GEEYE3jqx5EauC/EYcuq7kRm/snAi8eu2cEf4M0pjPSNK9DVYN5L+rBGjCSJysS6
+# 4F77EHx7bosMzhKjHylzwhbeZmTc9cRQ2ofZs/S28W/U5r6eiAk5seZ2gkQUjfTP
+# ESLTaCkdLNNi3HqtnQLNV7fcwZeWMGfpEUc0NcCImbNofkqDWWp5VMqHeG85VO1g
+# aZ/a/iWHlrzrusgbdbaHifpcIwmUFazl8Jxp4M6yrPylxOd0m7SXaNATLExuy+HK
+# TrIYBd+zoh0pvxf4qspre00FAz2JkYymnDQYqK2nO5L7/5JDGIIUrq1cWz+rUpho
+# KHDjw1mlwXY6fk5IZ+tWdsIF0Olvr4IjGSE6NxZj/T3A2RNTMv0FlbvCPloMLz4t
+# lEd3rpk6ARe2GtxXTvRbcLY4zkDFQeyCad1Ug6+XvSqlTepTjMdRV0KOqQo9xaeN
+# R80c9PWzUCDsPYYpZH/0FSaFFIEXZIqlFgMMzzIj1wWPjF7bqQIHtMB+Hi62PI1Q
+# bhDOJAmdxBWNTk/IRaecdGKx78QeUx8wSsxFXJ3rC8UD3k5WCcpCKsa4Ur3/4lM0
+# VYDqfSekVSS2yTqewg15+7ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMjEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgwdCvATnanJqNDU8ICG+qi0wfVLafrxyLq1GuvxUy
-# r74wDQYJKoZIhvcNAQEBBQAEggIACZ1klEQxA9+J/dXJjSGLomNjBauW5mMLO7u8
-# bKVJWsvgqJg6mBTWXjhvvG2JupogsNG9sqNORpgPsSb4ebf4aoZi9Ez6tHgSMYaA
-# x/3DmAxu1x8FxMVeKqYoXwlZ65MCyewXip9p+wnDTMzgif5ux/BZFMwHs+IEyajW
-# I5ruISxWMAkUU8xjVPCV7VFfZvv1/6f2s8pcJ8P8bYKWuIv6KO2abeWCMUfGMOPF
-# 4Ws94BDnISdJea0g911ogVziJQVml37hZhpBcGK7xVO6MbG71+PeEroEAsyaLyMn
-# vKhDr3lZ3+J9NShF3wu1Z/bs4iDCE4jE6Fw+LmPkVhtVKVd/+0zxqBxpCJExQpXR
-# bYyPAe3vn5j6dI/K848RLVj+HRsh3DRC1L23Iw9k5YP9ESGFAtsz7Igeu7CnDGiD
-# VFpuL48Y4brR9FvmXiHXdy/TXSnBWADqpTUYVNLENNvposfTl/XgLoh6gRznLvHT
-# /SzYY6yiWB2r1ICGCxRM8e7IERYQ6gBZ8MRNm7IYYmGSogXF8fOFRDcHISHq/8Fc
-# Pb8dmYdgPbvGd5p2JC8rD63mzOB43lSXj+0XCsJ8zYvSizrgvMN6zUswJ6UGMKkH
-# DN8K8pfgXrfuGoqyBVM1sujSnJdmqUFdCbMhc5zjq5GpjKinYFh4Pjdrrl7vmuDh
-# sZY9NV8=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDEzMjMwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg7WSLVkwBmFEKeWJk0sY63PJPD0HJtXicnbAsMtvB
+# GXgwDQYJKoZIhvcNAQEBBQAEggIATGC+UZsKyjYMVEF2LS7jfuFzoRqy8VAEuZEb
+# 7b49aTb47VgNtXeRVvwwTb7bEYdBe4X2tNRfsnTFtOm6IEFpe+HAxl4M04j3472x
+# ez3bKiUINc9ONYaq3kUelCp+jwY9Bc0Q3V7uveEklzvrE/L3I/SVgppupT4eBXop
+# q9GbvRWaGYm7/Uut1FFMI97q2QUomAR6uAHnLynDLyn+wjvfQhfPuoW3Xi7qQd1G
+# 7CtBs+f9QExrIThWDpe3Hq593yGGRnHSYmqSMOHFx71faNrFyfrQ61Zud+4q1wh1
+# a5dN96b2t4y/MsW+EvdtAt3jGSfSM2rzwvAfydipnx1QCL9vLLFAh2D0JKzkn3vx
+# uos+WpsKZoEXVrPp98V89FIZA/MwulWfr3p1GfJPbpUAeJuy9Pm4QaXB+Q6Fdu25
+# LM9brdH+4Aet9d9FMmN/mZHqmhRuSawO5fVYIa6UGbW73dcIS2Hign3pVPtXhPeI
+# aSZWgHHxoPA5F8ui6EB3gixjiYn6oVVzSDshyMWteI5JJ+GZ/h8RwzwiU0Fb1VB+
+# +/icUND9Qbc4mt+Gqm2OaGBCiHmgtSSxvUT0P//asoZlpW20eBmzpy3SQlxHPFpg
+# 5dou4R9irStHMp/7N4WWGX47GQ8CLMmFCpPNO3i1LGDyZKi1G+csyU4g3zjXErDi
+# p7ndKjc=
 # SIG # End signature block
