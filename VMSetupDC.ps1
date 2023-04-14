@@ -655,35 +655,34 @@ Begin
 
             $OrganizationalUnits =
             @(
-                #  Name = Name of OU                     Path = Where to OU
+                #  Name = Name of OU                                               Path = Location of OU
 
-                @{ Name = $DomainName;                                    Path = $BaseDN; }
-                @{ Name = $RedirUsr;                     Path = "OU=$DomainName,$BaseDN"; }
-                @{ Name = $RedirCmp;                     Path = "OU=$DomainName,$BaseDN"; }
+                @{ Name = $DomainName;                                                             Path = "$BaseDN"; }
+                @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
+                @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
             )
 
             # Tier 0-2 OUs
             foreach($Tier in @(0,1,2))
             {
-                $OrganizationalUnits += @{ Name = "Tier $Tier";                                                 Path = "OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Administrators';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Groups';                                      Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Access Control';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Computers';                        Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Local Administrators';             Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Remote Desktop Access';            Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Security Roles';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Users';                                       Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Computers';                                   Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = "Tier $Tier";                                            Path = "OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{  Name = 'Administrators';                         Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{  Name = 'Groups';                                 Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{   Name = 'Access Control';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{   Name = 'Computers';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{   Name = 'Local Administrators';        Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
             }
 
             #########
             # Tier 0
             #########
 
-            $OrganizationalUnits += @{   Name = 'Certificate Authority Templates';  Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';   Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Service Accounts';                  Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Certificate Authority Templates'; Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';  Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Service Accounts';                 Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
 
             # Server builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -706,8 +705,8 @@ Begin
             # Tier 1
             #########
 
-            $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';   Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Service Accounts';                  Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';  Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Service Accounts';                 Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
 
             # Server builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -731,7 +730,7 @@ Begin
             {
                 if ($Build.Value.Workstation)
                 {
-                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;                   Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
                 }
             }
 
@@ -1073,29 +1072,6 @@ Begin
                         Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                         MemberOf          = @('Protected Users')
                     }
-
-                    # No default members in rdp groups
-                    $RdpUsers = @{}
-
-                    # For tier 2 add users to rdp groups
-                    if ($Tier -eq 2)
-                    {
-                        $RdpUsers =
-                        @{
-                            MemberFilter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
-                            MemberSearchBase  = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN"
-                            MemberSearchScope = 'OneLevel'
-                        }
-                    }
-
-                    # Remote desktop access
-                    $DomainGroups +=
-                    @{
-                        Name              = "Tier $Tier - Rdp Access - $($Computer.Name)"
-                        Scope             = 'Global'
-                        Path              = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-
-                    } + $RdpUsers
                 }
             }
 
@@ -2544,8 +2520,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwrNu9djm2I3h/H9RbxLsH7aX
-# 1yugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4GqC0FZ9Scq2I2TbmfZsl5uv
+# XOagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2676,34 +2652,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU7vSNya5Q
-# RgvYNhUSQzwPrFNWPXgwDQYJKoZIhvcNAQEBBQAEggIAsiIwDhnUf7+CK87gKCwl
-# TkdJjKwvDQUx3/Jzi1yA2bmNG3Ie18dB9Jh0S8JW8Sb/Dt1MTJvTsIZDlJa6yQw5
-# /QHRahmxP0z17aInrnEB8yUJDnkhfCV5k0SFq+xCFlbn2pD2x+8JAYN/T3HyZOfT
-# y7DdIRCJmp0hfYUMLJK0CRGmKPJKALB9ukOm9a1XYL9/ljGy8xGHD/lyc12TxUss
-# lZwpMH5T0uiIbm6DD8Tc6Sua3MaTSPbOhGC1wr1SGHefXaxE6jfw/OsJ0dWsO7Ih
-# mRRISpjCabkBogQEoKHr+VzJIm0xBsjLct0h2qAcr3A3YVS6khTcSXTsNB5oLbUQ
-# a4tFfm9KDrRbsRirXtR50xYKwc6kJvu22OweO5S/j4Lv12I+PDo8prlXfD/t+9/c
-# krJn7zV4To0jacX8Qsl7jkfkKRDZA3BkdBXF6v/BDsBiOEpsM6I1sEfZ5bNuH1Z4
-# iiKVbIyMyNh6wI3NnuFTNYNkAo+ne7tIdO713l86NumKw3OL1ldF0Dyz6ojlLdy6
-# JXlG63Snd6nAF2FBZK6lCJ4V/s7cdDaI9o9sRSiFgkkPiTSuvOD+96cIDuV19Lp2
-# 2fMLb4XdQtxqgx+atls0A4cYPAAl92X9aMXNCXQg2vmTtvjTCgGtPqX2GbIY7G1E
-# nDMz2ZarrgTBEt3MYA1cRXWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU1S+IXGkP
+# vFip6mpRodmbxbW6wJIwDQYJKoZIhvcNAQEBBQAEggIAtOJJaOFW0Wr1stXdrRFA
+# 3GBCq3zHqXYHP1+BEIe88wMf6Ndye1i1bEsZBhkgVE6OJ84haYHUhAjmkWA7/QGy
+# 9vGnQFaBVLZmTE3i/D08stNrBSftbQmV6bUogarlR7w0dJAWD3/sG8pcgt/9Tf2m
+# Y+ysJlb1yXSFVdp4+z971wGR8rpXJJzAQbZmqNFtrpFeJLv78l5mxOTLdpIidKxC
+# kBwyJA/NBI9rAhhaXPUm111xXKLZ5+saLNQbC2L7CLdXzdC+vNrsWYhEbb14k/JL
+# la1+/gu2IrfOF1eU9oycK1pQ7QWQCK5OH/GhWdZAD4wvG8JrE9Cd24+Qnn4ov0N5
+# AzvyR/aa/O5CZ+6QC4qKLHJuU+xR2EGqVz4ie0QaYUhEAbNqRQ3AHD311j5SWJcN
+# q6AuwyLOUOXgW8ofbYMH4xz2A//DCV82rEvekb0FrU1wrDeIqsAC+oDSqAezHP8N
+# CAsA43LmNaorQS6qDbZQe3MhBnqU5LB0Iw0RqezGrC35CNwlBrG0GXNqhQT+c72g
+# moKGcS/ULcrshwZN5VQhLCthce2qmHl6tUbkbwC/oXRfrBf25PXjsPrjfEfBRCL8
+# CgAD5X+gaTDZ1CQHaJS5EI7zdibSam9TIzrszGU1VW5MUKHL4uztnM6L3TCIj5ai
+# ewqH/196qVTkJotBbGWKnhuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE0MTkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgDdtP53ffO1Y9Z3UbqIzLBo6JY2+Hna+/stprMbFz
-# M+YwDQYJKoZIhvcNAQEBBQAEggIAD2ryxhy8lxWYT3SO8Z1Mzl+jjqQB+4aW6q2I
-# I3Y9i3LaZViwRtcXjAdfoG/EAd8UJc+ZXSwzYzoUbeDXf2Doc5CZ12lczStUzm2R
-# j5+tPl9Mld+RM/ahPsz39oHsB3Kr2QAPNcvDpTdgGvawEfzmO484cet64ww1Up8t
-# o7wS56USTryQk7mHzD51TiV4AJDH7cdPzfiCF+dvaDwi45vWaJKGq5B8MzlxwAtW
-# wxiXnA648vaO2fn12tylFERxLDgV1WcKAVgnaCjU5EhNfgbmIKihbAYbalmvpU24
-# Uftsq/fwR5/dHZujXi9HYaGNfgIxhsdK5HHHSWEk04xaeOWlcHB9ZsqbLf9yiejJ
-# /r35a0gQLE5qOc4T3ouwZsoDrNOTkcHzFNu6bY/S9beWhic9eXyRC5DSy1a8fpxC
-# wQnkJuEqRaMPbzEFefhPt7vN4q7xvFOT/W84JzHfevIwjW4F5vhMNQX+h8KaNS9E
-# r8aqGhA8MHFR543vn7mUkhHHJa9ukLt17nVObGUP3mdz2KYgNwDsSa8zMrlgGU+B
-# bHu+WyU1GkTH9Vdoi/Xt1vRgKfc8VLsuAaMYYk9aNMeKyVcdZgTsxMt0yVYlM4+T
-# VylNdc/TqMTCN1kNaiswW00aGORBddaC4ZBjPLVUo7JeYMglPyPzz3fr4VpO09R5
-# rFsTv3Q=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE0MjAwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgQ1BThMdKwqylF1S40HemRCTQFJgxkvGSBMqt2RKX
+# ZBgwDQYJKoZIhvcNAQEBBQAEggIARtcPZLNWxleewHUMuIshKLj+ABBER69TTWPI
+# iqRZ/rjpgXRvwc1tJuPf6BTBiTKcjltRsInnv5zqBJriByJSNwJaVXCD8Y2ImZh+
+# RttX3uN9BO4zmkDezOVN+z8yom0sK7P+5T6yTSbWHYlOCfSA3Ahyn0LJ0OnqDr20
+# KXylk+sdTmHov56tvY+y/bHmrrmS9z3spi9a3TzFjw4WOuM8F/nG8UH53EbGCdLI
+# dYcLw4rcKVagPVL6eHzseLK2rSmHw+BDHXGGPYWSCdnxtuaM5WGPlnn2rP9z43q6
+# 5gXykXZ7b+lREQ3/HhCmQ/7HoPb+YsClsnwVkAUEQ5s+1k17bLwyJDmegMQ7EB3e
+# 9gWyumdvLvmoxl34p6oStc8taXHKm2VUMvV7z0uMY7eUt6JT06I25qfsNqYENJn3
+# Frp3mI4VhCAD/nJp7gwn7DXL1fXbg4vE0XemrpdBFhz/dLdErzwJmOj223x3RI3F
+# lMCh1HbUaJ2HFaj33vxC722DHQ5SrUWNmtJlmt48S3C+qC+KVa/i0XFaHj4AF1Ye
+# Z2RsisH0HuJK9blYH0LT869hYCaJqG5TcykgEcWurTAgvdWN6I3lNGsZ/upaFXgm
+# dvTH2cFy/PwmC7e79HmACRf2aW+M54SyHN5S1/GiFrET/Snh0NOLWnk4FukFoGVF
+# MFJKqqo=
 # SIG # End signature block
