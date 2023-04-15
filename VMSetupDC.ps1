@@ -671,6 +671,7 @@ Begin
                 $OrganizationalUnits += @{   Name = 'Access Control';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{   Name = 'Computers';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{   Name = 'Local Administrators';        Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{   Name = 'Remote Desktop Access';       Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
@@ -770,15 +771,15 @@ Begin
             $Users =
             @(
                 # Administrators
-                @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
-                @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier0Admin';       AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier1Admin';       AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'Tier2Admin';       AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
 
                 # Service accounts
-                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false;  Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
+                @{ Name = 'AzADDSConnector';  AccountNotDelegated = $false; Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p';  MemberOf = @() }
 
                 # Join domain account
-                @{ Name = 'JoinDomain';       AccountNotDelegated = $true;   Password = 'P455w0rd';  MemberOf = @() }
+                @{ Name = 'JoinDomain';       AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
 
                 # Users
                 @{ Name = 'Alice';            AccountNotDelegated = $true;  Password = 'P455w0rd';  MemberOf = @() }
@@ -813,33 +814,45 @@ Begin
                 # Join domain account
                 @{ Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,$BaseDN" }
 
-                # Tier 0 computers
+                #########
+                # Tier 0
+                #########
+
+                # Admins
+                @{ Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
+
+                # Computers
                 @{ Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Domain Controllers,$BaseDN" }
                 @{ Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like '*WAP*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
-                # Tier 0 service accounts
+                # Service accounts
                 @{ Filter = "Name -like 'Az*' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN" }
                 @{ Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN" }
 
-                # Tier 0 admins
-                @{ Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" }
+                #########
+                # Tier 1
+                #########
 
-                # Tier 1 computers
-                @{ Filter = "Name -like 'RDS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Application Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" }
-
-                # Tier 1 admins
+                # Admins
                 @{ Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
-                # Tier 2 computers
-                @{ Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'";  TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" }
+                # Computers
+                @{ Filter = "Name -like 'RDS*' -and ObjectCategory -eq 'Computer'";  TargetPath = "OU=Application Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" }
 
-                # Tier 2 admins
+                #########
+                # Tier 2
+                #########
+
+                # Admins
                 @{ Filter = "Name -like 'Tier2Admin' -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN" }
 
-                # Tier 2 users
+                # Computers
+                @{ Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'";  TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" }
+
+                # Users
                 @{ Filter = "(Name -eq 'Alice' -or Name -eq 'Bob' -or Name -eq 'Eve') -and ObjectCategory -eq 'Person'";  TargetPath = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" }
             )
 
@@ -1071,6 +1084,17 @@ Begin
                         Scope             = 'Global'
                         Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                         MemberOf          = @('Protected Users')
+                    }
+
+                    # Rdp access
+                    $DomainGroups +=
+                    @{
+                        Name              = "Tier $Tier - Rdp Access - $($Computer.Name)"
+                        Scope             = 'Global'
+                        Path              = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberFilter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
+                        MemberSearchBase  = "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        MemberSearchScope = 'OneLevel'
                     }
                 }
             }
@@ -1632,7 +1656,6 @@ Begin
                 "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security+"
                 "$DomainPrefix - Computer - Sec - Enable LSA Protection & LSASS Audit+"
                 "$DomainPrefix - Computer - Sec - Enable SMB Encryption+"
-                "$DomainPrefix - Computer - Sec - Require RDP Restricted Admin Mode+"
                 "$DomainPrefix - Computer - Sec - Require Client LDAP Signing+"
                 "$DomainPrefix - Computer - Sec - Block Untrusted Fonts+"
                 "$DomainPrefix - Computer - Sec - Disable Telemetry+"
@@ -2520,8 +2543,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUW2ShdD2E/g/aepI0DfyFurk4
-# plKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0poiFAApnW9dXnsqpjtOpvLi
+# sU+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2652,34 +2675,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUs522c1Oo
-# 5yiIbXJSJiKaS8JK4DcwDQYJKoZIhvcNAQEBBQAEggIAp/XUBhAk5ZuEUAOIw6Xs
-# 68dQfD55/dafdCEcBpWGKryBgTHtx+Cb3lnmcKvud8cG30lDr7dIrJjrKLdS2/XY
-# yFnXlXjBK78UWdzqZHtq4y2vn55IRlbWean2Ntm1UNhnp5VoO9AEAt25O6qu/ikv
-# goN9/hYqrgPrwFXc7V0kehNrnGIeysRPgvazZXRRz+CE5hnt8WaMzR3r9R4C0aq4
-# NaSo7HNKguP4tqNqwnfirY6eQd2dg1DDfc6zbSz8+x7IngwIBrhUjyQDeFR6vM+I
-# 0Ye0sb32bwXpMxDZLXph716CnebfRIP/pElUyK9Vc7Cj7gDEau9ODmveBF+mRpqO
-# Y/SkWi4mKBeCxoCsc2EmwaHA49ARr9DdQSpflFEsVBcvKJiU590HWuEtRQpKdQ7z
-# ffwZU2GLbisIISNCJsuTslsajhDjmrBlUZBK7PpTaPFMMEGrIWwgPG0qNP1lcGhi
-# gy/cRTwE5LX4HKb6GCem0VpGLhaNsScjASosAeYdvscyhIqRU5uepCwS/7BC9sVr
-# oxJAMQrgondnWrlC+gs3LdsET3Cl4znh8RsSs61azcJF4kaShI0DyrqGgvaOnhyq
-# FjZlcvsjXmj5rwDGD+M0h0UhOWWsDwXTLivV+xBNjFKkNi31f8g5Gf6JwPCpVZo3
-# DMlNYAtkYyQ+Z2wR7gw0Ab2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSa/jLDeH
+# wippVi5ZoBCR6/dkeXcwDQYJKoZIhvcNAQEBBQAEggIAkd/YjVSuJ4PCjmRJtCSE
+# F4gVSP3OKuRmtydPWVhW0zeulvzb0yo6D0YbLEZJEPBH8OmQFjip3JYcPH8/SiOB
+# sFMJYSDtNi1u0nX1Cx3au91Wvqo0h2ntiJ9ZJls0tsVkTnSIFl5nKEZF0kwHw71O
+# 8+c+tbaoNgFyITthWYeqkTvNaODQgNfr84dhy3c6tf+4QhgjKa1ZuRAX2EHz6diq
+# WkdV74zlxuNzmho9aU8abyoyLDZLCVqWNAyJ8NyXSAu+/BEBQu8KHDE7uTNPwg6w
+# yKlCrIoUlA0zda474S1ZFH2bXGq01E89W04y/tRwo8C9MHpNpCz7LckSFYbR0yJ4
+# JHKbb8jRqWAbmB63c8q1SWYCw69moY1aOfscywOazI8S0nlO9kyVITT2SQEekr06
+# 59nT2GMaE0izImXK43ZM9ZrcDtz+zVHLikqR2EHijwtwwNyr77K3zhsBb6XDRpro
+# FTaMT9o50a+i1SQE9W/OmGK5HOrP3Jf88aMEK69rKCc0/GK/UXcSVGdhGZc+I1qq
+# GWQOb5n+JOeH7Uq3y/xBKmLckVZexpl0Tij+y93EiYW0SaRANwsJSt5Fy4nm8aad
+# Zsg4B9n69COJGnJtV6CGw9pQJmkCaXzl8D8i+Ps6y3nZXfnOtGPrPSjQrM0pBWNE
+# FCE90ircFW+6zhTMS7NYWS6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE0MjMwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQg+mXzD+MxSpBR/ZLMgMS2FoLUgLPh8PGcL3T+MEI7
-# xucwDQYJKoZIhvcNAQEBBQAEggIAnfonqDxtXGvTmNrBQnvr84FqzfOyi1KUeGIM
-# FVoDbrXjkJRIFMkpnTMexWK4LE8o9eCX7waYGxcNrwbz5t05XTS/NC1KoaWOfDQS
-# NtA4HG0maQ4Y6p2LafMdFtqIdNgO/X/yQhCA/X8RhcO+nn/+DqZnfVI8Q7RdsPnw
-# 2/Qdj0U3yDJFn99b0JdnU6D8pj6n8xV0Bjlc5+pfzupDrgicGm/PAbi9MUBxZxEk
-# hZ7mDJhGjQTaMRvBz2gMNYCr0g7WBRZXhGDJ0tZbOf/bv4/gKe3fcrmEDCBj3PKv
-# 8D/D+Lcp4LTsjRe/t9X0nlEIgDPJginTpkdzjg08wuIPZqyF6560fbaYeKNebIqf
-# 1rBcn2JbvnwQIjSXu5MdWyfp7Wjy36GFK+CmbgG1jCz/jItfh/WXBYKRwBV8BF9s
-# rTW6LNA9TZAYLZZLSqzUgwD4Q9vH0E6mIVA3lrJfTPXHqeVICPXRu4gvJAKiyG8P
-# ttLCd7vicM0Jdr2L3xKooQ9wVjRQt9qCPUm4z4KOhcnZOkaWM4PabYtK2pC8YeqW
-# f1InwtJVN/J0/nw3vhsTZA4+Qh3EAtcHibsLDgibgedTEL5hD30uOEGqev9OthIC
-# 6f4q1NE+yYgwm2Es3N9TkQAB1shG592S32L96FPztIaD9N3nL7nG2yiL8RdIIQPW
-# ls8/hSg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE1MDkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgEJQ1PhkZHMfcui5bqk0C1MyJ1sstnMdOFbp5btAo
+# eQkwDQYJKoZIhvcNAQEBBQAEggIAsIkXqiHetlGmxqskrRQ9UHNsi2tDiHvqNlGN
+# RNsj68sBiZkejdSoyJHi5XwNh/Ans23ntCAtlBafHcHxwC9xZOg0ktnprmzVTpSL
+# zYAMnPVqk1/P1We1sSx1mnJgmYwh02EHjepQQmzoHKYc/7Pe/CbibI8aaejawkDq
+# J4z/SVhS+f25h+TpBfFyJElno9QLW63QGwl8kZAdmasy1TIgi+aisDsuEE99eLzC
+# PQmuGeBOKezSPWlbfGcwRkCxcgXFJn0ceFFLLjMs4TVjfE3d4Aj3is4xcZgHDwyh
+# O0lsUfj1f5IOmiyc38QHKse5bR3xIsYZA94kyLhxTwjCIUeFJQQOGQ8gPpzq+/Ck
+# vDiTpHu6EVvPWCs7jDqVqcuYwipo7C7Q0tB+2UF2CvP594o9Y1w3ja45P9X1iCPz
+# x3wDywZl6crbc4qvIwptN2crEmIc7oxAO9IM4Upv9jtjbols36MlM/ZpVR+t2+z/
+# YBnH/rKCd4ucxkOPglRnIeJeXBidaYRnPfbsXyPqTg7DbHpv1LaxVOMix1lus/Yl
+# vMOV1FvGNKAbah+qagyofxPuZx40aOJSVyLPSDBc/HrBDCSC4a4o+BbEOFCihvCK
+# zW8QEhqHiK7x6NMq5LtI/CJk1xPomZh7rsbpRTTsJwUUeIhcpZY/bufBAhy3RVUR
+# OZ84osQ=
 # SIG # End signature block
