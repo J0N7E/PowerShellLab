@@ -138,6 +138,16 @@ function Setup-DC
         [Switch]$RemoveAuthenticatedUsersFromUserGpos
     )
 
+    $Argumentlist =
+    @(
+        "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
+        "-DomainNetworkId $($Settings.DomainNetworkId)",
+        "-DomainName $($Settings.DomainName)",
+        "-DomainNetbiosName $($Settings.DomainNetBiosName)",
+        "-DomainLocalPassword $(Serialize $Settings.Pswd)",
+        "-RemoveAuthenticatedUsersFromUserGpos"
+    )
+
     $Switches = @()
 
     if ($EnableAuthN.IsPresent)
@@ -174,19 +184,13 @@ function Setup-DC
     {
         $Switches += '-RemoveAuthenticatedUsersFromUserGpos'
     }
-        
-    Write-Host "`"$($Switches -join '", "')`""
+    
+    if ($Switches)
+    {
+        $Argumentlist += $Switches -join ' '
+    }
 
-    Start-Process $PowerShell -ArgumentList `
-    @(
-        "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
-        "-$($Switches -join '" ')",
-        "-DomainNetworkId $($Settings.DomainNetworkId)",
-        "-DomainName $($Settings.DomainName)",
-        "-DomainNetbiosName $($Settings.DomainNetBiosName)",
-        "-DomainLocalPassword $(Serialize $Settings.Pswd)",
-        "-RemoveAuthenticatedUsersFromUserGpos"
-    )
+    Start-Process $PowerShell -ArgumentList $Argumentlist
 }
 
 return
@@ -454,8 +458,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQLmjjkKYfPYLJ25hMfPlpNM6
-# wDygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUaDg1k2vcaC3rc7i+N+yzM5L
+# ww+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -586,34 +590,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSgQAcG+O
-# urshFlx4llUeGnYAHKkwDQYJKoZIhvcNAQEBBQAEggIAQmCXD3JdmYukD6s3d2GZ
-# 2CllE68DLQq9RkwUi263K686Dw0vhYsZe3VY/EHVZuo9Nk9Ngwe4g/lYAwDZNHVx
-# CqQs72jCVxyy5Fmfg0xxF1SjJm8/EM70Ua6t1uDmEuUgusK9cBlb09sHl3DpojHa
-# GDh1jBlx6VRdcpAJmSi3hDusaAZNc0y0Iq3jp0Ur59KWyPALxL4bWP76sdyNnc4l
-# Ei5YIzPb9amuFeqOa9brLuP8GK6ZY6BJ4++f+/zwTeWN1ZFTQOv6maurm6EJQXcQ
-# naI/5X3Bdpy9chylLoIhvdbIQ8/vOApTcUYRifC9Dp5DjGV8IkBekZlXhaNiAUrQ
-# HW/QFcNHqWkX/gI3sv1Bee7EsT7t1lNnl6bO/68JL8rZbYe5ksb2+GoUeAAlchRT
-# w03OHERRm6VLcjFG9skNY605InuwALLbcXtV6ShfomBKi53fNbIrHxDpfRVLua5b
-# G6GwJeH/IdqoNCbntf8bXVy8/H+BVSFdIM+6xc5CidvbNUSl16nDGlsVXpwvYvq1
-# yCvIi+Sy81yXm8pQztWI2AoIOYZMV14ffr5ekvH3uzhUcdDP7ujD9MZo00dpAZfq
-# pZ0oiPMXTlfFK3AFNmE0Lf+JjcVGsdMbrFvJ10SJmLyVpzH7PY1BFeB5PtrL06I3
-# qlw/0WTfMDf2JkK8MHkxqcKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnDL/3euF
+# WVlc84KyT0Zvf9/Rv+YwDQYJKoZIhvcNAQEBBQAEggIAKLGxuWcEMjYKe/kG+a3/
+# 8SpnDwKjTPOK812pMTspczGZjR/EZSAQUdkd9yAFWVI7gsSqlvEQRygbV/q6ZK1U
+# r4pwJSDm1XSiG97oWvjVBUdw/cYuUnBjcs0DtPfmfKk8kj7fAiM52H58mY2wb5fa
+# gQFMjA0WIFRlls0LcZXuU8DfHBd3GYG9EIM1ENF20SZreN1oc1pooSyhpfq7kihn
+# 3jvt/W6MqGXV2FiYFdNPIEP5/USHuZOkwA1BVmtLHSQSzHVDNvUFdLy5ozCSXIbh
+# Iemqfa+6qPseEBL31MHewxs2V2Cuu1yGLdq1orgBL2gFa1rqegfOhEujeB7SxGoV
+# lttE91A9gONZZ9G7D4F9nMSFNGvbjIbMebsMz1SCgHv85z4wDxaqsnEFCnH0nqY3
+# 8nrKxiv+eMEJdfD5InDv4909A7h5XWdwgGvWOphkgbr9eypcIVjnX3qKHl2jZ8Ux
+# 2mKt+s3dGHXFWeWT0/CFMCvdIgFK0+PrOPPGXT4ttSrXcySANIqB8CyHvnNmF8rg
+# 0zCRRAwqiGaFWe+wrKJMTk6FjLWy9+y0ij5xxgBWAW7/tPaNB8XWTuzHPpskACVX
+# 7BXY2pQbVCDxW0HI0qCcP0/t/tcTIryi/mXvKCdMcnB1PXoAKmpU3bsXUaOJs0TP
+# r2RkSKIxUZcO7loKE3gMkTChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTQwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgX3x3IAGVdNXrcRdlar8zUVaxUcQpY9RcYO/gR8Me
-# BrowDQYJKoZIhvcNAQEBBQAEggIAxOvJPuWwlXTLED2Rj/+OoFxDwKhOxekqWioJ
-# 1OhvscV/kPjqiTbbp48lGORZbS7x9DG9tkOZJ3mkXSmRY+COjSprJH60DdWsNuZF
-# 8Xo5On77Q6Y6bgW8Y8MsQin/UqKhsEr073WUqrhMshG9wi+qjigOcaor1j4EOMgy
-# ozYukvp7Jxvm/8ENbkd2wBwrc7RSfwMB9mLCbAh0p3EELBehnuE+pztqKUu7WSX6
-# 2ROILEtp5Mu/rNng3eMjRz0nEmVptCbgkdeJbx2jXt9LGPeWzbXcSI5CfryomRfx
-# Ul8Ujc4w9v9RI/nJcYRreGp08f0GG4oUleZBD2aQJp1rLoGgQJf/+Me1rfsaW9yF
-# TimMt7oNI1vXYfz3wksUSaqsM5eAJefwY82vY4GcBQLYXo0r5Wvaqk6LEaG9lyjb
-# tKGpBuh2Uo9w5HMR8IuEwrGuegVjPg0I4k2cqOUUevy6DWG/gquIq3d70iR2Eekh
-# II55apaytif5dbzMZx8rLkBaAR/U2l8bLCXkpHQwn0KPoREf9EsO5t9OvTisU8Ww
-# ImdhuiTsyGIiSkrES5UigDU3asb6GzyJCFUY+wyzTMg3gpLrrH4Qg/PFkFufgyXG
-# 4UbBowMJU9gHMNI+LF3ga+olx7djsjgKZKBjL0/3BjrRcoLI14AP8MVtXHHcsGeB
-# xUPlOUs=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTUwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgJ3D10luv1V00ufZnwsE4DWa+Z05XvhGguEFMxnkm
+# 7OcwDQYJKoZIhvcNAQEBBQAEggIAmqn1howoqzAzHtFZz+bzE/9f0gJVVYqFeD98
+# b2DDmyqNQRy5Oka+g2EFgP0DdhArpC62wZjHTY3A2z7WrW9jmzOZS6LE35k3KnQa
+# 5K8H2384oJLs+SuK/4ZdnW8P+4j9Oww/ipkt1aCd0kA2Yqf6wDGrRGlIVp0TuuCy
+# rmO1Ap6zmIq6yOrkCEGWPhdHPxMDVbq+x/6AaYI101fRjEciPeHg1dI19OjbabZx
+# 1wDL2s3tUCk6uPfz4K894dAbsDQwTiMVTXiB9iiHv6jWvZdmyUwD9E3Sdscp32bp
+# V6H0AH4+Dod14B9rMkLLck3djkkSYZGWlL30t/f20uD3Nz65+fWz+DZ25NaDqGVT
+# RxjvIUErcdK7C5fXxEYsAL1yJLVsZAwSGe5ut1juiSvCg6q/yYmPK5kxTJ2Oyrc3
+# UUQTxvlb45MRfdnKi+bcSEuVqVwD0DmHGs1JJ9QPvMLCWpydDXaIMo0+X6wT/QNs
+# t7CbeH2tDljV+gkNuBmn7BholqBy8NS69vKpRILr1/HZZ+6LsvwFD9qrGx+oSwb4
+# uiXJIZKbG0KmUPtvhE9iQy+awsNDqunaXWdW36VLBWgeJ+xIUvGNhBL6CzHJa85K
+# 74cK9tY67CtAL42+xqIKYOlklZFaI50UlebbL5mWnkc/O2JrucvDvDjIuCbZgWMh
+# KT0j7ms=
 # SIG # End signature block
