@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="WpadOverride" status="WpadOverride" image="12" changed="2020-03-30 21:37:15" uid="{9FF68C6D-979B-452D-86D2-3F98890CEB95}"><Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Internet Settings\Wpad" name="WpadOverride" type="REG_DWORD" value="00000001"/></Registry>
-</RegistrySettings>

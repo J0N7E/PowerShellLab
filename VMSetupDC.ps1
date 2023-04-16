@@ -269,6 +269,69 @@ Begin
             Write-Output -InputObject ($DC.Trim('.') + $CN)
         }
 
+        # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
+        # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
+        # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
+        # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+        # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
+        #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+
+        $WinBuilds =
+        [ordered]@{
+           # Build
+            '20348' = # Windows Server 2022
+            @{
+                Version = '21H2'
+                Server = 'Windows Server 2022 21H2'
+                Baseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Security'
+                    'MSFT Windows Server 2022 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Controller'
+                )
+            }
+            '22000' = # Windows 11
+            @{
+                Version = '21H2'
+                Workstation = 'Windows 11 21H2'
+                Baseline =
+                @(
+                    'MSFT Windows 11 - Domain Security'
+                    'MSFT Windows 11 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 - Computer'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 - User'
+                    'MSFT Windows 11 - User'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 11 - Computer'
+                )
+            }
+            '22621' = # Windows 11
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 11 22H2'
+
+                # FIX
+                # Add baselines
+            }
+        }
+
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
         # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
         # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
@@ -613,69 +676,6 @@ Begin
                             $UpdatedObjects.Add($Server.Item($Reservation.Name), $true)
                         }
                     }
-                }
-            }
-
-            # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
-            # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
-            # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
-            # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-            # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
-            #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-
-            $WinBuilds =
-            [ordered]@{
-               # Build
-                '20348' = # Windows Server 2022
-                @{
-                    Version = '21H2'
-                    Server = 'Windows Server 2022 21H2'
-                    Baseline =
-                    @(
-                        'MSFT Windows Server 2022 - Domain Security'
-                        'MSFT Windows Server 2022 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 2022 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2022 - Domain Controller-'
-                    )
-                }
-                '22000' = # Windows 11
-                @{
-                    Version = '21H2'
-                    Workstation = 'Windows 11 21H2'
-                    Baseline =
-                    @(
-                        'MSFT Windows 11 - Domain Security'
-                        'MSFT Windows 11 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 - Computer'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 21H2 - User'
-                        'MSFT Windows 11 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 11 - Computer'
-                    )
-                }
-                '22621' = # Windows 11
-                @{
-                    Version = '22H2'
-                    Workstation = 'Windows 11 22H2'
-
-                    # FIX
-                    # Add baselines
                 }
             }
 
@@ -1917,82 +1917,34 @@ Begin
 
             foreach($Tier in @(0, 1, 2))
             {
-                $ComputerPolicy =
+                $UserPolicy =
                 @(
-                    "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+                    "$DomainPrefix - User - Display Settings"
                 )
 
-                # Link tier gpos
-                $ComputerPolicy +=
-                @(
-                    "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment$TierGpoSuffix"
-                )
-
-                # Link security policy
-                $ComputerPolicy += $SecurityPolicy
+                # Link administrators policy
+                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
 
                 if ($Tier -eq 2)
                 {
                     # Workstations
-                    $ComputerPolicy += @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+")
+                    $UserPolicy +=
+                    @(
+                        "$DomainPrefix - User - Disable WPAD"
+                        "$DomainPrefix - User - Disable WSH-"
+                    )
+
+                    $UserPolicy += $UserWorkstationBaseline
                 }
                 else
                 {
                     # Servers
-                    $ComputerPolicy +=  @("$DomainPrefix - Computer - Sec - Disable Spooler+")
+                    $UserPolicy +=  $UserServerBaseline
                 }
 
-                $ComputerPolicy +=
-                @(
-                    "$DomainPrefix - Computer - Windows Update+"
-                    "$DomainPrefix - Computer - Display Settings+"
-                    "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
-                )
-
-                # Link computer policy
-                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
-                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+                # Link users policy
+                $GPOLinks.Add("OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
             }
-
-
-                "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-                )
-
-                "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-                )
-
-                "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-                )
-
-                "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-
-                ) + $UserServerBaseline
-
-                "OU=Users,OU=Tier 1,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-
-                ) + $UserServerBaseline
-
-                "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - User - Display Settings"
-                    "$DomainPrefix - User - Disable WPAD"
-                    "$DomainPrefix - User - Disable WSH-"
-
-                ) + $UserWorkstationBaseline
-
-
-
 
             ############
             # Link GPOs
@@ -2043,7 +1995,7 @@ Begin
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
                                 if ($Link.Enabled -ne $LinkEnabledBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnabled -> `"$TargetShort`"" @VerboseSplat))
 
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
@@ -2689,8 +2641,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUboqOSbBfbA5/nZjEuSIhjVvK
-# 2UGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNsVywXL9Uur39vil0SBYQsrs
+# roGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2821,34 +2773,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMF4F8VPm
-# +lcmXGVgP3cl8GcP9a8wDQYJKoZIhvcNAQEBBQAEggIAxhsV+ItCxWidfaG5KrQ8
-# MV6oB98JljPVWKCpAsuoEiIpqdXxQRTSZAk4OigxeHPXs40qzEQaxkrtK+6jZb9y
-# aUlGIXUCI5CVKN3jUHaB3M2j4ymhfmgfqmoUz4KF+4BoNMBxV56Ay90h1wqp8ceh
-# 6KBccpC4LGf1yk7t4EXVG6j5p6XVQxNVNVubat6unxZOLfb5IBIShDOt0RKDHYC5
-# cyvxyF4+bHR3TAU8CxTkDURJq9oIq4ojqwvL4yLvXniZiO7Je3xADoayCDc+Sw8s
-# 7N1Oels3QY3h16QPXOHn6+/YWPT03AuKXMY4cmunci0aJPXInm5i7k0twEuU9ako
-# uOkPb8oRbU+boXGKFeb+hmlmdLjJnN0KEAJm9p6AmRgwfZz62GiWE5milojQHz5i
-# K6jIAxrMmQVDr/cV2UC4n2EqlFo/Som6GZtNqJnENyV/SzTsBrVSoINMO2/S3NHU
-# 7vXUWudlE6xc+NqBV4soRjkW1h+WVil23R6SoCML+3jqwbD2A3EWSWp5qzTvZlCz
-# jQQnv4j5kqEzoAj/weJ0Q6U/vltL2emkyRlkExeolqqWqsZXu1vuo5Hhg+ojdX9v
-# JS4uIgiochXTifQxNhAcM1gtcoWdmiWQqHj9p+OK8u0CkRDpIePlMHkZDcUpWOf2
-# TQwiG2gCzrmpjp6honptmHqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUU2Nr3Usd
+# XyQBMj/rb9Inu1jEaUgwDQYJKoZIhvcNAQEBBQAEggIASJIiTcXBINTx+ftwW6Xj
+# spDPJ7XhKfwZ6Oix7TUCXXTM0CBd/l0g5n29d7cwnhJm025wYwQlDQuzpu51WXvx
+# VZ2iTbJAj5/Bn38tDej78u5jJnZEcT9e+2+zASsuMOCmC3OE9KoJTSYsKVUMWsbi
+# fpz3sw8yKF1RSC9QZZgWv9/EGIak2Bif7B9Hn4+RIux/bZiZpLh9PgJPA7NvA22g
+# n9Ce+ScJ6sgXNpb7QeKOZicpPzFusEo3KNMlTsx/iZr8pcTElP3y+QDbVlBD7HA6
+# Eii6X0yPiFoYUtjhuFnU5yRMFJtv50lRiYKo90K9+BvyuAXTotMQlgQMXCRIE/0U
+# X5ykBy/1pi6rPSmOMyRNPQDelAoy2TJfT8L8kNgAZADTBmsoli5HTK+PvwsLEQ0j
+# OWqBhxpgGq6NnTlJpl88C6SvTMbqbl/6ajKHkiX+bLK9mL27ViRTvojj4Cw7wAPs
+# kQ0HaQY32Y/BQPEFoS5juX81I1oBIbUtV4o428LOfNr2Dywd7QGDKwZBdt5Chgcs
+# i4OmYEFqGKSQfetVnrKxkRGKXvH/bKZbjomBlvdOd/nNP3AjW2Nk2D/hnayAIALg
+# x4YdO7SGeKkC2ygVh0pp/9LPPNQsWeIuALjXzmu6BjWiLjs5ZO2bsSE9cDcJF2VF
+# auLCtLuLoGPXflpjuoM1I3WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg7wyr+z7ZVwDGL+zMDd3/N8RxCraJkLjbfWXddP2W
-# +m0wDQYJKoZIhvcNAQEBBQAEggIACe9eVhPDYOFE4EGvjttum1XHzrw/XnySKFdV
-# o94Cntz8hFw4Jde73IJB1k6feyo8Ufo0M4uXf4L8eEVeZ0udy2ofy2NTKkGHgRBD
-# P4eo3+hXbC/+XdbcO8k9BY/YrkCxoIo3vcr5PElrb62pZwW9Mu8qR0O2g+RUX4fX
-# ftih9hN0VL/XjbcpromnEDoUN8JctgQmKz4FaWav6pq0kzYPmyNzieX5EJjdCqk2
-# XOaS//hiJvXLzkRJzUSCKDf6uDdPXY231zQHxHDq1wqQMCA6d1nogcYV9kueoJgL
-# jJninTTH5gPnJcQqE5bYRQDMYGM3JFIomf28MYryvXFoWGAQ8wfDfxAWp/BHB1MR
-# zRNL3ehlYHZ/z/ZKQmocKHxmQfS195unctCiM4E4eb3m918xrgbgzGMvbY/xWAK9
-# ryiMTBcmjj4/vqfQ0DicLfgNkXXA9yM+irzpyBrh1zAWVLP75TwHRH7kVSRcb/oq
-# wK38+RmWiUDNt0BjBBWvY4NE8u2UtHgzzCdUTCi29UdZnA2WHqI2d+V0082Gt6Aj
-# lwFS+RirnV+HaGfErYw0VhEfjCD90SQFDL8N4KbRQ8XiTfvTHx1Ra+ZICevdHMQ+
-# 6z5G1jAHawlw5yl06E4sJe08n91I7D0Q8mSzSbqL0ihh/2pGJd9F/er2SwHx73zS
-# cKdFp+c=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQg9TyZH0Ulpw0Z1EqmGCRP2Kh6N5WpRYxMLSq6BEsQ
+# MigwDQYJKoZIhvcNAQEBBQAEggIApVWnpycqNL+kd2GEkEj//01djE7v5cv5BbJ0
+# nE9lrPN1U/oMS6S4T/zkvO55GDunyTQdby+pqqTNQmXJz/y9auK34y5PHS0hK0rg
+# lYGsMCbn7RkQAKc2Wj/pNKZXGbWHq+SodDVigU6yLgPyQ5jBFwfGhTqILdDPc5Mg
+# pY03oIHrWepH8Clc8DlfM/xbH0wn1SFEdlj7yMW9q53k0+PFIHfnHmkM4/WNt4SH
+# wW8rTdy4B1hZ9BfOqo9oe0qofRr/o6QS3U3Eb9CPQylDXNg8dqn1JJMgPUxM7bw6
+# vpSY2S3UXF1o+kYZdnMA2gQ+nRnLHlJAds5Jrq9UhDZCneBh9R1s1M4iRYwuY8K1
+# qeS/ocgylnsloSnBKoJGxsiD8UkqgbjspgCCQP4+kM0nda0RHckuc/Hbrh+Gpiqz
+# tqxTSF3BgHmqNumqTe5d9jj5M8NJtmS4cwDjT73h1fRdlmVD+VCs3IHtlEU2RINW
+# 4L3OgEH11/z+XPYcQM16xpwvLxaj3PoqX9ALkDTLXjOotUGrZclobufOcd+Hw/Fc
+# CepheJhflz5AcW75jdj4yssDpy9Gf45XbCRh6vasUXe3wROVsI8R/qthbbBG+Fot
+# knYvq4dK47GB+pNd6UHqZ4f1qm3JIznR166chpGs1WDWcMqXDOSUp2lo0wFgFwIK
+# 8gNJM8E=
 # SIG # End signature block
