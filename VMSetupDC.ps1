@@ -65,10 +65,11 @@ Param
     [String]$TemplatePath,
 
     # Switches
-    [Switch]$EnableAuthN,
-    [Switch]$DisableAuthN,
-    [Switch]$EnableTierGpos,
-    [Switch]$DisableTierGpos,
+    [ValidateSet('Enabled', 'Disabled')]
+    [String]$AuthN,
+    [ValidateSet('Enabled', 'Disabled')]
+    [String]$TierGpos,
+
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
     [Switch]$RemoveAuthenticatedUsersFromUserGpos
@@ -1747,23 +1748,29 @@ Begin
                     "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
                 )
 
-                if ($EnableTierGpos.IsPresent)
+                # Check tier gpos parameter
+                switch ($TierGpos)
                 {
-                    $ComputerPolicy +=
-                    @(
-                        "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment+"
-                        "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    )
+                    'Enabled'
+                    {
+                        $TierGpoSuffix = '+'
+                    }
+                    'Disabled'
+                    {
+                        $TierGpoSuffix = '-'
+                    }
+                    default
+                    {
+                        $TierGpoSuffix = [string]::Empty
+                    }
                 }
 
-                if ($DisableTierGpos.IsPresent)
-                {
-                    $ComputerPolicy +=
-                    @(
-                        "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment-"
-                        "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups-"
-                    )
-                }
+                # Link tier gpos
+                $ComputerPolicy +=
+                @(
+                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment$TierGpoSuffix"
+                    "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups$TierGpoSuffix"
+                )
 
                 # Link security policy
                 $ComputerPolicy += $SecurityPolicy
@@ -1979,13 +1986,11 @@ Begin
 
                         $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
 
-                        if (-not ($TargetCN -in $Report.GPO.LinksTo.SOMPath))
+                        # Check link
+                        if (-not ($TargetCN -in $Report.GPO.LinksTo.SOMPath) -and
+                            (ShouldProcess @WhatIfSplat -Message "Created `"$Gpo`" ($Order) link under $($Target.Substring(0, $Target.IndexOf(',')))" @VerboseSplat))
                         {
-                            Write-Host "Need link: $Gpo"
-                            Write-Host "Target CN: $TargetCN"
-                            Write-Host "Current links: $($Report.GPO.LinksTo.SOMPath -join "\n")"
-                            Write-Host
-
+                            New-GPLink @GPLinkSplat -Name $Gpo -Target $Target -Order $Order -ErrorAction Stop > $null
                         }
                     }
 
@@ -2091,7 +2096,7 @@ Begin
 
             foreach ($Tier in $AuthenticationTires)
             {
-                if ($EnableAuthN.IsPresent)
+                if ($AuthN -eq 'Enable')
                 {
                     if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
@@ -2168,7 +2173,7 @@ Begin
                     }
                 }
 
-                if ($DisableAuthN.IsPresent)
+                if ($AuthN -eq 'Disable')
                 {
                     if ((Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -2551,10 +2556,8 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $EnableAuthN = $Using:EnableAuthN
-            $DisableAuthN = $Using:DisableAuthN
-            $EnableTierGpos = $Using:EnableTierGpos
-            $DisableTierGpos = $Using:DisableTierGpos
+            $AuthN = $Using:AuthN
+            $TierGpos = $Using:TierGpos
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
@@ -2641,8 +2644,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp0Ft3OMrczIwCga//eegeodu
-# E8agghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUFchkUMih/n3W/fI8mGusRLb
+# iaqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2773,34 +2776,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCpintwqQ
-# 1qxzwHHEXBPolNTy8MwwDQYJKoZIhvcNAQEBBQAEggIACwmAHBa1k8Irx7NRS1TN
-# IMuoNKnX1G7nUhgjsMiE/8eRkqvtJXisoQ+6c2Ka4MxMk0AmapDdAhGuz8nd731p
-# GqFyBX3ehfEUT1tMiHqJSSb/x4H9u33UIFg9xKzKDwwXEokFEk9DYzqEkt/1DdIh
-# /KyGXFfk+vm2e4cvGYcPfT/MEaTmR6plh6ymrhDdhjxMzTZPYfwyZat+4ar85nkg
-# YFeMC9wayqcUPVMhVjHmXq4LEBgMMBJe02bfWf+yvX49w43x9q6LLou50zKuoFXL
-# I27l4m3kVQyiHfqTOL8ZoRam9lje2A+akythYA5c/4Qvl321slHB/XMlCP+AuTMG
-# Ql9jBOnM194RDokOyu1ai/7jnqUeZllz0P8Lfji6BeqVrh4/BZdqwVZ7q+K8qk5D
-# XTR0pTrmdcDWYUywtY3xYjTDt5TfAWnm33kROeaJRmTfqrbte1r5ZftD8geW+jq8
-# e08usNOeFqMKzzAKsvIcBzjqC/0TcLYQrYPIVCbnXhwk1h4ysx2xMjae4j91ZnCV
-# 75Z20YM0ZGOIPInJOP2K/Rm1P2axiqxjYByyp6fNIj+CqmACC5XvoBEJgFymtPD8
-# 5ZkkeAoaUPlijv+r5GD7xPNkJQ8SXZ/E0CgMP14QOLqPEStRsyyIaBIaMXPFzaFi
-# YLysQwACCdv4Sb3ttcZmHiehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUfNhlORRD
+# U/uMMQU1uiyhBLjDKMIwDQYJKoZIhvcNAQEBBQAEggIAcqx2iL1XToNyWx+4UUvg
+# VxYN1I0d9hTmZJWjgIcPwvimX9MSvlaQ8ikt+g/Pk+x6gO3/xKDIuK0WZRzmKF31
+# 2LtzK2AijmY5IQrr4o2OwOCuu+t5GzCSFFuRy+3QHa2nleWLg0yu3L6k45frsSg0
+# C4UNRMKdJbE0txeBttBKEJAjAgbzPZjG20LCC2qvEu2aC5gPPUbDs8TZYY59ihfX
+# jPGuDaBYF8mYLEA2wN2RPXMcZQm9rK8eBtzJQrBtZmJ89oW2dSgTlOjPB+BMVKyS
+# uIPdjH7MgOw2u8PzIIAecxjuQdfeRXhjMJ4P/kUrlzLSqV/izjwkJfecoaMG1N1b
+# LfgZvNXsHDlQtLtLwJnAT21p80e3MdY+haabhIf17T67nN1KLnABsB0DuowtPivV
+# a9hQFPpkukwBCz7Hv4wk5mRkFVrgnflINWVCvb2GzG04dyCLnC3va0OVVZGrz7cP
+# McfaD64hhdyDJEvqtBcLgxwvKpc/GdDyi1j4nK/pcp+HypPQHiY6BNwKD64Cw5IA
+# dVDqTI1fAbVWu6gj/WJ2kc19snbGLuyquBQci9cJN09Etxvp1SfSZTvVBdTN4p+e
+# cTw+8MAqaxMcjFC919YRQP8nlv2j4I3uIOf5Z79MazX86YW305lidPYy5rVBbcq/
+# VGNEQsP/LgYNGLm6bDvQi7ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTkwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgrIHFiJVt4Z5Nmyz5YqTpNRQdbd9MYrFrgLLh8IBs
-# mggwDQYJKoZIhvcNAQEBBQAEggIAHAW1negj8zfcBWdTIQjRBkVikfpLcmhAgdKT
-# ljHz9nU/cvdVb2LwJQX0WOUX2W+syzbf6RzvZg3s9W3UAyNx5DvGw7NX1n40RVir
-# YC6WE582r5qJz/T96WA6jg81fDSPh+6Sql+yQkj3Ebhy0u7HUDoCLSOnEl5Uxom+
-# A5JgrMEv8uC2HjJSNjciL69hhCIdyUZ+80zBmkrARZgTSl3PzmXBBPn5uy804Kk0
-# B6y1EpMOs+pZEX07OUxOr8aJ38riSEwN9EcyAFgXARvwCMg/a/q8b259gaAXdohb
-# XR7xyLFGKrN09YjJ6P1M9PIo8VebZWY3D4Rz9JgJ+X5HEACX1cpbXIEQGVC2r+w0
-# bKIxFh8g4SqpVX7kf4CGLQvz0sYV60G6OGK2cJl8KKyM+tr5QJZuUld02LQJa2Yb
-# O/PFUInp4J7ky8UXIRbi5/li0OrsoYS5Ma2jSxE9fJa/zy5rcHGR8P5Vr+3OJVJe
-# +I7KenlzS9/Cmw+JXeUCKhEaxSZm8HMBh5jl1gR5cukHMDHLjePfUCtF1hPIjRaf
-# 2PF2QwLch2ajlfpk8yQ0sPpvfYVQavYoABfi08UGbesw9D+5MaxM8DNuX/d/tkB2
-# FnAMhTATZ6vM1KsKSgZiL6NVujnpYQFF4gSMjvnK65eTua++rtUcZaWdQFNlPNMY
-# cDc1AjQ=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgI1MGaYyn2prAfvPNGUvbvdF//BqwaM8QSti0FMUW
+# 5ScwDQYJKoZIhvcNAQEBBQAEggIARljmnrNrp1WNDwa217hx4uG+smExsOdyFfaF
+# zdqDWoB8EtJN/c3GE0hUqS1l3mhpg6cd6jaQZ+pj2OIzyx0duZDsAlHCi2PSE4p3
+# VOQO3HZqzqGyzml+EVMzzwsLTkUnL3Hu1ePuHsxsMFxU7bV7To5RrRSxlhzB1jv8
+# CmRIDGdFxOWEBVYe0FCXuZzhH9tOclonzXoAtq/oyJy2r74V+Z7+oPNeapcuJ5m+
+# xyYt3mvs/O4e/tpt8fFFMLw0RtC4YwpEjbYBbr+vDojjlrA1qRu6MEDwBhagE/VY
+# W6wC8h0oLEirWPJm8n9v68ufkCRlt/hw1LhXgsOUdLq1tq7V0bR4rWZRLph+B7oZ
+# 6g8AEhIXgxyyMqt9GUAQJaiIOVrY5o1xQxiqoabk84+l5PqKmkbXJZb95S+/A6IA
+# zCNmg5fS8sQQpfEaS0dYhKmhiM2l0ZzmLQsGN9eVLsEdDuHLpWosrK7r0AFgdjCC
+# Jl4T7NY395unR+6lWDHVWSXdpcE+f3TUEAJq9Pkk7uLPaK5dmflTaoGC+jDSTP51
+# 7D3nzliSrH+uw8PRrq1LGGwzX8ATk5WNeSLqxjgWNZBy4cWW+HHjMbjNdIYD3VfI
+# LlMGvqb359FAUz67qbbLHYY9YJa+jPmrbChGgoc4gxdM4GLu2758iYA2B9tzGgYS
+# spIMK8o=
 # SIG # End signature block

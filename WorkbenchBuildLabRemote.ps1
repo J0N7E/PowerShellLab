@@ -112,27 +112,12 @@ function Setup-DC
 {
     param
     (
-        [Parameter(ParameterSetName='A', Mandatory=$true)]
-        [Parameter(ParameterSetName='D')]
-        [Switch]$EnableAuthN,
+        [ValidateSet('Enabled', 'Disabled')]
+        [String]$AuthN,
 
-        [Parameter(ParameterSetName='B', Mandatory=$true)]
-        [Parameter(ParameterSetName='C')]
-        [Switch]$DisableAuthN,
+        [ValidateSet('Enabled', 'Disabled')]
+        [String]$TierGpos,
 
-        [Parameter(ParameterSetName='C', Mandatory=$true)]
-        [Parameter(ParameterSetName='A')]
-        [Switch]$EnableTierGpos,
-
-        [Parameter(ParameterSetName='D', Mandatory=$true)]
-        [Parameter(ParameterSetName='B')]
-        [Switch]$DisableTierGpos,
-
-        [Parameter(ParameterSetName='A')]
-        [Parameter(ParameterSetName='B')]
-        [Parameter(ParameterSetName='C')]
-        [Parameter(ParameterSetName='D')]
-        [Parameter(ParameterSetName='E')]
         [Switch]$BackupGpo,
         [Switch]$BackupTemplates,
         [Switch]$RemoveAuthenticatedUsersFromUserGpos
@@ -150,39 +135,9 @@ function Setup-DC
 
     $Switches = @()
 
-    if ($EnableAuthN.IsPresent)
+    foreach ($Param in $PSBoundParameters.GetEnumerator())
     {
-        $Switches += '-EnableAuthN'
-    }
-
-    if ($EnableTierGpos.IsPresent)
-    {
-        $Switches += '-EnableTierGpos'
-    }
-
-    if ($DisableAuthN.IsPresent)
-    {
-        $Switches += '-DisableAuthN'
-    }
-
-    if ($DisableTierGpos.IsPresent)
-    {
-        $Switches += '-DisableTierGpos'
-    }
-
-    if ($BackupGpo.IsPresent)
-    {
-        $Switches += '-BackupGpo'
-    }
-
-    if ($BackupTemplates.IsPresent)
-    {
-        $Switches += '-BackupTemplates'
-    }
-
-    if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
-    {
-        $Switches += '-RemoveAuthenticatedUsersFromUserGpos'
+        $Switches += "-$($Param.Key) $($Param.Value)"
     }
     
     if ($Switches)
@@ -458,8 +413,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUaDg1k2vcaC3rc7i+N+yzM5L
-# ww+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwd+5tUGC/LoZ8ITdLw6OHxLi
+# 62egghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -590,34 +545,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnDL/3euF
-# WVlc84KyT0Zvf9/Rv+YwDQYJKoZIhvcNAQEBBQAEggIAKLGxuWcEMjYKe/kG+a3/
-# 8SpnDwKjTPOK812pMTspczGZjR/EZSAQUdkd9yAFWVI7gsSqlvEQRygbV/q6ZK1U
-# r4pwJSDm1XSiG97oWvjVBUdw/cYuUnBjcs0DtPfmfKk8kj7fAiM52H58mY2wb5fa
-# gQFMjA0WIFRlls0LcZXuU8DfHBd3GYG9EIM1ENF20SZreN1oc1pooSyhpfq7kihn
-# 3jvt/W6MqGXV2FiYFdNPIEP5/USHuZOkwA1BVmtLHSQSzHVDNvUFdLy5ozCSXIbh
-# Iemqfa+6qPseEBL31MHewxs2V2Cuu1yGLdq1orgBL2gFa1rqegfOhEujeB7SxGoV
-# lttE91A9gONZZ9G7D4F9nMSFNGvbjIbMebsMz1SCgHv85z4wDxaqsnEFCnH0nqY3
-# 8nrKxiv+eMEJdfD5InDv4909A7h5XWdwgGvWOphkgbr9eypcIVjnX3qKHl2jZ8Ux
-# 2mKt+s3dGHXFWeWT0/CFMCvdIgFK0+PrOPPGXT4ttSrXcySANIqB8CyHvnNmF8rg
-# 0zCRRAwqiGaFWe+wrKJMTk6FjLWy9+y0ij5xxgBWAW7/tPaNB8XWTuzHPpskACVX
-# 7BXY2pQbVCDxW0HI0qCcP0/t/tcTIryi/mXvKCdMcnB1PXoAKmpU3bsXUaOJs0TP
-# r2RkSKIxUZcO7loKE3gMkTChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUvl8fyosI
+# 2XF6f28Ndr7tEopjemIwDQYJKoZIhvcNAQEBBQAEggIAJ/mmNXGtYMxrP9Me4zg+
+# WTSl+oeqWrNGP/Jx7S6KpoTu32fUCknlzhQ5BVNQJ5ksvVoWuZjgP5iwH+IapgMp
+# NY21usLLPGNQsuLGtbcWHE1JArEfTQfYTg37fXpJyZwt4yDn2ezz8UPwGdjM0AYU
+# wiqV/uN8zfatJxbYUkoyCGiIxqEZfYJZCUQfPkmW8NuH7bNt6k9xqrmBpBdcGEDP
+# ZKn0RONio1JXgXwB3HYYZ1TH+snp20Xry0mIP0eJBeMkYuOtCKWmW1jEkezVAt8v
+# sOfva4CFcmsCOu2JbbQn56zQCBT5idi5S3DHKSwxw8Gn6HSf1WHmESdjb4dATLvn
+# 4x/c9n9mV56qVMnJYR7egyJAsiAUSr3DK9iepOXlatDwIqfHb0hlW407JMQTnbE9
+# ZXzpBtWbJ0r/wRmNWzOBqns6ZsuTS6wddfbgJr7ABGOKaZz8HGDcUUh6UM+XHw70
+# dIYrwfk5phvezyxxxOZwlGbFCmITNGX+Be5yfiey4UQ8snH0gw2ki4Ztf8s1+G4H
+# v6/iBwRA7khGQW3eX9MU1Jiqih1hEoO9NUVZvYrz9JAO+Ch+PJOYx8enmCZAPXqg
+# P3DGpySLwve+UXMPBUtwEbVhmDqDQljRIc6xxQ9ts18XceknWlNQ0mlamnrSD3kV
+# NYkcta4HhF1PSC+MBVChXF2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTUwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgJ3D10luv1V00ufZnwsE4DWa+Z05XvhGguEFMxnkm
-# 7OcwDQYJKoZIhvcNAQEBBQAEggIAmqn1howoqzAzHtFZz+bzE/9f0gJVVYqFeD98
-# b2DDmyqNQRy5Oka+g2EFgP0DdhArpC62wZjHTY3A2z7WrW9jmzOZS6LE35k3KnQa
-# 5K8H2384oJLs+SuK/4ZdnW8P+4j9Oww/ipkt1aCd0kA2Yqf6wDGrRGlIVp0TuuCy
-# rmO1Ap6zmIq6yOrkCEGWPhdHPxMDVbq+x/6AaYI101fRjEciPeHg1dI19OjbabZx
-# 1wDL2s3tUCk6uPfz4K894dAbsDQwTiMVTXiB9iiHv6jWvZdmyUwD9E3Sdscp32bp
-# V6H0AH4+Dod14B9rMkLLck3djkkSYZGWlL30t/f20uD3Nz65+fWz+DZ25NaDqGVT
-# RxjvIUErcdK7C5fXxEYsAL1yJLVsZAwSGe5ut1juiSvCg6q/yYmPK5kxTJ2Oyrc3
-# UUQTxvlb45MRfdnKi+bcSEuVqVwD0DmHGs1JJ9QPvMLCWpydDXaIMo0+X6wT/QNs
-# t7CbeH2tDljV+gkNuBmn7BholqBy8NS69vKpRILr1/HZZ+6LsvwFD9qrGx+oSwb4
-# uiXJIZKbG0KmUPtvhE9iQy+awsNDqunaXWdW36VLBWgeJ+xIUvGNhBL6CzHJa85K
-# 74cK9tY67CtAL42+xqIKYOlklZFaI50UlebbL5mWnkc/O2JrucvDvDjIuCbZgWMh
-# KT0j7ms=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgXXCjiSvaPHYVLRhC6jq8dY0o92SKbGfBnu7ZzjFf
+# XncwDQYJKoZIhvcNAQEBBQAEggIARqFlWgIpLYQ74gjjASN/x4FcGqsmbcIJYhV6
+# VqHiPI046WJMLhCBwsZntTW0rt2KFfMTHcqzVGwpZ/Cd0o/RP0KkZCTAf8DzlfNJ
+# g+lV9OP9bREoF53wlShuTW5RLvMlJfzt2VQTI+OlLU38FR+hXrmoXS942kPNyR8j
+# KfJkfsn4oeiMDQIPVjJdo0imcaVgqUZ2l02zsAUVl8Lph62LEZz66IStKgCqDGPr
+# tVynoEbkoqfH00wE4k09CCbpwpaP3aPDbhrLFHimEkkW5RqOEvMD9s/UeHAUjiSV
+# yWVfhHqOi2A0EP81Xcb1qnmZdQiMRNEphmVOQ0khhhRK3p6p5586gDmY6SFl21xs
+# 8p2ONePLgvtKcbnNiM9suUY09FfLwZLiCl7ibTvnxJc27/qBzr9tcX7w732Tpj9O
+# Lv+pV4bx3Ch5nUdVJbXE/QntDDP+xVICFzlvDfdP+UVwZHtydzVStN1ROr8d/iTQ
+# VYGpHCxrkkOR6C756FpFK3/j1uXlG9LYye4dxjq1KgDChXUrkntz2MaVlvnOR5hU
+# qbMbODW8fomiANLun1CKwZaoOK5UE7A021Ph+4JGlTH0i0THSLX65jZXCq4Q/Wcp
+# W1YiMX0WCIg69xTFEZXW9j5wwCMvupf2snYBY3LgbG0gFuKj9pj3d6vETLwr/W9m
+# cBzRMvg=
 # SIG # End signature block
