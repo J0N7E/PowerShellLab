@@ -253,19 +253,19 @@ Begin
             $CN = [string]::Empty
             $DC = [string]::Empty
 
-            foreach ($item in ($DistinguishedName.replace('\,', '~').split(',')))
+            foreach ($item in ($DistinguishedName.split(',')))
             {
-                if ($item -notmatch 'DC=')
+                if ($item -match 'DC=')
                 {
-                    $CN = $item.Substring(3) + '/' + $CN
+                    $DC += $item.Replace('DC=', '') + '.'
                 }
                 else
                 {
-                    $DC += $item.Replace('DC=', ''); $DC += '.'
+                    $CN = '/' + $item.Substring(3) + $CN
                 }
             }
 
-            Write-Output -InputObject ($DC.Trim('.') + '/' + $CN.Replace('~', '\,').Trim('/'))
+            Write-Output -InputObject ($DC.Trim('.') + $CN)
         }
 
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
@@ -1707,26 +1707,6 @@ Begin
             # Get DC build
             $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
-            $DCPolicy =
-            @(
-                "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                "$DomainPrefix - Domain Controller - User Rights Assignment-"
-                "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
-                "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                "$DomainPrefix - Computer - Firewall - Basic Rules+"
-            ) +
-            $SecurityPolicy +
-            @(
-                "$DomainPrefix - Computer - Sec - Disable Spooler+"
-                "$DomainPrefix - Computer - Windows Update+"
-                "$DomainPrefix - Computer - Display Settings+"
-            ) +
-            $WinBuilds.Item($DCBuild).DCBaseline +
-            $WinBuilds.Item($DCBuild).BaseLine +
-            @(
-                'Default Domain Controllers Policy'
-            )
-
             #########
             # Server
             #########
@@ -1792,7 +1772,25 @@ Begin
                 # Domain controllers
                 #####################
 
-                "OU=Domain Controllers,$BaseDN" = $DCPolicy
+                "OU=Domain Controllers,$BaseDN" =
+                @(
+                    "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
+                    "$DomainPrefix - Domain Controller - User Rights Assignment-"
+                    "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
+                    "$DomainPrefix - Domain Controller - Time - PDC NTP+"
+                    "$DomainPrefix - Computer - Firewall - Basic Rules+"
+                ) +
+                $SecurityPolicy +
+                @(
+                    "$DomainPrefix - Computer - Sec - Disable Spooler+"
+                    "$DomainPrefix - Computer - Windows Update+"
+                    "$DomainPrefix - Computer - Display Settings+"
+                ) +
+                $WinBuilds.Item($DCBuild).DCBaseline +
+                $WinBuilds.Item($DCBuild).BaseLine +
+                @(
+                    'Default Domain Controllers Policy'
+                )
 
                 ############
                 # Computers
@@ -1859,7 +1857,7 @@ Begin
                 ) + $UserWorkstationBaseline
             }
 
-            # Add server gpos for tier 0 & 1
+            # Add server gpos for tier 0
             foreach($Tier in @(0, 1))
             {
                 foreach($Build in $WinBuilds.Values)
@@ -1960,9 +1958,9 @@ Begin
                         if (-not ($TargetCN -in $Report.GPO.LinksTo.SOMPath))
                         {
                             Write-Host "Need link: $Gpo"
-                            Write-Host "Target: $Target"
                             Write-Host "Target CN: $TargetCN"
                             Write-Host "Current links: $($Report.GPO.LinksTo.SOMPath -join "\n")"
+                            Write-Host
 
                         }
                     }
@@ -2619,8 +2617,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcLSjzFLA4JOj4/X+FAAp9ZRQ
-# XxWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKBBck+UGH+jWErPMKyg5gS6O
+# DfigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2751,34 +2749,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6RYP4pyR
-# ybWfbH3vxfoL9luJTyYwDQYJKoZIhvcNAQEBBQAEggIAx1JXEQ03BzFzQMBKcOwv
-# W/sT/2Oyfo92XgpRVhMNgnM762bofvzuz5XULkybKuaK6KY9ztEVTBUvf7lZTr3R
-# 69eNnpzVn0Yiqs2ciyRAXBgtiwCd1LLo0NV6K5p2i6b4MFHSohZ+Gf1PKM74HkUc
-# X7s7nSUAeqmv/U+UqL/jkbzJIcrm7tNctZNCpptMdd4+5WabC4k1rOxiKwZA0dX7
-# Iq6AHK0/w7Bpod0/ovpTN/uI07sMHfS4PPOkcx/zZUmw2RWfz80a2urt2rb70JU9
-# LqBa7GYrXzbzO6wE6/XQvARrhhgflP+6VTKZHxq+yuwe0DTwEvDTVH9HEw5oyi35
-# j7VHvQ1+CfpDhfMWDa7JZv6Hs8Z0NDSwvWiid8Ucrf2D/ziQEVZXuD9DZxVayi2A
-# qEKsbT9V+LGzt1TFth8jqjt1xhK+FhsqBehJMCcB3HEvYvqF2/nce127WxPUPeN5
-# raSO5Muv8WvkeNvoho471ThE/NSsgRZRnzKUAncQmml247yhUXmT+OVjVlPe0DTB
-# gwQz/KbTxSIP9PkFt65lrS0WljwmKZp5q3Y10jhiAMkLNlvJD27HgEN207Ogb1YO
-# F+T3JnlWK79Jl7cCUVZV3PnpemImYSLRoqFJjyFsEYf9tfzZiAnFS1AP/Qrwq83o
-# 9Q6RNBA9//yIMF3f5YvwYfChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUk8kfY3F0
+# teOeFl2d8jfp1wOyCP0wDQYJKoZIhvcNAQEBBQAEggIAcTpPqMCytzK7YMh6eBzn
+# QO8n8iiHeAj+CTlGtQjZvC6dc+HCLXoPcz2ETAey+VRkRZZji0ScjZW5Zmo7uu3z
+# BDWIfnK96I2V3aGSrExi0MydUf9YIT0ywce6rLFO5/uHJaSRVb+A3PRZ5bFDgcbw
+# AK4zADG2ZD/+vHFo2lVV/9OMV53dXrlhCooJuE/WcRuJqNiWaYzJeftxg/FdDuii
+# JJHVISCTbDWKdB8X/ZILjPbLYI/yAJAeN7Hp4H/SBNV3UarQlwyezajV53AvTvLW
+# p9MoZ/i/lia2yjME3suCmTMzW3liVQ8CPehuxobyStXhxYL/5O3fu/i074dJYvhO
+# CjetPo/P2+p4RJxg/0H2sNlNBituG/bbL/3Ltjx35jzZarYqZxA2d12Tje4znlr1
+# So0QFSYluIoYs4wOw9AGuLPYlE+zz28Q2XeLG0ZYEsDCVEhoLHefPEqzs3KgkPVd
+# ctp5iS/fsfUQ08pfnbXdhEJwFkZ1zi2izHYgsyZkTK8Cl7zZ70vfWChMWk+FxuVg
+# ENDDAUpICFJvZ3u2WhlfNgZWg+WnXz09stOhvu9cG7c3s+sMrCKNo7Exv29S8Cvv
+# 5h5JCVWyZv1cV4P2pLOBMJxZriZ9AvXljynJXmLcrATyPObNwZPDZcI3o+ZbMWiG
+# YR6RuUqywyP7TZBjcG6yb3WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTYwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg7K5i0opHQC0PhlYDGetUi6XdtRT7FtKXf3zQt1dt
-# sOkwDQYJKoZIhvcNAQEBBQAEggIAeq17woZXSJ9lmdahdGFsDWa/1ZTeYjM4Z1/y
-# INpisqhutszCRu5YU8M5glWHMMDjjAemUOsuDpC7p7ZglundBJrmPyqa3lpUZDED
-# xQRICyXUajo8VNlcTNJ3KGmSExNRAzADBhA69Ee2KcZj5qS1h3QcxTbR4hPoc5x5
-# L3wUlA0ZiZfynvamrsGKPAVsMcG6jRt/znoLcqEmX67qZv4J3u3cr+goi32fEVbw
-# YjkmkexHs+bd6dEKcaRJN2PfoUrQAxbG2wLkDI+GpmKUeBLrO6k3hywgv6D3m2Aq
-# jJ3yajdkM/8ESQIgRFkHQwMBMmCBdGr8KyP9CmOVZSoCL1Mqsn7BdLOE74JbxvKD
-# bvUZIxwt02BR8UA1IM+cVVFc4wggjhmuDATr7m1lu05ql/MXKbrB87AJvmbh3ChI
-# pAzWTTxzmkth46nyH01UMDHbGtHLtb020k8hLiqvl1A/0YA5GF8JlvSZYzG/b7De
-# uy07sV6Z79BNGSeOHY2mWgs9b89ES7MnvBp9RekiJ34Fj9EaaSFLbr32EWhoCmNg
-# +9DlTG2nxTJ7bcU4Zry2htlwr9i9JEL/ZllOvxZ3fyC4gpiDx+m0Zz7AGp3kK9uW
-# 3qUZ3V9UB8AIvvqHo+Sfyyn5m8pOaZssnDyxDDYhu1sAlgVjT8YeuKiJl6Dw+q5A
-# nMJyyss=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTgwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgbG9SQHV8IMaW8lJ6ytazB7VaUO1bTcgqKJBb2l6T
+# VX0wDQYJKoZIhvcNAQEBBQAEggIAvfCG6X1/JZv+9Dx+64VEljHiEjVko+xDQ/jp
+# VR3QT30Ephi2d5pZ3sAQfJJLIQDeiWPPjaFYljMkLe4GduqsPnIk7MZY8ug8D4F9
+# OJcPz2R2m/vRyLagqiGdOwKQxovOMGDhCJOfWBC1Lst3yg3rCJlTPRtVX6psyo7N
+# 0hTfnR0/+69UQw6XqY94wtsTp/b5/gAAz5tF3A6kArQo8DrawNamsrGWi79Hrk+G
+# DlKcKPr0rcykWjhLSv2qkJhoNLLZtcgtHAqlzqsLDTQpzqVt4765uZYw/jyoqLsL
+# QPjc8T1OwePFVto1brXWCW2gVareygihj1T14dDmqY5JHdLJSR8hUHjQUuD+fFqA
+# BddrLkyq+h7nu/ttcChby4wxrbkDueRC8kPSYSzY7a1KwaYmP79Z09xUpo/+pbBU
+# ikTDgW2GYT2Z8nQdAsRKQOqm5fIlr4GG4UE21gkIRx24gLjpnprvJQkXOv0hwKQH
+# p0hNqo6Dru2rv0qQGjax2+AK728mmJ6nKvcIrWsVXE7MZPcYCArwZHZXcsTI+enk
+# xEv8zxIJVgYit2bz7JNrlAnsUeNzQ10GKqx+JFk38BNlCOjFLQH99KTDzGdxAYxE
+# Cx1XG1+rLwas0K9CN/cO8duf1Y1PmDK28PF/oY5TTXZDsyYPxmj64PA4TFxbETC3
+# iMz+3zU=
 # SIG # End signature block
