@@ -1709,14 +1709,13 @@ Begin
                 "$DomainPrefix - Computer - Sec - Disable WPAD+"
             )
 
+            # Get DC build
+            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
+
             ########
             # Links
             ########
 
-            # Get DC build
-            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
-
-            # Link gpos
             $GPOLinks =
             @{
                 #######
@@ -1728,6 +1727,7 @@ Begin
                     "$DomainPrefix - Domain - Force Group Policy+"
                     "$DomainPrefix - Domain - Client Kerberos Armoring+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
+                    "$DomainPrefix - Domain - Firewall Rules+"
                     "$DomainPrefix - Domain - Remote Desktop+"
                     'Default Domain Policy'
                 )
@@ -1742,7 +1742,6 @@ Begin
                     "$DomainPrefix - Domain Controller - User Rights Assignment$TierGpoSuffix"
                     "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                    "$DomainPrefix - Computer - Firewall - Basic Rules+"
                 ) +
                 $SecurityPolicy +
                 @(
@@ -1757,15 +1756,15 @@ Begin
                 )
             }
 
+            ############
+            # Computers
+            # Tier 0-2
+            ############
+
             foreach($Tier in @(0, 1, 2))
             {
-                ############
-                # Computers
-                ############
-
                 $ComputerPolicy =
                 @(
-                    "$DomainPrefix - Computer - Firewall - Basic Rules+"
                     "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
                 )
 
@@ -1802,8 +1801,8 @@ Begin
             }
 
             ############
-            # Tier 0
             # Computers
+            # Tier 0
             ############
 
             foreach($Build in $WinBuilds.Values)
@@ -1842,8 +1841,8 @@ Begin
             }
 
             ############
-            # Tier 1
             # Computers
+            # Tier 1
             ############
 
             foreach($Build in $WinBuilds.Values)
@@ -1875,8 +1874,8 @@ Begin
             }
 
             ############
-            # Tier 2
             # Computers
+            # Tier 2
             ############
 
             foreach($Build in $WinBuilds.Values)
@@ -1885,11 +1884,19 @@ Begin
                 if ($Build.Workstation)
                 {
                     # Link baseline & computer baseline
-                    $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ComputerBaseline)
+                    $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", (
+
+                            $Build.Baseline +
+                            $Build.ComputerBaseline
+                        )
+                    )
                 }
             }
 
-<#
+            ########
+            # Users
+            ########
+
             # Initialize
             $UserServerBaseline = @()
             $UserWorkstationBaseline = @()
@@ -1908,9 +1915,46 @@ Begin
                 }
             }
 
-                ########
-                # Users
-                ########
+            foreach($Tier in @(0, 1, 2))
+            {
+                $ComputerPolicy =
+                @(
+                    "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+                )
+
+                # Link tier gpos
+                $ComputerPolicy +=
+                @(
+                    "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
+                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment$TierGpoSuffix"
+                )
+
+                # Link security policy
+                $ComputerPolicy += $SecurityPolicy
+
+                if ($Tier -eq 2)
+                {
+                    # Workstations
+                    $ComputerPolicy += @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+")
+                }
+                else
+                {
+                    # Servers
+                    $ComputerPolicy +=  @("$DomainPrefix - Computer - Sec - Disable Spooler+")
+                }
+
+                $ComputerPolicy +=
+                @(
+                    "$DomainPrefix - Computer - Windows Update+"
+                    "$DomainPrefix - Computer - Display Settings+"
+                    "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+                )
+
+                # Link computer policy
+                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+            }
+
 
                 "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" =
                 @(
@@ -1947,7 +1991,7 @@ Begin
 
                 ) + $UserWorkstationBaseline
 
-#>
+
 
 
             ############
@@ -1958,6 +2002,7 @@ Begin
             foreach ($Target in $GPOLinks.Keys)
             {
                 $Order = 1
+                $TargetShort = $Target.Substring(0, $Target.IndexOf(',', $Target.IndexOf(',') + 1))
 
                 # Itterate GPOs
                 foreach($GpoName in ($GPOLinks.Item($Target)))
@@ -1980,7 +2025,8 @@ Begin
                         $GpoName = $GpoName.TrimEnd('+')
                     }
 
-                    [xml]$GpoXml = Get-GPOReport -Name $GpoName -ReportType Xml
+                    # Get gpo report
+                    [xml]$GpoXml = Get-GPOReport -Name $GpoName -ReportType Xml -ErrorAction SilentlyContinue
 
                     if ($GpoXml)
                     {
@@ -1988,63 +2034,41 @@ Begin
 
                         # Check link
                         if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
-                            (ShouldProcess @WhatIfSplat -Message "Created `"$GpoName`" ($Order) link under $($Target.Substring(0, $Target.IndexOf(',')))" @VerboseSplat))
+                            (ShouldProcess @WhatIfSplat -Message "Created `"$GpoName`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
-                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $Enforced -ErrorAction Stop > $null
+                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforced -ErrorAction Stop > $null
                         }
                         else
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
                                 if ($Link.Enabled -ne $LinkEnabledBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" link `"$Target`" enabled: $LinkEnabled" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
 
                                 {
+                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
                                 }
 
                                 if ($Link.NoOverride -ne $LinkEnforcedBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" link `"$Target`" enforced: $LinkEnforced" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enforced: $LinkEnforced -> `"$TargetShort`"" @VerboseSplat))
                                 {
+                                    Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforced > $null
                                 }
 
-
-
+                                if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) -> `"$TargetShort`" " @VerboseSplat))
+                                {
+                                    Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
+                                }
                             }
                         }
-                    }
-
-                    $Order++;
-
-
-                    <#
-                    try
-                    {
-                        if (ShouldProcess @WhatIfSplat)
-                        {
-                            # Creating link
-                            New-GPLink @GPLinkSplat -Name $Gpo -Target $Target -Order $Order -ErrorAction Stop > $null
-                        }
-
-                        Write-Verbose -Message "Created `"$Gpo`" ($Order) link under $($Target.Substring(0, $Target.IndexOf(',')))" @VerboseSplat
 
                         $Order++;
                     }
-                    catch [Exception]
+                    else
                     {
-                        if ($_.Exception -match 'is already linked')
-                        {
-                            if (ShouldProcess @WhatIfSplat)
-                            {
-                                # Modifying link
-                                $Result = Set-GPLink @GPLinkSplat -Name $Gpo -Target $Target -Order $Order
-
-                                Write-Host $Result
-
-                                $Order++;
-                            }
-                        }
+                        Write-Warning -Message "Could not link `"$GpoName`" -> `"$TargetShort`" [Gpo not found!]"
                     }
-                    #>
                 }
             }
 
@@ -2665,8 +2689,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdBVvGS4TmJoDE+ZlD7I9/0SW
-# 8v6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUboqOSbBfbA5/nZjEuSIhjVvK
+# 2UGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2797,34 +2821,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUcegJTw2y
-# PYdWYABIMpCoh/4T9zEwDQYJKoZIhvcNAQEBBQAEggIAixEXPcwlwOiJ4Vg8Mofo
-# zdIXr6x6VrnPVlq3duNZbgkudsBKb4jIpi2G0GxKQ+t/MzRGbh8+3MAdfp08XRPf
-# dGcIhrvTl5TIh9dIXrW1TJwd9TMz/1An8CGc79FQmxooY8afxzYeDITgHC6TeHkF
-# K8JRqkH52x7IbYW0on5+wjtjktVnA5Ua/5mjKwtt1/+vSsHDRQ9oYbTzxW+jMrqB
-# nzf2Ld0m8b64A2NFjC0qYJYbyVZpn7CJ7il7GuV8nDHmzcFp7k8z38zYaMJg0V5N
-# ReaHAF37ZFGEOkwNPnJvUzxfaBTybcXlmRVseqPLXCGcvpzNSvQkM8Nl5zUEsntI
-# 8YFzsFcFS1YG5AdJW/2roRRTbNqSACw/dWgzNMWaL/IBmonuvMZag5a/QBYWjezP
-# 1eFtXdMkHiQvxqnj9GG3BxMq8Ave5riCOTFL/iQQIPaalAHNREGhF41npfHkF2u0
-# tItmpc4PRCdy92D9xgXVImcDazTD6D5rJXjJDdRw/Kio/ATF08U6GDjm0TLw2ZU1
-# ZVQOtdxDuG7dk0CPlDvAL4kTYG27/z97HxiL00vHKoYcUGofhS/n7kEr0g/q4LAb
-# 1vohU7LwuD1ybP389BHEK8tF42SD0v+wB0IPeXoqWjycB/by5HIrOV5Hf+vvscWD
-# yudEpynhkV3ASXK2r/x1TnShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMF4F8VPm
+# +lcmXGVgP3cl8GcP9a8wDQYJKoZIhvcNAQEBBQAEggIAxhsV+ItCxWidfaG5KrQ8
+# MV6oB98JljPVWKCpAsuoEiIpqdXxQRTSZAk4OigxeHPXs40qzEQaxkrtK+6jZb9y
+# aUlGIXUCI5CVKN3jUHaB3M2j4ymhfmgfqmoUz4KF+4BoNMBxV56Ay90h1wqp8ceh
+# 6KBccpC4LGf1yk7t4EXVG6j5p6XVQxNVNVubat6unxZOLfb5IBIShDOt0RKDHYC5
+# cyvxyF4+bHR3TAU8CxTkDURJq9oIq4ojqwvL4yLvXniZiO7Je3xADoayCDc+Sw8s
+# 7N1Oels3QY3h16QPXOHn6+/YWPT03AuKXMY4cmunci0aJPXInm5i7k0twEuU9ako
+# uOkPb8oRbU+boXGKFeb+hmlmdLjJnN0KEAJm9p6AmRgwfZz62GiWE5milojQHz5i
+# K6jIAxrMmQVDr/cV2UC4n2EqlFo/Som6GZtNqJnENyV/SzTsBrVSoINMO2/S3NHU
+# 7vXUWudlE6xc+NqBV4soRjkW1h+WVil23R6SoCML+3jqwbD2A3EWSWp5qzTvZlCz
+# jQQnv4j5kqEzoAj/weJ0Q6U/vltL2emkyRlkExeolqqWqsZXu1vuo5Hhg+ojdX9v
+# JS4uIgiochXTifQxNhAcM1gtcoWdmiWQqHj9p+OK8u0CkRDpIePlMHkZDcUpWOf2
+# TQwiG2gCzrmpjp6honptmHqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgcPxyHPTzhipnzfDwNacGd7BPwXP9o5CK9IRa4eh4
-# FxwwDQYJKoZIhvcNAQEBBQAEggIAL09xE/ZAM/rXxmTqM4lQSEbNJxE20HrJQLON
-# 3m9N8ls93NfdRzJh63rR/AUxv+f5Kv7Lpg0+rGBtMljZolO3zxBZM4da2bDxn8RM
-# B0UMGGwWnHOwfLbZngOSWKMd1UyESIroF/+NGC3FEnYbhvUzI5j1KTnh2HDnGmhH
-# k4e8N3647XWI2A6OeElsBDM1xHBezdDOJpNM6TeKD45FOgOzaVWIhDyr9hRzj9DV
-# 1gRvbFq+plSHnCyla6G7xkK/WQrdrm0LT0x8iqnzIrtnfibTldqpNhp2thLkS5oz
-# qKy0gI7a7DRc2w/SKsCpK8HMGePdzY3kLgSsq4PpBNtLC+D7gIMnbb1ck8bVxTib
-# mwfBBeh709EObVLvg0cSs+8pwty0/31SvXmrDEkMzT3KW6woDfpG3BMPIKDCiljQ
-# 22LmkNN3rFJsdvrDNUXTGNt7zvl2i7JTjtv0XWT3GtwBIyF8KvjdqIF1Az4t2b/k
-# IO1Zw/bSy1Xf9UfUUGBdCLEfQt3FBVmMGNLyH7esNx3phq6yhy/j1YUQ6PaHMzJt
-# ghPzErwoMAGT1ZKzV/pebq6CuWOYKRlikCvzo3H6U1GZ8legdCX9xAPz7sCelFW7
-# tkesPYq878gP6Q6BjET85ElMSbCVdMlf+RDHIT0SYt3ENLYIg+cP2iinbaUSKemZ
-# HyH/ny4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MjIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQg7wyr+z7ZVwDGL+zMDd3/N8RxCraJkLjbfWXddP2W
+# +m0wDQYJKoZIhvcNAQEBBQAEggIACe9eVhPDYOFE4EGvjttum1XHzrw/XnySKFdV
+# o94Cntz8hFw4Jde73IJB1k6feyo8Ufo0M4uXf4L8eEVeZ0udy2ofy2NTKkGHgRBD
+# P4eo3+hXbC/+XdbcO8k9BY/YrkCxoIo3vcr5PElrb62pZwW9Mu8qR0O2g+RUX4fX
+# ftih9hN0VL/XjbcpromnEDoUN8JctgQmKz4FaWav6pq0kzYPmyNzieX5EJjdCqk2
+# XOaS//hiJvXLzkRJzUSCKDf6uDdPXY231zQHxHDq1wqQMCA6d1nogcYV9kueoJgL
+# jJninTTH5gPnJcQqE5bYRQDMYGM3JFIomf28MYryvXFoWGAQ8wfDfxAWp/BHB1MR
+# zRNL3ehlYHZ/z/ZKQmocKHxmQfS195unctCiM4E4eb3m918xrgbgzGMvbY/xWAK9
+# ryiMTBcmjj4/vqfQ0DicLfgNkXXA9yM+irzpyBrh1zAWVLP75TwHRH7kVSRcb/oq
+# wK38+RmWiUDNt0BjBBWvY4NE8u2UtHgzzCdUTCi29UdZnA2WHqI2d+V0082Gt6Aj
+# lwFS+RirnV+HaGfErYw0VhEfjCD90SQFDL8N4KbRQ8XiTfvTHx1Ra+ZICevdHMQ+
+# 6z5G1jAHawlw5yl06E4sJe08n91I7D0Q8mSzSbqL0ihh/2pGJd9F/er2SwHx73zS
+# cKdFp+c=
 # SIG # End signature block
