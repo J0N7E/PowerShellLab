@@ -1674,12 +1674,6 @@ Begin
             # Enforced if ending with +
             # Disabled if ending with -
 
-            $FirewallPolicy =
-            @(
-                "$DomainPrefix - Computer - Firewall - Basic Rules+"
-                "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-            )
-
             $SecurityPolicy =
             @(
                 "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security+"
@@ -1693,66 +1687,14 @@ Begin
                 "$DomainPrefix - Computer - Sec - Disable WPAD+"
             )
 
-            $ComputerPolicy =
-            @(
-                "$DomainPrefix - Computer - Windows Update+"
-                "$DomainPrefix - Computer - Display Settings+"
-                "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
-            )
-
-            ####################
-            # Domain Controller
-            ####################
-
-            # Get DC build
-            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
-
-            #########
-            # Server
-            #########
-
-            $ServerPolicy =
-            (
-                $FirewallPolicy +
-                $SecurityPolicy +
-                @("$DomainPrefix - Computer - Sec - Disable Spooler+") +
-                $ComputerPolicy
-            )
-
-            ##############
-            # Workstation
-            ##############
-
-            $WorkstationPolicy =
-            (
-                $FirewallPolicy +
-                $SecurityPolicy +
-                @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+") +
-                $ComputerPolicy
-            )
-
             ########
             # Links
             ########
 
-            # Initialize
-            $UserServerBaseline = @()
-            $UserWorkstationBaseline = @()
+            # Get DC build
+            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
-            # Get baseline for all versions
-            foreach($Build in $WinBuilds.Values)
-            {
-                if ($Build.Server -and $Build.UserBaseline)
-                {
-                    $UserServerBaseline += $Build.UserBaseline
-                }
-
-                if ($Build.Workstation -and $Build.UserBaseline)
-                {
-                    $UserWorkstationBaseline += $Build.UserBaseline
-                }
-            }
-
+            # Link gpos
             $GPOLinks =
             @{
                 #######
@@ -1791,31 +1733,169 @@ Begin
                 @(
                     'Default Domain Controllers Policy'
                 )
+            }
 
+            foreach($Tier in @(0, 1, 2))
+            {
                 ############
                 # Computers
                 ############
 
-                "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" =
+                $ComputerPolicy =
                 @(
-                    "$DomainPrefix - Computer - Tier 0 - User Rights Assignment+"
-                    "$DomainPrefix - Computer - Tier 0 - Local Users and Groups+"
+                    "$DomainPrefix - Computer - Firewall - Basic Rules+"
+                    "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
+                )
 
-                ) + $ServerPolicy
+                if ($EnableTierGpos.IsPresent)
+                {
+                    $ComputerPolicy +=
+                    @(
+                        "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment+"
+                        "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
+                    )
+                }
 
-                "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN" =
+                if ($DisableTierGpos.IsPresent)
+                {
+                    $ComputerPolicy +=
+                    @(
+                        "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment-"
+                        "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups-"
+                    )
+                }
+
+                # Link security policy
+                $ComputerPolicy += $SecurityPolicy
+
+                if ($Tier -eq 2)
+                {
+                    # Workstations
+                    $ComputerPolicy += @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+")
+                }
+                else
+                {
+                    # Servers
+                    $ComputerPolicy +=  @("$DomainPrefix - Computer - Sec - Disable Spooler+")
+                }
+
+                $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Computer - Tier 1 - User Rights Assignment+"
-                    "$DomainPrefix - Computer - Tier 1 - Local Users and Groups+"
+                    "$DomainPrefix - Computer - Windows Update+"
+                    "$DomainPrefix - Computer - Display Settings+"
+                    "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+                )
 
-                ) + $ServerPolicy
+                # Link computer policy
+                $GPOLinks.Add("OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
+            }
 
-                "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - Computer - Tier 2 - User Rights Assignment+"
-                    "$DomainPrefix - Computer - Tier 2 - Local Users and Groups+"
+            ############
+            # Tier 0
+            # Computers
+            ############
 
-                ) + $WorkstationPolicy
+            foreach($Build in $WinBuilds.Values)
+            {
+                # Check if server build
+                if ($Build.Server)
+                {
+                    # Link baseline & server baseline
+                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
+
+                    # Certificate Authorities
+                    $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Certification Services - Auditing"
+                        )
+                    )
+
+                    # Federation Services
+                    $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                        )
+                    )
+
+                    # Web Servers
+                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Web Server - User Rights Assignment"
+                            "$DomainPrefix - Computer - Firewall - Web Server"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                        )
+                    )
+                }
+            }
+
+            ############
+            # Tier 1
+            # Computers
+            ############
+
+            foreach($Build in $WinBuilds.Values)
+            {
+                # Check if server build
+                if ($Build.Server)
+                {
+                    # Linkd baseline & server baseline
+                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
+
+                    # Web Application Proxy
+                    $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
+                        )
+                    )
+
+                    # Web Servers
+                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                            "$DomainPrefix - Computer - Web Server - User Rights Assignment"
+                            "$DomainPrefix - Computer - Firewall - Web Server"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                        )
+                    )
+                }
+            }
+
+            ############
+            # Tier 2
+            # Computers
+            ############
+
+            foreach($Build in $WinBuilds.Values)
+            {
+                # Check if workstation build
+                if ($Build.Workstation)
+                {
+                    # Link baseline & computer baseline
+                    $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ComputerBaseline)
+                }
+            }
+
+<#
+            # Initialize
+            $UserServerBaseline = @()
+            $UserWorkstationBaseline = @()
+
+            # Get baseline for all versions
+            foreach($Build in $WinBuilds.Values)
+            {
+                if ($Build.Server -and $Build.UserBaseline)
+                {
+                    $UserServerBaseline += $Build.UserBaseline
+                }
+
+                if ($Build.Workstation -and $Build.UserBaseline)
+                {
+                    $UserWorkstationBaseline += $Build.UserBaseline
+                }
+            }
 
                 ########
                 # Users
@@ -1855,65 +1935,9 @@ Begin
                     "$DomainPrefix - User - Disable WSH-"
 
                 ) + $UserWorkstationBaseline
-            }
 
-            # Add server gpos for tier 0
-            foreach($Tier in @(0, 1))
-            {
-                foreach($Build in $WinBuilds.Values)
-                {
-                    # Check if server build
-                    if ($Build.Server)
-                    {
-                        # Add baseline & server baseline
-                        $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
+#>
 
-                        # Certificate Authorities
-                        $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
-
-                                "$DomainPrefix - Computer - Certification Services - Auditing"
-                            )
-                        )
-
-                        # Federation Services
-                        $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
-
-                                "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                                "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                            )
-                        )
-
-                        # Web Application Proxy
-                        $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
-
-                                "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
-                                "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
-                            )
-                        )
-
-                        # Web Servers
-                        $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
-
-                                "$DomainPrefix - Computer - Web Server - User Rights Assignment"
-                                "$DomainPrefix - Computer - Firewall - Web Server"
-                                "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                                "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
-                            )
-                        )
-                    }
-                }
-            }
-
-            # Add workstation gpos for tier 2
-            foreach($Build in $WinBuilds.Values)
-            {
-                # Check if workstation build
-                if ($Build.Workstation)
-                {
-                    # Add baseline & computer baseline
-                    $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ComputerBaseline)
-                }
-            }
 
             ############
             # Link GPOs
@@ -2617,8 +2641,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKBBck+UGH+jWErPMKyg5gS6O
-# DfigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp0Ft3OMrczIwCga//eegeodu
+# E8agghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2749,34 +2773,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUk8kfY3F0
-# teOeFl2d8jfp1wOyCP0wDQYJKoZIhvcNAQEBBQAEggIAcTpPqMCytzK7YMh6eBzn
-# QO8n8iiHeAj+CTlGtQjZvC6dc+HCLXoPcz2ETAey+VRkRZZji0ScjZW5Zmo7uu3z
-# BDWIfnK96I2V3aGSrExi0MydUf9YIT0ywce6rLFO5/uHJaSRVb+A3PRZ5bFDgcbw
-# AK4zADG2ZD/+vHFo2lVV/9OMV53dXrlhCooJuE/WcRuJqNiWaYzJeftxg/FdDuii
-# JJHVISCTbDWKdB8X/ZILjPbLYI/yAJAeN7Hp4H/SBNV3UarQlwyezajV53AvTvLW
-# p9MoZ/i/lia2yjME3suCmTMzW3liVQ8CPehuxobyStXhxYL/5O3fu/i074dJYvhO
-# CjetPo/P2+p4RJxg/0H2sNlNBituG/bbL/3Ltjx35jzZarYqZxA2d12Tje4znlr1
-# So0QFSYluIoYs4wOw9AGuLPYlE+zz28Q2XeLG0ZYEsDCVEhoLHefPEqzs3KgkPVd
-# ctp5iS/fsfUQ08pfnbXdhEJwFkZ1zi2izHYgsyZkTK8Cl7zZ70vfWChMWk+FxuVg
-# ENDDAUpICFJvZ3u2WhlfNgZWg+WnXz09stOhvu9cG7c3s+sMrCKNo7Exv29S8Cvv
-# 5h5JCVWyZv1cV4P2pLOBMJxZriZ9AvXljynJXmLcrATyPObNwZPDZcI3o+ZbMWiG
-# YR6RuUqywyP7TZBjcG6yb3WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCpintwqQ
+# 1qxzwHHEXBPolNTy8MwwDQYJKoZIhvcNAQEBBQAEggIACwmAHBa1k8Irx7NRS1TN
+# IMuoNKnX1G7nUhgjsMiE/8eRkqvtJXisoQ+6c2Ka4MxMk0AmapDdAhGuz8nd731p
+# GqFyBX3ehfEUT1tMiHqJSSb/x4H9u33UIFg9xKzKDwwXEokFEk9DYzqEkt/1DdIh
+# /KyGXFfk+vm2e4cvGYcPfT/MEaTmR6plh6ymrhDdhjxMzTZPYfwyZat+4ar85nkg
+# YFeMC9wayqcUPVMhVjHmXq4LEBgMMBJe02bfWf+yvX49w43x9q6LLou50zKuoFXL
+# I27l4m3kVQyiHfqTOL8ZoRam9lje2A+akythYA5c/4Qvl321slHB/XMlCP+AuTMG
+# Ql9jBOnM194RDokOyu1ai/7jnqUeZllz0P8Lfji6BeqVrh4/BZdqwVZ7q+K8qk5D
+# XTR0pTrmdcDWYUywtY3xYjTDt5TfAWnm33kROeaJRmTfqrbte1r5ZftD8geW+jq8
+# e08usNOeFqMKzzAKsvIcBzjqC/0TcLYQrYPIVCbnXhwk1h4ysx2xMjae4j91ZnCV
+# 75Z20YM0ZGOIPInJOP2K/Rm1P2axiqxjYByyp6fNIj+CqmACC5XvoBEJgFymtPD8
+# 5ZkkeAoaUPlijv+r5GD7xPNkJQ8SXZ/E0CgMP14QOLqPEStRsyyIaBIaMXPFzaFi
+# YLysQwACCdv4Sb3ttcZmHiehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTgwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgbG9SQHV8IMaW8lJ6ytazB7VaUO1bTcgqKJBb2l6T
-# VX0wDQYJKoZIhvcNAQEBBQAEggIAvfCG6X1/JZv+9Dx+64VEljHiEjVko+xDQ/jp
-# VR3QT30Ephi2d5pZ3sAQfJJLIQDeiWPPjaFYljMkLe4GduqsPnIk7MZY8ug8D4F9
-# OJcPz2R2m/vRyLagqiGdOwKQxovOMGDhCJOfWBC1Lst3yg3rCJlTPRtVX6psyo7N
-# 0hTfnR0/+69UQw6XqY94wtsTp/b5/gAAz5tF3A6kArQo8DrawNamsrGWi79Hrk+G
-# DlKcKPr0rcykWjhLSv2qkJhoNLLZtcgtHAqlzqsLDTQpzqVt4765uZYw/jyoqLsL
-# QPjc8T1OwePFVto1brXWCW2gVareygihj1T14dDmqY5JHdLJSR8hUHjQUuD+fFqA
-# BddrLkyq+h7nu/ttcChby4wxrbkDueRC8kPSYSzY7a1KwaYmP79Z09xUpo/+pbBU
-# ikTDgW2GYT2Z8nQdAsRKQOqm5fIlr4GG4UE21gkIRx24gLjpnprvJQkXOv0hwKQH
-# p0hNqo6Dru2rv0qQGjax2+AK728mmJ6nKvcIrWsVXE7MZPcYCArwZHZXcsTI+enk
-# xEv8zxIJVgYit2bz7JNrlAnsUeNzQ10GKqx+JFk38BNlCOjFLQH99KTDzGdxAYxE
-# Cx1XG1+rLwas0K9CN/cO8duf1Y1PmDK28PF/oY5TTXZDsyYPxmj64PA4TFxbETC3
-# iMz+3zU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTkwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgrIHFiJVt4Z5Nmyz5YqTpNRQdbd9MYrFrgLLh8IBs
+# mggwDQYJKoZIhvcNAQEBBQAEggIAHAW1negj8zfcBWdTIQjRBkVikfpLcmhAgdKT
+# ljHz9nU/cvdVb2LwJQX0WOUX2W+syzbf6RzvZg3s9W3UAyNx5DvGw7NX1n40RVir
+# YC6WE582r5qJz/T96WA6jg81fDSPh+6Sql+yQkj3Ebhy0u7HUDoCLSOnEl5Uxom+
+# A5JgrMEv8uC2HjJSNjciL69hhCIdyUZ+80zBmkrARZgTSl3PzmXBBPn5uy804Kk0
+# B6y1EpMOs+pZEX07OUxOr8aJ38riSEwN9EcyAFgXARvwCMg/a/q8b259gaAXdohb
+# XR7xyLFGKrN09YjJ6P1M9PIo8VebZWY3D4Rz9JgJ+X5HEACX1cpbXIEQGVC2r+w0
+# bKIxFh8g4SqpVX7kf4CGLQvz0sYV60G6OGK2cJl8KKyM+tr5QJZuUld02LQJa2Yb
+# O/PFUInp4J7ky8UXIRbi5/li0OrsoYS5Ma2jSxE9fJa/zy5rcHGR8P5Vr+3OJVJe
+# +I7KenlzS9/Cmw+JXeUCKhEaxSZm8HMBh5jl1gR5cukHMDHLjePfUCtF1hPIjRaf
+# 2PF2QwLch2ajlfpk8yQ0sPpvfYVQavYoABfi08UGbesw9D+5MaxM8DNuX/d/tkB2
+# FnAMhTATZ6vM1KsKSgZiL6NVujnpYQFF4gSMjvnK65eTua++rtUcZaWdQFNlPNMY
+# cDc1AjQ=
 # SIG # End signature block
