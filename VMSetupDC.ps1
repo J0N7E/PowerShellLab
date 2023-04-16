@@ -1139,11 +1139,20 @@ Begin
                 # Access Control
 
                 @{
+                    Name              = 'Delegate Tier 0 Admin Rights'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
+                @{
                     Name              = 'Delegate Tier 1 Admin Rights'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberFilter      = "Name -eq 'Tier 1 - Administrators' -and ObjectCategory -eq 'group'"
-                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'Subtree'
                 }
 
@@ -1152,7 +1161,7 @@ Begin
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberFilter      = "Name -eq 'Tier 2 - Administrators' -and ObjectCategory -eq 'group'"
-                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'Subtree'
                 }
 
@@ -1178,6 +1187,9 @@ Begin
                     Name              = 'Delegate Install Certificate Authority'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
@@ -1676,9 +1688,9 @@ Begin
             $DCPolicy =
             @(
                 "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                "$DomainPrefix - Domain Controller - Time - PDC NTP+"
+                "$DomainPrefix - Domain Controller - User Rights Assignment+"
                 "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
-                "$DomainPrefix - Domain Controller - Revert Domain Controller Baseline+"
+                "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 "$DomainPrefix - Computer - Firewall - Basic Rules+"
             ) +
             $SecurityPolicy +
@@ -2051,7 +2063,8 @@ Begin
                     $Members =
                     @(
                         @(Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members) +
-                        @(Get-ADUser -Identity 'Administrator' | Select-Object -ExpandProperty distinguishedName)
+                        @(Get-ADUser -Identity 'Administrator' | Select-Object -ExpandProperty distinguishedName) +
+                        @(Get-ADUser -Identity 'Admin' | Select-Object -ExpandProperty distinguishedName)
                     )
                 }
                 else
@@ -2540,8 +2553,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPRmP+u3jewFUAkE8LCDKKFyx
-# dROgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5ONRjIH+nckRGbU4w7Z016mn
+# v8qgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2672,34 +2685,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZe30oB+r
-# YJ/Twjv5nt8ielJ+qPswDQYJKoZIhvcNAQEBBQAEggIAvu73FCORygLptY3xOUtk
-# WqOCALOT23r/S7W2i7xN/R00WNWbJMDi0Qn/QHScKA4a+/Hb/2c+9P+qgom+FXKs
-# sh/YRuzNgitGsPiWrpvbYViN+iREB+kOhkJXthCnJdLSqO44pXSDNLYszNDpaVH7
-# L2YrEX4Saeh5lQG/MG1FC7Aj7BMSAo1NhTBshoUMzCaGVioUXXeysr9QwVjyIDb1
-# pGBMHsxY7rZeKpJK14+cpeHGUkvbO5ZXATg9E8ZKAa1C/h4WNE1NQPEcmltEDOx0
-# YCRV6rFgUcuIQMu7+YaS+pHlXXUNRjnzZnWGDS2m2xO6wKykav6zOZT9HDAi0FDX
-# 9M6MbPLZ2UpJ2SbKJTS5Je+4ab3iEYlgJdwncw2UYpRR55GOa0ApkV9ch/7Eb0ej
-# XU3p4+sSxWX6t9Bc1pPToNCv0K4ODGb3KQICZUEERDBaZPY6ihjIINi+ZuYdlTwU
-# LS9crPVeZyYzn0mKRhdbNnoOQDJUHf6Qgn1MM4ug9dyj7wclcXHpjv8oDTODaF/b
-# NVy3vo3vCh24YmsI15F6OGm81Cf0JrrUT7y6HzWzjT/JbklomaCImh8NLRgSa/km
-# uzxoAXoJkOCF8GF3bi8Grds+Eoji4zWLRrASKYrXd2aHHPDNwcVMK8rXQQ0nAHi+
-# h0Um5/QYQWtDtZwTqbA2jtChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzUGHAG+H
+# WL1cC7svEMBdlue7f4EwDQYJKoZIhvcNAQEBBQAEggIAhj4dswkAAuh70VDhHzTS
+# Yet1ZzkDu8B0bQPtNwOgbosU6ACPpuZ2oMBGZcSclfZhiIVl/tgS5uq1zXR2q4oA
+# GUCPtpoZPzoGe0jiX60d3TFkNmyTCOuvpFmRXeA7s5vZZ0Rz2//9NxlmF1meqhIQ
+# AqNY2HcRGKjsTvhIOkhgVkrwHIAPkfW70jupb0bp6wkRsA6gq72rJCD4hQs4PRfZ
+# KisssVK1wUhhwMAH6cFVsycZOuilurDKMigs0St3BLquKI58GFNhg8lFRYMoZHAu
+# wCfN1BOyt8FBvo7w2ePhDyK89BDEuxPmfvH0+LfaHB9hbpr7pMlLqENDyUwRnafS
+# zblTOyzmQfvihxGgNge1OFkNIE47wKdc31LrQZg+9u07EnfClSNvIhnNKaYH9Lna
+# DBkpW8+TtoIqSIKdlkuOfj/l3EoTP4U1S8SDW5WQcNIggjqRstR3ZTWndK2PNj3g
+# iY8MelGjPEQ8K+WmZXQpG/OhLkUfoKA1+wxDLEMXkH5RCwe3gvF0EbwkvyqBzph9
+# 9ZP71CgJQXVyZPaQ0dhvDKxoLoQIQMNrxAp9mEZGxanJJBnUtqui9WK1eZ+hg0La
+# IA500kVN2qKHgZIbpwH6Sa6XiIHccXmSORgimxGGfjQbD0B+vi7VZtyfBCLRgRGT
+# vzEiZQVHeIc0dBlRTpNtAJmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MDAwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgxSso6dTl6xSuHaturypcu7XxLwO4JsSXuN/FfvAw
-# m6MwDQYJKoZIhvcNAQEBBQAEggIAvRBIMQaeTQITRnal07GH+jbgYVhwPPDjD9r0
-# /s/l4wTSMWMl8ciJ5+BydLGgj8+qREJVpt6G94KdGymMdTherxbVSQSrzCHMbtdS
-# Vj85tb6t49gn1LRo/XyIHFZst0DDDt0K2F0EZogFrzv/B6Py5ScXf8jPISdz2Mf9
-# cfcAMg+Vgq7ePCbC0OFjIJjkSYYWpltxLzGKR/kpzKmwI6bufYYUxNSoh14lIASz
-# 19MyHproS5SDeW9ebBzX/+zThodEw6whWvzEUtNVqvVrMkx5js8mZriYiXCLIDF3
-# ZiFK00wdiChdwJRk6uQ4WKUUWwdOi4jfzTlajxdNeh3c0HANTJUayu/aYKtfKwcX
-# +YXxGNZiItIih3WR0DjkRcadEg4HjGWjJuvbP7pNQeGAZTYLOaE18Uj8FGJcV/O5
-# aBNvdSryxtIEebj8MNXlAH/l2LK7X3JZIueEO+29AnWC/BbxOaeo4NzvWS5TSwCz
-# ktimXkOEhZ7y3iErMySTU1l7CTRFSzBDeJIB2mG4k0RxrvfA2VNvfYB5ZqlVguvY
-# hlM2eIVfM0hjGTIusLon6oa+3+vH1BM6+YC5fxgAuv5EPwkEt26A7rtvkvDAtSf4
-# qhCXm6rORzdH6OPBf1qRKsslVvmRMo2w70gM6fKD/OaGsVRWzo1puselBk1Qs5Op
-# sjEoF8o=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MDEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgugtPNmv0b0sTBIQVyydtotKjYHrR93FVo2t8BVDW
+# pOswDQYJKoZIhvcNAQEBBQAEggIAFRmw1SAPMtIkWXkdjrkd1+rsJHcy+9pJ4RGB
+# xeU2lPHcUJHOYrpqVQUvrvlMloVO+CSEFZi2cE2MLcj3cywFZKQYy/cE7QB/DxhO
+# CVA/d5thlWOzZS+f0ymaFfniaIqYvaTrnrh4WeIagEFMEogJjVSr1PG3NFizWanp
+# Ke9Vx8GT9ENklTJSJx52d6d/KymoQY5gcJEY45WA1ZWup+pCJrXpoKtib+ggUdGT
+# a6KZTNPnF+MCpmg09fW3XSUWhHG4cgQ0FloBXlfsJ8SKbPm2KnB84IYMGeHU12pk
+# edzINgkq7fhIUiDkdXLQJL9Kw5ZPh0fSXmgUcnvGT56m8mvhSzF8Fg8mccv2Znxw
+# yM7/jxCEu22N7DOvu+CTt0WXoV4dCmrVL7NiU15Z1ayfiiP9ttxU+gLZP4zAyhHb
+# 1Pp8qX/vda0IeL8QnDTrBupC4gtyxTi0YdiV8DWXvXiar8bxx0lyQ9aGVPwjii/Y
+# MEV64X6aN+gE3egaJ9vL3B6+crjr/M4qSOdlDBaejsEvDLN2SIiX3eexc0KidKA0
+# Dguuoqwh4Luo84G7W12sGHy1A51AiRwfkUhUedHf4iaS7SINRx5t9D/0hrweQP3c
+# QzmaSErslTLXsYuw/kaHr+LpbIL46rjqbiy6qyoQzeLaVgcn3UGL8KGgEOzFDUJ6
+# CAMp7a8=
 # SIG # End signature block
