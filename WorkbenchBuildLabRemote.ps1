@@ -110,9 +110,72 @@ function Create-VMs
 
 function Setup-DC
 {
+    param
+    (
+        [Parameter(ParameterSetName='A')]
+        #[Parameter(ParameterSetName='D')]
+        [Switch]$EnableAuthN,
+
+        [Parameter(ParameterSetName='B')]
+        #[Parameter(ParameterSetName='C')]
+        [Switch]$DisableAuthN,
+
+        #[Parameter(ParameterSetName='A')]
+        [Parameter(ParameterSetName='C')]
+        [Switch]$EnableTierGpos,
+
+        #[Parameter(ParameterSetName='B')]
+        [Parameter(ParameterSetName='D')]
+        [Switch]$DisableTierGpos,
+
+        [Switch]$BackupGpo,
+        [Switch]$BackupTemplates,
+        [Switch]$RemoveAuthenticatedUsersFromUserGpos
+    )
+
+    $Switches = @()
+
+    if ($EnableAuthN.IsPresent)
+    {
+        $Switches += '-EnableAuthN'
+    }
+
+    if ($EnableTierGpos.IsPresent)
+    {
+        $Switches += '-EnableTierGpos'
+    }
+
+    if ($DisableAuthN.IsPresent)
+    {
+        $Switches += '-DisableAuthN'
+    }
+
+    if ($DisableTierGpos.IsPresent)
+    {
+        $Switches += '-DisableTierGpos'
+    }
+
+    if ($BackupGpo.IsPresent)
+    {
+        $Switches += '-BackupGpo'
+    }
+
+    if ($BackupTemplates.IsPresent)
+    {
+        $Switches += '-BackupTemplates'
+    }
+
+    if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
+    {
+        $Switches += '-RemoveAuthenticatedUsersFromUserGpos'
+    }
+
+    Write-Host "`"$($Switches -join '", "')`""
+    return
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
+        #($Switches -join ', '),
         "-DomainNetworkId $($Settings.DomainNetworkId)",
         "-DomainName $($Settings.DomainName)",
         "-DomainNetbiosName $($Settings.DomainNetBiosName)",
@@ -152,16 +215,7 @@ Start-Process $PowerShell -ArgumentList `
 )
 
 # DC Step 1
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Lac)",
-    "-BackupGpo",
-    "-BackupTemplates",
-    "-DomainNetworkId $($Settings.DomainNetworkId)",
-    "-DomainName $($Settings.DomainName)",
-    "-DomainNetbiosName $($Settings.DomainNetBiosName)",
-    "-DomainLocalPassword $(Serialize $Settings.Pswd)"
-)
+Setup-DC
 
 <# Backup
     # Get session
@@ -395,8 +449,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsE+0Y5XDHwFsm4G7X+dDAB16
-# mvCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvE/Q0RUKSCs1QAMDJSeh632u
+# 6BigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -527,34 +581,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtTm41YGx
-# kEV5biBOynbcxnatFO0wDQYJKoZIhvcNAQEBBQAEggIAPm+h8hFeex2Wlznk3PEM
-# 2ixFuAUu1sy2RaUxMGE161o0s7iSSxs+wr2R7qykC8ozZx6L6wKxY+koKcFxp5ui
-# 5IrBJ4ay9jFutuULjtUbc248zxmycX9L3X8nBZYDwUNardFeKdcZR2VNCqvp/k3m
-# gao0jZfP1kvTahulOu9uDmpL2Ibi31b8zruGEws8anMIBtyOybJdx79V0qA0PCaY
-# I/3f0t7/RJjSE1S0kPW96kyqSnZn4JQaAU/XKec7MAkO1dCpEDigf4MlX9T3OqlV
-# 1IwaZx/xCa//867JvZa9I4w/Lz+GidU+syx4t/MA1d7aRWBiAhQdUkhT8I9djh57
-# Pz1fVyAoLp59H3onXgHoXMsSOZnEndVUZ8LDq4H+McmEnl5aBT/sTKbYuf8oQwmh
-# KPZkRGScwGEJmpNMQLW2IFTRR8jp6t+qI/aGRS37Qcfi4KlfcTtCkIMoasAdnyRH
-# 0njHdiaXR2kDYOwVmfOglJe9K3nzXMt89QsnQ6LkW5BCtde1VSwp6+/DxOwuY/Fz
-# UNr+7ooG7sKCyQ9Vy9785hSxQ3mAfXFNqhpslYCLN6mBUCC2P9xaHUV01ZRc0GQ1
-# b+UKNTS2D3awZ5AzViyV2plNQMty287cndM4F2nCtCLI+cjUyz61+nD7e7apb9/A
-# g1j19URKXw9w3ws9jH3DtqmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU21PNEuVB
+# 4ZIoHtVXzYdu8pJc4YgwDQYJKoZIhvcNAQEBBQAEggIAsXGFJkRqgC0lb86wuYms
+# mY2Mo7ddWv/ISKor/QfGDTeCVPCBgb3mc8a6aBCANaJ2D8vDQommJ8vIM0ow+7On
+# ZcQw3E2Tnci+Nj5eobqCd6jVQilUkVs0RrZrJDqLPr73JBfEzKCsEgIkm5CN0w5u
+# 9FanF+FAQkUwMNDcfs2gv/NtiLWErizhLV+3mYrHIWh55kG/VhX0sV1oMUI3Gf9I
+# XSKTl14s6azZ2L+a+yhR9U5EiAShtBlGLnnAjWpUzo1H7D9ATdpBNakuUVcL6ga5
+# mTFJFe4YyLg7s4gYT2FHarvtgpQ0pAurNWi0OR9UXXJTWTGGl23a6dtWv9nff1QO
+# zM/QUPF17eu/lie/UkXzyXJ8SfnbS3n/jxLo+2cAlhAg79VyxHympX5ukY2LC9gr
+# 2Fi/kEwvsI2IdU2P2fCVScIs+I8qhPCaw7/wdlE1g1kbGwphaIrw26nCty+aWEfq
+# JWxiR9jDP6EalMUmYxGtbkjR4eeBPJHxb1/VwWfi5yiouKY6/m7nWaLIvug8not4
+# vSjripFpITWZWHWqMm/ctLe4XzinU1ljUWpYy3YQwSmj7fyHKWnKY3F05LGUPrYt
+# taYkAtr8msh/Xsp+2xQOMHahJBpiLgJaA+IzSruWv8l8riMaT8E7bgXZ4FdFoPNu
+# qZza+ZQD0ScX0yupUc4yBWuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgm3PFTvqCMxGEPyUohQ1o7SzYGfSA6HBVx6z8CCL0
-# kJswDQYJKoZIhvcNAQEBBQAEggIAjAQIx3oX9IqRDUIIyg9YOo09hSeoXd08RZ9q
-# b4z/jYcSDvbG6IimjIML4Q549B/8V2xUEQcfOEqGw5LdMelx55SEC1gu5tmo4v6T
-# Pr8bMJdQi2TTaDt84vqOWDTDMhgvgkIgbg09o4iJzHoRxAQYsUuUq+pZ2KprocPv
-# bSuTXVOASwv8YBKHxdgTUNaglp2hzGL/oUlIAjv4yL8qY1gFcb01NIxlTHp97WkT
-# E//W0yVURY4geJblW7wD28K1ahIqxR60gUvHkLeYDya8Hs0f2COz5aHg09jJkD5z
-# Rj8PyGYHreljbxFcM0koh938/DkmwJ8VlnF3VQ/98+jutlQhziemrlQJGDe20VYp
-# hbHe277qHhLEn7EFJW78IbOaT8mFW2a3UFWci3b+PD8QnVqcVjvbfQFEDFWLnRmb
-# H4iMLjVH+9PvMN8MWhWaMVuTImB4a9HK2W2FOL/EiUoRbV0AWMaDWBZA29x6lLOL
-# a5r+K6H/7HHUkJNaA3iP+TSLIPK//kEMsliI1waftar57pS+KkWxpL75s33tYE8s
-# caMPalVC+ioglTayS7cMPuqMBI01dqvKua9t/MGDPa/b942CMjPWeEBx/bUeHVk8
-# vh71TW1AIuLajVuu5WdAlWYaqlDc3t+6Wcu78N1dflLxhAljDw7guYpCjRS3iB7L
-# 8ZpJw1U=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE2MTMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgIV1ofPnEckHl3JgujbVEM2adqXO1mf3B91HXt+uc
+# zncwDQYJKoZIhvcNAQEBBQAEggIABiyoj1rxWUzQcqQQvS89jeytqJXmB14Sdkkt
+# WQ1tCw+1dLV4byfTnNs7OLPHuHbN8VJqrNcfexPb0vjjDcv0KXp4CpLC87y5h7cT
+# dFmW3fnwF1DmaCROKJb/RvmEykHqbdlnpTK8QoZ1nkZzuXIJ+PvjQVACeGcNkRdO
+# +soXIc6FEj2a9Y4RKx4Q7bJSEA/IYCac048/rkNhKtCdXRhBftSohxz/5TeWzcDx
+# mQHFJJvyrECcV48CuGiDfSFOh7nAKX45L4XLDAWf3+DgyIB/Zwrq61bSJ0Nlo1XM
+# vux+hlIqT4XKUCldIUHHaDKPQREk5AEt1gQ7B6jFA7y3SUR0xoU6MRX3YleCm9XQ
+# ZNUqTN6+ktVNyyu73hXlQyNoS8g17LgT7CUuYv6aEyomcrD0P4/hEzb3/5cS8wew
+# LnefNfCLn4VmlrcGaA49Dix2bWbN+HbwP1bcYx9u2LgzWjX48h9EU2u+mVXuRvTS
+# rWueoFURSIoekzA+nmemd9EXStwS5Mr6o/duyZG/fCQGWDuYbaCQWpAhL6pxabd5
+# 9BfFB91C7Moie4aM50SUV4NYZKtu22HFMaYsXLHeDIy+Eu4B7tmGRW49wxiPPVKr
+# 7Y0+fFox2eSTtP/CN+inAr3tNtNzozvLq2KLqxNkQ7MJU/7zP72Iejwb2+NRv/M4
+# VvyPMnI=
 # SIG # End signature block
