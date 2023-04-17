@@ -66,9 +66,9 @@ Param
 
     # Switches
     [ValidateSet($true, $false)]
-    [String]$UseAuthPolicySilos,
+    [String]$UseAuthenticationPolicySilos,
     [ValidateSet($true, $false)]
-    [String]$UseTierLogonRestrictions,
+    [String]$RestrictUserRightsAssignment,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -1718,7 +1718,7 @@ Begin
                 "OU=Domain Controllers,$BaseDN" =
                 @(
                     "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                    "$DomainPrefix - Domain Controller - User Rights Assignment+"
+                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment+"
                     "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 ) +
@@ -1751,7 +1751,7 @@ Begin
                 $ComputerPolicy +=
                 @(
                     "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment+"
+                    "$DomainPrefix - Computer - Tier $Tier - Restrict User Rights Assignment+"
                 )
 
                 # Link security policy
@@ -1938,41 +1938,22 @@ Begin
                 # Itterate GPOs
                 foreach($GpoName in ($GPOLinks.Item($Target)))
                 {
-                    $LinkEnabled = 'Yes'
-                    $LinkEnabledBool = $true
-                    $LinkEnforced = 'No'
-                    $LinkEnforcedBool = $false
+                    $LinkEnable = 'Yes'
+                    $LinkEnableBool = $true
+                    $LinkEnforce = 'No'
+                    $LinkEnforceBool = $false
 
                     if ($GpoName.EndsWith('-'))
                     {
-                        $LinkEnabled = 'No'
-                        $LinkEnabledBool = $false
+                        $LinkEnable = 'No'
+                        $LinkEnableBool = $false
                         $GpoName = $GpoName.TrimEnd('-')
                     }
                     elseif ($GpoName.EndsWith('+'))
                     {
-                        $LinkEnforced = 'Yes'
-                        $LinkEnforcedBool = $true
+                        $LinkEnforce = 'Yes'
+                        $LinkEnforceBool = $true
                         $GpoName = $GpoName.TrimEnd('+')
-                    }
-
-                    # FIX
-                    if ($UseTierLogonRestrictions -notlike $null -and
-                        $GpoName -match 'User Rights Assignment')
-                    {
-                        switch ($UseTierLogonRestrictions)
-                        {
-                            $true
-                            {
-                                $LinkEnabled = 'Yes'
-                                $LinkEnabledBool = $true
-                            }
-                            $false
-                            {
-                                $LinkEnabled = 'No'
-                                $LinkEnabledBool = $false
-                            }
-                        }
                     }
 
                     # Get gpo report
@@ -1986,23 +1967,44 @@ Begin
                         if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
                             (ShouldProcess @WhatIfSplat -Message "Created `"$GpoName`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
-                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforced -ErrorAction Stop > $null
+                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnable -Enforced $LinkEnforce -ErrorAction Stop > $null
                         }
                         else
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
-                                if ($Link.Enabled -ne $LinkEnabledBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnabled -> `"$TargetShort`"" @VerboseSplat))
-
+                                if ($RestrictUserRightsAssignment -notlike $null -and
+                                    $GpoName -match 'Restrict User Rights Assignment')
                                 {
-                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
+                                    switch ($RestrictUserRightsAssignment)
+                                    {
+                                        $true
+                                        {
+                                            $LinkEnable = 'Yes'
+                                            $LinkEnableBool = $true
+                                        }
+                                        $false
+                                        {
+                                            $LinkEnable = 'No'
+                                            $LinkEnableBool = $false
+                                        }
+                                    }
                                 }
 
-                                if ($Link.NoOverride -ne $LinkEnforcedBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enforced: $LinkEnforced -> `"$TargetShort`"" @VerboseSplat))
+                                if ($Link.Enabled -ne $LinkEnableBool -and
+                                    ($RestrictUserRightsAssignment -notlike $null -and
+                                     $GpoName -match 'Restrict User Rights Assignment') -and
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
                                 {
-                                    Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforced > $null
+                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
+                                }
+
+                                if ($Link.NoOverride -ne $LinkEnforceBool -and
+                                    ($RestrictUserRightsAssignment -notlike $null -and
+                                     $GpoName -match 'Restrict User Rights Assignment') -and
+                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enforced: $LinkEnforce -> `"$TargetShort`"" @VerboseSplat))
+                                {
+                                    Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
                                 }
 
                                 if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
@@ -2091,7 +2093,7 @@ Begin
 
             foreach ($Tier in $AuthenticationTires)
             {
-                if ($UseAuthPolicySilos -eq $true)
+                if ($UseAuthenticationPolicySilos -eq $true)
                 {
                     if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
@@ -2168,7 +2170,7 @@ Begin
                     }
                 }
 
-                if ($UseAuthPolicySilos -eq $false)
+                if ($UseAuthenticationPolicySilos -eq $false)
                 {
                     if ((Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -2551,8 +2553,8 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $UseAuthPolicySilos = $Using:UseAuthPolicySilos
-            $UseTierLogonRestrictions = $Using:UseTierLogonRestrictions
+            $UseAuthenticationPolicySilos = $Using:UseAuthenticationPolicySilos
+            $RestrictUserRightsAssignment = $Using:RestrictUserRightsAssignment
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
@@ -2639,8 +2641,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwryv6rN3IGCZ3dVBRCOHG3J4
-# RuigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgwoMT3RaWA0xQT27CdXJPdHZ
+# jGCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2771,34 +2773,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhk+Uk1jL
-# IR1yXb5dp9xR+30xLvwwDQYJKoZIhvcNAQEBBQAEggIAWirxN89t3imLwutjz+Wu
-# T6V4uCQt213v2ZB3b3lw1PcVtsX7gocev2gMKuFb2LcGYCD6NlvXNSax8yukgo8i
-# mYADPgZSOX25pQjNchT+qnwQDhoMbYlxnZlyiriEYkUBqXpyoXJ5f/Ums2PAz0h8
-# xI0LPcFiCs6vk9a18KnMgtB43XJfWE3XdLG1Uq9VUhAHvBR2Bo5DA0WkeARwStzZ
-# wYGmOsRjD3buPiAiYqqPguiqnwHUsbki0+UfI4CHleYY6l1sWtF1zvd1k3t2IHWF
-# 9zUWW+rp+NEPnu9ZqWnbv3C38spCcbYZivsiPoiJ5bKtTssadW44oW/qJIxXYBZY
-# A+NcOCuFVL/a8Ow7S/praApsO2sn7VUITCOdLlk8Q/XOagCHPyIVx42hILtLK5jE
-# Q6+6iMlqarVpk6aij6obp7BPi4QvTRvEY/rzi5jH/kXo32a3O066vvsISzXIB8VQ
-# Fo6vNBv9peP6EGYV+YfMi0r7TaBj7tIEoLzvPMT8H0r4g5IyeI6ZPXJ32Tzf+A1E
-# 9mdulXbwCNoXO2E/TTmTXNuNx9somiEqHA1QYXVuGY0vnkBHqOT4gYhv/LgOMaoO
-# ephJNB0jyWu592T8wYsV8q02wQul8OyM67xrWKFaNEOUeh+IOojS9c1DAIG1/27q
-# KCILaVA8s0uMqRYaHnGnG0WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUULJzPMsl
+# WD5XFr/sT4QwUJQPuOQwDQYJKoZIhvcNAQEBBQAEggIAQPo7Eny4HsOGB5WoHypd
+# UMi9gwG96KHcfiAbzKSZTq8t8GJr5St036T+VD2Z+GkupeqXDQHZ7V/GfmAMe/Qc
+# 1dFn+/gm69DmuoIeoXD2Ec45JOfrZkpNq1l5MS8dLR0OMY6GUo03C4V+zqWk3zcD
+# 5Ab+jLtMyhHvcHnl9x4AfMEDxYbSnlbtB6fUz3LklRTSPidTs5CCepvGgKrvnhcJ
+# aybQO8MJhHAFUgGIxTDjJqBJ1qWCe4t2TtuJeT79kn08H1OFV9YO9PJ7bv/oQpKo
+# L7HOlMnNt49KKr9It+OTJI4TVIFmow4hfagGLeuy1AlPJ9dm4Fbc63P/I9DadhtJ
+# vvf5pycishQ3npVBPkt9k3sSFvWuMDSQlzImAgOkt9/ZQX7ppFlXJmJ7UBJN2wlN
+# CbeAiRuHER9WajcAkrml83qrp5Z+8ide5n1yNY8cp2fjrJx+Rs5I1D3ABRNMf//1
+# 8DmJiVzyKCgR1OOqJkr+FjacwhlUKxPYdyBkFhSbdQTSI0MiJd6B6XfHr9FMiNph
+# MCllxevSDOeZPp9AL4N6fkRQUoiiZXrnv/ipu7yhURFPPT+5Fas1xS/ksVR06N34
+# YBc3KejHAJwcrFMOX3jj+DZF50fg0ehDf0xHf09irbX8uYa1Zzvn3y9bSKtnNbLf
+# 3aS1/uinweVFgW+0Q2icXW+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MDcwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgrpFAfr9UYoiysnDiaHFYCH3vpqh8EUv2EWlQw9sz
-# xxgwDQYJKoZIhvcNAQEBBQAEggIATDYJtL14PdTTzOLv/+Wx6+Yj9zlF7ASG7Cwl
-# ZZN2HmU+JMVef3z5JBw6/jOGcMZf6XNq1GpW82uw7IXsUM7HprAAxsmILa1OXDBn
-# +u2GTfYkBMBiuuwJf52zmwND1gwraAsvdw8LyTkMkkU40nmtzbfKCP/+SSlt/6Fo
-# g0q8kH/AIgvkvyYdN0IX5DUJRA2t2WmMQW0M5+uQ4xGmH3W8vLpP5nW5J7XmDi0+
-# JCQB1sxmLFHXk2p3ZRtmieADwGlBfpIj/lHgmUSZemZm4RGRn9vzH8Nln5sOcxJh
-# NX/bHRGmfh9HIGiMJRQt3VTiD1/C40DdQ0Y61854H1HoUwuoHHhhJffIPdvACBLW
-# wEf6rp5ZsIjznKaunt0YjRKewl8feympYDXhmuR2ZlP5Fd86MLvaNnMIyW+HkD/J
-# kuA7lTs/m+tqYwcRZ/jUqywNy22cODmtyvQm7bPedLLyHL7LA0yv1PShwfvrVq9P
-# HzIC+sXISUKZMG6t66bt0yEbV5j8YLjgh2PL+jvA5zx1ZORWZqU6ina5atoYMPKH
-# 2LEQa3aoHlKoUrukCPJnsbTfp4XU+DsXn+Hi2DcL0arqBnDWeMUclIC1UUafyN5j
-# pfqDJ1b7AgkiUVPJbaKgWgAOdBTfCgnpaLmZRxfNmEHSlsZSwWtny90xdDmoxWBi
-# 8BCjzmc=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MDgwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgba36moWj/3IEOxfVhw5UWGeuPENtHs2UqL9dN1Kz
+# kuowDQYJKoZIhvcNAQEBBQAEggIASFMpS1BnCqj9+VyF9jxBhT/g8facOMpXSaAg
+# a8M4M8avfd0sWfcasGR/YZLU+SEy7XbuhQWnTIYQoHWhYIBOiE5fFTInunQGMpcy
+# WilMvZsz/I6EPzPO6VIWMD1qVLQ4Ht+tBAcc2NWPfgwFFxd9cBNYb2SCsaVVttRQ
+# An4S4BhOMr9qc2UP9zTOlijgGobG7ZbJMcr0xo49JIRUlfQmVspkYi4JMGQD5mqC
+# 2Lr6DUtfUoZ48v57B7CwMwsGwspvNQJkLsDs8LXcun3oTpbZVOhTp0VEfGGX4gYz
+# 5IxwZYAM5Xjulks/apFOBy7LTSTqM8DW9hqZQ0J2Pv0aksWQAkXHI03GUrttN3vx
+# EwRy1C4KVvmMFR+0MX5zESZW/jrqI7EDAdO0rVHeTrIl/JV1mWRzIWYn27YS2G/6
+# PRZNXMyiwg0Sv9LHrU5+V8WWubkNcv/jeR9mk1ApgS2aJyyFPkYch8JvNpVm01WK
+# t7SqX1o3jBeCmcErINx5KOMPLlBVDHw+LKlalmKMW3Vs/sxnScj+jzYR+kGbkaOC
+# sW1J4Rtg1LVPsTpreKbJhpEa6qDTM13uwfIpYzCxAohbR2KyErybDpWV3VLGf8E1
+# mdfy/oUOMSrbEfYmX5es/JkMKh+GmoAEqgrjgiugWHzamOIrpXPyJI+876siANSn
+# 5rZ79Y0=
 # SIG # End signature block
