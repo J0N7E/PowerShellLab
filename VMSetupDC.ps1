@@ -1668,27 +1668,6 @@ Begin
                 Start-Sleep -Seconds 1
             }
 
-            ##########################
-            # Tier Logon Restrictions
-            ##########################
-
-            # Check parameter
-            switch ($UseTierLogonRestrictions)
-            {
-                $true
-                {
-                    $TierGpoSuffix = '+'
-                }
-                $false
-                {
-                    $TierGpoSuffix = '-'
-                }
-                default
-                {
-                    $TierGpoSuffix = [string]::Empty
-                }
-            }
-
             ###########
             # Policies
             ###########
@@ -1709,12 +1688,12 @@ Begin
                 "$DomainPrefix - Computer - Sec - Disable WPAD+"
             )
 
-            # Get DC build
-            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
-
             ########
             # Links
             ########
+
+            # Get DC build
+            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
             $GPOLinks =
             @{
@@ -1739,7 +1718,7 @@ Begin
                 "OU=Domain Controllers,$BaseDN" =
                 @(
                     "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                    "$DomainPrefix - Domain Controller - User Rights Assignment$TierGpoSuffix"
+                    "$DomainPrefix - Domain Controller - User Rights Assignment+"
                     "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 ) +
@@ -1772,7 +1751,7 @@ Begin
                 $ComputerPolicy +=
                 @(
                     "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment$TierGpoSuffix"
+                    "$DomainPrefix - Computer - Tier $Tier - User Rights Assignment+"
                 )
 
                 # Link security policy
@@ -1901,7 +1880,7 @@ Begin
             $UserServerBaseline = @()
             $UserWorkstationBaseline = @()
 
-            # Get baseline for all versions
+            # Get baseline for all versions from winver
             foreach($Build in $WinBuilds.Values)
             {
                 if ($Build.Server -and $Build.UserBaseline)
@@ -1975,6 +1954,25 @@ Begin
                         $LinkEnforced = 'Yes'
                         $LinkEnforcedBool = $true
                         $GpoName = $GpoName.TrimEnd('+')
+                    }
+
+                    # FIX
+                    if ($UseTierLogonRestrictions -notlike $null -and
+                        $GpoName -match 'User Rights Assignment')
+                    {
+                        switch ($UseTierLogonRestrictions)
+                        {
+                            $true
+                            {
+                                $LinkEnabled = 'Yes'
+                                $LinkEnabledBool = $true
+                            }
+                            $false
+                            {
+                                $LinkEnabled = 'No'
+                                $LinkEnabledBool = $false
+                            }
+                        }
                     }
 
                     # Get gpo report
@@ -2641,8 +2639,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA4AP2jYmsbGdTtCal4KvtQ75
-# WsCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwryv6rN3IGCZ3dVBRCOHG3J4
+# RuigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2773,34 +2771,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUPzDWNFsT
-# 3lbku4tIC4io8VRaPg4wDQYJKoZIhvcNAQEBBQAEggIAkKuIkuqbpLGpSXzMwcUe
-# uRdKdtkju3OzffWvCiSC1ooNTsZYtf/2Q9wGcB3WACPycy8WGnD7M9ASAInkH1C6
-# 0v6V7G4sX4siByhKWeaHv7T6zzn4Bx7/YyHRSTdFem7x39j2w8NS6ng4qFER2rAO
-# NPvdX0pa7DC9tJi7abqwUEfZqLQ5bvguNB9hKw7IXWD/rROcv/TyCftrU+jmTSRF
-# lF0p+wQzhsV8ZAIWS+Ff++BtKZ3bH2gyEjkwX/lcdwpq6GdSkOAx6m12tLYiPqsO
-# 2McJpHGhANUbkg3zW1pm593ATrGYu0Gffu8YLsyDU9l98AsNIZNR5jl5DiNqi3TN
-# Uhgc1ybuOwjgMnVBrVEUtohf8iSNdqbBW1fno82xD0iLZSxNx39QrLRitJ8zIjwB
-# spZ9yzLRCT3/+kZpQjM/vqlTsp9rzob++R2cFC7g3L6ZNUVBjoo0n/VWm0uMyZDe
-# dkw2Ha4RFGFoif+arCLG434LZbrSfw0L2dKbZvwgYioy7GRpH4ubtWmemgW85Zzp
-# m/KfPB0kSOk8AG0c6FriPOgvKwtEb6ugUo2s1gR+YbAgrP22BgUi+LhzBALeAEHK
-# uBq8z7MGLKraIR2q/lKeBS6+nom6ng0mkbXEbrYkWMs+5FKVUb7J/hP0DGRT8dPp
-# gLcIJIIR/JaekRugOb4zhluhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhk+Uk1jL
+# IR1yXb5dp9xR+30xLvwwDQYJKoZIhvcNAQEBBQAEggIAWirxN89t3imLwutjz+Wu
+# T6V4uCQt213v2ZB3b3lw1PcVtsX7gocev2gMKuFb2LcGYCD6NlvXNSax8yukgo8i
+# mYADPgZSOX25pQjNchT+qnwQDhoMbYlxnZlyiriEYkUBqXpyoXJ5f/Ums2PAz0h8
+# xI0LPcFiCs6vk9a18KnMgtB43XJfWE3XdLG1Uq9VUhAHvBR2Bo5DA0WkeARwStzZ
+# wYGmOsRjD3buPiAiYqqPguiqnwHUsbki0+UfI4CHleYY6l1sWtF1zvd1k3t2IHWF
+# 9zUWW+rp+NEPnu9ZqWnbv3C38spCcbYZivsiPoiJ5bKtTssadW44oW/qJIxXYBZY
+# A+NcOCuFVL/a8Ow7S/praApsO2sn7VUITCOdLlk8Q/XOagCHPyIVx42hILtLK5jE
+# Q6+6iMlqarVpk6aij6obp7BPi4QvTRvEY/rzi5jH/kXo32a3O066vvsISzXIB8VQ
+# Fo6vNBv9peP6EGYV+YfMi0r7TaBj7tIEoLzvPMT8H0r4g5IyeI6ZPXJ32Tzf+A1E
+# 9mdulXbwCNoXO2E/TTmTXNuNx9somiEqHA1QYXVuGY0vnkBHqOT4gYhv/LgOMaoO
+# ephJNB0jyWu592T8wYsV8q02wQul8OyM67xrWKFaNEOUeh+IOojS9c1DAIG1/27q
+# KCILaVA8s0uMqRYaHnGnG0WhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MDAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgXsMGhiLubDNuWIfeMiD4Net8rw7ZxCr9chA8ncB8
-# AJ8wDQYJKoZIhvcNAQEBBQAEggIANIJVnFhf4j3ucs6PQnGxR+LPNzbzyMlNEapz
-# LoTjRr2+exh0JlQbIClp05JIId5X1VYOrdQGXxplZqKhl2fK+zVBFZDtgPXLBvRm
-# Kf5Am+/JLoX5B+dLq9N8C8vIXRD2k4b/AQWn1WypJjPlU1nYrHYv94BuwvXgO7Ux
-# ibJCI2CQxQtx1usKxM2S/xZBugRKiroVUmqy6mwMUzkRz7eIfhBuFGOg+waibVAJ
-# a1PFtrCN+v9Dx7i5UKyKNo1OTS2rVPYsr3yNGdJCsnEFegtozid85+feRPCL+CXG
-# 20nW5fQchAgwL5Yo4Iii9HosnFtAciyG6HNx+2ORQ4XWTM0wI4JOqBKzPnf9vL0N
-# XI0C3SKh6GrkUd4I7qy0f1fiYXmXBEJlj96FJnY3Sicr6lV3yIfcyO3jbDhSfGv2
-# SILl8RBHHtsh42bp7xvnU6qLrOjoWfGpjhtZXOWKYhWvEH11rfsw9LKjOFDPM1Nj
-# +IDvNTiEYnwAvpsfBj3NZc8h1Os0X6upjR/+97fRpFTfrBazpbKtuH0J4d0H70y7
-# feHAB8xuIwXKYGiatfm5P49STnIlWr3tKLzwrz0z7gVRpCR9XLTKAvDgZEdouACC
-# bpbdq7ubHGVHVMaOrtmfjjulzIgswpjgE+X+CqorgOBEe9TgLCF6OwiQ8j0Q0iQr
-# 9YUEBKI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MDcwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgrpFAfr9UYoiysnDiaHFYCH3vpqh8EUv2EWlQw9sz
+# xxgwDQYJKoZIhvcNAQEBBQAEggIATDYJtL14PdTTzOLv/+Wx6+Yj9zlF7ASG7Cwl
+# ZZN2HmU+JMVef3z5JBw6/jOGcMZf6XNq1GpW82uw7IXsUM7HprAAxsmILa1OXDBn
+# +u2GTfYkBMBiuuwJf52zmwND1gwraAsvdw8LyTkMkkU40nmtzbfKCP/+SSlt/6Fo
+# g0q8kH/AIgvkvyYdN0IX5DUJRA2t2WmMQW0M5+uQ4xGmH3W8vLpP5nW5J7XmDi0+
+# JCQB1sxmLFHXk2p3ZRtmieADwGlBfpIj/lHgmUSZemZm4RGRn9vzH8Nln5sOcxJh
+# NX/bHRGmfh9HIGiMJRQt3VTiD1/C40DdQ0Y61854H1HoUwuoHHhhJffIPdvACBLW
+# wEf6rp5ZsIjznKaunt0YjRKewl8feympYDXhmuR2ZlP5Fd86MLvaNnMIyW+HkD/J
+# kuA7lTs/m+tqYwcRZ/jUqywNy22cODmtyvQm7bPedLLyHL7LA0yv1PShwfvrVq9P
+# HzIC+sXISUKZMG6t66bt0yEbV5j8YLjgh2PL+jvA5zx1ZORWZqU6ina5atoYMPKH
+# 2LEQa3aoHlKoUrukCPJnsbTfp4XU+DsXn+Hi2DcL0arqBnDWeMUclIC1UUafyN5j
+# pfqDJ1b7AgkiUVPJbaKgWgAOdBTfCgnpaLmZRxfNmEHSlsZSwWtny90xdDmoxWBi
+# 8BCjzmc=
 # SIG # End signature block
