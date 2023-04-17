@@ -2086,43 +2086,52 @@ Begin
             $AuthenticationTires =
             @(
                 @{ Name = 'Domain Controller';  Liftime = 45; }
-                @{ Name = 'Tier 0';  Liftime = 45; }
-                @{ Name = 'Tier 1';  Liftime = 45; }
-                @{ Name = 'Tier 2';  Liftime = 45; }
+                @{ Name = 'Tier 0';             Liftime = 45; }
+                @{ Name = 'Tier 1';             Liftime = 45; }
+                @{ Name = 'Tier 2';             Liftime = 45; }
+                @{ Name = 'Lockdown';           Liftime = 45; }
             )
 
             foreach ($Tier in $AuthenticationTires)
             {
-                if ($UseAuthenticationPolicySilos -eq $true)
-                {
-                    ##############
-                    # Get members
-                    ##############
+                ##############
+                # Get members
+                ##############
 
-                    switch ($Tier.Name)
+                switch ($Tier.Name)
+                {
+                    'Domain Controller'
                     {
-                        'Domain Controller'
-                        {
-                            $Members = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
-                            $Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID(DD)}))'
-                        }
-                        default
-                        {
-                            $Members =
-                            @(
-                                @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members) +
-                                @(Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members | Select-Object -ExpandProperty Members)
-                            )
-                            $Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID($(Get-ADGroup -Identity 'Tier 0 - Computers' | Select-Object -ExpandProperty SID | Select-Object -ExpandProperty Value))}))"
-                        }
+                        $Members   = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
+                        $Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID(DD)}))'
                     }
 
+                    'Lockdown'
+                    {
+                        $Members   = @(Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Person'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=home.bcl.nu,DC=home,DC=bcl,DC=nu" | Select-Object -ExpandProperty DistinguishedName)
+                        $Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
+                    }
+                    default
+                    {
+                        $Members =
+                        @(
+                            @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members) +
+                            @(Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members | Select-Object -ExpandProperty Members)
+                        )
+                        $Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID($(Get-ADGroup -Identity "$($Tier.Name) - Computers" | Select-Object -ExpandProperty SID | Select-Object -ExpandProperty Value))}))"
+                    }
+                }
+
+                # Get policy
+                $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
+
+                if ($UseAuthenticationPolicySilos -eq $true)
+                {
                     ################
                     # Create Policy
                     ################
 
-                    if (-not (Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    if (-not $AuthPolicy -and (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
                     {
                         $Splat =
                         @{
@@ -2133,7 +2142,7 @@ Begin
                             UserAllowedToAuthenticateFrom = $Condition
                         }
 
-                        New-ADAuthenticationPolicy @Splat
+                        $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
                     }
 
                     <#
@@ -2158,55 +2167,55 @@ Begin
                         New-ADAuthenticationPolicySilo @Splat
                     }
                     #>
-
-                    ################
-                    # Add to Policy
-                    ################
-
-                    # Itterate all group members
-                    foreach ($Member in $Members)
-                    {
-                        # Get common name
-                        $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
-                        # Get assigned authentication policy
-                        $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
-
-                        if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Policy" -and
-                            (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
-                        {
-                            Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy "$($Tier.Name) Policy" -Identity $Member
-                        }
-                    }
-
-                    <#
-                    #####################
-                    # Add/Assign to Silo
-                    #####################
-
-                    # Itterate all group members
-                    foreach ($Member in $Members)
-                    {
-                        # Get common name
-                        $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
-                        if ($Member -notin (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'" | Select-Object -ExpandProperty Members) -and
-                            (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
-                        {
-                            Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$Member"
-                        }
-
-                        # Get assigned authentication policy silo
-                        $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
-
-                        if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
-                            (ShouldProcess -Message "Assigning `"$MemberCN`" with `"$($Tier.Name) Silo`"" @VerboseSplat))
-                        {
-                            Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $Member
-                        }
-                    }
-                    #>
                 }
+
+                ################
+                # Add to Policy
+                ################
+
+                # Itterate all group members
+                foreach ($Member in $Members)
+                {
+                    # Get common name
+                    $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+
+                    # Get assigned authentication policy
+                    $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+
+                    if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
+                        (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    {
+                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $Member
+                    }
+                }
+
+                <#
+                #####################
+                # Add/Assign to Silo
+                #####################
+
+                # Itterate all group members
+                foreach ($Member in $Members)
+                {
+                    # Get common name
+                    $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+
+                    if ($Member -notin (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'" | Select-Object -ExpandProperty Members) -and
+                        (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    {
+                        Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$Member"
+                    }
+
+                    # Get assigned authentication policy silo
+                    $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
+
+                    if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
+                        (ShouldProcess -Message "Assigning `"$MemberCN`" with `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    {
+                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $Member
+                    }
+                }
+                #>
 
                 if ($UseAuthenticationPolicySilos -eq $false)
                 {
@@ -2679,8 +2688,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXldJUrx1HVjFMb6Mgpl+JEFs
-# ueqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUn5bKcIZGYL1HfeWaIISdNMlQ
+# 3/SgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2811,34 +2820,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHbx1Up+o
-# Dba9Z1QJ/m0KMVPmhEEwDQYJKoZIhvcNAQEBBQAEggIAAMm+jJGAFQ5nyFHPjNkA
-# ncXy+sEiLm3f7JUtBWrGDYdCgFpPzghe6zV+vR933C38TW6S1r8TPwF/XPq8qYhG
-# PtdbseJ02mB2qQjNnf7eIVHVpl5ZPDMd9IRfkN8zrv/qnZsKiRq9va5SlwewUmyD
-# XtGRoop+yqyEST2jOlIioMDl8unE+ZzMflqhRF+W1crLcD48YwaDAbpEPTHs5DY5
-# 8xbJrdTbKu/PLk8Z6RkK0oxSDQYjWRMvPLtnFGONaAjQQtD4nTHaEy+ZVe9ivOww
-# LnsxI5tQBOPtGuGViz8ux+M4oZF924hhm/TvXAloYTMdcR5pliMFUtP+IiFyNbJC
-# KWfZ/Uvysu9Jw5eUbXTMCBfpadj/4MZwWce44F0avlnC5eU9iyqhxX553ltaQbOy
-# lqp2jNLizV7L8nazCEmRRhFE9BsHCeNoxJWoE+4Qcl28shPx6HYgI4F24Lo34sfg
-# 2sFs6i04z09W2/wUstx4izS99ZOLwd8qdX9mLqsLIjyRKNxNoprYlgqpoTqaW2v6
-# /NIWI0IHYhq5j9l4eIae+MfQ2HsyA91E7jWaRVCxGCYvxXzUsxasWDAAC0GTvgn4
-# mof42LCC/0rXGsphpercAZKrdTeGkrNx7g+fD1Ty0trO/1fnPC3gzgycO0GpUHQr
-# OIGhHvPcaBiF0kodXg+6x4ihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoLxgzoEB
+# bwkSnG2P27q/Ty/jiIEwDQYJKoZIhvcNAQEBBQAEggIAiearuR5KWBXfYjT7AQL9
+# LibliVuSld6rXIsNzAJxuLzfkB4qvf3VQJ9PY1pkYTXti++Ru3JnLYgKtLWKzs2F
+# YXva2X8UwOZyX3bKTpCNKKUDJ7+X51jMn+LGZvtwyWjTw833mknZaHRSA7OFA+Hq
+# 0hV9wxrgOP4FlOsmK8jOXWSBtC218mYWtrbuPogQYZquPOISZstsW82faPoTf9Cz
+# 0EzO/bS+aZ0tjqRJ3zbfhiSpua3W7seFrO/3GsQcf8WLgEe6qhaIfroovHjemV67
+# JlXyADYuehV2TIseoKoM6w2ksouhhT6Xtx6YyGer0+3hQzykitva/EqECYeADRPT
+# 4yUZgtUS/EhpiJU1mBR+JrHIuq1irzqTZAuJCX3RvMKMwDR9P2/WkC8Qjb4fJB9y
+# GVWVjpP/DELCOhCK6Oi0cvH922D8ExqwyZd4w8BNfPamwnP/lZzAtm8ZMYVnJctc
+# OgR0kR/cvyzo0yHHEKB53nL6i7u9gs5ecOB9FbPpdKxzyOdDmDiabVvCRdEsvi9r
+# rH0m6EtQ7LL/ENg3yWCSpQ+nGgWUnWfUmMWP27YmGGL//ZD9AeCLu3OGfAlIi2kq
+# mlj0mZRAn7zhcepSAoINiz+8av3efdyo/YqPiRziuWIkaeC/kJFkDrYPI1H2HoQH
+# ZOn8sfwwKeuzX8o+GMkt5YChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MjIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg2V9XfZA7MTO884Hwr91bvFnh1NoD3Ekn4UQXXmZ0
-# hh0wDQYJKoZIhvcNAQEBBQAEggIAd1MfCzwfXWl+LUi5CqW+hEY7PWCn+KUezHeD
-# RyNLCF7IYJbYJfjhyZFfNl2NHRREcz976BXfP88EdJv25CjtjHENFzDlD9MXyUcy
-# aRy57GrxS/wXVE3Tx9YwHf9up6/EZCTemdV6Xz/EamExdNLrms5ua/7t1guHD2vB
-# RorRHtUazWbQK2eAnE6LabDIoEbIPBCblzVPOTo69PGcVq38q0H5M6T94zwHCUPu
-# EVaNVE2SS+g++6wr8Bu2jAnYBL1yRN9/cp48SyYTu9jvYPyVMDX/ffmwtq0Odoqr
-# vuAQCFBEcTXDugBmsNsSgQA5DNSfmmmVZpVhrK070qSYbkWoch7kUP5B6Z/s3Juo
-# 1bUauq2Dre6e8ogXMkVUbyNoGQ2i/V/P/MTYeGVzI+i8P2limWeYIvgYX6p3t9VJ
-# qGORDrx4Ah3Ee2HhTlWpymbBdyz1x9UxDb9C91PVeu3IhoEJQYFP5PT1CQHNuNDB
-# uzAcuH4F1JMuEbtPmQ+V1TxiYzlRMKk2mxky/v/Tcq16jozsi2eLDjZv6jozYOq3
-# y5df1hsR4YZh0CSF5t+KxvPM0qrWPU8ICAbXzKiXuaN5EKL7fuR08616xHJKjTRa
-# /FFzcu3APDr5IZgEW+PDfy+Wm+U6Lq2iIlQgtMVQM6yGmyeyYVfwjDTmCDQ/cJ2j
-# /mGg++Q=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE3MjMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgk3p9knCAz2Kv9CmU3KiyIormFvJgyxjcR+D3B8yK
+# W34wDQYJKoZIhvcNAQEBBQAEggIAYp/FoDf6+4Xta4pdcBYA3mjCU+WztAQENNoG
+# xj62z4I3+m6WPHwLzWa6aMnyb/n3TKo6dyrfUgfQAwBfnZLpzLtzG4EUZJdlHneZ
+# JwCdk9XRCbX9r9acHis7251q0kzW1/7Gq9//0nlFdM37t5qYpRg+nkqAUiMBbctD
+# drIp1smrJFFERAw+zMZsSK3bId87aaooPl3ZMOGn3qZ8tokJijyyvr+0rOGnVqwH
+# H4PORwcolqJvC5IZwmrbEbzdRUTRhD/nuEb1YtuWgOHLTf8sMtHw+MmuqIbNHZcF
+# veism3h7QFrrFH8J75HYgNSHrffZN/lwZSZ5/VfYGCmqrFZXBFmIVfcieULJOtvt
+# Wi0sdHHIEz2/LFTtE/xaQRNFi/VyQOVBSfnbAqMTVgCskVt5GUFbNC1P58S2eAz0
+# WEBlWntpl5dk1zfcl6Kj86foVWW8lS9bGTQ+mEPgA7U0Q1gMxE/SfiupV4+hRNq4
+# D6jHZzCT+qowCG37ZG2WG5IXAsGicKkpFU1c/HGWtx1Hjlho/fOCQC4WjuG6LjZr
+# H1dtrtiLx7h5kMaa7L3YoYWw2TrLrEBuJIqNjiwdjq5Hb/7NcIfxeHQHcxdcsVWT
+# za/a1N44aKw46OchFEoOgn8/mi0Jy/QL1pqeyWE0hulF48tpl5UqiswrMGzCCz18
+# 5A5j3qI=
 # SIG # End signature block
