@@ -740,91 +740,6 @@ Begin
             Install-WindowsFeature -Name ADCS-Cert-Authority -IncludeManagementTools -Restart > $null
         }
 
-        # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
-        # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
-        # ██████╔╝██║   ██║██║   ██║   ██║       ██║     █████╗  ██████╔╝   ██║   ██║█████╗  ██║██║     ███████║   ██║   █████╗
-        # ██╔══██╗██║   ██║██║   ██║   ██║       ██║     ██╔══╝  ██╔══██╗   ██║   ██║██╔══╝  ██║██║     ██╔══██║   ██║   ██╔══╝
-        # ██║  ██║╚██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗██║  ██║   ██║   ██║██║     ██║╚██████╗██║  ██║   ██║   ███████╗
-        # ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
-        {
-            #############
-            # Get hashes
-            #############
-
-            # Certificate
-            $RootCertificateHashArray = TryCatch { certutil -store root "$RootCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
-                $_ -match "Cert Hash\(sha1\): (.*)$"
-            } | ForEach-Object { "$($Matches[1])" }
-
-            #############
-            # Save files
-            #############
-
-            # Create temp Directory
-            New-Item -ItemType Directory -Path "$env:TEMP" -Name $RootCACommonName -Force > $null
-
-            # Itterate all files
-            foreach($file in $ParentCAFiles.GetEnumerator())
-            {
-                # Save file to temp
-                Set-Content @SetContentSplat -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
-
-                # Set original timestamps
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
-                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
-            }
-
-            ######
-            # Add
-            ######
-
-            # Initialize arrays
-            $ParentFileCertificateHashArray = @()
-
-            # Itterate all parent ca files
-            foreach($file in (Get-Item -Path "$env:TEMP\$RootCACommonName\*"))
-            {
-                # Get CA certificate hash
-                $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
-                    $_ -match "Cert Hash\(sha1\): (.*)"
-                } | ForEach-Object { "$($Matches[1])" }
-
-                # Add cert hash to array
-                $ParentFileCertificateHashArray += $ParentFileCertificateHash
-
-                # Check if certificate hash is in root store
-                if ($ParentFileCertificateHash -notin $RootCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($ParentFileCertificateHash) to root store." @VerboseSplat))
-                {
-                    TryCatch { certutil -addstore root "$($file.FullName)" } -ErrorAction Stop > $null
-                }
-            }
-
-            #########
-            # Remove
-            #########
-
-            # Certificate
-            foreach($CertificateHash in $RootCertificateHashArray)
-            {
-                if ($CertificateHash -notin $ParentFileCertificateHashArray -and
-                    (ShouldProcess @WhatIfSplat -Message "Remove crt ($CertificateHash) from root store." @VerboseSplat))
-                {
-                    TryCatch { certutil -delstore root "$CertificateHash" } > $null
-                }
-            }
-
-            ##########
-            # Cleanup
-            ##########
-
-            # Remove temp directory
-            Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
-        }
-
         #  █████╗ ██╗ █████╗     ██╗ ██████╗██████╗ ██████╗
         # ██╔══██╗██║██╔══██╗   ██╔╝██╔════╝██╔══██╗██╔══██╗
         # ███████║██║███████║  ██╔╝ ██║     ██║  ██║██████╔╝
@@ -1018,8 +933,8 @@ Begin
             $CAPolicy +=
             @(
                 "[Certsrv_Server]",
-                "AlternateSignatureAlgorithm=0"
-                "RenewalKeyLength=$KeyLength",
+                "AlternateSignatureAlgorithm=0",
+                "RenewalKeyLength=$KeyLength"
             )
 
             if ($CAType -match 'Root')
@@ -1050,12 +965,6 @@ Begin
             {
                 $CAPolicy += "LoadDefaultTemplates=0"
             }
-
-            $CAPolicy +=
-            @(
-                "[CRLDistributionPoint]",
-                "[AuthorityInformationAccess]"
-            )
 
             if ($UsePolicyNameConstraints.IsPresent -and
                 $CAType -match 'Enterprise' -and
@@ -1151,7 +1060,91 @@ Begin
             Copy-DifferentItem -SourcePath "$env:TEMP\CAPolicy.inf" -RemoveSourceFile -TargetPath "$env:SystemRoot\CAPolicy.inf" -BackupTargetFile @VerboseSplat
         }
 
-        return
+
+        # ██████╗  ██████╗  ██████╗ ████████╗     ██████╗███████╗██████╗ ████████╗██╗███████╗██╗ ██████╗ █████╗ ████████╗███████╗
+        # ██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝    ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██║██╔════╝██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝
+        # ██████╔╝██║   ██║██║   ██║   ██║       ██║     █████╗  ██████╔╝   ██║   ██║█████╗  ██║██║     ███████║   ██║   █████╗
+        # ██╔══██╗██║   ██║██║   ██║   ██║       ██║     ██╔══╝  ██╔══██╗   ██║   ██║██╔══╝  ██║██║     ██╔══██║   ██║   ██╔══╝
+        # ██║  ██║╚██████╔╝╚██████╔╝   ██║       ╚██████╗███████╗██║  ██║   ██║   ██║██║     ██║╚██████╗██║  ██║   ██║   ███████╗
+        # ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝        ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝     ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+        if ($ParameterSetName -eq 'NewKey_StandaloneSubordinateCA')
+        {
+            #############
+            # Get hashes
+            #############
+
+            # Certificate
+            $RootCertificateHashArray = TryCatch { certutil -store root "$RootCACommonName" } -ErrorAction SilentlyContinue | Where-Object {
+                $_ -match "Cert Hash\(sha1\): (.*)$"
+            } | ForEach-Object { "$($Matches[1])" }
+
+            #############
+            # Save files
+            #############
+
+            # Create temp Directory
+            New-Item -ItemType Directory -Path "$env:TEMP" -Name $RootCACommonName -Force > $null
+
+            # Itterate all files
+            foreach($file in $ParentCAFiles.GetEnumerator())
+            {
+                # Save file to temp
+                Set-Content @SetContentSplat -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Value $file.Value -Force
+
+                # Set original timestamps
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name CreationTime -Value $file.Key.CreationTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastWriteTime -Value $file.Key.LastWriteTime
+                Set-ItemProperty -Path "$env:TEMP\$RootCACommonName\$($file.Key.Name)" -Name LastAccessTime -Value $file.Key.LastAccessTime
+            }
+
+            ######
+            # Add
+            ######
+
+            # Initialize arrays
+            $ParentFileCertificateHashArray = @()
+
+            # Itterate all parent ca files
+            foreach($file in (Get-Item -Path "$env:TEMP\$RootCACommonName\*"))
+            {
+                # Get CA certificate hash
+                $ParentFileCertificateHash = TryCatch { certutil -dump "$($file.FullName)" } -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match "Cert Hash\(sha1\): (.*)"
+                } | ForEach-Object { "$($Matches[1])" }
+
+                # Add cert hash to array
+                $ParentFileCertificateHashArray += $ParentFileCertificateHash
+
+                # Check if certificate hash is in root store
+                if ($ParentFileCertificateHash -notin $RootCertificateHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($file.Name)`" ($ParentFileCertificateHash) to root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -addstore root "$($file.FullName)" } -ErrorAction Stop > $null
+                }
+            }
+
+            #########
+            # Remove
+            #########
+
+            # Certificate
+            foreach($CertificateHash in $RootCertificateHashArray)
+            {
+                if ($CertificateHash -notin $ParentFileCertificateHashArray -and
+                    (ShouldProcess @WhatIfSplat -Message "Remove crt ($CertificateHash) from root store." @VerboseSplat))
+                {
+                    TryCatch { certutil -delstore root "$CertificateHash" } > $null
+                }
+            }
+
+            ##########
+            # Cleanup
+            ##########
+
+            # Remove temp directory
+            Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
+        }
 
         #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
         # ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝
@@ -1251,17 +1244,37 @@ Begin
             # Verify
             #########
 
-            foreach($Param in $ADCSCAParams.GetEnumerator())
+            if ($AlwaysPrompt)
             {
-                if ($Param.Value -match " ")
+                Write-Verbose -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
+
+                foreach($Param in $ADCSCAParams.GetEnumerator())
                 {
-                    $Param.Value = "`"$($Param.Value)`""
+                    if ($Param.Value -match " ")
+                    {
+                        $Param.Value = "`"$($Param.Value)`""
+                    }
+
+                    Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
                 }
 
-                Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
-            }
+                Write-Verbose -Message "Post settings:" @VerboseSplat
 
-            Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
+                foreach($Param in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
+                {
+                    if ($Param.Value)
+                    {
+                        if ($Param.Value -match " ")
+                        {
+                            $Param.Value = "`"$($Param.Value)`""
+                        }
+
+                        Write-Verbose -Message "$($Param.Name) = $($Param.Value)" @VerboseSplat
+                    }
+                }
+
+                Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
+            }
 
             ##########
             # Install
@@ -1869,8 +1882,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFOuSbJUh9eNcsPxfkmMrE5vx
-# PQOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZRp3JfsuupBQE87MjwI58m9J
+# gw6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2001,34 +2014,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrAkzxl8D
-# U1AH90yr1ndRLpMlRkwwDQYJKoZIhvcNAQEBBQAEggIAqDEpzC+nXreFqG74vf2i
-# gsLwcK+OWi/C2UGtaMksd9EIBi4gTFZSaBbiPUoL1Azhx6S83R/9/xOmDgi6O8me
-# Cf1ZinC54+SBi5W3bDB7E9+e2jYEZEmn5jLYDg9bPWvHRSuAlpa9MVk+rYXxRLsh
-# On7Bz/+/HnGcwUYRk0+YzqT36zAipUIYBH8StdTk2yyQGYPShmdvCugGgSmOZn4h
-# FFhf4WIc/Qh/kgMQD3yLuu/VE3A5S+4S33xt2nSvncsEMyAlDRzwFKw5aYD2a3Kg
-# jNN77K8md6OhhZZJ8ApSJNSe3N2i7YCFg26MOHAkP2dtA1t+lJh4Oixp6P8fymox
-# nz6SBLwyesL0Vj/ib2lLgE2lHYhlsiFQPDwuXZmMUzEa9D2nBcocnV0f++hJY1te
-# SCnsx9GrUpzzayUlOZs1HkgvPjIPDQGPnUu6C9Gd8qAIjE782COU3R+QhQgc2o42
-# 7KuqlNi95GE5AN2OzlpkLIB1A4cn6xTDZB42OilxPtMZwcjPUHMmNAWK2R4ofmat
-# BsdvZX0mDfsAVMvxFoICidggG0RyG96TkVyyinsUSb89dus42FOXgK+tYaYdaxlh
-# QH2OV88InEHpM61Yhf8ed3VlH7DxvKWd3L7K7VYdrwaHt8P6Yrjyq9wLhSegPiut
-# jAhsjHHQAPBfTzxf45wMOAOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQfwLDGrF
+# HGEJbU6OwHsqd7teFdMwDQYJKoZIhvcNAQEBBQAEggIAAfk9INavnD4Dm2CTHegk
+# gRZpgChd7ak6t8NEl1zHY0Ahrd4f0rmoaqJKMJRsrVsf8LlpMGkHFPr6EuwaGPOW
+# narNFvbuRu+Sgpe7lds2rNUs6N8cBRoO/+VaAR0Xih0Z3K1aPDAMIEWHN63LiNOw
+# r8Qu5MREbMcYTuOsnl2d58s5T8PN4Orhd3qFBcsxdhtVY+qwrnb3Q02wgwWsKxcO
+# JfV3RfszFuV6A+NJYwNhxs2hIXKYUeo5eM47QoiBC/VZvw4DkijPtJ4vhcDicuWD
+# EMojU5Y4Wcz34AMIYajcyoUWiwbRoWse3FdqOGjOYCNB1NYgRSHR5GltHRUR85Vt
+# dN4HI+Doqw2aNi/EMfpn/UOnQ+wvG1+CkMpaSzY8ibBHojl6lfC5uH8eq6YaP4wp
+# 7WVQdteZfYTcQJGS4SZ6HYeZ5t+mkadDwbvFKwuLC427F/QjOur2Q7EKYBPw5LTx
+# +D/yEW5fQb8pCIUxJqpmxmlTlsGbVj0i1LqbOgyEf1Q1LZAFPeTA1zo9HuifPbpr
+# Me/GUD5oYgWEl+1LuW8OA7wMFXB30hROznuSk8obEFKxqUDUTcur1p+k4BUwBetV
+# IHDAOYhE4uOwl2rryPknBunc9QvDNfyLqfLfxxYwdWBtmG8lYZk7q2CCsuFOZQ6R
+# SQmnB+9O+2erVWWfe0LRhquhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE5MTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgiVm9iC8Q03WBm1O+VA1kM53P20BP9iaJ4t541+xL
-# aaMwDQYJKoZIhvcNAQEBBQAEggIAdC1BWG2cA1XbhAEihe7XA8ow8k4kOkhBzsl/
-# uNUosGGIzf0n+nUkb6qQvswDwaBnF0IFoypthfxL4BWgA1m2qmsqXd/O/Qy4wSio
-# VePb3ehU0h+v3UhLPhABy3qC2nf0id7HsoDtfSnYXHl8Gflud303irZsPy331i0L
-# 72QUJ1cxaSSQ1fLEsssybIuNCHOcJO4vALy1TcTtE6aILnNqQjqAHN3SpVdkkcKZ
-# h+U2ga45xuo+DjukPN5BSvWFWo94LO367uPzz5MEEOGpeCq5nla/8It42A12sLiS
-# usGYrHFxsLImAWNZnjS/9pFkOHOrVPiJIC6vVe/k8mXpj8+5fMfHfhbP+ixQ6E0V
-# nsPTBiD7SZx91Ib3Bdh0VPsQ/C8bT0myEFdRxNGNH1AuAD0u6sOXJyUBXDvp35uM
-# rysCNKWshso7YEBwfcUVt4tihOXjV+rmHc8N0KUDYc9U97jsjEkvwBqpleTyuhY2
-# JSAYIUadY8ySOxCAPAzIedawH9Jd/6cAt7c+/IHzZMH2vRF3W94f3kcv66R85F23
-# DYxXUPHNUl3H3qu7HDq9JIYBK4Uone8Wd6GoGTaqBtt0R3WTFU/ingjYU6XaeMbD
-# 18jdQRd3t3OWen/UpIg0h2OWDDkblSw1qKaCR8fXoKan570OVZJhSh/c8rGXpusg
-# yBAeIoU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE5MTYwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgPR98ll0SYYjS8EQzG6qXHkRaM0mbW3OybLlHuptr
+# jvswDQYJKoZIhvcNAQEBBQAEggIAkeegLzUx8nqny5UhIcWiMcplZ5DZvmjNKysR
+# vS2Qo2KYsYVOdmz6gAGSk04GCaTMOjZV9QhB/Xwpv1TbovTqOcUznL6zZhe283MK
+# qUYC9BHQVQPdyTeN+SBZ7WBvD6VggICRflPcug3xXKGjTqLxqh+vVaqNFVteyJW2
+# WZVnL9WBJC0NsI57IBmb8wMK/QaKR9g+6edngrQ744qlcEEKm4LPeEw8LGyaNXMd
+# 1L9vNpMLwzmjzkqf7trn4Fv3UvF2XgGuwF1Plr3i2DImS6bny+/g2RhRz6iXTYp7
+# YVJKm3tvydYdC8OSI3AINPf0QmRuWUs45Puo6ODGDqRoV9vtrbW91+6NnsaG4roK
+# zoiAFbauaHH/e3RxKplCEfuC1ESf13uSe9FR4hCjl4WZw8AMW7BXNclgJThAOseC
+# o6elphRw/Ewx1c29Ht6p6cdbIvYRNKw+ZV4VktN9g+qZ6cRtJ/AxNNKNMPobI4zP
+# XVCwDD5UeWXbaGzB/7/ibwS7vhgXihqf8bOrUwdu1pQQdHzPNEFMpd1bKU6/Wh6P
+# /6VoJB7WorvPBs5lnmWHsux/1kVbqA3g2wqpM0Ar5VrFZYk3M/kIooFTWVBCpEEl
+# tL96JS+vuF2sN4CjnX62rRu0BTtFsezhyBguY7uPnkBZvrIZ5QUcG/D5leuZKLmT
+# 3YgnPkU=
 # SIG # End signature block
