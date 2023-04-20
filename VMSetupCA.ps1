@@ -886,23 +886,6 @@ Begin
             }
         }
 
-        # ██████╗  █████╗ ████████╗██╗  ██╗███████╗
-        # ██╔══██╗██╔══██╗╚══██╔══╝██║  ██║██╔════╝
-        # ██████╔╝███████║   ██║   ███████║███████╗
-        # ██╔═══╝ ██╔══██║   ██║   ██╔══██║╚════██║
-        # ██║     ██║  ██║   ██║   ██║  ██║███████║
-        # ╚═╝     ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
-
-        # Check if directories exist
-        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
-        {
-            if ($Directory -and -not (Test-Path -Path $Directory) -and
-                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
-            {
-                New-Item -ItemType Directory -Path $Directory > $null
-            }
-        }
-
         # ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
         # ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
         # ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
@@ -1146,6 +1129,23 @@ Begin
             Remove-Item -Path "$env:TEMP\$RootCACommonName" -Force -Recurse
         }
 
+        # ██████╗  █████╗ ████████╗██╗  ██╗███████╗
+        # ██╔══██╗██╔══██╗╚══██╔══╝██║  ██║██╔════╝
+        # ██████╔╝███████║   ██║   ███████║███████╗
+        # ██╔═══╝ ██╔══██║   ██║   ██╔══██║╚════██║
+        # ██║     ██║  ██║   ██║   ██║  ██║███████║
+        # ╚═╝     ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
+
+        # Check if directories exist
+        foreach ($Directory in ($CertEnrollDirectory, $DatabaseDirectory, $LogDirectory))
+        {
+            if ($Directory -and -not (Test-Path -Path $Directory) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating `"$Directory`"" @VerboseSplat))
+            {
+                New-Item -ItemType Directory -Path $Directory > $null
+            }
+        }
+
         #  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗
         # ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝
         # ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗
@@ -1246,6 +1246,13 @@ Begin
 
             if ($AlwaysPrompt)
             {
+                Write-Verbose -Message "CAPolicy.inf:" @VerboseSplat
+
+                foreach($Param in $CAPolicy)
+                {
+                    Write-Verbose -Message $Param @VerboseSplat
+                }
+
                 Write-Verbose -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
 
                 foreach($Param in $ADCSCAParams.GetEnumerator())
@@ -1477,12 +1484,6 @@ Begin
                     # Add domain configuration for standalone ca
                     $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
                     $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
-                }
-                else
-                {
-                    # Remove domain configuration for standalone ca
-                    $Restart = Set-CASetting -Key 'DSDomainDN' -Remove -InputFlag $Restart
-                    $Restart = Set-CASetting -Key 'DSConfigDN' -Remove -InputFlag $Restart
                 }
 
                 if ($ParameterSetName -match 'Subordinate' -or $OCSPHost)
@@ -1882,8 +1883,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZRp3JfsuupBQE87MjwI58m9J
-# gw6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiSGtKS/UchEysOsbbLKa3E+F
+# kYKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2014,34 +2015,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQfwLDGrF
-# HGEJbU6OwHsqd7teFdMwDQYJKoZIhvcNAQEBBQAEggIAAfk9INavnD4Dm2CTHegk
-# gRZpgChd7ak6t8NEl1zHY0Ahrd4f0rmoaqJKMJRsrVsf8LlpMGkHFPr6EuwaGPOW
-# narNFvbuRu+Sgpe7lds2rNUs6N8cBRoO/+VaAR0Xih0Z3K1aPDAMIEWHN63LiNOw
-# r8Qu5MREbMcYTuOsnl2d58s5T8PN4Orhd3qFBcsxdhtVY+qwrnb3Q02wgwWsKxcO
-# JfV3RfszFuV6A+NJYwNhxs2hIXKYUeo5eM47QoiBC/VZvw4DkijPtJ4vhcDicuWD
-# EMojU5Y4Wcz34AMIYajcyoUWiwbRoWse3FdqOGjOYCNB1NYgRSHR5GltHRUR85Vt
-# dN4HI+Doqw2aNi/EMfpn/UOnQ+wvG1+CkMpaSzY8ibBHojl6lfC5uH8eq6YaP4wp
-# 7WVQdteZfYTcQJGS4SZ6HYeZ5t+mkadDwbvFKwuLC427F/QjOur2Q7EKYBPw5LTx
-# +D/yEW5fQb8pCIUxJqpmxmlTlsGbVj0i1LqbOgyEf1Q1LZAFPeTA1zo9HuifPbpr
-# Me/GUD5oYgWEl+1LuW8OA7wMFXB30hROznuSk8obEFKxqUDUTcur1p+k4BUwBetV
-# IHDAOYhE4uOwl2rryPknBunc9QvDNfyLqfLfxxYwdWBtmG8lYZk7q2CCsuFOZQ6R
-# SQmnB+9O+2erVWWfe0LRhquhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0bY3sEZc
+# LGhj60evjUhxNw7bDccwDQYJKoZIhvcNAQEBBQAEggIANayZjDfvp3cs12caoY4u
+# umegB0kloHzCEFecilX9XbqJEkCnRKuS/ZtQ4K2n90t70wUWuixPAa3KHtX5Rguf
+# Daiatv5L5MIt8dbfT14F4w/JUMAuGXAF878di1pBuDALa7h9urYf7o6lwfXFZl9k
+# uyHRRAKquMszESjTnq+7d9KVGDX7vaqO09mrz9ZzCN/2eafLEoQY4CGm5m9lvvfc
+# wEFCMXKBoixQd1Sp60hu8mS9ekQGC7GB39CqrB8fkT1HFL3/yxCaBHEPhmuf93/8
+# b0Iq+YuHScPbwlLXJlJlzi8MT6+npD/7RsJEifHa3kVfLKiFuNUBV/4bubE3mzr7
+# m09phae3qzvF5iX/+sRylKlYPUIyujBVfsnKO04MN2ybHapaydt+92AM4oX566LM
+# anTlyKOEeIgQdyqZhQT3Zt2kw1Y9gnJRoQd2GMIhUoe4KTjdVGSmEz+FnusQ+RzU
+# P0vRCMs/Tnk/GWl+MX5UmRGIXNs0ckLnzyRqJVSwkhskExwL/QLC9BVDZd3E0EUw
+# 1HqTdlofW3E0XtBgPotn6B5DjjyQ+s2jVll9vKdik7Y+WYNTasm8iLOjXGGAkafd
+# ML+jrdobBlTEoJkuAo7emOnXUiBqGX0HRgmOyulLVsvtBfQc07HdmPy1rxZGlg+l
+# UyYx8bu/i6cRqmG1DXf82rShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE5MTYwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgPR98ll0SYYjS8EQzG6qXHkRaM0mbW3OybLlHuptr
-# jvswDQYJKoZIhvcNAQEBBQAEggIAkeegLzUx8nqny5UhIcWiMcplZ5DZvmjNKysR
-# vS2Qo2KYsYVOdmz6gAGSk04GCaTMOjZV9QhB/Xwpv1TbovTqOcUznL6zZhe283MK
-# qUYC9BHQVQPdyTeN+SBZ7WBvD6VggICRflPcug3xXKGjTqLxqh+vVaqNFVteyJW2
-# WZVnL9WBJC0NsI57IBmb8wMK/QaKR9g+6edngrQ744qlcEEKm4LPeEw8LGyaNXMd
-# 1L9vNpMLwzmjzkqf7trn4Fv3UvF2XgGuwF1Plr3i2DImS6bny+/g2RhRz6iXTYp7
-# YVJKm3tvydYdC8OSI3AINPf0QmRuWUs45Puo6ODGDqRoV9vtrbW91+6NnsaG4roK
-# zoiAFbauaHH/e3RxKplCEfuC1ESf13uSe9FR4hCjl4WZw8AMW7BXNclgJThAOseC
-# o6elphRw/Ewx1c29Ht6p6cdbIvYRNKw+ZV4VktN9g+qZ6cRtJ/AxNNKNMPobI4zP
-# XVCwDD5UeWXbaGzB/7/ibwS7vhgXihqf8bOrUwdu1pQQdHzPNEFMpd1bKU6/Wh6P
-# /6VoJB7WorvPBs5lnmWHsux/1kVbqA3g2wqpM0Ar5VrFZYk3M/kIooFTWVBCpEEl
-# tL96JS+vuF2sN4CjnX62rRu0BTtFsezhyBguY7uPnkBZvrIZ5QUcG/D5leuZKLmT
-# 3YgnPkU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMDgwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgwRcmUSGexcTRwRO4AgCgwvwxOK+gQzrX12d8KV0M
+# u6gwDQYJKoZIhvcNAQEBBQAEggIApt3o+edl2Z8iBuzE9Sm95pNOUCkpLFZ9sUCE
+# A16DtbiPpteyMUbK1pu9WzL+AZsBlQ0YKi3QANT0FHmu1j+r8qrhuVPO0e9CDv98
+# c9JBiHvq+ZnCHp4Wdkw5jroyvWnA5R9iD9FS6E7O6SYfAhEOIyqDQWlvrWMQJ5qI
+# /1CHCHMYaDoJCHcxmZbz36jjbLZuXBFG5CPr5gepx94M+1hZOCwHDRrTUXnfNkuB
+# lNvRLgvRNXZfpS7uvm5MUVGxVDe02p+ha/HPWca8bh/pE48Q/V5jDnzK/UZdeQ9a
+# fYRAtgESQbb9T9QwmjkxYsuLvwr20G5d7xwL2LGHHrIZ+2tzM7VZ1ZL4Ah6CxULv
+# 1Wxk2CPchhFWEOJcHvNXORI02AWfpOPyk2VZV4HynMhTd2pB0jb63gVvPDUwfh/O
+# Jl+EedpNWnbcnX9gWFsC1TEMNSBlESDV2BleObhYpEt2q9YVvL0jEY98kgjsyJjW
+# rvP+hlUVTO6sacWKeN6gseVAGtF1+mvJMdv2ubG2VKFJI92uNpzI8ovjUHmyOKur
+# UmLLSD98gHcjnCoJDj280tOgC/EyjxCU7XiXfYiD5fTjlNmu3WeIxOwOTqAjAol4
+# qm0DACFRyQkR+7X+okC6UUGfmdR30d8UkeTWM92RYPmllDCS0BV1HDfuawq0kS8U
+# V9SZ8iE=
 # SIG # End signature block
