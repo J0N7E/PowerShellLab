@@ -1208,27 +1208,27 @@ Begin
                     Name              = 'Delegate Install Certificate Authority'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
                     MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name              = 'Delegate Adfs Dkm Container Generic Read'
+                    Name              = 'Delegate Adfs Container Generic Read'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
                     MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'OneLevel'
                 }
 
                 @{
-                    Name              = 'Delegate Adfs '
+                    Name              = 'Delegate Adfs Dkm Container Permissions'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
-                    MemberSearchBase  = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberSearchScope = 'OneLevel'
+                    MemberFilter      = "(Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group') -or (Name -eq 'Gmsa Adfs' -and ObjectCategory -eq 'Group')"
+                    MemberSearchBase  = "$BaseDN"
+                    MemberSearchScope = 'Subtree'
                 }
 
                 @{
@@ -1526,14 +1526,14 @@ Begin
             Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
             Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
 
-            ##################################
-            # ADFS DKM Container Generic Read
-            ##################################
+            ##############################
+            # Adfs Container Generic Read
+            ##############################
 
-            $AdfsDkmContainerGenericRead =
+            $AdfsContainerGenericRead =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate ADFS DKM Container Generic Read";
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
                     ActiveDirectoryRights = 'GenericRead';
                     AccessControlType     = 'Allow';
                     ObjectType            = '00000000-0000-0000-0000-000000000000';
@@ -1542,7 +1542,70 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsDkmContainerGenericRead
+            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead
+
+            #################################
+            # Adfs Dkm Container Permissions
+            #################################
+
+            $AdfsDkmContainerPermissions =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'GenericRead';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'CreateChild';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'WriteOwner';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'DeleteTree';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'WriteDacl';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                    ActiveDirectoryRights = 'WriteProperty';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName $AdfsGuidContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions
 
             ################################
             # AdSync Basic Read Permissions
@@ -2751,8 +2814,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+acZUgn4aNsi398fnCqBu50j
-# U3agghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWb/eU6F5fvWwtWZX2eRKwycI
+# IA+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2883,34 +2946,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUs/MJWhCq
-# YdU7mwUrWfPmJu+vhUswDQYJKoZIhvcNAQEBBQAEggIAFCOIqyfnNrqU+d6B8N+d
-# 2EwD8yipt1E5AtXCTsw4iVJkb3f0hQx87rwpIUoEjTh/XUMEgXpqpcKNYbbFJluY
-# dqHziOFzFDTPd3I+NdOsRT1tPTzjQAEZ+IPrqMeU9FqWgo3+W7X32xwN1pez/NAB
-# hPNJJEDCS2vxr9mM8lMlE5Er3oqQg/j9lLU5yWE77IJHkGZwQUHsJ1J3iCCljurr
-# RIQH0GX7JAxOI6Y0Z3CawDqpY8Ntcdo3T3zZNb6OvuWYtnObMQV5jX7SZtxDVfI+
-# SsQeVpiofSGtORCQgEvN1qfpmcdQbyW77reEAEr/HvzxG0oidf5o58VdCh+AWMON
-# 4jbpkGhlgIktOoMt17UQRh+8lFVtRXPNOomLllMASFiCwpwtk3l1EXpy+cqx3BW1
-# rBnoSrHxUf+f0OCU19al7wuJ0p4lK6ZQhXEznVZgXr7goASVoiGBq/vekv+0FoVR
-# 03fnetRyJC5xzSdPccgTLrHhC7YMFvOg+HTUf2mH655wL/lS4xTSjU+hwXrDk+W0
-# Cd01LIvrwjs4Ir+T0qL6+mG9zt/cNUMfXQEbAfRV/c0zwuZGtcFlIYGzqDAuiyJ7
-# P+ecSIGcBcdDMyqhFE6orRien3m6JhAly+/tuvtKTqcZJA5jfWYoW0OvAzKObnx9
-# x7dpjXNvjDEqAOdHnQSsGFehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6JztxyNL
+# 3JEsnV2Z6axUbDUxoD4wDQYJKoZIhvcNAQEBBQAEggIATe5RgoVRUYOjZLzjIW5o
+# t2IOJqWN9R61bSGAOld90yL2+1d6It2wasfmPWAcU4Na4nR6XnLK4IFoF9JR6b8O
+# 7s65g2uf+whl3ORwpjDn1sOIE3uzuoKFaurHZYbHzIe/NXb6XQ2blvMXxeCZtnab
+# LA84gomoQYOD6QrkMSYzYIyc0Om7K9gTjarzKF8WdHxWbpUa9yVwQTHnTFwF7kAa
+# n3Ds2KkwFxrrW0O5D9IQqCkP0rahWXNp306nE2lDqL9QuQT4XGsG1KDMbiGnbvgD
+# m7XtZIt7Do6mbD9l7fQe6eu6oyauzvAv9pJVtf01wo0iGa8xjDgqLI9MCFaf154a
+# n7ip7PcIizbew11VR1LZ6qgzWwZK6sEMdbcx/qEYRWonIRzKLx8YCWNZO/TiNeZY
+# txz2ejWAGQc/4+gukF9+MLOElOXjAoshmLY3KHvzJ/0TkQIURegdPRIkhKEDTK6p
+# yhmBx5MyBQfLY/q3KPneLX318m7V3+8e0qz4UU0+7SBEWiwOIDUJYh9Htn1yjl6k
+# 10BA6VXrA7t9wcwoaeabWtZRa7yGKBhkc67I78e7Q0/8lanuUK1qY5kSNcAYr4nZ
+# k/IAmxqkuy9jeHprSW5Owr9/+l15D8++7ZIfNC5N/7j7CR6SNeTVRyvEeror0TXT
+# zNCgOymRo12KX4uF7zE+PlGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgrYrfNv6Sqv7b21PymAqimh2fXSeCFdA8M/LQ/0sj
-# FQcwDQYJKoZIhvcNAQEBBQAEggIALnODUZhHZZ4IloFPz9i9L2xIaTdvEXkt1ISY
-# jNnjyq8DA9vtYN8xeQWiFWD9VteDauH5jpFw3R2pK48fTtI7WMIJgBMZ0kDwTdoN
-# eOAFzJhNFmj1SazBJkG79SD5ZPaqj+7MaUTLhScyHwp+/9wouzdT5W4GTleQa+/C
-# ewiebV8Lai85Cy/2x4xdt7Dnyh3HW/GCAizcdmXAmk7yA+2EgVsLetAopXZxLJgM
-# Q9ZcpsRE64sYf0hiEruU6eYEM5DVQCr509HjweXmppVXt/ZOX3bkVsIIH3jXJJ3Q
-# SUWX6mZ4jUQh9lw8YW6xEGYId4MHoKP9O3vLT+xf+ca49E9djQj/AergfNWx+pOc
-# O3R4j0yX19bRGceVez4w8Ylq/nl423+qP8PEB0u4vqujhE94BicVuHNigOy4xJBC
-# jd11SNIMYlG26Abxo0vEJV+4JHyR2wZxjhUUAcJaVtDJcKOoASfBUbSW46dho9q9
-# yLSEJs1rsVuwxib6VAaqnkNDGHTtTIMSS5TZ9Q+ZQAMdEj/bMhg5WTJjyTyBfE8A
-# dDhZ7sq4IC7RHfbNptD9QRo9TEJMtTmOvl9BawyX/i7N4hdV1oqRAihfkTFzAyVK
-# JpujorueapUIEivk7aYP2wqTEKIoun0czSPGVZYj/RtS812FGRAdcNVULO5sdlqI
-# 1NgwPbw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgOQj5+CyQfatwZeKAYWrOk+RrLll6k+tZhl6KAAQL
+# ZoYwDQYJKoZIhvcNAQEBBQAEggIAzkS+UaEDGp4hvaCrgEDZ0+Ma5xQC1ipyBSCs
+# 2vGoLZ44KvcXcgBe4dGo+FjdmTJmYsOkalDhRX3A26WhgUFzSqp8geRkEP/4T0D/
+# feXP5CRVSvM1IeRo+CGT/3S978rVOvR+gau+k3EG9fn/nOEm88v844GDYrutNccv
+# UhgcKq9/aEMJxsG8+bcqohUVM3zgKfXk9s16mLgT0V4nF5Z32K+E/aQ/13g1av1l
+# Oa/fRo+aCQWUd6Lh+UdQc8lFSc27N9iYWaWqo/vyR4tgcUD6nvmxHauwmXszlW3w
+# 4PM968kA7Hv27XbCEGDP86fwvnW/mkixuV2VgzhyZZz6UtRfwDiufcuGTNabaDMg
+# 1wjZlRUMNCKzWWXliP58mV0lfMhHxgnnikSzsKBrkFHKatg2+qhqd7pIfP+hIEti
+# jOOdrodoiUnUOg2n+GjSTBuBVs66FV1mjaed4SXecCCR7R8W7cJyW8zhphG7vsFv
+# r/JYzEyftI3t6CmJLjnQGz9R1no8m2WRFPkMKG/MwwgEncDbAptOJdnwIeEfJVSm
+# wYGuKP3RuSPyelS5mH22tQlmCWwucczb16tzZTK1+jeKQ49/XSNZwK6rsaou3vhO
+# MdAxwAUaVWFGwR5u5XX7LrRi4bJqJfpjdnmkyGzRVVJsgwF93/B5V+H4OSFliKXH
+# U198NZ4=
 # SIG # End signature block
