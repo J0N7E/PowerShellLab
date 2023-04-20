@@ -66,9 +66,7 @@ Param
 
     # Switches
     [ValidateSet($true, $false)]
-    [String]$UseAuthenticationPolicies,
-    [ValidateSet($true, $false)]
-    [String]$RestrictUserRightsAssignment,
+    [String]$RestrictDomain,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -679,6 +677,167 @@ Begin
                 }
             }
 
+            #  █████╗ ██████╗ ███████╗███████╗
+            # ██╔══██╗██╔══██╗██╔════╝██╔════╝
+            # ███████║██║  ██║█████╗  ███████╗
+            # ██╔══██║██║  ██║██╔══╝  ╚════██║
+            # ██║  ██║██████╔╝██║     ███████║
+            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
+
+New-ADObject -Name "ADFS" -Type Container -Path "CN=Microsoft,CN=Program Data,$BaseDN"
+New-ADObject -Name $ouName -Type Container -Path $ouPath
+
+
+
+#######################################
+## Generate random DKM container name
+## The OU Name is a randomly generated Guid
+#######################################
+[string]$guid = [Guid]::NewGuid()
+write-verbose ("OU Name" + $guid)
+
+$ouName = $guid
+$initialPath = "CN=Microsoft,CN=Program Data," + (Get-ADDomain).DistinguishedName
+$ouPath = "CN=ADFS," + $initialPath
+$ou = "CN=" + $ouName + "," + $ouPath
+
+#######################################
+## Create DKM container and assign default ACE which allows AD FS admin read access
+#######################################
+
+if ($pscmdlet.ShouldProcess("$ou", "Creating DKM container and assigning access"))
+{
+    Write-Verbose ("Creating organizational unit with DN: " + $ou)
+
+    if ($AdfsAdministratorAccount.EndsWith("$"))
+    {
+        write-verbose "AD FS administrator account passed with $ suffix indicating a computer account"
+        $userNameSplit = $AdfsAdministratorAccount.Split("\");
+        $strSID = (Get-ADServiceAccount -Identity $userNameSplit[1]).SID
+    }
+    else
+    {
+        write-verbose "AD FS administrator account is a standard AD user"
+        $objUser = New-Object System.Security.Principal.NTAccount($AdfsAdministratorAccount)
+        $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier])
+    }
+
+    if ($null -eq (Get-ADObject -Filter {distinguishedName -eq $ouPath}))
+    {
+        Write-Verbose ("First creating initial path " + $ouPath)
+        New-ADObject -Name "ADFS" -Type Container -Path $initialPath
+    }
+
+    $acl = get-acl -Path $ouPath
+    [System.DirectoryServices.ActiveDirectorySecurityInheritance]$adSecInEnum = [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All
+    $ace1 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"GenericRead","Allow",$adSecInEnum
+
+    $acl.AddAccessRule($ace1)
+    set-acl -Path $ouPath -AclObject $acl
+
+    New-ADObject -Name $ouName -Type Container -Path $ouPath
+}
+
+
+
+#######################################
+## Grant the following permission to the service account
+# Read
+# Create Child
+# Write Owner
+# Delete Tree
+# Write DACL
+# Write Property
+#######################################
+if ($ServiceAccount.EndsWith("$"))
+{
+    write-verbose "service account passed with $ suffix indicating a gMSA"
+    $userNameSplit = $ServiceAccount.Split("\");
+    $strSID = (Get-ADServiceAccount -Identity $userNameSplit[1]).SID
+}
+else
+{
+    write-verbose "service account is a standard AD user"
+    $objUser = New-Object System.Security.Principal.NTAccount($ServiceAccount)
+    $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier])
+}
+
+if ($pscmdlet.ShouldProcess("$strSID", "Granting GenericRead, CreateChild, WriteOwner, DeleteTree, WriteDacl and WriteProperty"))
+{
+    [System.DirectoryServices.ActiveDirectorySecurityInheritance]$adSecInEnum = [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All
+    $ace1 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"GenericRead","Allow",$adSecInEnum
+    $ace2 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"CreateChild","Allow",$adSecInEnum
+    $ace3 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteOwner","Allow",$adSecInEnum
+    $ace4 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"DeleteTree","Allow",$adSecInEnum
+    $ace5 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteDacl","Allow",$adSecInEnum
+    $ace6 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteProperty","Allow",$adSecInEnum
+
+    $acl = get-acl -Path $ou
+
+    $acl.AddAccessRule($ace1)
+    $acl.AddAccessRule($ace2)
+    $acl.AddAccessRule($ace3)
+    $acl.AddAccessRule($ace4)
+    $acl.AddAccessRule($ace5)
+    $acl.AddAccessRule($ace6)
+
+    $acl.SetOwner($strSID)
+
+    set-acl -Path $ou -AclObject $acl
+}
+
+#######################################
+## Grant the following permission to the adfs admin account
+# Read
+# Create Child
+# Write Owner
+# Delete Tree
+# Write DACL
+# Write Property
+#######################################
+
+if ($AdfsAdministratorAccount.EndsWith("$"))
+{
+    write-verbose "AD FS administrator account passed with $ suffix indicating a gMSA"
+    $userNameSplit = $AdfsAdministratorAccount.Split("\");
+    $strSID = (Get-ADServiceAccount -Identity $userNameSplit[1]).SID
+}
+else
+{
+    write-verbose "AD FS administrator account is a standard AD user"
+    $objUser = New-Object System.Security.Principal.NTAccount($AdfsAdministratorAccount)
+    $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier])
+}
+
+if ($pscmdlet.ShouldProcess("$strSID", "Granting GenericRead, CreateChild, WriteOwner, DeleteTree, WriteDacl and WriteProperty"))
+{
+    [System.DirectoryServices.ActiveDirectorySecurityInheritance]$adSecInEnum = [System.DirectoryServices.ActiveDirectorySecurityInheritance]::All
+    $ace1 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"GenericRead","Allow",$adSecInEnum
+    $ace2 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"CreateChild","Allow",$adSecInEnum
+    $ace3 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteOwner","Allow",$adSecInEnum
+    $ace4 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"DeleteTree","Allow",$adSecInEnum
+    $ace5 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteDacl","Allow",$adSecInEnum
+    $ace6 = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $strSID,"WriteProperty","Allow",$adSecInEnum
+
+    $acl = get-acl -Path $ou
+
+    $acl.AddAccessRule($ace1)
+    $acl.AddAccessRule($ace2)
+    $acl.AddAccessRule($ace3)
+    $acl.AddAccessRule($ace4)
+    $acl.AddAccessRule($ace5)
+    $acl.AddAccessRule($ace6)
+
+    $acl.SetOwner($strSID)
+
+    set-acl -Path $ou -AclObject $acl
+
+    $adminConfig = @{"DKMContainerDn"=$ou}
+
+    Write-Output $adminConfig
+}
+
+
             #  ██████╗ ██╗   ██╗
             # ██╔═══██╗██║   ██║
             # ██║   ██║██║   ██║
@@ -1216,6 +1375,15 @@ Begin
                 }
 
                 @{
+                    Name              = 'Delegate Install ADFS'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'Subtree'
+                }
+
+                @{
                     Name              = 'Delegate AdSync Basic Read Permissions'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
@@ -1487,6 +1655,24 @@ Begin
 
             Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
             Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+            ###############################################
+            # Install Active Directory Federation Services
+            ###############################################
+
+            $InstallCertificateAuthority =
+            @(
+                @{
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                    ActiveDirectoryRights = 'GenericRead';
+                    AccessControlType     = 'Allow';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritanceType       = 'All';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $InstallCertificateAuthority
 
             ################################
             # AdSync Basic Read Permissions
@@ -1980,10 +2166,10 @@ Begin
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
-                                if ($RestrictUserRightsAssignment -notlike $null -and
+                                if ($RestrictDomain -notlike $null -and
                                     $GpoName -match 'Restrict User Rights Assignment')
                                 {
-                                    switch ($RestrictUserRightsAssignment)
+                                    switch ($RestrictDomain)
                                     {
                                         $true
                                         {
@@ -1999,7 +2185,7 @@ Begin
                                 }
 
                                 if ($Link.Enabled -ne $LinkEnableBool -and
-                                    ($RestrictUserRightsAssignment -notlike $null -and
+                                    ($RestrictDomain -notlike $null -and
                                      $GpoName -match 'Restrict User Rights Assignment') -and
                                     (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
                                 {
@@ -2130,7 +2316,7 @@ Begin
                 # Get policy
                 $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
 
-                if ($UseAuthenticationPolicies -eq $true)
+                if ($RestrictDomain -eq $true)
                 {
                     ################
                     # Create Policy
@@ -2225,7 +2411,7 @@ Begin
                 }
                 #>
 
-                if ($UseAuthenticationPolicies -eq $false)
+                if ($RestrictDomain -eq $false)
                 {
                     if ((Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -2608,8 +2794,7 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $UseAuthenticationPolicies = $Using:UseAuthenticationPolicies
-            $RestrictUserRightsAssignment = $Using:RestrictUserRightsAssignment
+            $RestrictDomain = $Using:RestrictDomain
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
@@ -2696,8 +2881,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUT5aaL38FMaIdIYAyDsgd/tUP
-# jRugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWfbd8cKsC9Us42U7n7rdn3lA
+# 0Y+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2828,34 +3013,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwHaiCCp/
-# 4nMGayaXlgrSe/fJzQswDQYJKoZIhvcNAQEBBQAEggIAuTUDSUMaENWAAdob4CFe
-# h6xY4jbo5yTUhByc3PGjgL1spYLT+L4twxfGZoEvbfn/bRO8dhgYn5hvhAfvopX6
-# CkiDihuZ5elelA5n1aWKI4gVLqY7AJW+LgtJP6HWofMs4a0W01BkiuSgZYnt5wmG
-# FzvAoo1O2cONRIP0Fe1Yqi5ZQRQOXzk3ZtHTEmQYRHTKSEgj38O3mKSghQeeHo5w
-# YGzZKE0fWfHM3Z/6A4zgT9pUW3Bl4eJRF/jpaPE4Lt3BoojkTjjg26jkXEMw19xP
-# LzwfOKEXCtzB1Id3mXMpA3S8h2Y5ZxrKcuUX29BmbJksvCKPpmnx4QI95QF7mDa6
-# daDfXRJaJ23CMb2L8+rYrwBMWXZy6t+c61sGJrJJ6eYh+0Z+ZoG5cyAGl1r1HbDb
-# 4NE6V9P6ZZ54sUDlnpY0byhAqU+No5us2mc4+xJmDea/hH58M16xtA1Xahz3m2GS
-# vr9P7gjNOUvTVHnSOUM0Szi2Qv7oo1KUILrrjpVNGCW+0rf/IzCaseIVpIg2+76H
-# Yh8EKid6MBgUDShD+TzeJ3vVLTz+JN8HIdo1624Ulk+rMGxb4tfdfe2AjlEbVPlV
-# 1qoHX1MbHmVTWE0/2ox5NhxzAGVgFmD1hTwLj+T6m2y/G+Y8YdgZZQf2Nlm7suAW
-# sAQ81S+6grkX72oriKmbt0OhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgO1jRx0a
+# dK9TxfJOIgtsgU3SsVUwDQYJKoZIhvcNAQEBBQAEggIAPKMVyqYW2EtNbXQxm5Lw
+# 9dlakDuflSqdq54gcQG1X4R0Lg4cKU8BW8UzKQwwigWXjPSzEiuAOEXC0d3ClO28
+# L0m3N/q9irkSIyPHKQYv1S3H2XOrpdZjF4TXweXkYuFJWdaQ3F3dlOXCIf15QaG4
+# PmGPdG67CABIRrQRE4MxMZTWJdEQEtsvCPdjze7ruNGEcyMBMfgk+nBrA17uG+m8
+# y1SzVb5KEHgeqSnIUQShxz4DzM4pmP8Rnrpg89jTMoQIfqmPo7q0ovECP4wM/HIl
+# SmjSANS5aVCFfAwIjjyNEweYnCthaaiysGm4s1tYdDlaNHm50RUu2LXcaL0Tlki0
+# 7AxdIriaCKCMPRVDXJdl6qcZrhg/mjuAX91Cy8uvZgawJnmKJnqFVKmke1+s8wpD
+# 5TGNslhJb50dPKJF1uG5mPi4NHJFrLH2XGNvMPZIPB3oS1uvvwGCErJemUt+zgqj
+# D4Mep8dLR/gQ6JiDtx51a9HbwIRCTSlte/mchY3S8zV0/4MNdq3CepNMEEbo3d13
+# 0opUZOw0dCNADjzjQzNAB9UBm6hl/NrH3IVEJND9VVKsrjAdC05NMIzFbXCyO4g3
+# HcbPmNjKI+XI1vF0jFBQe6ttHaFCsEagq0vKTifdkRdbfuqmap+fKUgBkaIcsyov
+# RdGQjVZCwqr865DiKkngh+ihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTYwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg15MWhzjIGpkkak5L798GTvWSRYtE0bFNxCcJyHMh
-# 2JUwDQYJKoZIhvcNAQEBBQAEggIAagZKUoXjMHeno/zk0F0aI3iNNiL3wsP0yjgW
-# JPVUdAsHJEBt8ewWvhx3fPnf8UA6r6uxNQk5cqf5EQLCJoRzam5P5l/ryajQMtPF
-# dVI2fZnVoODx2OgFNIu3TKLCc+TVNo7KyBs5Ikm4w43WrNukNgz7dQFGAwWD4iKb
-# 1bhxQfDz1w8BUdxBfCNL628MVXV2mCuo3k1eBvdpOV8afC9FD7lynnw6DS7+WWIr
-# td2nZ/sU8JHztd254jhTIzIEMR31h0g9H5qO/fyQ1lptuG4VZ0f9Y5obhf9gXQe1
-# fML5uyq5Dgv3ZuZ0W/2IOBzKxYlQ/JuAOaBNPAEINt609SKHn88o5YVfahcGKHhj
-# OPe4xTzjc+q2BYgNOlzGT4dqQJ/vj0vVm32QB7oR485O4xCc4q26J4UH8peVeT2+
-# Ky5AjFFhmTtYoTJu390yRck+zObTfjJ8g6hlia5NX7HVeXIggSIpxjMuT4/41wQ5
-# oacJgCooshe1ele7KOnlHelxO0017v6lz6emr8Ihkk1xPiwBSTCzEi8zaL+lDalx
-# VxQmL787JVvTisOMTDRQbQhrEXMbN2zwIT5FSHwfyJJhSygOfgcHRyNKynfjYUxv
-# 9IQgOADbMskauWrm2uBPUtCg80Y7KNRnGTccNkmukkFhHfBMQaTGEf6fgspz+yp4
-# YzL38zo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQggPCCAgrRoknXXgkd6+R1HoEJwFpTQSKOhS0s+xj1
+# xbgwDQYJKoZIhvcNAQEBBQAEggIAMRKtCt1q6U7kK64+pZ3gpAV417nqnyUqa3H5
+# c4g6dJAzL4oxbxGjPgKtWbCdBePvIqJdF7bI4LgyQZQ5nSDuOSHWQDrz8gE0LAFL
+# 0TkHc+v4tJ/NNsgT2VfRaXF94VwVe7gQ14nmkZYX/D3vr6cbtq/0nrXzKGzcUgeo
+# bsIm5aGe+x/WEOscXZBTXFDw/y9ThSUeS3ogAlFZ336U8CkMYVGBfmq2H14JinTb
+# uHUUbkmLVht8sDdoU33m9zo01sIBgU2Z6omBbHR8euPohvHGL5QfktUGNMdNDTDP
+# wEmUF/ksVekGzpEyWFVVdpuLen5D1CaI77JPnbmtkAF1TzWR1CB/o2jDFZT5k801
+# 8lMuXqVOUAAG4FrVstvZouioGwK9mcNye1W4/SILb6PFy6SuYwFNh6wgYC+8v1jz
+# q6mEzM7rdRJyJ8ua3U1BHFRWADe1D73SDbPKtc4/X46zYsn7ZiPC2mLUUNNV0XBS
+# 74xcEtETPRqT0FK4EQtRR4cLNWoViUFitDq4fucSAfpiXOXqp90ogLiUalE4bLaR
+# /+dwuLNT75emnFomNyRPfSLaKsinjyAlAAWVwJmYnADUZPKhe8Vie1FgeSfAFWfp
+# u0SPc39TaVSljzUWiVaer+0XbxbVT0UqmFGi1A9lLVreVXUe10l9AGY065o6gEAY
+# Aou+ASg=
 # SIG # End signature block
