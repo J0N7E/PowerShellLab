@@ -1718,7 +1718,7 @@ Begin
                 "OU=Domain Controllers,$BaseDN" =
                 @(
                     "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
-                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment+"
+                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"
                     "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 ) +
@@ -1751,7 +1751,7 @@ Begin
                 $ComputerPolicy +=
                 @(
                     "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Computer - Tier $Tier - Restrict User Rights Assignment+"
+                    "$DomainPrefix - Computer - Tier $Tier - Restrict User Rights Assignment"
                 )
 
                 # Link security policy
@@ -1933,9 +1933,7 @@ Begin
             foreach ($Target in $GPOLinks.Keys)
             {
                 $Order = 1
-
-                # FIX
-                $TargetShort = $Target.Substring(0, $Target.IndexOf(',', $Target.IndexOf(',') + 1))
+                $TargetShort = $Target -match '((?:cn|ou)=.*?,(?:cn|ou)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                 # Itterate GPOs
                 foreach($GpoName in ($GPOLinks.Item($Target)))
@@ -1945,7 +1943,14 @@ Begin
                     $LinkEnforce = 'No'
                     $LinkEnforceBool = $false
 
-                    if ($GpoName.EndsWith('-'))
+                    if ($GpoName -match 'Restrict User Rights Assignment')
+                    {
+                        $LinkEnable = 'No'
+                        $LinkEnableBool = $false
+                        $LinkEnforce = 'Yes'
+                        $LinkEnforceBool = $true
+                    }
+                    elseif ($GpoName.EndsWith('-'))
                     {
                         $LinkEnable = 'No'
                         $LinkEnableBool = $false
@@ -2173,19 +2178,22 @@ Begin
                 # Add to Policy
                 ################
 
-                # Itterate all group members
-                foreach ($Member in $Members)
+                if ($AuthPolicy)
                 {
-                    # Get common name
-                    $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
-                    # Get assigned authentication policy
-                    $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
-
-                    if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
-                        (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    # Itterate all group members
+                    foreach ($Member in $Members)
                     {
-                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $Member
+                        # Get common name
+                        $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+
+                        # Get assigned authentication policy
+                        $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+
+                        if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
+                            (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
+                        {
+                            Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $Member
+                        }
                     }
                 }
 
@@ -2688,8 +2696,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdoVRclfXJ3oAbNSXag1qjOTp
-# l6mgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUT5aaL38FMaIdIYAyDsgd/tUP
+# jRugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2820,34 +2828,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDXym6JfE
-# EOPQW3tuI1PLH5lRntMwDQYJKoZIhvcNAQEBBQAEggIAMWxhdYI7N8OWLLs0DVGU
-# 0CBXKxGg0R/K3qF1BEj5UaRJkv9gMPlRsYePntnQcoxmg2zQBs41REwFucp3SIk+
-# SNd9eLgim+1qUUs5/WqmHL1A/vLSY7Mm8npKQ5BW1Z5VPYthsd5m5hwpXTO+b5BI
-# 7vdtAWECLuJdNVET2msqN9A2YfP1USTIYb05G/DhysbN6mFLIDWJ6N3ays9/wDh2
-# uQz4BD3I3/zmKclWu8hY4LTtiY6oQ+Fv3TGZmrwcYrS16fH7etLSSXhXP+AZmAOl
-# 25ebAcXi14dk6rsOcUlcAeWr010sYZjF5xjRY4PhOqLaBWlLIE1nOc7Q0G9VbLus
-# 4DiUIuD9uhqCUsqLE4FcnqNrl++te8OHgbQvoIImh3sKv91PRbBPh3d789FnUI/E
-# N2MAW1Ys9eymCGsnjc68REnckbqZYifAKq3MyDVZW/vbbxu0HTbuMOvXrBGbAoHZ
-# rDBt9rJYmjyFXwSnGqIQdZC0shs7Uytgeor74OgBAcL5sGQTd12Xq49EcTQMPl/9
-# bul05bW5+rDuyGxR+A40K88Twl9YzKg/1hWnbYO3MABCTVyifq90EkdXyqRXTlhE
-# PCorMUjUkhjUtoX3nfAfezf7UAV2KFRM5CeAOK5rG27gC6yoEuaXN0jFrsDNkBgk
-# pOQvz5QkyDoNboRofIvwfumhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwHaiCCp/
+# 4nMGayaXlgrSe/fJzQswDQYJKoZIhvcNAQEBBQAEggIAuTUDSUMaENWAAdob4CFe
+# h6xY4jbo5yTUhByc3PGjgL1spYLT+L4twxfGZoEvbfn/bRO8dhgYn5hvhAfvopX6
+# CkiDihuZ5elelA5n1aWKI4gVLqY7AJW+LgtJP6HWofMs4a0W01BkiuSgZYnt5wmG
+# FzvAoo1O2cONRIP0Fe1Yqi5ZQRQOXzk3ZtHTEmQYRHTKSEgj38O3mKSghQeeHo5w
+# YGzZKE0fWfHM3Z/6A4zgT9pUW3Bl4eJRF/jpaPE4Lt3BoojkTjjg26jkXEMw19xP
+# LzwfOKEXCtzB1Id3mXMpA3S8h2Y5ZxrKcuUX29BmbJksvCKPpmnx4QI95QF7mDa6
+# daDfXRJaJ23CMb2L8+rYrwBMWXZy6t+c61sGJrJJ6eYh+0Z+ZoG5cyAGl1r1HbDb
+# 4NE6V9P6ZZ54sUDlnpY0byhAqU+No5us2mc4+xJmDea/hH58M16xtA1Xahz3m2GS
+# vr9P7gjNOUvTVHnSOUM0Szi2Qv7oo1KUILrrjpVNGCW+0rf/IzCaseIVpIg2+76H
+# Yh8EKid6MBgUDShD+TzeJ3vVLTz+JN8HIdo1624Ulk+rMGxb4tfdfe2AjlEbVPlV
+# 1qoHX1MbHmVTWE0/2ox5NhxzAGVgFmD1hTwLj+T6m2y/G+Y8YdgZZQf2Nlm7suAW
+# sAQ81S+6grkX72oriKmbt0OhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTUwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgvPrHUTCGV6rDqBiQPh0c1MD0PtWyfgzMI+7dfyON
-# PVQwDQYJKoZIhvcNAQEBBQAEggIAxz2Q4Wwt8MEANbc/qKehMumEYDm26uQgi1nP
-# A8Gi1ujeODyMf3KcBo5WNmidssCwMTn2/Rzkeis7MwgwUqCJ0SChGeIsfYqgArop
-# JSt222oFDOJDzKBowLTAITvbj0bsgn3ixpNE/q3/y8JNr9ASoXOGAfgcVysWsBBr
-# Itn5GWsbiuHLk76nP1inHnGz5IIJpwlhaYJf7lUPSZbojZx4FDV0VJ0O2kDok2Fv
-# LTS9PFuIDqwrFHR87/ODZhJTY2WFz3dkf5w+Xgq/Xq6Hk1xTNw8PNRl8pi9aLKO4
-# sqb2hF+6fDsM/SJVc7cJeh/ZWPjustbEe1GgBhaEr78viRqcsTVs9F2rwQzyLne8
-# ZPFEqGW+Nol/x/jNzqP7QL5ze6HnuIIPfm9ggVIuSKJSnzk1TPRz6bfkw6renGZA
-# GHKoswrwNRcFlsZiTXK3TYBnr+IrzqAvECCmX97byRybOEK/DASAp4Ef/3vfNr9A
-# NaPFdHCP7HyTqX4gE8u3Yso76R96nHT1rVBvhQcV5Aa6aDpeTS9MpXj5/HbyhFHU
-# U5HwqBYf/nMhFYWOweVgn7GEXuRAJKxaOMpVB86isEo+Izg7l5dA5GeuWc126VMZ
-# DaXVDpuKNElpXVcDCIfz43E/5oYv8C06kdpfaE2MGjLUDVV7zfKMneJzRRC1rgXl
-# uRRR97Y=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTYwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg15MWhzjIGpkkak5L798GTvWSRYtE0bFNxCcJyHMh
+# 2JUwDQYJKoZIhvcNAQEBBQAEggIAagZKUoXjMHeno/zk0F0aI3iNNiL3wsP0yjgW
+# JPVUdAsHJEBt8ewWvhx3fPnf8UA6r6uxNQk5cqf5EQLCJoRzam5P5l/ryajQMtPF
+# dVI2fZnVoODx2OgFNIu3TKLCc+TVNo7KyBs5Ikm4w43WrNukNgz7dQFGAwWD4iKb
+# 1bhxQfDz1w8BUdxBfCNL628MVXV2mCuo3k1eBvdpOV8afC9FD7lynnw6DS7+WWIr
+# td2nZ/sU8JHztd254jhTIzIEMR31h0g9H5qO/fyQ1lptuG4VZ0f9Y5obhf9gXQe1
+# fML5uyq5Dgv3ZuZ0W/2IOBzKxYlQ/JuAOaBNPAEINt609SKHn88o5YVfahcGKHhj
+# OPe4xTzjc+q2BYgNOlzGT4dqQJ/vj0vVm32QB7oR485O4xCc4q26J4UH8peVeT2+
+# Ky5AjFFhmTtYoTJu390yRck+zObTfjJ8g6hlia5NX7HVeXIggSIpxjMuT4/41wQ5
+# oacJgCooshe1ele7KOnlHelxO0017v6lz6emr8Ihkk1xPiwBSTCzEi8zaL+lDalx
+# VxQmL787JVvTisOMTDRQbQhrEXMbN2zwIT5FSHwfyJJhSygOfgcHRyNKynfjYUxv
+# 9IQgOADbMskauWrm2uBPUtCg80Y7KNRnGTccNkmukkFhHfBMQaTGEf6fgspz+yp4
+# YzL38zo=
 # SIG # End signature block
