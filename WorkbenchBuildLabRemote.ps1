@@ -35,11 +35,9 @@ $Settings =
         ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
         ROOTCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                }
-        SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');           }
-        ROOT2  = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                }
-        SUB2   = @{ Name = 'CA04';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                }
+        SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Standard x64 21H2*';                      Switch = @('Lab');           }
         DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-        WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('LabDmz', 'Lab'); }
+        WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*Standard x64 21H2*';                      Switch = @('LabDmz', 'Lab'); }
         WIN11  = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');           }
     }
 }
@@ -75,8 +73,57 @@ $Settings +=
 # Functions
 ############
 
+function serialize
+{
+    [alias('ser')]
+    param
+    (
+        [Parameter(Position=0, Mandatory=$true)]
+        $InputObject
+    )
+
+    [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([System.Management.Automation.PSSerializer]::Serialize($InputObject)))
+}
+
+function deserialize
+{
+    [alias('dser')]
+    param
+    (
+        [Parameter(Position=0, Mandatory=$true)]
+        $InputObject
+    )
+
+    [Management.Automation.PSSerializer]::Deserialize([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($InputObject)))
+}
+
 function Create-VMs
 {
+    param
+    (
+        [switch]$Wait,
+        [switch]$NoExit
+    )
+    
+    # Check parameters
+    if ($NoExit.IsPresent)
+    {
+        $NoExit = '-NoExit '
+    }
+    else
+    {
+        $NoExit = ''
+    }
+
+    if ($Wait.IsPresent)
+    {
+        $WaitSplat = @{ Wait = $true }
+    }
+    else
+    {
+        $WaitSplat = @{ Wait = $false }
+    }
+
     foreach ($VM in $Settings.VMs.GetEnumerator())
     {
         # Get latest os media
@@ -96,10 +143,9 @@ function Create-VMs
                 $VMAdapters = " -VMAdapters $(Serialize $VM.Value.Switch)"
             }
 
-            Start-Process PowerShell -ArgumentList `
+            Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
             @(
-                #"-NoExit ",
-                "-File $LabPath\LabNewVM.ps1 -Verbose$VMAdapters",
+                "$NoExit-File $LabPath\LabNewVM.ps1 -Verbose$VMAdapters",
                 "-LabFolder `"$HvDrive\HvLab`"",
                 "-VMName $($VM.Value.Name)",
                 "-Vhdx `"$OSVhdx`"",
@@ -475,8 +521,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdRHQ3118gotZHy0fkiP2zKHH
-# oBKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm3mRAzJcgimPVx66WpXUSGoU
+# leKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -607,34 +653,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUjITuM1Jk
-# wvfTemvD7RmFu9MX7e0wDQYJKoZIhvcNAQEBBQAEggIAxz0xr656dcxx3xdspL9i
-# 2oFvs2MOtJEIKHKaShx9brZ7pV9WPLKTPUNtJT0V+e41bgTc6jEu91d2a6LEVMob
-# NdwadPURt3nWD7tpoSQ3twv+qqkyavGz58iTDnj0nETVkhF8lWHPzhm2FcKo+PJ9
-# 7JoaIa7b/4qMMzY9Zzeo6KZwaFIvBriHJT+cLEvawcbFOjUKZ+W0zbQryh8Q5ZWV
-# GnM0DRnzqrMjsmjg998KdoGhkUAvey1STgsTIhavpF1NQWHzMGM5tfU/DTH/YwU0
-# xlxMpkCj35QcROIZf2RoU+Tr5N8NfJigG4yQ8+jWb+Zb0FnZ157LUkBivZ1vO035
-# xN6QfQlROmybiR3/wdeVaisw3sZv95eUSdZMc5J5RCL6gHcdCUif5ywfxAQFXhin
-# gzgT4kF/FHgKliksHU7ZdRldZ11NplPTNeRmO4mT7BWRg+XTKzV1WwhYhhRdStWD
-# rTmB7QVXFFQpRyk2j6u1pbaEH7QOc8Bnip9MJzie/YUzEuQJ1MhQAiWTUrHMYH+6
-# Q82713GzMG6O1OyS/z1NmbBIv4Q/hNa7mQuom5IljZH7uIGqU9TMAnxabeFC7wUl
-# TsvxHEBwHksxbZ9A//79vPAlDlvfSHschtTo8ajSM+qMdO/iyfRnifDN/F/a1xaY
-# WrXOun1vNTA/LQ2bSGvGmW2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU5mI8jHja
+# Nfl7d+7FLXgoz2Vyn58wDQYJKoZIhvcNAQEBBQAEggIATfO6UiyAi37JZ2sczfMN
+# JFfiidh3k0YfIKo2NA7pW0QGumTlw/pCYlzXjciN0ZBUPIObXg4YOMotZ5p4pxDs
+# XapHWHQUbg/t64zh9FfCRpEu9RMoVLC+yWOQl+egUDnOrk4h64cTjsqoeJ8nQiLR
+# mb+X+6Gd5ybx9NDrQHZgKSZL+75HyOJ9Kz8DzZPog3+jQU+R+UHl8tLmbwIqU69S
+# Ow5brG9Cvg2Xid4KUH6mWUdRPcuXmGQ3aWwwsuKgyGmLMebfllyJztSf3n8hbkOm
+# EnfmPXbjoeOYq445Hh63Qaf/Gj0oVodNa+4QVwxNudZUXqM3EHspZnMItjEq/Cyn
+# wYsyUZViYMS718mNQ3Vp9w9z/Ubv732pt7p8a6tiMyaJIJinQWyQicElKermhCzT
+# VfUWhmM2TsmKtgRo+mp03CKlEa1Zc/ee8nzTg7xql93SiW/KTnCCvT4MFsRamzxU
+# a8siYvtn0QqFqfys9AHn8Xl7Iw+FqePN/UE4KAyjdAKgdNH5pLp0nXJ/cSXvf3+8
+# KrHpvbfTJYwfCFjbTNC3wD758fhOB6qpuTFIIR83mxj3V0c02aVZY55S60nBbuRk
+# 8OO4HcSDXo0Bn+yYQgFrFcv6XxiccDoTEBx836cGxOfx5IeHqapSsZOTDy2lSyvj
+# zVLxLfd2oQS5wh/xCeBXK32hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDE5MTEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgNbIQiT/8hEzMpcq6ndumdvmpD7lFY7XrMhSl4s1V
-# a0owDQYJKoZIhvcNAQEBBQAEggIAncGGDcK9Ty28tVAbi8Bh2IyL1+jN2viRlxbi
-# ersgfQNkYTUzqhcdf3bHvIK7FDXG3fGEDnNCxHwStBV5QbCJ6/Yya92MF1YrQ37x
-# rGj2CaO6At1qDe0doW9ua+2SQLRn47GOozBWRn/TDzt69ji2mN9dTv4R6gX3iIsq
-# Opmiqfz7m1CIIr6czzVGOniaTBPmjr7PWkN1zVSytzr1qNDBmlQD8Bh/qEZR8LcG
-# heegSzBMtFOHr+ylN0vIN283waoZf5SC/OXPa8dfEjC/Doy7ePiVHodf7lLt4WhE
-# kBereCRC0V2MBNridqTaUw1xV7mXBSQJzY35Iz6ofmjdbNI1f8tzWTdu82seQoCb
-# q3fzRb7dSG6mZu3ogJxI3yUwyojLttLincj0s69TSE75hI25vaAItRTsNd7bfRcX
-# nH7dn0X1PEXk90Rcxq3otpLICzUO5C5PNRX4IUm/CmfMo0y9yM8/E78GpVxxsgiP
-# M7uIeqXw5YuTTc0cs/hhl0o/Y8A0bpbnVUFdyd0U1te7GntYtDPeulduAgWv/2tV
-# 7l9YPyu3sthiNmqvYpeoduEUgWTFf3uW48Q+hM/jlzyV+/u3weXx1aTu7ykI7M/I
-# xyozSPV8+MlJIDy3Twu+9kcDbRySBXTrZnuVzbegZcFs+M4tu8G0xI9X6OgsuWpN
-# mevqez4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMTMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgTYSvWK4myT3NxlzJMATQuUqYOrY40h+VLrQhjSJp
+# n2MwDQYJKoZIhvcNAQEBBQAEggIAB6IfupZ64wJkv0sL1Yx2jm55fZfqac9OlFwL
+# I0I8GVHpkFrlB7dvUzQPVMBFUe6LKjhvH6l1pC3A+u+c5WQ5lu+/IdEqsPXVYtRS
+# doN7xpiCW82wwpkc781nu4qbx5LyCt63MxZ1uiTo5P1kv5G7yNIW+ylz4Lr1NmDY
+# 7bYZ/AazmEH3gpZTKI/VyczLImTBp9ZeakfCdK8Z40eqEhfmqq3ZGoBqhKjfpSEX
+# avv6oLL7I9LGp6qZ1JeyFXchYNBe2m+5zyYdWIPEIb8r4VjKDOUTAXJGqwfb4TO9
+# 2Ou6/HpvA/iHrIlTvKZy81L9I4G1godZEIeyJpMqgmFyhccM6tUCM3/CtDA4l85R
+# 6uLvBZE258FW0TcsyKQx8piY0XupMnXwzcQwo+mltt31ujE15Wl/8WWZQZKDDfHv
+# tX81+sxi6TZJlBZo7a2hzjSbifMKEt2Yge3NhwQ09BJJffchvWEjtfsv7DcIOvJO
+# 5Frtuq6UFd0EWOrIstMguZK6xMiIPe2POt2BuG8ZZbZ25Fgx/ku1yZTPaDHA+hb7
+# s4Hpo1S3riCVRpz0onffUKRrVV5INjVtyvZD2/nei7S1pWO9ARgqfLhjsy9NDK55
+# eFl92HRjTQY00q5/Uleh962ulhA61jV9kW8VToRPJ5EizN/5RTUbsTDAjSpZFClA
+# jLIT5qc=
 # SIG # End signature block
