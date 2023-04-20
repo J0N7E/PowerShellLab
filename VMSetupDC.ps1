@@ -1432,13 +1432,27 @@ Begin
             # ██║  ██║██████╔╝██║     ███████║
             # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
 
+            $Tier0Admins  = Get-ADGroup -Filter "Name -eq 'Tier 0 - Administrators'" -SearchBase "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
             $AdfsComputer = Get-ADComputer -Filter "Name -like '*ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree
+            $AdfsMsa      = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
 
+            # PrincipalsAllowedToDelegateToAccount
 
-            (Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword | Select-Object -ExpandProperty PrincipalsAllowedToRetrieveManagedPassword)
+            if (-not ($AdfsComputer.DistinguishedName -in $AdfsMsa.PrincipalsAllowedToDelegateToAccount) -and
+                (ShouldProcess @WhatIfSplat -Message "Allow `"$($AdfsComputer.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
+            {
+                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($AdfsMsa.PrincipalsAllowedToDelegateToAccount + $AdfsComputer.DistinguishedName)
+                $AdfsMsa = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+            }
 
-            $Tier0Admin = Get-ADComputer -Filter "Name -eq 'Tier 0 - Administrators'" -SearchBase "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
+            if (-not ($Tier0Admins.DistinguishedName -in $AdfsMsa.PrincipalsAllowedToDelegateToAccount) -and
+                (ShouldProcess @WhatIfSplat -Message "Allow `"$($Tier0Admins.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
+            {
+                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($AdfsMsa.PrincipalsAllowedToDelegateToAccount + $Tier0Admins.DistinguishedName)
+                $AdfsMsa = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+            }
 
+            # Containers
 
             if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding Adfs Container." @VerboseSplat))
@@ -1560,52 +1574,7 @@ Begin
             @(
                 @{
                     IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'GenericRead';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'CreateChild';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'WriteOwner';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'DeleteTree';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'WriteDacl';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritanceType       = 'All';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                }
-
-                @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                    ActiveDirectoryRights = 'WriteProperty';
+                    ActiveDirectoryRights = 'GenericRead, CreateChild, WriteOwner, DeleteTree, WriteDacl, WriteProperty';
                     AccessControlType     = 'Allow';
                     ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'All';
@@ -2822,8 +2791,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUI29iRMjaR6jk6vFc+1nlxjbg
-# 3LqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9TYBcV6XS27lPrbaXd79hCMI
+# 4FCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2954,34 +2923,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURuTDaQ6H
-# Y6yvlu70Q4izpAk+ShQwDQYJKoZIhvcNAQEBBQAEggIAbjebUFtHfmLBELX/NMyR
-# wl6ivQrjWvhfqt4dXtnDOsex9SRt+ak0IrWsz9QwlkdioOEmeOPJLTl9uL89Nfkd
-# E6gBuisIj3BfIPEJid1/vwFSmqW3b3E0OYOONXl+KGBa2wGSl9ilWN4QZpFEg7x6
-# r86Vj5Ve3Ayw6zY/RZ91pO9mtK5fa3xfVNZOzRzCwGs1j2yY3NmTCl+E3k8qrcSU
-# xznRMtzF00hnKricekGVSqdbdY3kBZXM0ZN7HNlOx7PLemIBx5mYOwloWoBg2tZw
-# rqJj6avwGRvdOtFK0SU1JhCXKPk06tmwF8M2MdtRY84gfBo/YWwjKzpTpm3X7qzq
-# gWWWwX9ndvAXjrUbfs6CbBl936MEjKLHoi8Yi1k+VX41ci78yjgga3dZ/GM0RKuv
-# kEXbsPw3k+G4PjYs80FETmml1ZBtco/Mk5IPkopPDlF7lupbqOMbwzLCFq/6jgue
-# wB4QbrQGFx1EpCMe6Wym3o43YhhazaBfMA6zGZE/c80YMMdVWHDs6TrdvNTrIOTU
-# HXtUYqll6P8XbB0/ddv+K/zdv2Zihdcd1SslcX3udRZ/d4osdPF7efkXUne+qvUN
-# B7wP34dKh2Zew//StojH/8GTGRfb0iGLcInoy2IY6eUGFY5UsAvNw71XWhXb7yCL
-# mQfx5+Jz50urQU4uGb5R2MyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgr/vAJWi
+# tVH0hTWD/4QdcQjjPXUwDQYJKoZIhvcNAQEBBQAEggIACrM1aeX0vkHhyQEzP/nr
+# Y0PZTnOGsO55jqGrjDHr9JYWFHiFUpvEao4/tN5kvARG2FYS+Mi1QAYl3JKsjSBn
+# Kb2Pg35sN/jMxgt/d2T9pNLV76DsfjiMjYGEmQDynulWjKnmJ2KmGPN1r+Vcvzzo
+# Pmn7P78OsRBEnSBI2SKUUlFRhK2/OviKjK0Km0tNB7DnShGIw7g9mb6Np+mHS/HQ
+# kYhrvLBC2YoGK9RhG4dmi6KNVhkwRls6wnr0TQirVrj274yd3SwQguABMD7vI31a
+# X/cv9ZsSR3TWEYCX1V/Ay6YuT51b/L49tvINO1MlVs1CFJiJZVya3UAq5XJXNoLA
+# LkRxIOsGb/X7khpgw9peBEjiMhBrN2iKgs60+VEIx3Edzd89LMxi0l4pzz+Zih4A
+# kgfkvtrJJc3Ag2lhqakuN8I1Rf6eoihi2JHBCQ9oOLtBBEnle2MaGfakFbPImhQG
+# bySBcTzYtnbpQ4fSYEDb7/23YpkxIA3H7xOTLNGIt0k83rS97pO31Wa7Cr2d6u5c
+# M+eqTs62Kk1YMuJKukIWcH5QFWmCQGN+s1rBt6cblmzNeY8zU1ZyaWhbEwZyXEjV
+# cjyl5ItM0rUk2U6HDSqS+D3AWAWZew3v7XzlhvIyqwonHbJDj9kTvRbXHU8HMbri
+# FL2QuybVJ95EzuAwMzQXrTqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjIwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgkkisHNr4PubeuSbEOzAQZNLm5Bi7kFCvrlbGA48s
-# 9+UwDQYJKoZIhvcNAQEBBQAEggIAAG7tSFb5lyTMXWkAP11AYtZtzUwOD0XU6pfk
-# 6f3PrUWUZ0Tf54s/+/UyEQQDxldAl+PDUuNcBgryCdZ/P5ZY08aZuWI9joIB208X
-# BeNrEOwiiYmswGyXLpuf6M3gyVWq+yJ7JWLgnJYNbi+rBnkKzP48bdJjEq7M839X
-# +TbrcMKBfhkwxXtA1RfkFg/5PdzUYH1RLmUb0iOHV6B0IkoBc3L74cKBILPnRI1Q
-# gxSYngCmlqh2DgBXUW5gb2k2swem0XFMK7QfVRYUsaxnql9kVkgKDvFFuTbpQGHo
-# eYUJ4tSvLg8vA6evEPFhseh5IedROE9aAnTwqFUVwknNR0kTnxgf+AA8HXB373/A
-# N1CPknDvxrlPXeEOuws17rXV7Gp0texS+1shrVVxRSSQc5L9wLRrbZsLGCSAuTj5
-# 8OUay/LEVwes9QhUdPfVFD1LvNjNKIFl93Q3jpvgXckCTdIJhke/xJBPVGRIBrpb
-# Hyehk9fitmKtpzBEeqqBtP9QYcoyVZSfgIgytHxRA4gRs4i9LwdPfX2Jgg9gz1qg
-# T6FQF4Wyu9iEUInB5/le3mGWWsP+iwCd7UkzOfqj4bgRL/qVNmB4UWBd+mBEZ8ot
-# 4uXpuSHdSXWTyi9r2wSKuB7XDY9fLJ+504xuNV9oXx50Pwy2YBiyQlz+guHncaNW
-# CCySBfM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjMwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQg28tF1I/JpyOfgbsbWIH1mUfdmPz86jISx00m2Cf4
+# enQwDQYJKoZIhvcNAQEBBQAEggIAIPr0kQ2Nus6O/tU11xr2tjXCl1nWsIvbdop1
+# B2EiSCQFunYrgXV2JP2zqqeZDWhKpjp7hkyuztUUK5zsHT9crgqopF1K75Kowgo6
+# DOhUU2Qrj+VVqTsXQiDpHtEBGIMNb5pvWGPDl0D/DjUf951coZBrkeV1ryDaZX95
+# AqxRpiKPvIL+NJ4A8VCI0bBCWAUcUhzPvu9TNUhaIrHkpoKc3nXiJYtY6Jf9BT3r
+# xM+wctQJnUmF03hE+TNu3QQ6AMUjQx2MLw7GfGOgUovXd2AEu2AT0rSXRVpuw6Uf
+# wbdbyInETAV3K52uX/UHIax5bJvkgAnIUSct/1WpZqyT3MrWBVEVuX3tmsuQU+VC
+# Ob8+9y297ovQn65UAVdFZJatuPQtAMqkdqWMQMnY87xJG4VWKTXRb7f2wx9trPS4
+# doeCxztqABEn2U09LaF50B3Y0tw5Eaxkt0/XtFaB3ZO/+c3ia6XxYx0bMDsO8uem
+# uYY64yxQn9qmo/eE0VjM6tGhZ2hp5UAOfuuYgkYFmPmbTGlzocLnkQMqt5L/LTs+
+# y/ys9IZ7BPOmS+sx6GVrXYBO6BbmJe/sTZeq8e3gehjugkVkh8yh9DQhFaG561f/
+# vMBht83ks2GRSjs/X9imFwvQJvIvH4cjdYFtaCA/3+RgeakmLz5yUaw+bLl/QfpB
+# dP4MoGY=
 # SIG # End signature block
