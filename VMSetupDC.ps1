@@ -1452,7 +1452,7 @@ Begin
                 $AdfsMsa = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
             }
 
-            # Containers
+            # Add containers
 
             if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding Adfs Container." @VerboseSplat))
@@ -2120,7 +2120,7 @@ Begin
                     }
                     else
                     {
-                        Write-Warning -Message "Could not link `"$GpoName`" -> `"$TargetShort`" [Gpo not found!]"
+                        Write-Warning -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`""
                     }
                 }
             }
@@ -2209,7 +2209,7 @@ Begin
 
                     'Lockdown'
                     {
-                        $Members   = @(Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Person'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=home.bcl.nu,DC=home,DC=bcl,DC=nu" | Select-Object -ExpandProperty DistinguishedName)
+                        $Members   = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
                         $Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
                     }
                     default
@@ -2592,6 +2592,54 @@ Begin
                         # Replace domain wildcard with placeholder
                         ((Get-Content -Path $GpReport -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReport
                     }
+
+                    <#
+                    # Check if user rights assignment
+                    if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
+                    {
+                        # Get backup filepath
+                        [xml]$GpReport = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
+
+
+                        #Set-Content -Value $GpReportContent -Path $GpReport
+                    }
+
+foreach ($File in Get-ChildItem -Path 'C:\Dropbox\Documents\WindowsPowerShell\PowerShellLab\Gpo')
+{
+    if ($File.Name -ne 'manifest.xml')
+    {
+        # Get content
+        [xml]$GpReport = Get-Content -Path "C:\Dropbox\Documents\WindowsPowerShell\PowerShellLab\Gpo\$($File.Name)\gpreport.xml" -Raw
+
+        foreach ($Item in $GpReport.GPO.Computer.Extensiondata.Extension.UserRightsAssignment)
+        {
+            foreach ($Member in $Item.Member)
+            {
+                switch ($Item.Name)
+                {
+                    { $_ -in @('SeDenyBatchLogonRight',
+                                'SeDenyInteractiveLogonRight',
+                                'SeDenyNetworkLogonRight',
+                                'SeDenyRemoteInteractiveLogonRight',
+                                'SeDenyServiceLogonRight')
+                    }
+                    {
+                        if ($Member.SID.'#text' -notmatch 'S-1-5-1\d\d|-5\d\d$')
+                        {
+                            $Member.Name.'#text'
+                            $Member.SID.'#text'
+                        }
+                    }
+                }
+            }
+        }
+
+        #$GpReport.GPO.Computer.Extensiondata.Extension.UserRightsAssignment.Member.SID
+
+    }
+}
+
+                    #>
                 }
 
                 foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
@@ -2791,8 +2839,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9TYBcV6XS27lPrbaXd79hCMI
-# 4FCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUw+AVLlsTr4ZqTn8L6I6hHuxA
+# HfmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2923,34 +2971,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgr/vAJWi
-# tVH0hTWD/4QdcQjjPXUwDQYJKoZIhvcNAQEBBQAEggIACrM1aeX0vkHhyQEzP/nr
-# Y0PZTnOGsO55jqGrjDHr9JYWFHiFUpvEao4/tN5kvARG2FYS+Mi1QAYl3JKsjSBn
-# Kb2Pg35sN/jMxgt/d2T9pNLV76DsfjiMjYGEmQDynulWjKnmJ2KmGPN1r+Vcvzzo
-# Pmn7P78OsRBEnSBI2SKUUlFRhK2/OviKjK0Km0tNB7DnShGIw7g9mb6Np+mHS/HQ
-# kYhrvLBC2YoGK9RhG4dmi6KNVhkwRls6wnr0TQirVrj274yd3SwQguABMD7vI31a
-# X/cv9ZsSR3TWEYCX1V/Ay6YuT51b/L49tvINO1MlVs1CFJiJZVya3UAq5XJXNoLA
-# LkRxIOsGb/X7khpgw9peBEjiMhBrN2iKgs60+VEIx3Edzd89LMxi0l4pzz+Zih4A
-# kgfkvtrJJc3Ag2lhqakuN8I1Rf6eoihi2JHBCQ9oOLtBBEnle2MaGfakFbPImhQG
-# bySBcTzYtnbpQ4fSYEDb7/23YpkxIA3H7xOTLNGIt0k83rS97pO31Wa7Cr2d6u5c
-# M+eqTs62Kk1YMuJKukIWcH5QFWmCQGN+s1rBt6cblmzNeY8zU1ZyaWhbEwZyXEjV
-# cjyl5ItM0rUk2U6HDSqS+D3AWAWZew3v7XzlhvIyqwonHbJDj9kTvRbXHU8HMbri
-# FL2QuybVJ95EzuAwMzQXrTqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+Jq3ZqUX
+# Ijfv+22rB/6I/64AfVgwDQYJKoZIhvcNAQEBBQAEggIAQ1cM/D8G1XHOA1fXKLRD
+# NLsJcnG5taNJRMIa+S9Iq9faL2V5iG726Rv4ZSaYSEG4wON9pHmSy4w2Ms6vG0Zd
+# XYiONyvutALWdkxTUvSUbi/wCU1AqmZzEwIUq2+IT2+/4LkyAdyiqtEf4UfLj4j3
+# 9Um3XOIBEMAnPOYOkRnPVN+F0YDAfoG6Ztanv8L/Wm+LKfWJyvtUxNnRhEXpsUPs
+# SCL7vvAKmi1CVu7T1h8icnbyKT9jE0tuH/kft8RYcrI6lV1h/349ivAxOiCkApfn
+# UCx7WE45eP46cu/ZHtSHxtH7oTs7mzquYFCMsg57T/GWxJnKBMZPVjR1WBOpq6PQ
+# xRUS/mbAGlAoWiZ/BkBJYuzlNrtV632kYx2RdM8NBlk28fwtW/hXfWyfIUt5mtkH
+# xDGz9vDf6NBLbbMW0OFOkD/GgeP26YL51feWqqH6Wx7kps+v+Y3B+1h2qp9oOhi4
+# WkqCTLAV+Xy1p9SeCSuKoZUkYBYlyevL5g6hoQ02B8URNafBcsn4/2HgC+ZcZoHo
+# 9zVtJB5pdnk1Xqn/IXVNhcikyscRDuoheHlUsnaPJQ4O/0qXBqMAxjbCjSqNHllq
+# NG1n9PHzbpplPM5TVAjWZpMoQov0VIJmj1GX4WFZXKeSpK14ULifyFYc83wajBOu
+# ouHzbNxmXSrp2P+rkutO2eChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjMwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQg28tF1I/JpyOfgbsbWIH1mUfdmPz86jISx00m2Cf4
-# enQwDQYJKoZIhvcNAQEBBQAEggIAIPr0kQ2Nus6O/tU11xr2tjXCl1nWsIvbdop1
-# B2EiSCQFunYrgXV2JP2zqqeZDWhKpjp7hkyuztUUK5zsHT9crgqopF1K75Kowgo6
-# DOhUU2Qrj+VVqTsXQiDpHtEBGIMNb5pvWGPDl0D/DjUf951coZBrkeV1ryDaZX95
-# AqxRpiKPvIL+NJ4A8VCI0bBCWAUcUhzPvu9TNUhaIrHkpoKc3nXiJYtY6Jf9BT3r
-# xM+wctQJnUmF03hE+TNu3QQ6AMUjQx2MLw7GfGOgUovXd2AEu2AT0rSXRVpuw6Uf
-# wbdbyInETAV3K52uX/UHIax5bJvkgAnIUSct/1WpZqyT3MrWBVEVuX3tmsuQU+VC
-# Ob8+9y297ovQn65UAVdFZJatuPQtAMqkdqWMQMnY87xJG4VWKTXRb7f2wx9trPS4
-# doeCxztqABEn2U09LaF50B3Y0tw5Eaxkt0/XtFaB3ZO/+c3ia6XxYx0bMDsO8uem
-# uYY64yxQn9qmo/eE0VjM6tGhZ2hp5UAOfuuYgkYFmPmbTGlzocLnkQMqt5L/LTs+
-# y/ys9IZ7BPOmS+sx6GVrXYBO6BbmJe/sTZeq8e3gehjugkVkh8yh9DQhFaG561f/
-# vMBht83ks2GRSjs/X9imFwvQJvIvH4cjdYFtaCA/3+RgeakmLz5yUaw+bLl/QfpB
-# dP4MoGY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMTcwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgsSWxUkIgLqRZNDHsJLEd5YLKQhihZQPMX+OOteiJ
+# vIMwDQYJKoZIhvcNAQEBBQAEggIApjePcLiUI0CScaRZuiMqUDYvVkVwm+ltDZzS
+# 8M6FqnCmxuG8egdEmc+Sx2CK6BKFz+lUBIQg+e4kl08Pc6ECdtsLpoUCbVYaApp2
+# F8T0/cKFYJKdJ7UsL08z2+HynpHwky4Ajw4ANMbI8rIJVV+kJxsL8KVzYV7B7Az1
+# Nm1VavWfW3RTnYC3E5SMmGngQk0TS49IoLKapM49qxP1DcBlyPGkMxaoSosbe7Ew
+# gnVGd1HVZFFLMkwJa1iNldlOXQz4kIKKq3m9MrNCpO0nD17Yg4nULwouMdBDzZMf
+# as1LtDKo7Afo5dHCRU2fy7Jcz4C9bCvW+7sJZfBk4II/O3jfqZXrVaCrmA3KFGcO
+# uDzhAX2+yd7kI0jeS/jVvxZVkAbfhWTC3pmQiE04i9ORx/GPLMqfc0FsH4ppVePw
+# J1l9iaxUBbiWbdIN7VBe5Ev9Fg+egGTKeu2GDiX5ZadJQkA8z1nnwsoV8/BMgKVC
+# IJDT/LMxFL2azPkqhcq/fdxgLSCF+YwvN7Zf6iX8Y4kG3vOvN0cfJy+RIMSYJi4F
+# KSXH8sa/c4z6ZXsj90BEtnMc5ckqquWSNh1SU6uQCB/1QmhVwiXp8MxvCq3+kRuU
+# tny85eSNCgw6mpPsqCLD4CJ9o2QuQzlY+xkKNv4Q3C3d5TrgVpFU7u8QMZFw2XUk
+# MpN56PY=
 # SIG # End signature block
