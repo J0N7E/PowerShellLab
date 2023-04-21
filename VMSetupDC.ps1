@@ -1195,12 +1195,25 @@ Begin
                     MemberSearchScope = 'OneLevel'
                 }
 
+                # Join domain
+
                 @{
                     Name              = 'Delegate Create Child Computer'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberFilter      = "Name -eq 'JoinDomain' -and ObjectCategory -eq 'Person'"
                     MemberSearchBase  = "OU=Users,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberSearchScope = 'OneLevel'
+                }
+
+                # PKI
+
+                @{
+                    Name              = 'Delegate Install Certificate Authority'
+                    Scope             = 'DomainLocal'
+                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'OneLevel'
                 }
 
@@ -1213,14 +1226,7 @@ Begin
                     MemberSearchScope = 'SubTree'
                 }
 
-                @{
-                    Name              = 'Delegate Install Certificate Authority'
-                    Scope             = 'DomainLocal'
-                    Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
-                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberSearchScope = 'OneLevel'
-                }
+                # Adfs
 
                 @{
                     Name              = 'Delegate Adfs Container Generic Read'
@@ -1239,6 +1245,8 @@ Begin
                     MemberSearchBase  = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     MemberSearchScope = 'OneLevel'
                 }
+
+                # AdSync
 
                 @{
                     Name              = 'Delegate AdSync Basic Read Permissions'
@@ -1383,11 +1391,19 @@ Begin
                     # Gmsa
                     if ($IsGmsa)
                     {
+                        $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
+
                         # Check if service account exist
-                        if (-not (Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'") -and
+                        if (-not $Msa -and
                             (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
                         {
-                            New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.Name)"
+                            $Msa = New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)"
+                        }
+
+                        if($Msa -and $ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
+                           (ShouldProcess @WhatIfSplat -Message "Allow `"$GroupName`" to retrieve `"Msa$($Group.Name)`" password. " @VerboseSplat))
+                        {
+                            Set-ADServiceAccount -Identity "$($Msa.Name)" -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
                         }
                     }
 
@@ -1441,24 +1457,15 @@ Begin
             # ██║  ██║██████╔╝██║     ███████║
             # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
 
-            $Tier0Admins  = Get-ADGroup -Filter "Name -eq 'Tier 0 - Administrators'" -SearchBase "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
-            $AdfsComputer = Get-ADComputer -Filter "Name -like '*ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree
-            $AdfsMsa      = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+            $MsaAdfs  = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+            $GmsaAdfs = Get-ADGroup -Filter "Name -eq 'Gmsa Adfs'" -SearchBase "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
 
             # PrincipalsAllowedToDelegateToAccount
 
-            if (-not ($AdfsComputer.DistinguishedName -in $AdfsMsa.PrincipalsAllowedToDelegateToAccount) -and
-                (ShouldProcess @WhatIfSplat -Message "Allow `"$($AdfsComputer.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
+            if ($GmsaAdfs.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
+                (ShouldProcess @WhatIfSplat -Message "Allow `"$($GmsaAdfs.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
             {
-                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($AdfsMsa.PrincipalsAllowedToDelegateToAccount + $AdfsComputer.DistinguishedName)
-                $AdfsMsa = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
-            }
-
-            if (-not ($Tier0Admins.DistinguishedName -in $AdfsMsa.PrincipalsAllowedToDelegateToAccount) -and
-                (ShouldProcess @WhatIfSplat -Message "Allow `"$($Tier0Admins.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
-            {
-                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($AdfsMsa.PrincipalsAllowedToDelegateToAccount + $Tier0Admins.DistinguishedName)
-                $AdfsMsa = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount + $GmsaAdfs.DistinguishedName)
             }
 
             # Add containers
@@ -1471,7 +1478,7 @@ Begin
 
             $AdfsGuidContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
 
-            if (-not($AdfsGuidContainer) -and
+            if (-not $AdfsGuidContainer -and
                 (ShouldProcess @WhatIfSplat -Message "Adding Adfs Guid Container." @VerboseSplat))
             {
                 $AdfsGuidContainer = New-ADObject -Name ([Guid]::NewGuid().Guid) -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
@@ -2848,8 +2855,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWu0La9F22iAIWSpkn+rUVw3Y
-# hPmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtb4tWrnW0PXsr2CgqPo2Yp6p
+# E0OgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2980,34 +2987,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULtNmMiYi
-# RDetwpw3O0XlD/0x+PEwDQYJKoZIhvcNAQEBBQAEggIArvIWDzjA5FKOMm8pP5tb
-# 2jlB8rtqJxfyhUfys+suGQE8wnVNwOlAnAeRRJiZIzbHLKWyHYs8+RE+55158w3d
-# zzEqhhUo3ItFiIQmTxESC0+iXQpEgVnlHOZtSvuVbXa69k97idBDW45IbtXhjfi+
-# ITnwAL0zxvBkhyqh52j9RKV29fidUKtOPFIPtNyQCUOaeI+sm15nmmRJPO+lzz8L
-# ZlPgKqpflpTAPr4VZkxgQRMfEdMiTv8klNtvHYt7VK7oiOGM0erkyjmpuq1aUQWB
-# JHlcjEvT3NhJNWRUfmtP1WplhQvRlHZlJPr2D6KpUOqCIKca70adTef+FJy25f3t
-# jyqmQQ7jkOFgmP++U7PnPirJMc3+r7TdZoIgW7JY3oWVaaTep42pPHZQGgAZXLmD
-# b1ZAc9q9ttlFfDyPh+wFkaFKgxub7ZD+8ELLTVIYrKkIGpGqXiX9xwpK1Nd60ALf
-# u/GR4H2rX9k9yo1dNw7sclCfcKlKcjTRMBfbpiuXifzuksyEOxq9PBClHAu22Fk/
-# X5APfMyGtKztGVwUB6aTKVPHG//hp69VIaiH10yY8aQ9kJCzbMOU+BTam2MXCXK3
-# 8jBraMIh06aKDSIuUOFlSCM7l88PaeCqJ3vyh+i8WDn5BbmZirldRIsRUvBUKQbY
-# 5LRn0HEtOYZIy52JdOyuY36hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIBUEDRpe
+# cPPZ/w375bOzwgVYef8wDQYJKoZIhvcNAQEBBQAEggIAwKgNLriDDg6L7Lu9BeGS
+# /pcv9BZZvBHqvOgvyGcRr4N821SIHzcVxN45dH6EyvGPuO+aQH2ec48hS+FYO/fR
+# CIcqLM4uHXBlAdfWcgRClOtceg7ya0SePKeJIPk883nsk6eY+D+43GEVbhz/teg1
+# LvZGyAfRed6hDJ0hrGPZe6Kue+18CAVoYpVtfFLE42yTaoGKPEUwldQd7H5tbhuh
+# KCM4glQpheqiYTQrJdql1/bzf9/5ksjihJEFM6lqGyc6CPrXkIApKeIxxjnOIfCk
+# uEyvjVLJ3z3WFE021veBrBj1b5HfxvGFSh1gWkKK0HgrLOS64fjJhyu/EQykO/+M
+# x6Eu0992joehWF5ceTGGVUS6qzrvHwmAzlHuZJ8cGzczKRmy6ZH6w1xB80s4Zz/P
+# jD3U2dxox7R75cYhtwSHmYQyFS/ugr6qNH2miFCX84hKDtb3UoL7WTRvp1O0DhB/
+# j4Y9l5mX5fqj7BHFsPg0ABnQrg7tTh8uhaHeuvUgYruIHl/iyDkTEG3fIosEQxRj
+# M+GIi8bLtgqR1qFw26WB7YuaDfixZhHKrtwXxTKfEHGgLBTaCRcikfJy5liB29jR
+# lWuJ+h8DG5LY/AUPA6pnJRFUl4lw3hklOIyK9R49GJUyHCxzt9tW3xLJDMFEkXSM
+# cL46ZRqbB4XUfQzsRGZPyVqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMTkwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgsqHpk1dWIAAdqphpQ7v626ONydsFsA4iX8S+qUGq
-# xTMwDQYJKoZIhvcNAQEBBQAEggIAd+KdD3v+RPQa1WnZ+dMTu88U8KU87CgMX2qX
-# CLCcHRpwTSW/IeU+AI9M4W7lJyGTSuuzdeK2esjpeUNoxDBEphiTBBmDzakwDgRX
-# QuLE5wlJseOUEdSTFzocE+7mngk/sxi1tpq9Y7mkkv1AVrom6c7oHV5HdBDhUQkD
-# kJ2JZcDeItEqZis7TY0ZTri+OCM92EePgRyJcMsNGezkZDAjtmxT+dw5ioY+q9eH
-# 1pp+PMH+S61yQvEB0LpxF6cxeIXB/DYCGBp7JswUCgpSMT9JSImg0d20WyvndQyX
-# uhfuHij1IA1lyngq7puXB8Uy/H+jNy2ELjQC7TuBfE04yx8Fmh72O0Q2RNjaobq0
-# aJWL5OGc/rWOvQocccXRNHxIjm2Xu3n4+jyVuGUytRYz//DQYYqMmXT2KML5dqgk
-# O8y6Kxl02AgxiuiXpPPVhy3V85wSlYSucaCwKbT9QRrqKqp23i6BbMIwEsJJ3RlO
-# WM0VJ2rihvMqVkuP2nCMwQXkADBGB8s+1jK9zSMqKAtAh8mN+DeiWhkTkhqi+Fyd
-# xiMuVGwXVz2emkPbtan636vfMo+WGXMvqSABwtqO78JyMELcXtWcWz773hs5mdHK
-# ogDsOlmy7szQ/hB03ICp7zMDmuMjqzIEmiqFD5YXw8Zq9KKFPtuDd7cx3dRuFvc9
-# 7YKYS24=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMjAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgx0EqBW3yX+XRu+QD60iTAkfrtR5xwG7AC9QriNIC
+# lJswDQYJKoZIhvcNAQEBBQAEggIANBRhbmtS5gsMRCyJRASqFjNlFnrER9TBBBw/
+# JYq19cbuL1l6kbvb6ofEv0KkVlH0I1AfaRk5Hw61iBhAnj/sqd4KCumpUBNThH5V
+# KZ2Qd/i9AEbRQYijEaayreeqR4OhbR/Mc4KM7VYf/brsQUNhyorsenEP8coursgq
+# jkVE5HGnc32HFb7RaEGagpkvolpnBQhLQZT9q4/++4ktsgVe+i9LoWoICluJ1g10
+# r493siX7kVYNvwIHjDEp5EvEje1ATLciqNLjsiXELABTFGKWqYI5ky+XHRNsufJI
+# v7tiDFXtlAQOIyvUTkMZ0LXCyp8PnP+HVWXakssbZvsgDgwOmKVD2IzZp1z0EjRB
+# Is80SccyOXWE8tU/0CdrB5+LQWnA2LE0fK8d70ki0qxxrmATIpwjVRyymOyCKJhb
+# jg5V2na63C/E0EI0UtfkALgeuC+uW9r8NJECBJxwNMKGAJAND4X7eSD6FfNFjDhV
+# d728Y1ktBQPgy/lKlVwD78Uq2NLl7k15WJVjLNkq4ijikBynmuqsbTNuMjPvpWQv
+# bJnL0l7D2hYcXvGfmZpmGXGZ9RYqbYgO29z7XKrXkMg0kPU8SU9lv1eT391xsUsq
+# Hk5vRIqQz7KlB4cyc0d9LA6YulmVuhruxbMD4p3CCTpBZ2ZJi96WR6eBzmoDDNwW
+# 2BNg9cQ=
 # SIG # End signature block

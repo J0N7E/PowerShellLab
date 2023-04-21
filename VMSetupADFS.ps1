@@ -140,7 +140,7 @@ Begin
         # Set default admin configuration
         if (-not $AdminConfiguration)
         {
-            $AdminConfiguration = @{ "dkmContainerDn" = (Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel | Select-Object -ExpandProperty DistinguishedName) }
+            $AdminConfiguration = @{ "DKMContainerDn" = (Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel | Select-Object -ExpandProperty DistinguishedName) }
         }
 
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
@@ -420,23 +420,23 @@ Begin
 
         if ($ExportCertificate)
         {
-                # Filename
-                $PfxFile = "$($FriendlyNetBiosName)AdfsCertificate.pfx"
+            # Filename
+            $PfxFile = "$($FriendlyNetBiosName)AdfsCertificate.pfx"
 
-                # Export ADFS certificate
-                Export-PfxCertificate -Cert $ADFSCertificate -Password $CertFilePassword -FilePath "$env:TEMP\$PfxFile" > $null
+            # Export ADFS certificate
+            Export-PfxCertificate -Cert $ADFSCertificate -Password $CertFilePassword -FilePath "$env:TEMP\$PfxFile" > $null
 
-                # Inform
-                Write-Warning -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$PfxFile`""
+            # Inform
+            Write-Warning -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$PfxFile`""
 
-                # Get pfx
-                $Pfx = Get-Item -Path "$env:TEMP\$PfxFile"
+            # Get pfx
+            $Pfx = Get-Item -Path "$env:TEMP\$PfxFile"
 
-                # Add pfx
-                $Result.Add($Pfx, (Get-Content -Path $Pfx.FullName -Raw))
+            # Add pfx
+            $Result.Add($Pfx, (Get-Content -Path $Pfx.FullName -Raw))
 
-                # Cleanup
-                Remove-Item -Path "$env:TEMP\$PfxFile"
+            # Cleanup
+            Remove-Item -Path "$env:TEMP\$PfxFile"
         }
 
         # ██████╗  ██████╗ ███████╗████████╗
@@ -664,8 +664,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWjW+rAuyUlXJqOyH2xGhoEbG
-# NdygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhEhXVtprOJRwKOllS25YnWcx
+# KC2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -796,34 +796,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFppr1eAX
-# Fn+ctjO3OVPhxKIK5tEwDQYJKoZIhvcNAQEBBQAEggIAgxenmzqczTfaWM90nTKC
-# STxHVxmgjY0sbNdBSKfS3J7f4jw/YGl2T6DL40wuOOC9AOufiDjSgBbCzyCYEQm8
-# HCq6KRPixcF99UZcZMrZKe8AAp8JpAVYUr3eSLMwi3MgmwKcuG2wq1MNI7iBpDTz
-# 2XkD/uqPZrmWzzf0QRnDMWcpRUB+kEQLtI6BpLjOYwZjC3ZnrWSYi9xBjp4f+wlM
-# BjG6vLzaw2qNAE1NNg5zoGl9qJoQCgYOlSsJHJCFvgKKfoE2BbYs3g39oSs4VVSP
-# XAKitFiv/LyGiPme/WgmlDQxMYJd19XX8ZQZAWtIPzJxnhpMgCd4CZvbX9oIwT+I
-# Ggqu2nGKAJVpDgBjMiTUrDCgnX9HoKCS5siaIVEyAwtGH+vnPZHH4RBBwxVkuRjZ
-# oOzD8bfXZPrhTDMttiCHSj+5GG11qiscpXvk/22rYGyV+dPfrm8TJZ7x497AnItt
-# 296CcaLRaf2/qbTToAbfIqxNmZxYeo4oes4XRvCG9RN4rvXvsgMUVrv88zP9jwTm
-# YBSFrklY3aUyPHUGbnDBvHHnl5yMn+vTI2fcTx+oE6AQFpLgYo/5qBk0IxJY5KYw
-# 7rYhtaXRlnGOWmz+gFryRSXXvJxTYSFokqLy3r4bXstkkCv86QCxwstgOBQMTTx0
-# pHlPzaIKfDAIx4pOsAhT/vihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIUuLGpxI
+# 6EC861m/lGJ665Bv6mIwDQYJKoZIhvcNAQEBBQAEggIARekHaoHFWNFDoyL75DlD
+# YAUvcABscXPQUEAdO4G7qR03bVMtEabyEb63t9/3AUwo2RRBwAC7O5dtbOL3nmTI
+# F9ilG9MIcCKzfJm2SUk6atSIqgmvVbyOTmeJ+ikYxU5WumN0SzUK8akge0KlDhTo
+# rXAuaiat4kSksJWd0FbzAEPElyAcGgP2lwdwov2RiuVjt35DoSq8t6olsq5KSEsS
+# M5qvX6rsxDvudW//vS4nDAATL2OK66wVQvBiwqCt2mt1/9MSiDOyW3J0Bd2vr5AU
+# Lh8qSSk4LBQnJGFi9NXjqnW3v8CPOM1nuUXvVoJjcdmQZWSKccZnCrtoX3EsEte+
+# eno4QhAuV8s4jn9G4ajAMZI1aVu3ftGalAfwJAQ0u79FGnKvhMtereasUT7jlFj6
+# jurWS00mJlpZQncfxQEO1Kzp/gSGFx+AjFCtc+pl6DZWmfKEpcGACzpegBbaPsY2
+# Cfdw7xX4SVkcbp1Orqes/r8glCXMS+ngTv4f+S17LuUUQaw1/+BOOjAVK4RfBHHN
+# w/wXjHrrK3Awj7fFBR1f8Wh/WwfyQSrYeA3VOK9t6PgybA05H8RVfRq2egHI0JSE
+# MmAwqWrYTD+SmPGIPegLV6MdXHhlDHF81el0gHaa17HeQahMqQhSjhO4zbeslNt8
+# TUOYVW3yVlDI2xKuctkNb4uhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjMwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQge5hIcgr/x2iUuUw3VDpKrWRub3Jj0Ya7xf/ruAOo
-# CDgwDQYJKoZIhvcNAQEBBQAEggIAqgwvZet36yhpALzDA3sIqBK7gtF+qXIo3bQp
-# GbPa5dQ1Ps2cHpY7g6WIl97hbgrX8CR9+6jfFdVGubhUBqH8poNWRzlQSqQmHuj1
-# nf01onjEDqf7sN20+cvOiqnUB7MDCD2ZeoJU0orSlTsnAo7OsiCDkfkxIKc0CFO9
-# kzy7SfsYwD4rmBSRw0n89VX+5b0TgCCdGirqQSUxiirs6bzPjJc1ElS/u16aNUFH
-# quoV5xZsqqWSaJzImos1vceQ7tAgVKBGK47jDelnV/VHpGQowzvIwWpKYuHIKXdh
-# Q1q3CWBKznRgVVeitghseptyu+K1l4I+xyVAe/7sOZ6aVq2NPC+w1iBAu5HvhRzu
-# D2Z2Bhv8uRHAPaWwz8e5+BMY+v7rsQhY2NIEtFwMHA/9REUaRgUSkSsqk5KkixI3
-# cWW3N8xlI7ZuDsmwBuFMUhnt5y9SDPp/V9eTmWb1OLVbg2VjIsrMJscnY6aLdGar
-# mmyaHhPqGUX2s5jJPVhKPWYCZ8PGcnzyzttwG1PDsBNdUvS+yrd8W00w6Lmm8jJM
-# JlA0xe+OqXaiS2FZ8HwcIOlqbyN/lg5Yxm2GB8Jbksi4BZxqqPffOxLjZ/GQW+DV
-# dnGUFtiwhjwCJ7J9YtamvnYDA4seS/wWCg886Chs5G8V0qBTM1Qg7ma6iLTiF9+C
-# 3Li9lNo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMjAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgMC4+wy1Mvl4M5A/zKs59SPOiFtjclcKed1vmZZZ/
+# +WwwDQYJKoZIhvcNAQEBBQAEggIAgqx4pMKQSCd83kBKsQ0++bekrn4/FY/EbcJf
+# v6RqODFttCHjxoJS2qOyvkRmjwpy0/cVxJ7C/Q/gHHbjhG3jLg7X1h9LCNNigk+t
+# rNE4jF0JG3DCqhSnFnvsC7+xQ1i8IVCTmjjGSCP0561OW0XMsWf7DhNENc11QXRH
+# huCG6EFlyK1tKvS0sWC0mrIBhl6G5XtOnglASZT4JSwJgbWKn3thpow53J8v6BdQ
+# ACFOzpxP/sO6kbudAgXEKQiXAnESKSbAwNe4YSZ/mMnz9LfL9GAJ7U9z7fteLaWd
+# FVOvEu4ppM7fPHrOLXzpf1olYCQqHQsF+EiKyYagr2SsYSpGIt8LqWiZ0PtoAlO2
+# ePUkeSnKeYm75dbAAmMRxT7QrTcjdOUQDrvu3l4iwAAwbn2HUZjS9HINTNhXQTFV
+# q2M7DAwPICiFosH0wxwPK6Vx4FBRBNlMPUbNcbCVmVpmEF/vIz4NgudYyZ3pYdUy
+# buDSl07FLSJH4L4wwEpG5QR1/QSoUBlwFdJB3rV2dCy9bh+Pb2SYMuPOFutVidNc
+# SNFvBVJJ07qXDF1kwkfLmhhfjVEC4+jfrVnsNpCdSOnXVZyeBXyqh/di4SPZJYaW
+# MA72h92RmKhhO5p6O0m5TvcLT5zeLuJuM1FS5btRhn8ORgX+QMKz+wNzjD8zj/nZ
+# 5vKG258=
 # SIG # End signature block
