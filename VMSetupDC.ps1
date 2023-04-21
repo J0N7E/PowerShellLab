@@ -1580,7 +1580,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -SetOwner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
+            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
 
             #################################
             # Adfs Dkm Container Permissions
@@ -1598,7 +1598,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName $AdfsGuidContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -SetOwner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+            Set-Ace -DistinguishedName $AdfsGuidContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
 
             ################################
             # AdSync Basic Read Permissions
@@ -2855,8 +2855,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqlVk5A2fDoePHgPJi+eZrcE6
-# MXagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJIJ5gy466GC2zZEpKaoKCUMW
+# kcOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2987,34 +2987,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUk0vxXs+E
-# f9LgNsyEtPxHchcgSHkwDQYJKoZIhvcNAQEBBQAEggIAGMjynAGg6pjL78Va7NPS
-# xB4N8Q9vL8pkr26DpVDTc5yfAUcE7T6S0u9dfK1QLrGnM0h2RxPFb1S8ICBTigHA
-# A/1dXCdhB6KYCK15NiY3/snZQHLtcZidv5dRG5s8/cru1jhMO3cQAgcsMZcOqR0E
-# +yymkQW3A333jNE+BnOY4EbBu+A4/szdClfhNBASuiedQiaLP6MxIADoteayJi48
-# 07kculZO4XB4QyDJSgHl8zrOy7RoECaePR0o3BWyGuzyGjxDXbNnKcYOuK6AUABr
-# v1iw8IR1MiSokc4kailggg7l/ExTbalI/BEsrUYHJS5ZtyYzutHE4fgn1C0jiaf9
-# rnq5Qs8Ik5Ef6n1buZe2MTDQS5wJomKNS/XneplRuIY358GM3JuOBOErC4g7hN+T
-# xNL+a3/XIWgmryNd1J6wRQDL4tvYs9o/z9fHKCvkbY3Aeodz409ukrlVD2ouysNA
-# 603p8giH41zEl3Wkf4V3i06ehL1set+DSd6TsvM0Y8cNdXhihxImW144FKva9BSV
-# 7GcEXF8SKDlRVZv7ZRIUbmCpC61pvy8BNm6FAqAg1UDeJIpcvljkoXjb11Xg9hj4
-# jANIRqU7P59fQ7BQHORL631meqI8wTrMePvjG2z+Y/JZgyiQB78TO+/DnK8ZX+mW
-# gxEEcZ5nG6I8baX/REmHwtChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqnjlnkgS
+# FgnH3+m3TU3KGpoB8Q4wDQYJKoZIhvcNAQEBBQAEggIARQ6AtGilf/ESlwW3HUnr
+# vF5MkevgCqHZcgnbX5/vJc8Awj4ktVqsj7fu+1hCGlGZWQMas60FpeYBER2nQFOQ
+# UFmkiOjx7TUypWIYQWY0jrpgVRmXL5ZsoHprHHKB9zfhnGxKI9eV6fGlS+3j99Fs
+# Iw3UobdTR0Bt5TfHUqhW9VXmDBZbaRVFKh7ZV8Sv4t/l8AJPd0HkmKnymAF+LSk5
+# qz+orpYHjRyUexUAmo0VatKmxsDoa687XdCnINh13kqxR50cqN9Eriuqex4Zu174
+# ynJLcOdppLc+3lr+9bbfnb1y9NZMz55QE51IoE94iTQrjGl0tPT+GBWpC9DvvgGg
+# lHzQnrSb6CjdkLwYzWhOD45erfEy2zT/mvF0HDSpKqbmn4QQ+Dgjz2AOaN/4axTQ
+# JTXvx/r5GIaRRH6gN3R0J+7TvQ09l4x+RFWv/cLDsEqCDe4A3S1FOIw1K/Z6wA+s
+# KpjYSTtVUnJtlk7dKrazPdR1YMZDfKvnljvqlza1l6WgafwAwsvb/+bgJQyqHvUP
+# JWSyGK+gQXDiNg51vV+L9yUCvH099JN24yCTYzMnsgofdRwyMLlY/9EJqJsvHNiI
+# lcMj595blqhxzJhYPAJ3xaNSAVFNbYQ1KPwE6m0Q3LltAKJOEynYIpc6ZiqpxHMm
+# LUvKaAEfNegoiNhIQwNqMoKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMjEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgiXVBLnp5hybshhaJGJvq0ODYQ8Vv5/9/SX5RkGlx
-# f+QwDQYJKoZIhvcNAQEBBQAEggIAnilmhoH3JS7Dtn82lgiLCQtDsgIZBRUiVi9Q
-# HJMKTsOsvdOQpkwKKuWx2s8hrpqOq1wEZk1YaHl22gRzRuIPgEmVz7zj3Iy1e1/C
-# Qzvq9jjtv9EmXwGin/yuH5n3QF6G2V+YlmunYZ3hgqz89aKgTY8H2huWu3/jtbLA
-# IRxc1fpBQJ9T3ehA69OweSVG5PeoSR7IQicGnKCQcnfBr6UGRM6uCmJ4EWksD4tg
-# AjyF5MPkTjrCYlxaN9l8rAiD0asT0+3/qY5FnHr4tDgs0EBvia5y8K2/EZ1WhScE
-# ir+cK1i0JIExP06hj3VPIY0Y72CO/0a1Y0NcMFFbvuajrSm7hLfEbrQ/Lh/YMDzr
-# OQH1oFvuAeeH9TSiAtz3MLVAXOtzwnGnbHgGmW7YKQCp3TmOL46V1mcRhbBh98Mj
-# NuTUHX8ci8+F39lJ2vWBnA8s3uzqV1RiYfbck0kWZgltdFf/LuW+aYISplNOPG+L
-# JiDVWgHTjXoF6OCF9Cuwn5Saz3SV3/nuZDqb5LYulAnleHFu3P2OiPPWfcLNvh7b
-# nTTyN5GztJidqx0R+37Vi6ocs4bfIUIEvfBf5mD58rm/xPFknxWNgXCF6Kyi94Zw
-# 30B7gKNaHMsMZbAP6rxDDWhAuYqQ7StkhWUr7fi8P3uBN1QkcJEJh310GRA0IUZa
-# VWwvpCQ=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMjIwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgHFTt+m0x2YDDvQbYGJo3hTgO+o7jYsXHCdIcsAQp
+# BKwwDQYJKoZIhvcNAQEBBQAEggIAavMtOTGnb0y9BKrNDCtqyQCjMkZgo8V0z6Q6
+# 2JLv4F0DGhiKEDEKCG0x0e57/kcqX6srrWCFUuqmhSBN3H3GVmavXuRTTJzg+5xh
+# CxLxi9N6IgC0IddhvUw3UGGDEoTka0zsTzTdzO9F+UUopJzWIrCTjxhapYW6ni9d
+# fW4BwRwPER2XEsaYPb9mbRzKAZkc0tNBYv0c/4blk4FzfZWNC7Izo5s7deVS9IGs
+# O25Rt8yyVtLMHaUMfdaQ5fhCNGfvaTmXgRMc4gWJXuyId3B5LJy9+6Tb8RQy/d0u
+# Kg3Dve80SsTj2uhmpnbrL+Yaqz2VixvZZD2rCPcpKqTXeijfMTurg6XYkDW2rDQw
+# Q9d0Ip+djW7zq8muShxNK9nOcAC17suK76NzJJdDFT5lDRTOw5OrwBj2muKvl655
+# 3QAdmeHJMf5CbfYwhAu/zJIpbNUsV4x0QnjhhV8Ms6mSFgWRA1VwmMtoJcfug5N7
+# LQYZV92/m9UhlCT5poW0o4dtN7FyJZdkFatSIObVYPD4Lkd69phLSsMYXSfzhUkX
+# vRR+wh2tdvjgRTOhLZElinL20DYYe59lWruaIzkTi/FigT/ZcpPwQF2usw4kxgJi
+# Ge7fUHck66EGu/8DRITi9hkhoMLIoGmdz/FAtlujNJq8qIxhV4syiubRelVe9ZKP
+# C54e5VU=
 # SIG # End signature block
