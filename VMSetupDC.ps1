@@ -1000,21 +1000,22 @@ Begin
             $DomainGroups +=
             @(
                 @{
-                    Name              = 'Adfs'
-                    Scope             = 'Global'
-                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'"
-                    MemberSearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberSearchScope = 'Subtree'
-                }
-
-                @{
-                    Name              = 'Adfs'
-                    Scope             = 'Global'
-                    Path              = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -like 'Tier 0 - Administrators' -and ObjectCategory -eq 'Person'"
-                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberSearchScope = 'OneLevel'
+                    Name                = 'Adfs'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                        @{
+                            Filter      = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
+                            SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
                 }
 
                 @{
@@ -1232,9 +1233,14 @@ Begin
                     Name              = 'Delegate Adfs Container Generic Read'
                     Scope             = 'DomainLocal'
                     Path              = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberFilter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
-                    MemberSearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberSearchScope = 'OneLevel'
+                    Members           =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
                 }
 
                 @{
@@ -1426,23 +1432,30 @@ Begin
                         }
                     }
 
-                    # Check if filters exist
-                    if ($Group.MemberFilter -and $Group.MemberSearchScope -and $Group.MemberSearchBase)
+                    # Check if group should have members
+                    if ($Group.Members)
                     {
-                        # Get members
-                        foreach($Member in (TryCatch { Get-ADObject -Filter $Group.MemberFilter -SearchScope $Group.MemberSearchScope -SearchBase $Group.MemberSearchBase }))
+                        foreach ($Members in $Group.Members)
                         {
-                            # Check if member is part of group
-                            if ((-not $ADGroup.Member.Where({ $_ -match $Member.Name })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Member.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                            # Check if filters exist
+                            if ($Members.Filter -and $Members.SearchScope -and $Members.SearchBase)
                             {
-                                # Add Member
-                                Add-ADPrincipalGroupMembership -Identity $Member -MemberOf @("$($ADGroup.Name)")
-
-                                # Remember computer objects added to group
-                                if ($Member.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($Member.Name))
+                                # Get members
+                                foreach($NewMember in (TryCatch { Get-ADObject -Filter $Members.Filter -SearchScope $Members.SearchScope -SearchBase $Members.SearchBase }))
                                 {
-                                    $UpdatedObjects.Add($Member.Name, $true)
+                                    # Check if member is part of group
+                                    if ((-not $ADGroup.Member.Where({ $_ -match $NewMember.Name })) -and
+                                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                                    {
+                                        # Add new member
+                                        Add-ADPrincipalGroupMembership -Identity $NewMember -MemberOf @("$($ADGroup.Name)")
+
+                                        # Remember computer objects added to group
+                                        if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
+                                        {
+                                            $UpdatedObjects.Add($NewMember.Name, $true)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -2855,8 +2868,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJIJ5gy466GC2zZEpKaoKCUMW
-# kcOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUShD5dGDfENVYjjzgKG+AvjQo
+# /yCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2987,34 +3000,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUqnjlnkgS
-# FgnH3+m3TU3KGpoB8Q4wDQYJKoZIhvcNAQEBBQAEggIARQ6AtGilf/ESlwW3HUnr
-# vF5MkevgCqHZcgnbX5/vJc8Awj4ktVqsj7fu+1hCGlGZWQMas60FpeYBER2nQFOQ
-# UFmkiOjx7TUypWIYQWY0jrpgVRmXL5ZsoHprHHKB9zfhnGxKI9eV6fGlS+3j99Fs
-# Iw3UobdTR0Bt5TfHUqhW9VXmDBZbaRVFKh7ZV8Sv4t/l8AJPd0HkmKnymAF+LSk5
-# qz+orpYHjRyUexUAmo0VatKmxsDoa687XdCnINh13kqxR50cqN9Eriuqex4Zu174
-# ynJLcOdppLc+3lr+9bbfnb1y9NZMz55QE51IoE94iTQrjGl0tPT+GBWpC9DvvgGg
-# lHzQnrSb6CjdkLwYzWhOD45erfEy2zT/mvF0HDSpKqbmn4QQ+Dgjz2AOaN/4axTQ
-# JTXvx/r5GIaRRH6gN3R0J+7TvQ09l4x+RFWv/cLDsEqCDe4A3S1FOIw1K/Z6wA+s
-# KpjYSTtVUnJtlk7dKrazPdR1YMZDfKvnljvqlza1l6WgafwAwsvb/+bgJQyqHvUP
-# JWSyGK+gQXDiNg51vV+L9yUCvH099JN24yCTYzMnsgofdRwyMLlY/9EJqJsvHNiI
-# lcMj595blqhxzJhYPAJ3xaNSAVFNbYQ1KPwE6m0Q3LltAKJOEynYIpc6ZiqpxHMm
-# LUvKaAEfNegoiNhIQwNqMoKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/5sUxCnY
+# KFK5KtxW6F19yH37j0EwDQYJKoZIhvcNAQEBBQAEggIAovdGb/2eiT/r4IfaZesu
+# NrvRRl3a7d7rXDl2m7qwAf1vM0OEt3JuNpMGIvtl4vgzrrtTJi7aX9/oTGFq0dNt
+# vnBIOJmRS/TP4gPiqr3fCgPpJvggXQwjTGR9ifEIHYNkqpQQa7spsX/ANLqr7Qqz
+# T9eKd9bkdwKl4A1V7+tLBPGFITKyrujJqy5RRwwJko1BjYKG7u1f+M2ZDJ2JfiYb
+# BJuS8RGGXg1rhTTgHOLNr3mxkZnfpJCO9cqAwYD5FMC+WsbWmZmSBYjgjmShR7MU
+# N8KQ6IwMq7RMoVxrSqk3Tduvs5+RiRwvxro006bkpP8ZRjN+xN7aerJ7dzeyx9Zb
+# kN+8newiHPlBo+kkc+1tmv0y2E1cSvnxDfq0OElePjPK3vQPPLaFcHlJ0puyzdDI
+# xzybTZRV1jHgFB8roq0IZo13Qk5vHf2mLU+g4z/FxICQWZxrlZ5NMBTqyhloC/L3
+# X8KDpxzdPJcwNyxSgDrBytKB5lsSPqaCptWt1N0xSVOpQb4ndIxZUHFmGPU40vUD
+# 4oroihRmdPmEbzbPWaC37X/9ja3hVRyLq+fXXu54PFuQxjIh6KCz9fqstZMqRgng
+# ZrmVEMYfQkNjJt6itGGKXaNlvBiKbPRFlfH5yMjirY6LvxD9XLQLK8V/h/jQU0F/
+# KMS5Mc4F1fsP/1wT/0D38SuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIxMjIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgHFTt+m0x2YDDvQbYGJo3hTgO+o7jYsXHCdIcsAQp
-# BKwwDQYJKoZIhvcNAQEBBQAEggIAavMtOTGnb0y9BKrNDCtqyQCjMkZgo8V0z6Q6
-# 2JLv4F0DGhiKEDEKCG0x0e57/kcqX6srrWCFUuqmhSBN3H3GVmavXuRTTJzg+5xh
-# CxLxi9N6IgC0IddhvUw3UGGDEoTka0zsTzTdzO9F+UUopJzWIrCTjxhapYW6ni9d
-# fW4BwRwPER2XEsaYPb9mbRzKAZkc0tNBYv0c/4blk4FzfZWNC7Izo5s7deVS9IGs
-# O25Rt8yyVtLMHaUMfdaQ5fhCNGfvaTmXgRMc4gWJXuyId3B5LJy9+6Tb8RQy/d0u
-# Kg3Dve80SsTj2uhmpnbrL+Yaqz2VixvZZD2rCPcpKqTXeijfMTurg6XYkDW2rDQw
-# Q9d0Ip+djW7zq8muShxNK9nOcAC17suK76NzJJdDFT5lDRTOw5OrwBj2muKvl655
-# 3QAdmeHJMf5CbfYwhAu/zJIpbNUsV4x0QnjhhV8Ms6mSFgWRA1VwmMtoJcfug5N7
-# LQYZV92/m9UhlCT5poW0o4dtN7FyJZdkFatSIObVYPD4Lkd69phLSsMYXSfzhUkX
-# vRR+wh2tdvjgRTOhLZElinL20DYYe59lWruaIzkTi/FigT/ZcpPwQF2usw4kxgJi
-# Ge7fUHck66EGu/8DRITi9hkhoMLIoGmdz/FAtlujNJq8qIxhV4syiubRelVe9ZKP
-# C54e5VU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIyMTYwMDQ0
+# WjAvBgkqhkiG9w0BCQQxIgQg2eGAuibr4wXWTfRx1jaL1q+Alp1hlJ31cvRXraE/
+# I4MwDQYJKoZIhvcNAQEBBQAEggIAbCSzuydo/iVi8lrOxacbONpN/daQ5qOHgy40
+# p9LqeJTWZq1QF0wX11cfiWeSF6l+F1CrGTGSdQEULQ62v0yzx4si0Y+DDDbgr4l4
+# K1Gqp/o4dc7tXNpuFHj2RoUl59ws1DskpPgVi0H43ukl/Af4VlIuioEM+QD4SZzs
+# Pu0iN05kZJF3KPBYxJs8OVW4X5sk+jXD3LKlMXc37D5AUN261B0nGC+pYDXApa76
+# Ga6PCYnLKb19YylPE9VUARTTrK6c4qkWZvTdnH5HaipxSQ/cCSRoLcEwqo8UoHaD
+# a3KNaHf3NydYw6Hk8cwdRBLnQfIX5veVu3tsjDPqV7uNcEIomFuyedcEMAN+od5P
+# FKcClTD/+K01TyWLzhStsuYTSVwSHV6KVbPeT2X4B6Q4UublppnWEFiM/lKqfN2H
+# 9qfn0bzr3Ui8HimGhaF/jsc6NgvtuThw3ACR3S+Jgya2yS3w2/JvOREh1J2t8wgH
+# H4DBm07RyK+68nOJcs7BvDX6MofUZ3kHVHhiBzNP3AVRDYld3IM40iHAkuCc1LAt
+# zIG7wiNbi1fK4fur5lMCn1X33uIXsgg3c1HKVS0D1mxIuzwdsUTZN8lw+p1HJNPk
+# LaWElKPNGtB1x9oj/v7/5SvY9TOLZgVtKEnst4BHI4LAZ63ZPAJCfaX1OztkFG79
+# ulD69g4=
 # SIG # End signature block
