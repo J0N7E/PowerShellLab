@@ -717,7 +717,7 @@ Begin
 
             $OrganizationalUnits += @{   Name = 'Certificate Authority Templates'; Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';  Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Service Accounts';                 Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Service Accounts';                           Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
 
             # Server builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -738,7 +738,7 @@ Begin
             #########
 
             $OrganizationalUnits += @{   Name = 'Group Managed Service Accounts';  Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Service Accounts';                 Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Service Accounts';                           Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
 
             # Server builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -926,7 +926,7 @@ Begin
                 }
 
                 @{
-                    Filter = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'"
+                    Filter = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
                     TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                 }
 
@@ -991,7 +991,7 @@ Begin
                 $TargetPath = $Obj.TargetPath
 
                 # Get object
-                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope 'Subtree' -Properties cn
+                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope Subtree -Properties cn
 
                 # Itterate if multiple
                 foreach ($CurrentObj in $ADObjects)
@@ -1063,7 +1063,7 @@ Begin
             # Path              : OU location
             # Filter            : Filter to get members
             # SearchBase        : Where to look for members
-            # SearchScope : Base/OneLevel/Subtree to look for members
+            # SearchScope       : Base/OneLevel/Subtree to look for members
             # MemberOf          : Member of these groups
 
             #########
@@ -1084,77 +1084,12 @@ Begin
                         @{
                             Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
                             SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
+                            SearchScope = 'OneLevel'
                         }
                     )
                     MemberOf          = @('Protected Users')
                 }
             }
-
-            # Group Managed Service Accounts
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Adfs'
-                    Scope               = 'Global'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                        @{
-                            Filter      = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'PowerShell'
-                    Scope               = 'Global'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'AzADSyncSrv'
-                    Scope               = 'Global'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Ndes'
-                    Scope               = 'Global'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-            )
 
             #############
             # Tier 0 + 1
@@ -1226,7 +1161,7 @@ Begin
 
             foreach($Tier in @(0, 1, 2))
             {
-                foreach($Computer in (Get-ADObject -SearchBase "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -SearchScope 'Subtree' -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'"))
+                foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
                 {
                     # Local administrator
                     $DomainGroups +=
@@ -1297,6 +1232,74 @@ Begin
                 }
             }
 
+            #######
+            # GMSA
+            #######
+
+            $DomainGroups +=
+            @(
+                @{
+                    Name                = 'Adfs'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                        @{
+                            Filter      = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
+                            SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'PowerShell'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'AzADSyncSrv'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Ndes'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+            )
+
             ######################
             # Domain Local Groups
             ######################
@@ -1351,7 +1354,9 @@ Begin
                     )
                 }
 
+                ##############
                 # Join domain
+                ##############
 
                 @{
                     Name                = 'Delegate Create Child Computer'
@@ -1367,7 +1372,9 @@ Begin
                     )
                 }
 
+                ######
                 # PKI
+                ######
 
                 @{
                     Name                = 'Delegate Install Certificate Authority'
@@ -1392,12 +1399,14 @@ Begin
                         @{
                             Filter      = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'SubTree'
+                            SearchScope = 'Subtree'
                         }
                     )
                 }
 
+                #######
                 # Adfs
+                #######
 
                 @{
                     Name                = 'Delegate Adfs Container Generic Read'
@@ -1420,14 +1429,21 @@ Begin
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Gmsa Adfs' -and ObjectCategory -eq 'Group'"
-                            SearchBase  = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                        @{
+                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
                 }
 
+                #########
                 # AdSync
+                #########
 
                 @{
                     Name                = 'Delegate AdSync Basic Read Permissions'
@@ -1471,7 +1487,9 @@ Begin
                     )
                 }
 
-                # Certificate Authority Templates
+                ###############
+                # CA Templates
+                ###############
 
                 @{
                     Name                = 'Template ADFS Service Communication'
@@ -1480,7 +1498,7 @@ Begin
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -like '*ADFS*' -and ObjectCategory -eq 'Computer'"
+                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
@@ -1700,15 +1718,23 @@ Begin
             # ██║  ██║██████╔╝██║     ███████║
             # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
 
-            $MsaAdfs  = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
-            $GmsaAdfs = Get-ADGroup -Filter "Name -eq 'Gmsa Adfs'" -SearchBase "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
+            $AllowedPrincipals =
+            @(
+                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree),
+                (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+            )
 
-            # PrincipalsAllowedToDelegateToAccount
+            # Delegate to account
 
-            if ($GmsaAdfs.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
-                (ShouldProcess @WhatIfSplat -Message "Allow `"$($GmsaAdfs.Name)`" to delegate to MsaAdfs. " @VerboseSplat))
+            foreach($Principal in $AllowedPrincipals)
             {
-                Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount + $GmsaAdfs.DistinguishedName)
+                $Account = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+
+                if ($Principal.DistinguishedName -notin $Account.PrincipalsAllowedToDelegateToAccount -and
+                    (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to $($Account.Name). " @VerboseSplat))
+                {
+                    Set-ADServiceAccount -Identity $Account.Name -PrincipalsAllowedToDelegateToAccount @($Account.PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
+                }
             }
 
             # Add containers
@@ -2927,7 +2953,7 @@ foreach ($File in Get-ChildItem -Path 'C:\Dropbox\Documents\WindowsPowerShell\Po
                 New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
 
                 # Export
-                foreach($Template in (Get-ADObject -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -Property *))
+                foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
                 {
                     # Remove domain prefix
                     $Name = $Template.Name.Replace($DomainPrefix, '')
@@ -3098,8 +3124,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXYU9IaHSC9Sljk5+2RRCJj8Y
-# Es+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUARdikftwQjG7hSAmT3cJSq9j
+# kougghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3230,34 +3256,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUT8nmqF1O
-# HXG0IM7dXiTXqoES2nwwDQYJKoZIhvcNAQEBBQAEggIAd6CldXfgRrZzOJ3IztIS
-# ieZunYjgPzG45yfERrNc7TBA0QxcDh297WabxHyqnmew6B7pwVRcOmy7ZvP5B2WG
-# TiUT+EaJbovimYIVn/u5PrDZxgTE9dsGzahTMj6Tj8k0FDv5AzToTpzoHoIkCVWT
-# YiELAGUwWbSes4QK6eewYM+TInujoHr5M7ffkZzwW6FVx9Wk8MYWLycYgheUHaVR
-# GUJkDtpgNwMPHCeVKjfGyzDvwX8aUPMpjLPxoaPy3vJ2rHdlYRfBHFgHCCRQFd2A
-# dklmXWxMRkon740fBMn/uCKYrXPj5MsH+RXyCBlGCfU+pZ2/1THE+DpTMybawy66
-# 0RhMx1hyYfAZQpb9rfpp7uXLqHcNYX3j7C3Nm2Retmh6hxYjt+FhdIrqVNCgb+/t
-# M28kbixdTp21EZ+u3K9Fryef8Vtyc47KCnpj4neaS8Z2Ro4UZSsGpVyvveaRYHk/
-# 73NVsa4Qcm9ztMVhNpTBW7XvgWbypPDP1bzShz/ucU4XL4dcwpLXBqPFenz3TNhn
-# RTbkpIbzv8fnKxdvsxhGup585rRJeuvz3+HbwzYqavYomZWbndyXPlXGWzFfMKB6
-# 8KIVqWQJ386JvFJp8ytoysUwwpo2wqduLw1pFsq0Kd0HscIMChx9Av6TcTdLJcAP
-# 6xSmp45O6+0Pd3/U6Ef2LqehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtc4H0g7Z
+# /LYjwL25SlzdQv5imWgwDQYJKoZIhvcNAQEBBQAEggIAEA88XapgjwIAEI1RgRgG
+# Cihb5tqDTOPg6KCeniw6cjyy3LjBAf+Oe8moaGbLBXjdPdI1gyZEHMc4EzvP5wZo
+# /Ee4Od1D4msmXqCbi0CXs1HJEiP1tM91eRG6nSQvuCbSrjAnNAceJwAJliiNlcax
+# fMrh0Sc1x/VPI38xMw8qB1O2nABa213RXQ6f3ENo8bFDoLXUuBRr2baQ/G4sbYBf
+# /A2FmTEH+uZZ0a3AmvmVGpQqAGmFR+IhgtWlSlOuCdlVMRYkGn8S496dxnfqCpHR
+# h0g+hOkqGAPWmo7QhuI7bQ6iZ0GJY41/vjY30+qTvK/CmZibT5XTwgHYaSB7y9OX
+# jQBEJ8ZCSCGafUmPlk4eHp2XxvUtk1bmRwwv2HBP0xUzsSRSivu9InJyo/2gCwG8
+# BbEokwaynVhDRIpkl9znFrDpGTQSBU/dAZUbc3xo4h6zpwUJ64eiq2R7B9vQaQYY
+# fYYkw6XmWm1ZXVQENqJKFjer6zh0Hv5gPWj6YjlT9Yx2V8itv9LKt87UgKcjNn2M
+# 3fKitysdipf8jqvbQCO1NVOMrBDBT2GYChXkAOMPxCMRbTH6jVADntbeDD6YQKJY
+# jP0tR3SNmLLWBDL67z3tGaZVcJboT15VRfCPKCUlgzAXqSP9UWurMctY7jkavK2Q
+# JMY8T1h0jJEqUWAZkaGtWMOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIyMTgwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgwigjRCfsQhHoecI2x8FCQoVT6tIxrcnU/08ef/da
-# 9eAwDQYJKoZIhvcNAQEBBQAEggIAaWUw4fmyzSW8Tg3k+hRFRT3OQ0YOQw93rbvg
-# 7/28kqmLHBN6SDZoLWZwre/tk+Brl2ouzJaQusEZ7S456yi8FlRUNxmzW08HtPbz
-# Br04Tu7Jw20KwClbeeRtFDPg7H3WZ6pHC0lszkRFUjlxQpveTGG7qyTt+pMse+s3
-# N/tHLDmYMaRANkT5Ewy+vNUuG+/rtlTp+jVMAhoZUl5r2f7N4XnJ9kNLycUt4Bbb
-# t7K0rn1zk8CDRfppQA0G7Qxkwtv8v7CHCYquQrhcsEEscT2KtfZjYe3gTR3BZebZ
-# 2aHPPzGV7i13i9MSLMwR/M8tvG8ld4fbnftS/AI9/iQCGWUZrV3kLfewvplKOmq/
-# BdjnPi8xz6Jk9+2fv44IJWWvPFsZFt7KkU765X+xx5Zg1FMxRhHRPAfcf9jw1LwB
-# wVyFVytNpk2axL1y8sk7vBG9rHAlRh/RJuMAz7f3Sd0nzYDXm3v0LInVjHQwrP5L
-# Ewcp8FXbYIC2kdN+O3UUo9Knc8boRNvkkhN5GlhQU+fkGhqGDIO34OZqEYbFtp+H
-# fm5bP3YImIg4cF/u7ZuxnvfbYfsBiXjFti+FzoM2lrU3wjY5PKcxcKQkuDobnyfw
-# IdGuWvJHyX8WygKS1PBoUhyqfqZ2/yEPiSJEzFI151tz21HpdfwLeNc/LW5e1JBd
-# vgJqysM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIyMTkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg2fLY2SDjof/WU0dJ0/ICjft5mXal+FxKbm7QkMh9
+# ApcwDQYJKoZIhvcNAQEBBQAEggIAvS5HUTKEBW+BxcbrRQR7xub5JrLFqpWswtsm
+# bHmPXzTAF5jnlTvKYQK+y7AwqI60iWa3rXyqSRrRxaycS14TaSN6O2UC4Ktv+Hv/
+# XbUOLo6N3V275ZqFdzmI92LpAU07q1okioGKBPn5JHBBitaheHaNana2fgQAIKNV
+# ftuopEImaBBobeF0r88JdLfX6oOAtVPnoPmbgBXOiyxykZlTzC20of/vRHUQFWhJ
+# LsRwBifcOb0kLwQi6cXKYLHpNHfJm5aJnz4JpFrrb+lOeKu+RwA2b3KzW94Jde1x
+# 8noDBIIR6FnBc0NViu4xxGv2NDGZJST6NIKnfGtUfH0yeRgvro/WYDal25fNhLU3
+# avPfkq38sYtgK4O5wzk3L/oL5SoOPNeCi+lPzTaXckPonLeCK709tckf6+p4/qYR
+# MIc3NxgCPRymAVsx5KQosHTBnrcFwvuoIauWdX8UDyjtCbohN38Ez8PB9+2hW6iZ
+# hFqSO/5Ptb02OnxUacWCglzIveqm55byBcVw05vpdrM6e0AH8BnwUha5IJ5vU7yP
+# PcEuYU/QYBs0ERUMA2r/iYWeWLiFJSimBe+C1r2NH8fhOAfsNBX7jNesqnAx+XjF
+# VwXaUXc9VcLBW+owKOTXg11avu+kugXEEeWrQwAWRzXwgYUoFs4TPe+hoKY1Zzfy
+# qI8ZvDI=
 # SIG # End signature block
