@@ -1718,20 +1718,28 @@ Begin
             # ██║  ██║██████╔╝██║     ███████║
             # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
 
-            $AllowedPrincipals =
+            $Principals =
             @(
                 (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree),
                 (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
             )
 
-            # Delegate to account
-
-            foreach($Principal in $AllowedPrincipals)
+            foreach($Principal in $Principals)
             {
-                $Account = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToDelegateToAccount
+                $Account = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
+
+                # Retrive password
+
+                if ($Principal.DistinguishedName -notin $Account.PrincipalsAllowedToRetrieveManagedPassword -and
+                    (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($Account.Name)`" password." @VerboseSplat))
+                {
+                    Set-ADServiceAccount -Identity $Account.Name -PrincipalsAllowedToRetrieveManagedPassword @($Account.PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
+                }
+
+                # Delegate
 
                 if ($Principal.DistinguishedName -notin $Account.PrincipalsAllowedToDelegateToAccount -and
-                    (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to $($Account.Name). " @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($Account.Name)`"." @VerboseSplat))
                 {
                     Set-ADServiceAccount -Identity $Account.Name -PrincipalsAllowedToDelegateToAccount @($Account.PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                 }
@@ -2022,27 +2030,46 @@ Begin
                     $GpReport = "$($Gpo.FullName)\gpreport.xml"
 
                     # Get gpo name from xml
-                    $GpReportXmlName = (Select-Xml -Path $GpReport -XPath '/').Node.GPO.Name
+                    $GpReportName = (Select-Xml -Path $GpReport -XPath '/').Node.GPO.Name
 
-                    if (-not $GpReportXmlName.StartsWith('MSFT'))
+                    if (-not $GpReportName.StartsWith('MSFT'))
                     {
-                        if (-not $GpReportXmlName.StartsWith($DomainPrefix))
+                        if (-not $GpReportName.StartsWith($DomainPrefix))
                         {
-                            $GpReportXmlName = "$DomainPrefix - $($GpReportXmlName.Remove(0, $GpReportXmlName.IndexOf('-') + 2))"
+                            $GpReportName = "$DomainPrefix - $($GpReportName.Remove(0, $GpReportName.IndexOf('-') + 2))"
                         }
 
                         # Check if intranet gpo
-                        if ($GpReportXmlName -match 'Computer - Internet Explorer Site to Zone Assignment List')
+                        if ($GpReportName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                         {
                             ((Get-Content -Path $GpReport -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReport
                         }
+
+                        # Check if intranet gpo
+                        if ($GpReportName -match 'Restrict User Rights Assignment')
+                        {
+                            $GpContent = Get-Content -Path $GpReport -Raw
+
+                            $GpContent = $GpContent -replace '%tier_0_administrators%', (Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value
+                            $GpContent = $GpContent -replace '%tier_0_computers%', (Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value
+                            $GpContent = $GpContent -replace '%tier_0_users%', (Get-ADGroup -Identity 'Tier 0 - Users').SID.Value
+                            $GpContent = $GpContent -replace '%tier_1_administrators%', (Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value
+                            $GpContent = $GpContent -replace '%tier_1_computers%', (Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value
+                            $GpContent = $GpContent -replace '%tier_1_users%', (Get-ADGroup -Identity 'Tier 1 - Users').SID.Value
+                            $GpContent = $GpContent -replace '%tier_2_administrators%', (Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value
+                            $GpContent = $GpContent -replace '%tier_2_computers%', (Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value
+                            $GpContent = $GpContent -replace '%tier_2_users%', (Get-ADGroup -Identity 'Tier 2 - Users').SID.Value
+
+                            Set-Content -Path $GpReport -Value $GpContent
+                        }
+
                     }
 
                     # Check if gpo exist
-                    if (-not (Get-GPO -Name $GpReportXmlName -ErrorAction SilentlyContinue) -and
-                        (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportXmlName`"." @VerboseSplat))
+                    if (-not (Get-GPO -Name $GpReportName -ErrorAction SilentlyContinue) -and
+                        (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportName`"." @VerboseSplat))
                     {
-                        Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportXmlName -CreateIfNeeded > $null
+                        Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
                     }
                 }
 
@@ -3124,8 +3151,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUARdikftwQjG7hSAmT3cJSq9j
-# kougghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqQAINU0SJPNA/SLkvZE/UydV
+# osegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3256,34 +3283,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtc4H0g7Z
-# /LYjwL25SlzdQv5imWgwDQYJKoZIhvcNAQEBBQAEggIAEA88XapgjwIAEI1RgRgG
-# Cihb5tqDTOPg6KCeniw6cjyy3LjBAf+Oe8moaGbLBXjdPdI1gyZEHMc4EzvP5wZo
-# /Ee4Od1D4msmXqCbi0CXs1HJEiP1tM91eRG6nSQvuCbSrjAnNAceJwAJliiNlcax
-# fMrh0Sc1x/VPI38xMw8qB1O2nABa213RXQ6f3ENo8bFDoLXUuBRr2baQ/G4sbYBf
-# /A2FmTEH+uZZ0a3AmvmVGpQqAGmFR+IhgtWlSlOuCdlVMRYkGn8S496dxnfqCpHR
-# h0g+hOkqGAPWmo7QhuI7bQ6iZ0GJY41/vjY30+qTvK/CmZibT5XTwgHYaSB7y9OX
-# jQBEJ8ZCSCGafUmPlk4eHp2XxvUtk1bmRwwv2HBP0xUzsSRSivu9InJyo/2gCwG8
-# BbEokwaynVhDRIpkl9znFrDpGTQSBU/dAZUbc3xo4h6zpwUJ64eiq2R7B9vQaQYY
-# fYYkw6XmWm1ZXVQENqJKFjer6zh0Hv5gPWj6YjlT9Yx2V8itv9LKt87UgKcjNn2M
-# 3fKitysdipf8jqvbQCO1NVOMrBDBT2GYChXkAOMPxCMRbTH6jVADntbeDD6YQKJY
-# jP0tR3SNmLLWBDL67z3tGaZVcJboT15VRfCPKCUlgzAXqSP9UWurMctY7jkavK2Q
-# JMY8T1h0jJEqUWAZkaGtWMOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUpMpi8DIQ
+# YaqjjynFp9qPO2+gzp0wDQYJKoZIhvcNAQEBBQAEggIAl3bKFaBUfACfwRTfZL4j
+# 9ZgqnQ/6yVAjET4YAoUUQlJH+toPit7HCrUx1AgqGHjBEpQGBj2g3uJ5D4ZWLi11
+# wFYu/FgITbXxP+rOkvW3ACF18KAFe7CbtWc7jfeQOIO/B8XU6KWADVehFqaD2Olc
+# 1VCO2hnM08zIJtIXAvbDPkBUrPH2izDMehtIPYLN8uYqFFTMrBAEhOfQIxQ28ASG
+# gtdprR4B3jrk9QYn1LBlS8hZwiKGHJTOOaVwLDDIT3FFwdK9al+Yne+Q7gAyU4LM
+# YwUjikUfyASva2EY+7r1D5Fiu/AYIWP2Xtz98BsQ1GM/tae4xyRZrXTNc0BE6bJW
+# UduhQtk6CnqNMmAjR6Fil5p7dR8ljg0Wh3F5DyUZv53mRKGab9NnhlUsmRSyam5i
+# sx3bW1sWWeYj2YsXNY/dg96J5kzd1oZwNaieqJwDao2oe5OqiiILGzlpH5Ls4NGC
+# tRCQa02DMdnyOUJPaMXAUQfbI4xxLJQwTa09dcRDO0XWJI4Pptf8ZpMTNy1X7Nfc
+# iqYsfZw/FUwWldIIVPvhI1sEmeP6FH0+3VUe4JaCnWkGsOnxm3Ow+3SZyZDjuA3m
+# DgRIIdjIQB0Nyl3/YDhws1bXZj/NdGHW78f/Zb6b4y95z1l1UF0E3VJun4D1xPd8
+# Jq8G6bAktNdeAd3FhgyfFkKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIyMTkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg2fLY2SDjof/WU0dJ0/ICjft5mXal+FxKbm7QkMh9
-# ApcwDQYJKoZIhvcNAQEBBQAEggIAvS5HUTKEBW+BxcbrRQR7xub5JrLFqpWswtsm
-# bHmPXzTAF5jnlTvKYQK+y7AwqI60iWa3rXyqSRrRxaycS14TaSN6O2UC4Ktv+Hv/
-# XbUOLo6N3V275ZqFdzmI92LpAU07q1okioGKBPn5JHBBitaheHaNana2fgQAIKNV
-# ftuopEImaBBobeF0r88JdLfX6oOAtVPnoPmbgBXOiyxykZlTzC20of/vRHUQFWhJ
-# LsRwBifcOb0kLwQi6cXKYLHpNHfJm5aJnz4JpFrrb+lOeKu+RwA2b3KzW94Jde1x
-# 8noDBIIR6FnBc0NViu4xxGv2NDGZJST6NIKnfGtUfH0yeRgvro/WYDal25fNhLU3
-# avPfkq38sYtgK4O5wzk3L/oL5SoOPNeCi+lPzTaXckPonLeCK709tckf6+p4/qYR
-# MIc3NxgCPRymAVsx5KQosHTBnrcFwvuoIauWdX8UDyjtCbohN38Ez8PB9+2hW6iZ
-# hFqSO/5Ptb02OnxUacWCglzIveqm55byBcVw05vpdrM6e0AH8BnwUha5IJ5vU7yP
-# PcEuYU/QYBs0ERUMA2r/iYWeWLiFJSimBe+C1r2NH8fhOAfsNBX7jNesqnAx+XjF
-# VwXaUXc9VcLBW+owKOTXg11avu+kugXEEeWrQwAWRzXwgYUoFs4TPe+hoKY1Zzfy
-# qI8ZvDI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIzMDAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQguwqMt4HLftyLAUNDcAAYlhBKm2hVnjfSKcXOaO1m
+# kuUwDQYJKoZIhvcNAQEBBQAEggIAdMawzWnKV2/6cfqDw4uQj/c654WxjoMmxdgJ
+# Ztz6e5hb+SCDlY9RYGGmHEiqV6vGTBbgKwhnofppB92RcLJpxG/bKM/PotUh+3AL
+# ZSRkbMXvUS37CNf8Z2jmE7qQNtmPOgnEwh3VpsLmy09TH6i6BuOeqJrXLbR+Ubck
+# OgvcmkmfsFevThZ+FsJ5LchJqIJBKKRcqhZQKfs/V2MwZ3eXNOR0ybdM1HA+xCR1
+# rm9/mywWZMSsRuiMXb6ULjmozafFUwmuUgtWL2UTUGrvKjHSGDMK9AtgxkpPkC+X
+# eI7e1JUEqOlDpMgwd1lkb9QSLhJej1Zb8bdqWTGzCvhgXs5Fx9XAytkrFNx2TI2t
+# CmXUHZQ1x1kHR9kXz2KCkWn/OYwG6j/RzIvHC+/+/Xii52SbPxA33JDvh2dTr1q1
+# u1i4UeQGSDi/MozfMMWES7lz/flHjAhD8Go8/ahoktmTit+6RYjB8hKj4I3IvufQ
+# xpvx2gkvK1/GD15c94I9ut3tEVOId6STcSzljHQC5T9GSF/joBNLEPcA8xFhJsnf
+# QphklNNNN3Kp9LoQKhJtrzKlHdEnDUHEklYvSPqNbciDVgFi7224Sk2a3hUq7S5X
+# eAT00a26qCEgx6gaAP5SsSKtde6sJwjSEEEUy4iGahQlftdWRQIyq9+gmZ9XzCpN
+# 0QO7J0c=
 # SIG # End signature block
