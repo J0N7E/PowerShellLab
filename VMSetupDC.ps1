@@ -1834,21 +1834,30 @@ Begin
             $CreateChildComputer =
             @(
                 @{
-                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
-                   ActiveDirectoryRights    = 'CreateChild';
-                   AccessControlType        = 'Allow';
-                   ObjectType               = $SchemaID['computer'];
-                   InheritanceType          = 'All';
-                   InheritedObjectType      = '00000000-0000-0000-0000-000000000000';
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
                 }
 
                 @{
-                   IdentityReference        = "$DomainNetbiosName\Delegate Create Child Computer";
-                   ActiveDirectoryRights    = 'CreateChild';
-                   AccessControlType        = 'Allow';
-                   ObjectType               = '00000000-0000-0000-0000-000000000000';
-                   InheritanceType          = 'Descendents';
-                   InheritedObjectType      = $SchemaID['computer'];
+                    ActiveDirectoryRights = 'CreateChild';
+                    InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['computer'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
+                    InheritedObjectType   = $SchemaID['computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
                 }
             )
 
@@ -1861,12 +1870,12 @@ Begin
             $InstallCertificateAuthority =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
                     ActiveDirectoryRights = 'GenericAll';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
                 }
             )
 
@@ -1875,12 +1884,12 @@ Begin
             $AddToGroup =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
                     ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['member'];
                     InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['member'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
                 }
             )
 
@@ -1895,12 +1904,12 @@ Begin
             $AdfsContainerGenericRead =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
                     ActiveDirectoryRights = 'GenericRead';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
                 }
             )
 
@@ -1913,12 +1922,12 @@ Begin
             $AdfsDkmContainerPermissions =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
                     ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
                 }
             )
 
@@ -1931,66 +1940,66 @@ Begin
             $AdSyncBasicReadPermissions =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['contact'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['device'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['inetOrgPerson'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                     ActiveDirectoryRights = 'ReadProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
                 }
             )
 
@@ -2003,21 +2012,21 @@ Begin
             $AdSyncPasswordHashSyncPermissions =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
                     ActiveDirectoryRights = 'ExtendedRight';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
                     InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
                     ActiveDirectoryRights = 'ExtendedRight';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $AccessRight['Replicating Directory Changes'];
                     InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
                 }
             )
 
@@ -2030,21 +2039,21 @@ Begin
             $AdSyncMsDsConsistencyGuidPermissions =
             @(
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
                     ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
                     InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
                     InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
                 }
 
                 @{
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
                     ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    AccessControlType     = 'Allow';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
                     InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
                     InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
                 }
             )
 
@@ -3182,8 +3191,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVVRyMcYpbdWQ6N6Zb9CDa3WH
-# KyigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1p3E3SvDFI1ajcGZE5VbuO9V
+# 1g6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3314,34 +3323,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBDem4UMb
-# uWnwb33hJLjlvn7orhswDQYJKoZIhvcNAQEBBQAEggIAL1YrkrGYnC6AQVlt2PkR
-# fPfsGqw5wuOxXK30kzF5YRyELg2pwWoU2KKZt0Ri8UivRTWxd65fv7d1MTgOj4kv
-# 5Laz9ZBO73tj3vMKF96/b5M049tB2Gl+TDoaQILKKYLnjRGAeIvTqOetG72PZx+q
-# HGIKtEbQvf4eQPJJo0JF7MqxoD4x6m/bnbIPG99Yf2gUFgt/bSoilIrSF4xj4dn5
-# wLIfjJ3x4EB5uH3D9suK/CXJlDGqGE3BGWHzkyHG5/pqKvlYp6GYHQKTEiAvunA3
-# wZH0qoA63JWRPOy/LYLriusrneCZHzsRVhBRZf5ZCpcRZ4RNF9y/rpFe0dXhoIM+
-# xOXaljjK/tAgs986Ep9c2TgbVqgroA7XBGeUTwrwKqh6rA1OPfgHcD/dT27mGYLQ
-# iKrZ/u71RRI+vinmkxIzK9kTBYdFbOUNFMcp65Iy+or0AOX5v8NDe4qMIJUWZDKN
-# spY8G0EBSpcXuWZ27pVkAvV/97kZQRUbAu7bwujoT9ov14UdhlQ8duqa67EEnpvr
-# j7HnTi9pfYOI3DtxTDSmUT3rKj27UltKhwk/1vHeZyzac4F4m0/eUcynL1JXRXlz
-# d/mvhXkJQnG8MCwZN8a2OoaPu6vUPAINVHGrwY7UQkyaTlp7snX50ACtXMvC4GTf
-# TdLmLe4/busYVpjYjMgDKYWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUL6BrTm6D
+# fTtxlJ8e9o/B9DCmCdowDQYJKoZIhvcNAQEBBQAEggIADxdC9T7lE3iQjuYz5VQN
+# 2OEDDbMIYIgeF43PLwxE4CWr3uaHbD80CBn/SFOe+9u/PrNcpoSwopjlYblG27Di
+# UvexSIeQg4ecA2RQaSfmHMYOlzVP2AMLwlVnXyUFD9Hy0GY99wpIEG1Pzscl6F9M
+# X0vd4xr1lMV0LIhC1R1+dzUegxmjGzr0E5vuvu7CS82feL+tVMvTBLRlE/1OfGOa
+# u/euspTiM5PXZp+2Dnd7W6a532jG36cz441kNXitqXW16yuxj+xWhR17D2qPSYWm
+# dwmotCxjU1ITlpTOPX65+DMxGtbH0o9GSlpslXeSmzziBzWV4CFLWcyGvU9NUM/8
+# vLr8VL3eHuEZ7yN2dzNdeQAjqesk09XDFgfCxKfDRj/FAWLviDB9LWxdH4k9AhkI
+# oi5A4rIcEOqw4KITPNcGFnQsJxyV/FU/hutNolNMO6KhCa1lcOOCqmAeJkTC496e
+# FtxF4Cqmia5UWb3+Z12dTv6KRHdflD3JsC6qzT4BNWAjnhgnbt0VGeniQejI2Dik
+# CpFEfWGLo+wvPjPeN2+9q+Fv2x6EeM+IwheEjcWmDkd/Z3PCXPkNcW3X+q+hBn/H
+# 6mBOZdpitRfpuTWAXVkkAtcn8fXCdcwsh9q9R4ZXBUxATdXzm8Y2Wsy19HqtUGGS
+# fhHjmv9ZJf2Id3giLlsJjMuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MTMwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQg/7g0lAuslF5ApDWLDEPlq3k+t8NkpKnnZDBduFv9
-# WmkwDQYJKoZIhvcNAQEBBQAEggIAXLer5iLJrfb1bhyv0lhG2MBfIQl0X1rF86qt
-# rGX43xpKD99t61iiOjZp9lrl5n08Bui4lsgzeIExlkGzX8hJufkMTAes32vxNLOE
-# i/wtAf6JOyzR0PB26vY8q1hKgFE7CYu+6EuMmeeT+cblhVmWbF+wMjnw+oY5K6Jn
-# aShtLwdWaOEtK7Cmr7Z37dpVnsPpVbMBUSuQeXV0zoxCFYmSUumSPX4KUMhv5JWS
-# 3M7dpNPm1youvDr6HdKr5/JMYbhYivzkohql9dwpWqxKjoVfoKzJbU4aWj8i59LK
-# QBbsVmzu79IojCmAkKtJMm7k5kfwknHNkRJjMAB6rm1g6iMk6yPTPPp84nXMMxti
-# 1CeRRISNhGf4bCF325wzgmAZfT/BIDvIfAlS6Gb23Z6+3SYT3gOEhcwRTz0b6J0U
-# wjrxi1BKLHLntCqYYGeyuaWmKe9iP9BNtlgRd+KiFAtcJEmttsEIDtRJYD+W+yyo
-# cVJSWYmV/OjG6Afy6VICeyw04MCh9vPKcMf8zLcadnM/VPMZdCu6DRonxIuIZPyK
-# NIbLEfNAWRP2MscrFhERIj/TYIdPg05pa1smjc7BpP+MRLwAs20LnzdYS4ySILG0
-# VLvpY6CyjrswswYvzfsl7ViFJKReG1ECBrYofNCDZTPVI1DbM8A8KV8o6l7ZbDNt
-# TFmJuQ4=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MTgwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgl/uwiKZUUDAfyR5J8CWNLXL+XEih66Df8vQOhxUd
+# 2rQwDQYJKoZIhvcNAQEBBQAEggIAWgreO4CJaoUBp9bOlU8pjZFAQ2grlzermjlC
+# lI1JcmRCVdaGrKnrmYqoubgqtZBe3wF0G3pRlMeh6HrPF7CBGRGQGCArs3jCvBwb
+# rHH+VxBaqShePYJ9SvY/XRQzz7Bq2us6+prlTBX0LoBXgslm9ZUBIrToQotmhu6q
+# 5sJRxY8BM/sCH09xjSBR99g7+tbJbt7RqCySob7gH7cDuIwzUqscQ0j9OchRDl08
+# JUd862N8NFoaxfB1KHxnKZ/NtqVpsAyVo5feeIGd/8FT24ZyWk6XCstqFgD9y0yR
+# zeo4l62FReXRqxlZdkcN5FIxoF0qCPLe7e/s521K0xdcPhBueBDIb62ca0zXeDPm
+# Urjjh6lJMjvqrIyE1YveRNVohBAexnnYxrISsLLY7AowO/89Q6PWHJ+jtr7o1E0a
+# uFqjdi37iX0iBFcGbgN6I4oIycJdnGh1K4wTht9m9FSSOhuz/PUzlu2C4BNIzMsX
+# K9PEWCX4O5t0UekAqOMvAVRLw2cMr0Oixo09C9uDUHaFMpghs5ZyeVa926wpmSnR
+# AFEZPbPaqps03j2LjqlO1tLZEkIz/nbtORgzq3pJB013xxIUQpkwkTIAaYvCM575
+# qW6S+GZksQ1XR6C290+lkH1ipvM0gQIUT82HCNZHJdGH/oVhkngtLyu0gjlINnM8
+# 7cazrr4=
 # SIG # End signature block
