@@ -96,12 +96,6 @@ return
                  -CACommonName "$$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
 #>
 
-<# Remove root certificate from domain
-.\VMRemoveCAFromAD.ps1 -Force -Verbose `
-                       -CAServerName $Settings.VMs.ROOTCA.Name `
-                       -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
-#>
-
 #########
 # DC
 # Step 2
@@ -136,6 +130,12 @@ return
                            -CAType StandaloneRootCA `
                            -CAServerName $Settings.VMs.ROOTCA.Name `
                            -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
+
+<# Remove root certificate from domain
+.\VMRemoveCAFromAD.ps1 -Force -Verbose `
+                       -CAServerName $Settings.VMs.ROOTCA.Name `
+                       -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
+#>
 
 # Domain join and rename CA
 
@@ -180,24 +180,26 @@ return
                 -CRLOverlapPeriod Days
 
 <# Remove sub CA
-.\VMRemoveCA.ps1 -Force -Verbose
-                 -ParentCACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
-                 -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
-#>
 
-<# Remove sub CA certificate from domain
-.\VMRemoveCAFromAD.ps1 -Force -Verbose `
-                       -CAServerName $($Settings.VMs.SUBCA.Name) `
-                       -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
-#>
+    .\VMRemoveCA.ps1 -Force -Verbose
+                     -ParentCACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
+                     -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
 
-<# Configure sub CA in AD
-.\VMSetupCAConfigureAD.ps1 -Verbose `
-                           -Force `
-                           -RemoveOld `
-                           -CAType EnterpriseSubordinateCA `
+
+    # Remove sub CA certificate from domain
+
+    .\VMRemoveCAFromAD.ps1 -Force -Verbose `
                            -CAServerName $($Settings.VMs.SUBCA.Name) `
                            -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
+
+    # Configure sub CA in AD
+
+    .\VMSetupCAConfigureAD.ps1 -Verbose `
+                               -Force `
+                               -RemoveOld `
+                               -CAType EnterpriseSubordinateCA `
+                               -CAServerName $($Settings.VMs.SUBCA.Name) `
+                               -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
 #>
 
 ##########
@@ -232,8 +234,8 @@ return
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUydSOFiQaJ8H6W3f7twusooqR
-# UEWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8oDzSApfKRPQwS+wblfHhgoe
+# Xu2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -364,34 +366,34 @@ return
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMD6pkyno
-# 62xCAuRHFFK9bbS8b+EwDQYJKoZIhvcNAQEBBQAEggIAhuGOE+/cEQC2f1Y6VHgT
-# 63zlCEYbHbfuVs2Vojn8/Hi7RJG990WgcSwGiaG0ixoZhmHVzRbWBIABdzt2SS/d
-# ilhUOsbx9k1aR5d55Fd35c0rvC2Q3xCPhkjf7P/yCGVTPdQ5I5Z5fmt9GjGd8UNb
-# id52Lf9tpegWaLnnVLMvIrHvfr8iEl4GtmnSJrcjvfgTLV2GGtBgmFMXs1zuD0w+
-# L8hj9c7VXfbDQAv25USqS9wqruOUOKomJ6J49ZQSgZHoWUcnQEjj4RPOOjkJzNPm
-# UqmPfefgmxivC8apV2GZRuT7zTDsig4XTq7JEX/1JhRTCK0rDm1mCQuOrlzlbj1h
-# 4PS/ZoPZlMSKldoou+HYDyo+9+w/sAQJzlUHncSG6KNRSXwbn/7MVY68rE+W9eLo
-# 8v1B8ianaFgnQYENBNAtlMBXJE9xppg9eZbfA9kupAzFSXVT3+Gaj5actLOvaO0X
-# yUFdY335i/G17SosgWrTMdv/utgzjRkphg5KnI5ejZ+68JtUinHWOo2VC7eSQ5Ma
-# JyE6t2EoKNXS1ht1/RIXPvznWcdzikz6aqclNZTcw/e0boq1qPFZwjgPCvTlmAl4
-# W7ySpnGJ97xKWsVarWropm2KXdwG6HtbQRqyXgkf+OC56V5i9CLaUd4Bea1Rulwx
-# DLXn5JKwHvNGy8lA+AQvIFmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULlFj10yn
+# VmlcX1UlkVtdmiczpK0wDQYJKoZIhvcNAQEBBQAEggIAAXx1e7yYwnOA5hG9Q0P/
+# W/7kP/HPlexpUhbAHCjrFhymN19TnpbckDUfZyArqWnizARUSGu/d5zjBX9lFRLt
+# 8GA2Xi9/uwFn2l5KDB22azFkbqXIKCcFJuZJQvAR/XQqsNNHZB0e6k7Y+nwOO21J
+# 0bpsgvMKN5Up+kIR6a7jIvB0ePDjbfug7ENSXYzNaXv3K4L2Kx7mgBHL3CFMVpAC
+# ggH3SXSM2662OsN/1RVgdsnthGJiLXsWM5hz/0KYnIapoEl/ABsp/ePKx0GQNFLr
+# NxYETeKhPm6VKQSag9riExkCbt8VYGA18shKVMGHUS/vIODpX74DCAl4v7IQxv6a
+# UCFOpcBXLClVzTRzbXIQ30JZ6pe96Ia94MZChWsYYqOmPcDOfQj2agowxEyunnqp
+# +Cm8z4uTX10T5LhZ1tyFeNdBZWZ3I4i7c2Vwsi8t9sNjmwxqFyUTuF5TaHqXFzHI
+# k9yW00j6JwJCQMh6P9qKOJzKLUb6X9YggWP7TsvSQm0rk5XnMZFkLIkUuPuLaUYj
+# ppOtVDmqNpEp62CfYJRNMW8Tl26k13LI0XGYfZGE9vYKZHwmyUhwIj+U8/vKkwoL
+# gxsARokeI13jwnqlv5/xSsrhct5GnHQoD02JdUusikyTwLSBGgmCE7YUzuDNOSCD
+# 4r5ahLZb4m6sDcQBxWBfR4OhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMjEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgrZxky5pa9+eqiOy6mlZbtCkyP2QopQrLToL4t+Hj
-# Ta8wDQYJKoZIhvcNAQEBBQAEggIAyCZlGZyp2Vt9+K3stwBgkLi+XS8yrjz11Bvw
-# C/Ca2zmWcnQz+z/zOlGJSUtabSN3CdFBQGuGdVE205JtcFX8c0K41Fz6cFbALu4B
-# a6PsTSLUSm8QTYXjGzr81DUVfxsbXv6VpxNZEfOWEC9czZmqwX79wJTrsurkWWJd
-# 9S8+ED1vISES3snvDHkdtaSM0n9rOk63kt82snckHbdD07r2nNkXqWkxiHP9MKN3
-# pJgC6nEsXAFyl7pyYh8idIYpFXEhiPONbqHtTJintAsKDmc2jlXmfjA8CeNRg6+w
-# g2kcGk3othE/8iQDUqyYM1ZUyWnfuYvBXGYuaaxD0HnfJ44Ls6BydT1r9NV6bMVx
-# eU299aFLvmmwZ1KPMWni6caEJkWSqG6lmYaeQNzerf2FhS8j38EUMFag9EtVs8Kc
-# YuLoLCARhYYVPxakxnI6lOLRdi1i32mC5JSZLjUEjK10a7CaPvvDHLsozUovsUgY
-# 9NsPqJRClj/hj5qWM9b8xGAt3TRfGOcaMwS8JNn0gbgh52t2tmQ9FDT9IUjshYHP
-# ACJv0nEv8Ez/HV21UaPDtdCMXVz+TB/aT32TkiAd5yJRoDhej6VSeU6GEyVwEzO5
-# MKum/Qx2cxlPL/k8dJFzjGePyJVwSGPIyeodUUdv4WWc75sLlSdXZ/U3jXnwcUjn
-# IPqTRlU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MDgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgHnLGCTME+NDGUZ6wiowZq2CZPVbmlVcNVCRxK6X7
+# YQ0wDQYJKoZIhvcNAQEBBQAEggIAIfbtpnI6og79sNPZsiNqQF/8Ffkt90qQ27vE
+# OHbvAkzXh8JudLXWJ/ZQ03tH/7tlw64Qfe3vvUoxChYgf+fvWHytJdnS6Yr3Wn4S
+# PUW4kuoCS6nLjua9qvht3ShU7P3UnRJhl9sHbTvU7G36ATxDotW+iSc7T5K40eM9
+# ZvMijN3kXhVNvDF5kmndlXynF8HNGCV8eysw+inXfsFCPP0bUwzqMCuZZ+G2prQ5
+# RhKpe62BzIlQArx637iZ3APz+9RE8EzCPgfQNiPV3ilbDd6176aH1PHlv0lVfhGn
+# T1U0q/sAfdupi8yf4Pl8EqdZitlHINRpKSx6bk+2+o6fspAZsHKz26Z6VJYwKPKx
+# dFitdloplTdYzHMKZhlyBiWmi9gCEnpt+eie8Pr+C4zqfkTFRUYz6+H6Pj3COmgB
+# B1dM+HLgTOKSIizWK7keOEkJ/UX/9upZR6rY85uYHDCRdvmBS6geoVGE9ZekByKh
+# fJDfNQt25A1w6Zc1eXZoOm9oN2u8T5qb8pkSD4srL3HUcFY9/+7XuxMOnx9RnMuC
+# qeipWfjgwFwLAPJXwVjy2lrSTNoeLahXBLa7PwRPaTDQ0kyk5n2rxLMAqTqydGhU
+# R+UjzYDm1+OnJOsg9tLVJvmlmmfZxx0H5xy9fRzyRLk7sWSd9AR461OUSZDy1oeG
+# x7D2ACs=
 # SIG # End signature block

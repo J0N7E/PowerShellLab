@@ -2039,7 +2039,7 @@ Begin
                             $GpReportName = "$DomainPrefix - $($GpReportName.Remove(0, $GpReportName.IndexOf('-') + 2))"
                         }
 
-                        # Check if intranet gpo
+                        # Check if zone gpo
                         if ($GpReportName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                         {
                             ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
@@ -2048,31 +2048,23 @@ Begin
                         # Check if restrict gpo
                         if ($GpReportName -match 'Restrict User Rights Assignment')
                         {
-                            $EditFiles =
-                            @(
-                                $GpReportFile
-                                "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
-                            )
+                            $GptTmplFile ="$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
-                            foreach ($File in $EditFiles)
-                            {
-                                $GpContent = Get-Content -Path $File -Raw
+                            $GptContent = Get-Content -Path $GptTmplFile -Raw
+                            $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
+                            $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
+                            $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_0_admins%', "*$((Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_0_computers%', "*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_0_users%', "*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_1_admins%', "*$((Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_1_computers%', "*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_1_users%', "*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
 
-                                $GpContent = $GpContent -replace '%domain_admins%', "$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
-                                $GpContent = $GpContent -replace '%enterprise_admins%', "$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
-                                $GpContent = $GpContent -replace '%schema_admins%', "$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_0_admins%', "$((Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_0_computers%', "$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_0_users%', "$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_1_admins%', "$((Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_1_computers%', "$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_1_users%', "$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_2_admins%', "$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_2_computers%', "$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
-                                $GpContent = $GpContent -replace '%tier_2_users%', "$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
-
-                                Set-Content -Path $File -Value $GpContent
-                            }
+                            Set-Content -Path $GptTmplFile -Value $GptContent
                         }
                     }
 
@@ -3162,8 +3154,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9KmD7hl7B6KUrYL7pLEZMTsg
-# HYKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUI8eLDuG9/Gz2JE9y87JooVge
+# VImgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3294,34 +3286,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUAiJai8Bm
-# 7qMYA0/ghKLmRGYf2r4wDQYJKoZIhvcNAQEBBQAEggIAx+cTge1eC+jPAo3rafIj
-# zWWBmSjS4z5kAcPsVU4Tbx2NGZ7R+MYe9mJrJ49B+5U+tCuVM6niuFbwEv2evXUo
-# d1nTVKxzV7HLQNV+FCRRwxzc54/KAKWY2p/NMK3e7yJUWzboe1Ok19iBdWcFMHo5
-# P+QoSV/hrGAJ9LAbaT7OiAdoVYigzG32u9KXPPZfEKoeGmIndqGMDfbb5/ofZZSR
-# nreP4s+bb3e0zB/6EjH7GffJjnSR8aa1SwitvZBO8/8EyVSs0IqZsNVd5mNw9hza
-# OhkXc5KrmRlh1xv2kK/RhPRPoD5xkauElb9estFFNd/qelz2jRAK+zadV8XwHpQN
-# NqrcXTu1YLfq1VG8tpU1TPeDRH94u5a1wdd/WmA0AX63L7v8bMl4lyuAAYpzp0ry
-# EP8QWifsZ8bizGP+VFSE+R4yi6A7p8xx+goc0MUBIdkqY63LEcQgjrHYGHSPw+pu
-# nhPM1Uexh4mCWMo3aAZJWvKCZsHjxp1sgbpQGZX7Xrw9z/K93KVJbpPb/VcMKb3v
-# 3+cPdwcoLbvj513VHnAmNxhyn+1qVQ4wzGxQ4r9lHVuQeASxSpmtGugXOY7Ro9PN
-# yuL7pwE4NB8jUHFc7vj2tkg8Vl2k9i1A0SSTse+FPlcBSzchlnoArOxrEPtr/8Vx
-# 9v8RIFrl2FF0QNeAVwDuBiqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8DGO/bZi
+# suGYpx662FZgeSegLBUwDQYJKoZIhvcNAQEBBQAEggIAj02BCWWEvogUKwxLJF8L
+# ZgYHxK7rVWou7dwb1LB11yPpbqyc2DRvs7BIbqM34ahkt5Kq2O0o6Ok3wRj4ETEl
+# wpUeUYMnOslPWaKkNdvFlBOYA+847ueegSD1L55jJ8AzlO+w8SakB7WHlohpwPbA
+# aw6WU/tC1mMqah5qdiTk+p6zR4Y6R4EndLgKfPUNbpXmjJXd0NfS9F/7ona7ZqXY
+# k5YhCQEg0qT0q1EvJOWAJ397+KTzuz8ZLV/rK4zzywNMfVry0UAGKK+6Z9/YDwqY
+# xGZZyUqZUvgZq3Q1WZhvhu1HBOReQEUUZHLBIyR/bp0vnph+TkihZATAqKRmOOJQ
+# A4YsTxDv1YKh83265v36X8vBQ4ZVGUxokr2rjTa0hd6Au6tk5yQbOfwkFU9Mao5z
+# nFPIVMjELPSOKBt4yqQtpopjAZZ3wSuswg66OVqksVYjthIJQcazw/35vVtZ9GrV
+# 7drbbQ1sA6BGh0q2nKd+v6MBz/oOjsQ2MiyZmH6WAvYuhSjuTshTs7FfvXxCLPWg
+# /3ar1ZOSgawg5yHdQO75VJIhRz7myn2i25EeS9ZJQTgr2VIhWnfZBnJzIDaudaUu
+# R5Z1jFwl5kBYWatMm8wxVyL+t2gmpySKwkMOX3LZriEvNvPDtrjTZgxbiKMnBgD0
+# JY9IWGqA022oeZGYly+uPBKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIzMTAwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgOl/TA1kDkFYEfVCNmWjCrzO/Q2OQml9ztozUMgf5
-# PCIwDQYJKoZIhvcNAQEBBQAEggIArERHx53T9pilGxPik+sBOil29T8RqtB1Zxxh
-# z29+s5IUwwB5T0gCUs2QFYGBgcuUoh1s3SztiJzFDPG3G+JrL8TD1d2lCYg4DPyf
-# qq28gc0Tz7IRHAYSa7RuvApl3lXOhheCvKGEUNb+88oEXOpm3sNg4ysCzG6tPknA
-# ebjAth41LGa0IjrxWD2XtoRLCHmQoA8VgFiEe+tidtiBnMX03CunNyFn6kvjADAx
-# 081EOo3IHkSD8gR/+91dFu+CFpfdXO7265JG2eeZz3C3RERgvNd4/WXjlnHhQdwj
-# PWv6eq6JZpMazTqkjp5woEYMKlaBeojZaQlriViGmkUWa8ZAwM3/O2cNpeLOvP3h
-# df7mhL8RnXwrW03hxiZ3/LaH8OfgOx8wdp61UaBREp+3tBN4MTxFjon+Qk3/ueS7
-# UF0D5vL2Rp17N2J3Wflol5RP+ly2SyxTEpLeqQMjlO57iM2zUayxH8e6qhAzg+ea
-# pSlHihu8Ks+4xHWPyHnZDPY80F0Ppp3gwSCDuD9X/qJee0nL0HMkZiwugJrmed3e
-# foB2g3wGU9gK8WVBHQiDTORht1dDGjTz7u1bXEZ9+o5AoSoTEPvPfIqNCRy/qc2J
-# lDZQ8VQKGCpY0STBhVi896aynlSkG6iPwfL2C+aenNT+nBuYDKd1XYcwa3m78age
-# UepJjUA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MDgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgecoqYJ+gXFMSKqiKTOyJnEsNvrVdjfx36rAolioc
+# WIAwDQYJKoZIhvcNAQEBBQAEggIAtZFmyydSd2hDEWolEKXi6Y/o0PTfYjQlgaTv
+# slQ5QUF2VWzX1Ockn9/P4+wx6jWOvxcq+D1gbWyxj6DJwdxjWNdkeW7LvMljwKQL
+# WIifE7aknBfwUOG5gn71iYBGZtYVHcBwCHG81oslWEwJItb2T6odj8in1ZwxP2xu
+# wvJ73+Un4kYfW6aGQCT6s0SOGudRvs9Y0B9TLizitNZUc/kcT2cLjglNT0D6Zgex
+# Qie9va2iMcssYVSY8Wo01J5yjAIaCtMB5yJiKPWzNjvYA9qmjVfdXgR4fn/S7bf8
+# IQ2VWwZjix17p0qBCPyB/fArVCjJgxXtG08oszdjzv2NDtcJpiDX4U9zfWAAH0L5
+# d87jt6M5PyBE0tW73lGsySqlC2TWKWtQdz4sq/XoSaC3uYxSQ7ERmW47RFpDQsSk
+# rY+qbjnkqvTCZBexq9VJmWMTAkCDvv3shE+024p4NXx3ZpHQJbmi9UTiOefOjM/o
+# 6lwElPZMyYk6roFAyADoq3jVg8u9GVLno/uhntWQSW3IXtqe5alnWqIcEtRvi1r8
+# 7aIuDXTkSGgs/LY8SHwxgyUG+O4UJN8n/XqRf4sYcfBmhum3jgsSmznodUuWryS/
+# ml80kFMUBgIKFg0fzqm+7tS8WBNnPjeUAYT2fsmCs94Z7Xvh/dNAfabOOLYI2zYt
+# awG7xOA=
 # SIG # End signature block

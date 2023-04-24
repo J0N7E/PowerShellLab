@@ -353,11 +353,16 @@ Start-Process $PowerShell -ArgumentList `
 )
 
 <# Remove root CA
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac)",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`""
-)
+
+    Start-Process $PowerShell -ArgumentList `
+    @(
+        "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $(Serialize $Settings.Lac)",
+        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`""
+    )
+
+    .\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.ROOTCA.Name) -Credential $Settings.Lac `
+                     -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
+
 #>
 
 #########
@@ -403,12 +408,17 @@ Start-Process $PowerShell -ArgumentList `
 )
 
 <# Remove root certificate from domain
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
-    "-CAServerName $($Settings.VMs.ROOTCA.Name)",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`""
-)
+
+    Start-Process $PowerShell -ArgumentList `
+    @(
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Dac)",
+        "-CAServerName $($Settings.VMs.ROOTCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`""
+    )
+
+    .\VMRemoveCAFromAD.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Ac `
+                           -CAServerName $Settings.VMs.ROOTCA.Name `
+                           -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
 #>
 
 # Domain join and rename Sub CA
@@ -479,32 +489,49 @@ Start-Process $PowerShell -ArgumentList `
 )
 
 <# Remove sub CA
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.SUBCA.Name) -Credential $(Serialize $Settings.Ac)",
-    "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`"",
-    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
-)
-#>
 
-<# Remove sub CA certificate from domain
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Ac)",
-    "-CAServerName $($Settings.VMs.SUBCA.Name)",
-    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
-)
-#>
+    Start-Process $PowerShell -ArgumentList `
+    @(
+        "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.SUBCA.Name) -Credential $(Serialize $Settings.Ac)",
+        "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)`"",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
+    )
 
-<# Configure sub CA in AD
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Ac)",
-    #"-RemoveOld",
-    "-CAType EnterpriseSubordinateCA",
-    "-CAServerName $($Settings.VMs.SUBCA.Name)",
-    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
-)
+    .\VMRemoveCA.ps1 -Verbose -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Ac `
+                     -ParentCACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)" `
+                     -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
+
+    # Remove sub CA certificate from domain
+
+    Start-Process $PowerShell -ArgumentList `
+    @(
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Ac)",
+        "-CAServerName $($Settings.VMs.SUBCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
+    )
+
+    .\VMRemoveCAFromAD.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Ac `
+                           -CAServerName $($Settings.VMs.SUBCA.Name) `
+                           -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
+
+    # Configure sub CA in AD
+
+    Start-Process $PowerShell -ArgumentList `
+    @(
+        "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC.Name) -Credential $(Serialize $Settings.Ac)",
+        "-Force",
+        "-RemoveOld",
+        "-CAType EnterpriseSubordinateCA",
+        "-CAServerName $($Settings.VMs.SUBCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)`""
+    )
+
+    .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Ac `
+                               -Force `
+                               -RemoveOld `
+                               -CAType EnterpriseSubordinateCA `
+                               -CAServerName $($Settings.VMs.SUBCA.Name) `
+                               -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)"
 #>
 
 ##########
@@ -549,8 +576,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUycbfXkmXXqy4gHQ5tR9SW7lL
-# NN2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUI6wfFHjmXUt8Ibo+zFns4uvy
+# QMmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -681,34 +708,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUr9GLqzvT
-# xPP/nrwfHJFNMmS9eCswDQYJKoZIhvcNAQEBBQAEggIAWmg8CJ/SyOHFSKcHTDyZ
-# /9WNqlQrrqkjZSvTxsw4N3TwTevf6tg3xkesufJzwGUJWgoh9Tjtqung1mW2MnkW
-# 0llaDvkWdNxKOXTeFKVh6jesB1iEbn1Hqxh9t5LdGtYMC3c29xK8hFXy5Bwk9/7w
-# 2UjeOSANoXe4o8c9BvK5TpjwyqlQJyTT8KXlOSKLBu4t4lf6JginK2DJvXbbPicP
-# VPZ7MDpa1MqO0XSNNBfBtkaWr+jTOTTijgqPq7nX0DtlNsYdH/XqL4Rymh+WC8o+
-# bofQkWsPmtiOVhmKEe6XXpoPQZGBKmAD1mjHFlJk+AiVRXOeIFa9zsr/5kwlOkgU
-# 6GkUZvDdD30mY8Y0SuwJnRyEdwkeuEMIqoKvvigCAQQB0Addwc0r2y21tDBscTzM
-# b0uhb7VMITPkIVY0y/ryndPu7R7D51xzMSyxfduik2qybxWJV88F8xeCQTPSql/S
-# q0JkyginxHm2Lrz0qaDoXBwwvj9yx8PN0TE2tKKt1t45Q0EpiKXyggsTnbd948YN
-# HifYP4n2QGjHROOETJCGCefFcGYhLSTXZY1ZCSBVy5HBpxokkVVvacDorBMWXlEq
-# KLdaOr2ofrUDAmOwGr5MNYp8wcdpsqiErFmL+Ij8zTedAnprNHVnftlqxSyBphXn
-# FCUsjvjc5PaWsHvwzCfu4G6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkCDbStTB
+# BIPr5GLucLY71Qa1XWMwDQYJKoZIhvcNAQEBBQAEggIAyK4aAeFOvPfjGOzbuANM
+# kJa3NSp0TfcAEGcP3yLPuCo762c9NhvVGIRsx07ibNTvIXJFX2E5bHFU8a2DFi/t
+# 0wQfQi0f/yi1TN1vxw0pwCZXx+UynK3CydkYPFNG3zLbr5b3cR4FvykgARm9LdAw
+# gEJm5hQ7lHdE2s68oMeE7EVkmcd21E50VgBY5/GaAF/M6EimLieenh3bV8iCtJm7
+# m9roZ9OPozEyGKx+e57QMbqWofXjvkK4s1Lc5EpDrW5B+MVmw5SsWdNbdHW+/F+S
+# LxYC7mPdEtRNEOc1cPjk/rwGXFjQL6r1BjovSuydfcAG2w5JSjxHJIGkGr9WVxk3
+# viiXfMJKrnpCtV6acJgdQ6wXyq1H3034EixqKxDFLD8cAVc7ZBjoGINXHR8CoH0v
+# LGUO/rsq3cxEH4uhBOppt5B5GS3CqraXAuS6jDFTRV5sQCUo+mvD+pvHG2+elXwF
+# 2NL41Atb5RkszhYs2lJVlQ9CF9TsyN/BcZM8ZTsC6+uLj5M7hbJ3QZQYul4aKTXu
+# SnZyQ5kPJn+NxrmH4gJlVY1weeIFtGk59XSDFFf6K2Q4D/04VTVylUaRfrjbBXET
+# ftvb2getnH8HLV+RC2FcZxtDA8qBjdUt2QNxzjr3xcEd7LqpPaGr3SLzsLR/lDHW
+# UzX2sza1kcCYHFmDQ1nRUPShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIzMTAwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgKCDM8yUENhM14SQ/roeEV9zNPwrC6M2TGQU8HooK
-# aGwwDQYJKoZIhvcNAQEBBQAEggIAwkfGqRc8Fi8fWYpeLIhnlDGvL8VVbTrFftHk
-# w7ehnUI2FLbbaE+t3RvTcpRtSmXziOCvi0WjHWadEB4/PF8MVUW9sQX5hDPc2X+I
-# FAZmdLW8G1J09AQ5t9rnk9mIbjilsML/mO7TEOK5oDFwniMZM/rwONXvJyEJdoFi
-# LrXhCixllSu+BBiFpqz9G0HTLTzKiAIfyKCcxsjvpLfs0eDqYOfmXqVHj6lXDa1Q
-# XH+xiDRp+Kkw8HKoqIcV9X5Ze4E/hRocUKA7ZP9OcsfxzADVsVVeaWnnSrcP5afQ
-# lEbUPL54/nlT4XWqq0+BwxTRBXgN5k8R1zOSt8I0dyiyaejRYIOwx9TB7f5SArZg
-# +5raxFzWqFa1MtQpYSVCA7F7X6PVV9WzTDSiirqfNOapa6et1FknOf7qmHdwT4r/
-# vOQU4vIKSCh9IvBJtDKVqMumS+O8/4Zh52V7FUjvOFYzyh2h40QxfNnnGHu6wCN0
-# clO/bM4oBcq7NMjVB2vQw2boHvf7uOdiF8mkkmQV/CH7avA0FCiaGXPhLoa0nUEE
-# /hYnL/iB4B2j13/fqP0MrtStxH/RcS2TKpcp2hsf5GnuKsKclemgkrleHdRZVJJc
-# XDVu3yyJFOYxWsoHEf19MpbcDwxhnw6fpDOqTSUbRYb75BEeQSR+JH7OrvBjvLM/
-# 6NDN5SE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MDgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgR4MF8IcEUYREghI9mJkr9gv/InLp79Ls2xWMVdGU
+# UpgwDQYJKoZIhvcNAQEBBQAEggIAkAeDskmACt7ikJjlMZ7KvjRK9Mui6y0Jg5d7
+# thzJF42McSAuIm8AY1cDiPXIC0li1jIg97e8mPMfk7WM3uCmPOIY/8Ni80LNohFp
+# 6EE3b/g9qjD9h/mZq2pj951TKjOR1NPCNs9eszocz9CO6nVISPBM1qdLhgWwafjx
+# +LkXuRDX8oN1bZCZiMC4MAVa7Pcrknfx910aH4ifMVAH6gVzhYtHGsz6xbTNW2ex
+# gP3OhdlJzqdSxbzBYZkLBidhuDXSc3Ne5SV/JzvmaLxdYeUdgZhOo9WhzDr92gAF
+# L+OBm8odUlljPy1B7A4tQ8JQDKBUQKHFIMKoP8Y+rlIQr16cuAQiX2SK9uGwMvn5
+# 8b7uZS3ByGHbI2EefZUkrxxYcVVjm1YkhZhHNkjBSdt8VcKNMuT+tKg/l80sUVSX
+# hZAiykVOvdreqaFtRjm19XJA4SqDMQLKCA1UE5au0rWbiYJBzuDcBTZzc7Cqv9NV
+# eBU8K6eeQ4Bnj4iPRC7wBfpQWr6tKHURFiQ3b5YyQ8oGvliTH+MtxZBqge9lz7eh
+# ha2o5XPw4ejEZPxmAjZtx6k6kn41H7xJPcbdz/PgXpSeH9yys/z8ITSMv6Vzswek
+# Xj95YA62QcJsSNhwgf3JV/JTiupxl3/KIL9mG4y8AOyBzM7E6awmOHMafD+IujPb
+# CO/gh8E=
 # SIG # End signature block
