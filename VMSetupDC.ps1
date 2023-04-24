@@ -1761,6 +1761,13 @@ Begin
                 $AdfsGuidContainer = New-ADObject -Name ([Guid]::NewGuid().Guid) -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
             }
 
+            # Check service principal name
+            if (((setspn -L $DomainNetbiosName\MsaAdfs$) -notmatch "host/adfs.$DomainName") -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
+            {
+                setspn -a host/adfs.$DomainName $DomainNetbiosName\MsaAdfs$ > $null
+            }
+
             # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
             # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
             # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
@@ -2039,16 +2046,18 @@ Begin
                             $GpReportName = "$DomainPrefix - $($GpReportName.Remove(0, $GpReportName.IndexOf('-') + 2))"
                         }
 
-                        # Check if zone gpo
-                        if ($GpReportName -match 'Computer - Internet Explorer Site to Zone Assignment List')
+                        # Set domain name in site to zone assignment list
+
+                        if ($GpReportName -match 'Internet Explorer Site to Zone Assignment List')
                         {
                             ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
                         }
 
-                        # Check if restrict gpo
+                        # Set sids in GptTempl.inf
+
                         if ($GpReportName -match 'Restrict User Rights Assignment')
                         {
-                            $GptTmplFile ="$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+                            $GptTmplFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
                             $GptContent = Get-Content -Path $GptTmplFile -Raw
                             $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
@@ -2898,63 +2907,39 @@ Begin
                     # Backup gpo
                     $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
 
-                    # Check if intranet gpo
+                    # Replace domain name in site to zone assignment list
+
                     if ($Backup.DisplayName -match 'Computer - Internet Explorer Site to Zone Assignment List')
                     {
                         # Get backup filepath
-                        $GpReport = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
+                        $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
 
                         # Replace domain wildcard with placeholder
-                        ((Get-Content -Path $GpReport -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReport
+                        ((Get-Content -Path $GpReportFile -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReportFile
                     }
 
-                    <#
-                    # Check if user rights assignment
+                    # Replace sids in GptTempl.inf
+
                     if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
                     {
-                        # Get backup filepath
-                        [xml]$GpReport = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
+                        $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
+                        $GptContent = Get-Content -Path $GptTmplFile -Raw
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value)", '%tier_0_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value)", '%tier_1_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)", '%tier_2_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
 
-                        #Set-Content -Value $GpReportContent -Path $GpReport
+                        Set-Content -Path $GptTmplFile -Value $GptContent
                     }
-
-foreach ($File in Get-ChildItem -Path 'C:\Dropbox\Documents\WindowsPowerShell\PowerShellLab\Gpo')
-{
-    if ($File.Name -ne 'manifest.xml')
-    {
-        # Get content
-        [xml]$GpReport = Get-Content -Path "C:\Dropbox\Documents\WindowsPowerShell\PowerShellLab\Gpo\$($File.Name)\gpreport.xml" -Raw
-
-        foreach ($Item in $GpReport.GPO.Computer.Extensiondata.Extension.UserRightsAssignment)
-        {
-            foreach ($Member in $Item.Member)
-            {
-                switch ($Item.Name)
-                {
-                    { $_ -in @('SeDenyBatchLogonRight',
-                                'SeDenyInteractiveLogonRight',
-                                'SeDenyNetworkLogonRight',
-                                'SeDenyRemoteInteractiveLogonRight',
-                                'SeDenyServiceLogonRight')
-                    }
-                    {
-                        if ($Member.SID.'#text' -notmatch 'S-1-5-1\d\d|-5\d\d$')
-                        {
-                            $Member.Name.'#text'
-                            $Member.SID.'#text'
-                        }
-                    }
-                }
-            }
-        }
-
-        #$GpReport.GPO.Computer.Extensiondata.Extension.UserRightsAssignment.Member.SID
-
-    }
-}
-
-                    #>
                 }
 
                 foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
@@ -3154,8 +3139,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUI8eLDuG9/Gz2JE9y87JooVge
-# VImgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULTSCOMIy+K2xwxhnXoyiO7sr
+# dNagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3286,34 +3271,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8DGO/bZi
-# suGYpx662FZgeSegLBUwDQYJKoZIhvcNAQEBBQAEggIAj02BCWWEvogUKwxLJF8L
-# ZgYHxK7rVWou7dwb1LB11yPpbqyc2DRvs7BIbqM34ahkt5Kq2O0o6Ok3wRj4ETEl
-# wpUeUYMnOslPWaKkNdvFlBOYA+847ueegSD1L55jJ8AzlO+w8SakB7WHlohpwPbA
-# aw6WU/tC1mMqah5qdiTk+p6zR4Y6R4EndLgKfPUNbpXmjJXd0NfS9F/7ona7ZqXY
-# k5YhCQEg0qT0q1EvJOWAJ397+KTzuz8ZLV/rK4zzywNMfVry0UAGKK+6Z9/YDwqY
-# xGZZyUqZUvgZq3Q1WZhvhu1HBOReQEUUZHLBIyR/bp0vnph+TkihZATAqKRmOOJQ
-# A4YsTxDv1YKh83265v36X8vBQ4ZVGUxokr2rjTa0hd6Au6tk5yQbOfwkFU9Mao5z
-# nFPIVMjELPSOKBt4yqQtpopjAZZ3wSuswg66OVqksVYjthIJQcazw/35vVtZ9GrV
-# 7drbbQ1sA6BGh0q2nKd+v6MBz/oOjsQ2MiyZmH6WAvYuhSjuTshTs7FfvXxCLPWg
-# /3ar1ZOSgawg5yHdQO75VJIhRz7myn2i25EeS9ZJQTgr2VIhWnfZBnJzIDaudaUu
-# R5Z1jFwl5kBYWatMm8wxVyL+t2gmpySKwkMOX3LZriEvNvPDtrjTZgxbiKMnBgD0
-# JY9IWGqA022oeZGYly+uPBKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzlK63sMd
+# Si/KsZHI2xmNCTIFxWQwDQYJKoZIhvcNAQEBBQAEggIApKbgSVReVrynVmWm/Htm
+# rStim0oFEDvDVc4lxuDPzKhKT/G6W81fao3+lH6id3HkGWK7f5+9gA1FyGjb23Ol
+# H/nBOG1+9ADlCuPKYotRA/Gs8yE/Afu1kYIARAy9zYWYX9WhnY2T1ZAFs507z9Vy
+# sete6oybSDc7dW0Yv5+ZVrHSIWYd9+g6dzd+DoycSqtgg4OgYE25v9F5+oU6vGr6
+# HDTi5J4tf6AR3J/VQDG5KRAEAY4RCP8/j3VDkPitB7OUlTsupwlTsZPi9LFp+Zoe
+# O1NL4HfHmTgDuFBOg7/1SYmxWIEiAhc6iCzHyfocTjZDkcUy1z6R7aBjhRL7sHQD
+# nYPHFTRpPxNIvLdio3+4LuBkg5AzL3SwDG6qu4JQIPg3CuKW7ClmmKZzb6/b0s/8
+# HbhO/oHyL+nzWD3UurnsOfRE/Vu+DPYCgZuxkk7bJXXGo2PmDXoPeoYO+Z0rvCz+
+# ekMRs619d3xKHDYhs4toBqjnJU0eraT6egF/qTONkSTHtAIWQDnZhP2RTnIZLtpe
+# fq+touSdzNFwme0bdnQ9gBCndSroEzQevmMtjLbZmezbda6ueuq7BaWgCoAaXXkM
+# 4btSz7y3DBL18x7B7trm+VsXuC4z2KXt3QOT9smUUlcRDUmGtP14fmO29HuQDMU9
+# lasaUIrUoVIf8srfgp/SyIChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MDgwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgecoqYJ+gXFMSKqiKTOyJnEsNvrVdjfx36rAolioc
-# WIAwDQYJKoZIhvcNAQEBBQAEggIAtZFmyydSd2hDEWolEKXi6Y/o0PTfYjQlgaTv
-# slQ5QUF2VWzX1Ockn9/P4+wx6jWOvxcq+D1gbWyxj6DJwdxjWNdkeW7LvMljwKQL
-# WIifE7aknBfwUOG5gn71iYBGZtYVHcBwCHG81oslWEwJItb2T6odj8in1ZwxP2xu
-# wvJ73+Un4kYfW6aGQCT6s0SOGudRvs9Y0B9TLizitNZUc/kcT2cLjglNT0D6Zgex
-# Qie9va2iMcssYVSY8Wo01J5yjAIaCtMB5yJiKPWzNjvYA9qmjVfdXgR4fn/S7bf8
-# IQ2VWwZjix17p0qBCPyB/fArVCjJgxXtG08oszdjzv2NDtcJpiDX4U9zfWAAH0L5
-# d87jt6M5PyBE0tW73lGsySqlC2TWKWtQdz4sq/XoSaC3uYxSQ7ERmW47RFpDQsSk
-# rY+qbjnkqvTCZBexq9VJmWMTAkCDvv3shE+024p4NXx3ZpHQJbmi9UTiOefOjM/o
-# 6lwElPZMyYk6roFAyADoq3jVg8u9GVLno/uhntWQSW3IXtqe5alnWqIcEtRvi1r8
-# 7aIuDXTkSGgs/LY8SHwxgyUG+O4UJN8n/XqRf4sYcfBmhum3jgsSmznodUuWryS/
-# ml80kFMUBgIKFg0fzqm+7tS8WBNnPjeUAYT2fsmCs94Z7Xvh/dNAfabOOLYI2zYt
-# awG7xOA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI0MDg1OTU5
+# WjAvBgkqhkiG9w0BCQQxIgQgM9ft8zpfGDg7H9zVYrwT2QDCEaEP4mcumLIDxGEQ
+# SycwDQYJKoZIhvcNAQEBBQAEggIAwtyu6PGgqMHykuNNZMxnxnXQHnDjY2On1YBg
+# HULq89rsEtQ7Q4pQwyNNTfXKRYrosxRebeDkkMPlYywdjakQOs69K/AWAbtyRnLl
+# JDScVU06D+kxThANImnVI1Bk1wnNnnWe+edAsE/UJtuuRjv1HEYrVqIt/k3AJfhb
+# AYoJ+hloa2THlbIb/kmTdvONtdDtzJ4uLG2wKCtKFBge9UDjOptavQUNGpbBkT3u
+# /xrVKqVaTn7LCD6o07DBdGQulv5rEAmBqn2yJiPcTsa7W2cPLSnWzwnWupTsmdVf
+# L3PtOL8ZLLRx/GTsIyWi5fnwRgzHwnyHsN3UeexBAY3qjATMLhOhFuLZchfxRIQw
+# sXlh4RUSAgIcVtNXRso+JCsMSHsfaYuTwqcYSKFQKDtio3Ilc6rcmcTEjHP0gWAX
+# JFencMAXMNg8TI4mhQYxOfGhw1ecazEoO6C2m/w+pnWdom3ygFOLHNDnONvaR2mA
+# cBo2cwB2+xj/H/FqE36bN6o/toAA71pD+nxfPJzgZoU9mBMhKfLoESN4qUTis6v6
+# HP32bM26874V/6piSCjFbxL98Isu2qvX5TE0hNr0zHnyt0vLAOZWSCK1wvsx2RqF
+# V2evZwBmYsmh6npLMduzmrschV/4y8r/MDFoGPpo+2MuFETmiEFj9J8/E1D5ZckY
+# KHV2oMA=
 # SIG # End signature block
