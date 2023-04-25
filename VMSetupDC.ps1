@@ -691,6 +691,20 @@ Begin
                 New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
             }
 
+            # ██╗      █████╗ ██████╗ ███████╗
+            # ██║     ██╔══██╗██╔══██╗██╔════╝
+            # ██║     ███████║██████╔╝███████╗
+            # ██║     ██╔══██║██╔═══╝ ╚════██║
+            # ███████╗██║  ██║██║     ███████║
+            # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
+
+            # Check msLAPS-Password
+            if (-not (Get-ADComputer -Identity "$ENV:ComputerName" -Properties 'msLAPS-Password' | Select-Object -ExpandProperty 'msLAPS-Password') -and
+                (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
+            {
+
+            }
+
             #  ██████╗ ██╗   ██╗
             # ██╔═══██╗██║   ██║
             # ██║   ██║██║   ██║
@@ -2889,7 +2903,7 @@ Begin
             # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
 
             # ms-DS-MachineAccountQuota
-            if ((Get-ADObject -Identity "$BaseDN" -Properties ms-DS-MachineAccountQuota | Select-Object -ExpandProperty ms-DS-MachineAccountQuota) -ne 0 -and
+            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
                 (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
             {
                 Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
@@ -2908,46 +2922,6 @@ Begin
             {
                 regsvr32.exe /s schmmgmt.dll
             }
-
-            # ██╗      █████╗ ██████╗ ███████╗
-            # ██║     ██╔══██╗██╔══██╗██╔════╝
-            # ██║     ███████║██████╔╝███████╗
-            # ██║     ██╔══██║██╔═══╝ ╚════██║
-            # ███████╗██║  ██║██║     ███████║
-            # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
-
-            $AdmPwdPS = 'C:\Windows\system32\WindowsPowerShell\v1.0\Modules\AdmPwd.PS\AdmPwd.PS.dll'
-
-            <#
-
-            if (-not (Import-Module -Name $AdmPwdPS -Force -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Installing LAPS." @VerboseSplat))
-            {
-                if (-not (Test-Path -Path "$env:temp\LAPS.x64.msi") -and
-                    (ShouldProcess @WhatIfSplat -Message "Downloading LAPS." @VerboseSplat))
-                {
-                    # Download
-                    try
-                    {
-                        (New-Object System.Net.WebClient).DownloadFile('https://download.microsoft.com/download/C/7/A/C7AAD914-A8A6-4904-88A1-29E657445D03/LAPS.x64.msi', "$env:temp\LAPS.x64.msi")
-                    }
-                    catch [Exception]
-                    {
-                        throw $_
-                    }
-                }
-
-                # Start installation
-                $LAPSInstallJob = Start-Job -ScriptBlock { msiexec.exe /i "$env:temp\LAPS.x64.msi" ADDLOCAL=ALL /quiet /qn /norestart }
-
-                # Wait for installation to complete
-                Wait-Job -Job $LAPSInstallJob > $null
-
-                # Import module
-                Import-Module -Name $AdmPwdPS -Force
-            }
-
-            #>
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
             # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
@@ -3116,10 +3090,10 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $RestrictDomain = $Using:RestrictDomain
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
+            $RestrictDomain = $Using:RestrictDomain
         }
 
         # Set remote splat
@@ -3203,8 +3177,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7YVqYnO3W9TxQsP1hf4vkFtU
-# 1i2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3KGA6hHZhdlEXeTyy/K8bJnD
+# 84qgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3335,34 +3309,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUq20TooV5
-# DP+fVH1SBjljtRBA7FMwDQYJKoZIhvcNAQEBBQAEggIAKwDF9yc14Smduf1yoLzi
-# VeedNczrZw3J+TfAGbhiFnqgQxLYgZ4uYi2vlNLQYenGDKUt4HU6/XvXTVViF7n/
-# 7nyj7QadVjI2Xkk/BRiRxuZ+viYn95TLeTDRmvbLwupK7YblD49zKh7LPbm0IwYt
-# 0lJ3OI3Cijcnc0dM/t8N78nBilml4JswE9DaeprYgD2go42pKb+9+xVDdssbsovj
-# OvURbcb4WnmboWs/lWap2qPW/GSxfZQRlJDvUdWz7K6EU/OdLrouRi3676wejnNM
-# hE9Ur0AuD1IwEzNe5JCkG2b9tHBCRZMyTgGn1R5/TFcVHo051BeKjnrx2bQIzsFk
-# tnDB9Uw7KtY85qNZNhxnCdVLaUMsCna3MnYEx+DE2+BKirnWFoiPk2wEwS5zhNhm
-# I7aL6Fxi8cBZs1zOCUTDzqsr3t7lLmrOyvIWynoOMJ7gHAHId0hBCvnPgse651Kd
-# Vg8zBDxBzF/2Pt7DcO4MqavdaOIl74jrV9PK/PIYyEQ+D0RFzYAhl1udEsE0DUHW
-# G7ZjQr6201yTFsYNHvnKLFrbgr9WGDrgTjXQf+8m4SVmBZwgDsraN7ln2mvXCRTK
-# gg64KjRZvnEbr2RSxBz8u+cNP/oQrFzKjZdx0EJF/gQSNo+zulv5h8FYOZ6woiwC
-# 41Fpz2BYTKYACRX4l56Hy5uhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhcDqr89a
+# OYNggx0SocVBmN+aPAwwDQYJKoZIhvcNAQEBBQAEggIAPUi6vGPq/+WK7y4cgmmJ
+# Bv0oqfxDvsehTYCgsVhsZRa4IW/48pyL7BI9OMYgOODQcJvvlqL9Ierq4WIQ8SBq
+# bCbjinxVgeH70TJ1sxq7181pWvNemyfne3zJwiVAqJcxdh1aGrqAPPoA2AZkgM/U
+# X5tBRyXZnLN+O5QcAKhTfVwHBKdzb2/SK5BW2ER1B56vz/0fdJkSzKF1lJDhy6JT
+# EGsby5pdDg8pXFlHzCiAaDJ7aUXH9mFd9IN5V8T2gn1VSoZFZ+Wf9YN7ymCzwpdt
+# RhK+uHelF4t1QLFywV0/g+we6zsZ1fUI55l1fqkETzSvpuswsFnURG8+DhB7MESs
+# edmP1tBAvDJNvFtu967gUv2ZtKW2DQJTHnx85xXhOci41NHZiVNj3XBrX68mljuY
+# VdFHemlCYa3ch07rRgWgJo3753RadSuaTNhNaMhJfRw0wOb54ZEvML3XaVrOIasf
+# IqnuJ9apiI3GiKf0a//nek9gXWrpxx6SMFupI8tfjpp6atjf4Ugbuy9cqvqv+sHU
+# 3thNwlNdBJyirjBAM2ksqUCxRRkIA54gW6mtKNpHep9vrMGu+EYVsseY7hUU7rcn
+# Jw8XyVqKdhJkXBYKLhhDAXaoqAm46rRT5bFvU+x4lOZGqF+P9IKEA1S5GhxIAHPs
+# 8j1VvU4WLgf09zxcf71aQYKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MDc1OTU5
-# WjAvBgkqhkiG9w0BCQQxIgQgDS1BtsiCkxSCHJwZrQ++5YOSPg9PUTDTstSywaOt
-# bIgwDQYJKoZIhvcNAQEBBQAEggIAbkqEs2EmrZ/BA5Vo9wC3PgeP3srX/fe+TJew
-# uUx62UPf/PlY2NY6JezPkj85rbzGg5zf8m3KoVNis0yRwhY2hm1oR30dKr7OE5DT
-# tb1HoBBevJ3oQLZmebjXnltLQ1a0dyf86UOK09/MtSXfJ7WBAEnsRw2NZmWh6vrI
-# QQ9+MqRO8NGV295HND47hDpRx/2L8LWBMfBqPoJ9/ki2C+Zl+J6JOkfMgRZ0EHGd
-# oRYYeAI5yB6FcZYFrL9GPxFnIp9THM/F3WKhjCjvNH/9BUxSD0SxHXj3Nvwya23j
-# tV5uJXtWNyjGECm01N70BUKNNOsSP7uE/FPcO61S8eWR7VI6czIq+HYdn/ugXEbf
-# 8omJsIBLgzqU1iBQ5l1/k1KEszjIlkZmJFYu7+Haxf4+af9i2w+ZBUlQkkO8cBJt
-# ScTNRcuel3oC1TyliEdiE1BcnLlF82ZN7QSdZ5zZ9plwmdYsFOIOrVzhlC9wYGcu
-# OGF0g11dP/DxQMDaGuvhVIUpsI2Ap7wmlv4JPBRp946rl+0bO0xQeaNt+3gohVJE
-# eroUpbZ84FcXE8aps9E6O3Fe6tWO9UtAdspmfr9dAbFjm8u5nDnbz3lU/EWbhYUv
-# 5xcgG8t4ZRitd2EqcRbc4gfyr490L+clgH4rQ1fq1joEo9jCJ/W+s9DDPgGH6ALK
-# tju83Fc=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MDg1OTU5
+# WjAvBgkqhkiG9w0BCQQxIgQgNG5qFFrA4xBh4Fi+Rr/XIx3FkRY+emr7SQRG1ops
+# jI8wDQYJKoZIhvcNAQEBBQAEggIABNgqS2dsNdj0dyqeFBZP9DViJKBZrwU/durm
+# qOmWzxvE0vL0QNung/4eYYSX+ffxEK7TCQz4w74jrgUOnvWb9x8JHHDMz5CFuXzW
+# fgUOWPioCsbWYkxN13t8oNU8sztnZlC8v1ohtk2XjPbcLHYXcYR/oDNDhtvyurD1
+# +Gmx7tUUDh8B85qNNDljxa1f4qUvN/9K8Rutuqi+vjYPzFrUkv+Y5PVgo5qBLXmX
+# 2eem0SGik3Cwl4hyVY0pa1MfLWiOJBhjFGFl6MlTi+G4GAwIRa0wQvbyG0fnTziW
+# 9lk9JzTROemEV4JBU3fxbcnyzKUPdksBE65NQCNTPoVMGRD/F7OV38QDv6i0sAbz
+# 3u7PZuPC4nfmwzuaMxx31bqvXfmk+Q54J6oo6WOUWAdspSn5fuppEhl/Uf9ti9Bu
+# GFbVpqBJzxR6JeV1M/s9LjN1gmWrUuD5DDRR9T/mGlWw0tx0fHUIN+Lt5hOiuT21
+# NRq1fczOwDFCYNuop6+MUKwil3WJwwPV4EjwuuWXlffl6ZmyqXmtJvqWEn5MC2r1
+# vgkMycHW1RlOODLFFPgDUAzE4iiXkiuwl4sbtcJ3n93ElVPQ/5lHyMf4BDC1Oi1a
+# lKUEDdB0GSCZMV6EAnPyclCOYBb1rAVy1Ej4YaxLIAYEyfPKbmRBF1Nng2pbnMQP
+# bOWxXEU=
 # SIG # End signature block
