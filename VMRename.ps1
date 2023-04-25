@@ -98,16 +98,19 @@ Begin
         $JoinSplat = @{}
         $StopRestart = $false
 
-        $Win32ComputerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
-        $Win32DnsHostName    = $Win32ComputerSystem.DNSHostName
-        $Win32Domain         = $Win32ComputerSystem.Domain
-        $Win32PartOfDomain   = $Win32ComputerSystem.PartOfDomain
-        $Win32UserName       = $Win32ComputerSystem.UserName
-        $EnvComputerName     = $env:COMPUTERNAME
+        # Current name
+        $RegActiveComputerName = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName -Name ComputerName
+
+        # Pending name
+        $RegComputerName       = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName -Name ComputerName
+
+        $Win32ComputerSystem   = Get-CimInstance -ClassName Win32_ComputerSystem
+        $Win32Domain           = $Win32ComputerSystem.Domain
+        $Win32PartOfDomain     = $Win32ComputerSystem.PartOfDomain
 
         # Check if to rename computer
         if ($NewName -and
-            $NewName -ne $Win32DnsHostName -and
+            $NewName -ne $RegComputerName -and
            (ShouldProcess @WhatIfSplat -Message "Renaming `"$Win32DnsHostName`" to `"$NewName`"" @VerboseSplat))
         {
             try
@@ -138,8 +141,7 @@ Begin
             }
 
             if ($JoinDomain -eq $Win32Domain -and
-                ((-not $DomainJoined -and $Win32PartOfDomain) -or
-                 ($EnvComputerName -ne $Win32DnsHostName)))
+                (-not $DomainJoined -and $Win32PartOfDomain))
             {
                 Write-Verbose @VerboseSplat -Message "Waiting to reboot `"$NewName`""
             }
@@ -147,7 +149,7 @@ Begin
             {
                 # Check if to leave another domain
                 if (($JoinDomain -ne $Win32Domain) -and
-                    (ShouldProcess @WhatIfSplat -Message "Removing `"$Win32DnsHostName`" from domain `"$Win32Domain`"." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Removing `"$RegActiveComputerName`" from domain `"$Win32Domain`"." @VerboseSplat))
                 {
                     Remove-Computer -WorkgroupName 'WORKGROUP' -Force
                     $DomainJoined = $false
@@ -185,8 +187,9 @@ Begin
         }
 
         # Check if to restart
-        if (-not $StopRestart -and $Result.Count -gt 0 -and $Restart.IsPresent -and
-            (ShouldProcess @WhatIfSplat -Message "Restarting `"$ComputerName`"." @VerboseSplat))
+        if ($Restart.IsPresent -and -not $StopRestart -and
+            ($Result.Count -gt 0 -or ($RegActiveComputerName -ne $RegComputerName)) -and
+            (ShouldProcess @WhatIfSplat -Message "Restarting `"$NewName`"." @VerboseSplat))
         {
             Restart-Computer -Force
         }
@@ -317,8 +320,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdGSfIi80ySdcrsU6jOwmEyJn
-# n+CgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnX3YljtSw8DnCfTGCaQJE7Ig
+# 2L2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -449,34 +452,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUumkKR1Ji
-# FEK9dpO8LFEnKmPjJqUwDQYJKoZIhvcNAQEBBQAEggIAm3J0evWiFPLPDehxdKoz
-# ik25ef2kT+rBq+hpEbgNhQj02GPD/HgiCqNglceR53ix/tgNS3ydguLydt4zqIrU
-# y458YMIU6uUvHstOI/nQozMUvgnwZXZgNMvjgbgOOqoVoz3PQjXFn+WaV4xNT7XQ
-# jQcAVMaR6t/JmMHu7YO6HBrSs4x4T3GsEyIMh+pQPrr6RxgGenK9z+EThVdSx5Jj
-# 2ZG0R2yOW8qlAy2p1UKr9tlm76KPRtGHCohb5qH1R4+75kORfxeR78aiQDLMlW7k
-# i/lF/JUqveUGbxZCUvpbwhF2gxHXAHZUJwdn/d5HNENhaYE/fwPo/H2tlFfcmxYR
-# xt/WR5XQIaAC3NLoyTKWEQB/fcuSWZRGPEkqJF0DVD8sSnn+Mjq4PkTRQojKk+QR
-# FW5WT7dqo6Zr3O35NQVckKGO1Q2Hp2HHwoBtNcMCxL5TgAc6B+87kTscIZc+Sq4M
-# L/aXvh8nh7sH010CzJFCI05LT/Z7NKk6L/lj0+Q581edRLhg3hwD9hj3TKp+1uAU
-# Z+cQLcoi+xy1Ir696lv/ZqE4RHlQBaG8hqTCscSrr02tBTH0ShDNh8LPQz0hs4FY
-# yc/dzqFn+snRGTi14QNHsuNW9AgSPcpbXkm5BLfUbEemunn5yg+Kd8lfB33fsHMa
-# bV/mWN0UoUl3R9kJPjo7tc2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2ucFc5wg
+# z+oR8STtgBMb+/FMt9gwDQYJKoZIhvcNAQEBBQAEggIAwEy4BM565vK1H9t535Zi
+# nPpL5po+I+Z2PyktuAWm9SuVMhAz2CrOBwljnFASK2h9A16txmijoHr76pEKSYig
+# sccS3Gkmm1vm2QXInAykeB9BVuNe25qfmnl4VZwlEkxvW6FoXEBu4Mdjfwvtwubs
+# Bx7hB31EbN070+hpPAUgbgdsZKwt+r39YCt/ZGSljKSKXh3TiwrXXemWz8eZihwL
+# PM57hxNxtYlgCIsQOSX0MNn5zpkgQrkF3BPNa782fMgIq+ZjtVyGEJU1DgZMZuME
+# pdej+R9k7DVe5ORdK0pK7QF46yFWOjuFiQU6OmIXGdgBDPpb7JQMZTSl69i4ay1G
+# Ju97UZSYAGEjhi/Tcft9TsVgLN/8YVkH32EtLEceDDCOF0cBikdAEuyNDTRil1ei
+# DknnDefUrwVWbo+oMg9J3NpL2fG33kG4ZpQ3GFAbkmWS24QEauz+B2iUQbGImH4L
+# R6MNUsRi3O0c4PdYk3jD4WdAqIBHUgxB6WKZa1oj38PonvTGdd8UBzE1T85BN5LL
+# 5tvNII0VJnxCxpXvSszPMvYGuaWiBpNJ+4VRL4M9WCDmndemhCq3dWFlxY7K/OZS
+# dt55Fna8aiS8yYb9csjpPkubQRWjdldUV/4cLUpH/hiFP3hXI7TswIHkKNROkUGP
+# bht8LO3h8Dal7SSR02Qy/W2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MjIwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgXbcxz58iBIku77UKW80fJqPgsxuGsX1ELBK10GlG
-# gjkwDQYJKoZIhvcNAQEBBQAEggIAziqbqTiWKH+6FCarWK3KCnP9dWOzyvVSXOmb
-# +poXe3wjFmAzmZxPFfPu2sfs4sEWxwopAMil2Ah0vDT2iI+Da871qaVVx18xGbx9
-# 0VojCaz9D0kac368mAESWNZfr74SjLWdOaryzgLywo8o4SS5NI8dOI2yYgU22LZk
-# FTzb0ThZHcdGuDATO/vSu5QXDqdwrYq4sMAtL7IckwCu8RJ5sc6Cp4moXrQUmJbI
-# PgMJDKL7a7tVcn5RaHKboTC8uIHqg4JZbhEX4B+su9UzP9JC0Glk15We/Hnbfpir
-# Bp1hnO4DlRqi83Gz7Xjq1/1Y7C+XwXposw20JVp6n8Qu7B8sCt48zZD34E1vNTnl
-# dW4We7Q1SxzDDjk87Apc2GVapekqZ/wpVAf2QIp8+13vaRv/xF66MvkQY5dgoOAR
-# V6RwfO3MP5O+xU1xEGuF3ibPIF2XXPVoCZAxyqUEJ6bQjm94EA2/o+Q0CvypQsPZ
-# EhRKJNCNcmKw2U5/n5VODXQtcR205847hCFJ8hR8p5gO9pAhimUHwzLvILumzfaU
-# imL9sPkcfNg8APCDRm+IN5oweZGzYI+Yu9azJ12JkWKDFgcRKO5Cms4a1LbDj3RB
-# SKOlm+5UgGiACxXt9ADTVBgn9twlMTwKXFieIceAJ1xaA+j8kuDIFKFXbLYZiuVO
-# wjn99AA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MjMwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQgC4fYY2SnX2mVWRDlhgcSwyphfzhcGkyMTzwZ6BH8
+# zVgwDQYJKoZIhvcNAQEBBQAEggIAuu9ZFRKOgaNjUVdaMypGTZUYHelI3dDP6HeB
+# Cxs4vHMFvRLrLQt9yERuPTU9wC2wLygVYw7uY3M3/wSUSIIYUhyg59Q6xDsbCiNu
+# 9KdjJQkWO+iKYjjilW7MTi2TZ1QaEFDF0NN0pMnmoeZkvkkiV4VzRr7WZtl2zpfo
+# RDseFTau/k1p2AEWkodT1t03US9oUYIJ7qeffkPNlrFpLqLbYWPcr+FtINMF0cfS
+# Idn/jVc5Hs84lZ57IcmgMgCcfjUCI2PJWoIdKYcfnRLPV1qHmLIGakZQy0V+q3UY
+# Psd7WS8ErtCE+WvJ7RnQ1dez1rijJo0oWEPXV2ARHhboM7v+CEBDRGCfZF2VsIx8
+# ME0uxlVsYFxB48pef0j4Hj6yY+8Krz8hOOYM08c7iTzIelHK1ap31vaClc7ZKyo7
+# eDCA7wO+odHwkCJF/noOT8OmANdPOcby6njiPELOzMDt1vU7c8Kx0h/8GaYzkGN1
+# rUEEGzmPEmmABF7+0dUaG4UhJ7JkroPeXFdXZaNGn/bMuZbrIPgh+zcYJJyxiUG0
+# ZVVnBoAowAedvHZ23oXX4956l3JE1hU7xemOb2iLavfDAkN/Bwa2Qb9FkEXEsivv
+# WnVnkrK7LjcCKzE13ZVsZfvhRW3HWrRij3G6AAc6/Rxp2qMAGCWxoIXM3mTnlKb/
+# 36qvUio=
 # SIG # End signature block
