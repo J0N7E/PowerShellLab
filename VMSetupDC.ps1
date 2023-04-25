@@ -66,7 +66,7 @@ Param
 
     # Switches
     [ValidateSet($true, $false)]
-    [String]$RestrictDomain,
+    [String]$SecureTiering,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -699,10 +699,10 @@ Begin
             # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
 
             # Check msLAPS-Password
-            if (-not (Get-ADComputer -Identity "$ENV:ComputerName" -Properties 'msLAPS-Password' | Select-Object -ExpandProperty 'msLAPS-Password') -and
+            if (-not (TryCatch { Get-ADComputer -Identity "$ENV:ComputerName" -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
             {
-
+                Update-LapsAdSchema -Confirm:$false
             }
 
             #  ██████╗ ██╗   ██╗
@@ -1750,8 +1750,6 @@ Begin
             @(
                 # FIX remove Authenticated Users
                 #'Pre-Windows 2000 Compatible Access'
-                'Enterprise Admins',
-                'Schema Admins'
             )
 
             foreach ($Group in $EmptyGroups)
@@ -2073,6 +2071,26 @@ Begin
 
             Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
             Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+
+            ############################
+            # Remove Join Domain access
+            ############################
+
+            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
+            {
+                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
+
+                foreach ($AccessRule in $ComputerAcl.Access)
+                {
+                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
+                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
+                    {
+                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
+                    }
+                }
+
+                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
+            }
 
             #  ██████╗ ██████╗  ██████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗
@@ -2467,10 +2485,10 @@ Begin
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
-                                if ($RestrictDomain -notlike $null -and
+                                if ($SecureTiering -notlike $null -and
                                     $GpoName -match 'Restrict User Rights Assignment')
                                 {
-                                    switch ($RestrictDomain)
+                                    switch ($SecureTiering)
                                     {
                                         $true
                                         {
@@ -2486,7 +2504,7 @@ Begin
                                 }
 
                                 if ($Link.Enabled -ne $LinkEnableBool -and
-                                    ($RestrictDomain -notlike $null -and
+                                    ($SecureTiering -notlike $null -and
                                      $GpoName -match 'Restrict User Rights Assignment') -and
                                     (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
                                 {
@@ -2781,7 +2799,7 @@ Begin
                 # Get policy
                 $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
 
-                if ($RestrictDomain -eq $true)
+                if ($SecureTiering -eq $true)
                 {
                     ################
                     # Create Policy
@@ -2879,7 +2897,7 @@ Begin
 
                 #>
 
-                if ($RestrictDomain -eq $false)
+                if ($SecureTiering -eq $false)
                 {
                     if ((Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
                         (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -3093,7 +3111,7 @@ Process
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
-            $RestrictDomain = $Using:RestrictDomain
+            $SecureTiering = $Using:SecureTiering
         }
 
         # Set remote splat
@@ -3177,8 +3195,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3KGA6hHZhdlEXeTyy/K8bJnD
-# 84qgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkVPTHWgtKhmW+Rvz6QZtEhbl
+# uBagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3309,34 +3327,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhcDqr89a
-# OYNggx0SocVBmN+aPAwwDQYJKoZIhvcNAQEBBQAEggIAPUi6vGPq/+WK7y4cgmmJ
-# Bv0oqfxDvsehTYCgsVhsZRa4IW/48pyL7BI9OMYgOODQcJvvlqL9Ierq4WIQ8SBq
-# bCbjinxVgeH70TJ1sxq7181pWvNemyfne3zJwiVAqJcxdh1aGrqAPPoA2AZkgM/U
-# X5tBRyXZnLN+O5QcAKhTfVwHBKdzb2/SK5BW2ER1B56vz/0fdJkSzKF1lJDhy6JT
-# EGsby5pdDg8pXFlHzCiAaDJ7aUXH9mFd9IN5V8T2gn1VSoZFZ+Wf9YN7ymCzwpdt
-# RhK+uHelF4t1QLFywV0/g+we6zsZ1fUI55l1fqkETzSvpuswsFnURG8+DhB7MESs
-# edmP1tBAvDJNvFtu967gUv2ZtKW2DQJTHnx85xXhOci41NHZiVNj3XBrX68mljuY
-# VdFHemlCYa3ch07rRgWgJo3753RadSuaTNhNaMhJfRw0wOb54ZEvML3XaVrOIasf
-# IqnuJ9apiI3GiKf0a//nek9gXWrpxx6SMFupI8tfjpp6atjf4Ugbuy9cqvqv+sHU
-# 3thNwlNdBJyirjBAM2ksqUCxRRkIA54gW6mtKNpHep9vrMGu+EYVsseY7hUU7rcn
-# Jw8XyVqKdhJkXBYKLhhDAXaoqAm46rRT5bFvU+x4lOZGqF+P9IKEA1S5GhxIAHPs
-# 8j1VvU4WLgf09zxcf71aQYKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoeWO1rdi
+# zW84wMl7soDY5tzNyKEwDQYJKoZIhvcNAQEBBQAEggIAo6zzedlNWBGimzKir0Bz
+# tH+H7vHkILOf19Z1J63FhpUiJt/do9K/3/9VAU1RsQRo27LIuV0CeEUEXYN78woy
+# /ncb9vNFoy7G5CvtyhyL9ey2biUwmci2qEI7AZS+RpW3W6ZHX7M5Bo18Pf3lRTWi
+# +Lrw6C/6RQJNsaRqfqjFkI8ORGtCaEFzOr9roHvYcX98tXDSB+nx5r9i8uisqb+a
+# WSVSrjRS4K/H4PkTfVMTV9pfei+OrVnfuIbbT+xxgisAJzIRSYizjAvbrqwxr3e/
+# k1e5RW+x3AfN+7n7862jZGuYvnAdmSV1GF9zuW0pyE+aGCQepgXXJpRsWgdwT+YX
+# oxDBkcWRdRfc0TONDXLCBRmaE3N9wvvsWBe5ibP5DUnKhcqoXX3GqKRM35U+Je1n
+# iLNRD8bbzmtYGwmDhoYQtlwDzSdnuVoJ9EnG+U6cgJlHTYbyw+MWuUrcbQSAq5Ec
+# R2O5PNVUueWf9u2XcftVCVXHG645rGkUgeIQMu9PUrmwmkWlZ+BV/ujF1bGdXa1I
+# w3EnE0CzaiiXwWlOCUL7vEdnO9Hk7rObLOs4a7sr4yamATBEGol9g5o3U2tCqYRM
+# DrLjlfwTzzreAmwD18Stb8HajYxEtUPLhEvpnxFkYZb6AZsbPDuJQbC/UU9zpoIk
+# CpJHFiZQE/4tGI5GC6KfBbuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MDg1OTU5
-# WjAvBgkqhkiG9w0BCQQxIgQgNG5qFFrA4xBh4Fi+Rr/XIx3FkRY+emr7SQRG1ops
-# jI8wDQYJKoZIhvcNAQEBBQAEggIABNgqS2dsNdj0dyqeFBZP9DViJKBZrwU/durm
-# qOmWzxvE0vL0QNung/4eYYSX+ffxEK7TCQz4w74jrgUOnvWb9x8JHHDMz5CFuXzW
-# fgUOWPioCsbWYkxN13t8oNU8sztnZlC8v1ohtk2XjPbcLHYXcYR/oDNDhtvyurD1
-# +Gmx7tUUDh8B85qNNDljxa1f4qUvN/9K8Rutuqi+vjYPzFrUkv+Y5PVgo5qBLXmX
-# 2eem0SGik3Cwl4hyVY0pa1MfLWiOJBhjFGFl6MlTi+G4GAwIRa0wQvbyG0fnTziW
-# 9lk9JzTROemEV4JBU3fxbcnyzKUPdksBE65NQCNTPoVMGRD/F7OV38QDv6i0sAbz
-# 3u7PZuPC4nfmwzuaMxx31bqvXfmk+Q54J6oo6WOUWAdspSn5fuppEhl/Uf9ti9Bu
-# GFbVpqBJzxR6JeV1M/s9LjN1gmWrUuD5DDRR9T/mGlWw0tx0fHUIN+Lt5hOiuT21
-# NRq1fczOwDFCYNuop6+MUKwil3WJwwPV4EjwuuWXlffl6ZmyqXmtJvqWEn5MC2r1
-# vgkMycHW1RlOODLFFPgDUAzE4iiXkiuwl4sbtcJ3n93ElVPQ/5lHyMf4BDC1Oi1a
-# lKUEDdB0GSCZMV6EAnPyclCOYBb1rAVy1Ej4YaxLIAYEyfPKbmRBF1Nng2pbnMQP
-# bOWxXEU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTAwMDAw
+# WjAvBgkqhkiG9w0BCQQxIgQg7jqRByftzT12yViyGiQ94uZuqXTNtVHdkaXf4Whk
+# LIkwDQYJKoZIhvcNAQEBBQAEggIAJ0gX9c7/x1dpknv6gceHaksA3EKXxCxEga0E
+# tcuK44PrZ/RA2rEl9YVbv6We+as/b9JZTRDuLbf8105aM7avQiKGQfngdpb+gXD3
+# wAo+ly2DMRHrjNKoRZQJLDUCcQ4qe+dHBqqzHGMIngUIuery/KNGqqqBueHksJNx
+# mvZ7TmGNzNqTL4R93dk2keYewRixKrfgkjldEXI6IMnLeCyWGGKx4ceYy/I3+KA1
+# CW1o5GO85ueZ9+a+8awTGe7tFHCzt2il3puOnj3qx80oPV0Xu2vZCTU40uuZX5pP
+# bkOXwxQH67uI+VPgMpNVutjiVsXo8njv+BMNNm59S4Iv3lls1Jzl+QTuwc2Q53cn
+# E6ZHcmE30nkMlx0wT2Jak/2t8Quuiq767q0ZJ8cyMLiCyhnyaWvD/JI0l6WEKPKz
+# /oThp8yAtbBK6pHe3iBTBItg1rIalQdM5pejZutXmoW50b8vM+H1A510gJWka/RN
+# sVZV70SyG7w6np0htrNPT8Lk6078VrbyFgiJspOQshezg6zYR3CsArznsx7Ey16w
+# mVAUdrmmA/fve51whgTr+iaQ4uiz3xdmkR6CYiCqIxBR0RXCP0ygzT7Ws/uJ3QCe
+# HftH9PIxrG5/ynGRCrY1jM6EOxb8j6sJyNvJXsjnqxPcQKCWW9CzTPlraUb6zRb3
+# CgIyCkQ=
 # SIG # End signature block
