@@ -29,23 +29,6 @@ Begin
     # Settings
     ###########
 
-    $Settings =
-    @{
-        DomainNetworkId   = '192.168.0'
-        DmzNetworkId      = '10.1.1'
-        Pswd              = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force)
-        VMs               =
-        [ordered]@{
-            ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-            AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-            ROOTCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                }
-            SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');           }
-            DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-            WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('LabDmz', 'Lab'); }
-            WIN11  = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');           }
-        }
-    }
-
     # Get domain name
     if (-not $DomainName)
     {
@@ -58,26 +41,48 @@ Begin
 
     $DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
 
-    $Settings +=
+    $Settings =
     @{
         DomainName = $DomainName
         DomainNetbiosName = $DomainNetbiosName
         DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
     }
 
+    # Password
+    $Settings += @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
+
     # Get credentials
     $Settings +=
     @{
         Lac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-        Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
-        Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
-        Ac3    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
+        Dac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Admin')", $Settings.Pswd
+        Ac0    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
+        Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
+        Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
         Jc     = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\JoinDomain')", $Settings.Pswd
+    }
+
+    $Settings +=
+    @{
+        DomainNetworkId   = '192.168.0'
+        DmzNetworkId      = '10.1.1'
+        VMs               =
+        [ordered]@{
+            ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0 }
+            AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0 }
+            ROOTCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac }
+            SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0 }
+            DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Dac }
+            WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('LabDmz', 'Lab');  Credential = $Settings.Ac1 }
+            WIN11  = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2 }
+        }
     }
 
     #############
     # Initialize
     #############
+
+    $ProgressPreference = "SilentlyContinue"
 
     $Global:VMsInstalled = @{}
     $Global:VMsRenamed = @{}
@@ -543,12 +548,11 @@ Process
                             -DomainLocalPassword $Settings.Pswd `
                             -GPOPath "$LabPath\Gpo" `
                             -BaselinePath "$LabPath\Baseline" `
-                            -TemplatePath "$LabPath\Templates" `
-                            -SecureTiering $true
+                            -TemplatePath "$LabPath\Templates"
         }
 
         # Publish root certificate to domain
-        .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Ac1 `
+        .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Dac `
                                    -CAType StandaloneRootCA `
                                    -CAServerName $Settings.VMs.ROOTCA.Name `
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)"
@@ -568,7 +572,7 @@ Process
             if (Wait-For @WaitSplat @VerboseSplat  -VMName $VM.Value.Name -Queue $VMsInstalled -History $TotalTimeWaited)
             {
                 # Setup network adapter
-                .\VMSetupNetwork.ps1 -Verbose -VMName $VM.Value.Name -Credential $Settings.Lac `
+                .\VMSetupNetwork.ps1 -Verbose -VMName $VM.Value.Name -Credential $VM.Value.Credential `
                                      -AdapterName Lab `
                                      -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
@@ -580,7 +584,7 @@ Process
 
                 $Result = Invoke-Wend -TryBlock {
 
-                    .\VMRename.ps1 @JoinDomainSplat -Verbose -VMName $VM.Value.Name -Credential $Settings.Lac
+                    .\VMRename.ps1 @JoinDomainSplat -Verbose -VMName $VM.Value.Name -Credential $VM.Value.Credential
 
                 } -CatchBlock {
 
@@ -589,7 +593,7 @@ Process
                     if ($_ -match $MsgStr)
                     {
                         Write-Warning -Message "$MsgStr Retrying..."
-                        Start-Sleep -Seconds 10
+                        Start-Sleep -Seconds 30
                     }
                     else
                     {
@@ -616,7 +620,7 @@ Process
     if ((Get-VM -Name $Settings.VMs.DC.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         # Run DC setup to configure new ad objects
-        .\VMSetupDC.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Ac1 `
+        .\VMSetupDC.ps1 -Verbose -VMName $Settings.VMs.DC.Name -Credential $Settings.Dac `
                         -DomainNetworkId $Settings.DomainNetworkId `
                         -DomainName $Settings.DomainName `
                         -DomainNetbiosName $Settings.DomainNetBiosName `
@@ -629,7 +633,7 @@ Process
 
     foreach($VM in $VMsRenamed.GetEnumerator())
     {
-        Invoke-Command -VMName $VM.Name -Credential $Settings.Ac1 -ScriptBlock {
+        Invoke-Command -VMName $VM.Name -Credential $Settings.VMs[($VM.Name)].Credential -ScriptBlock {
 
             $VerboseSplat = $Using:VerboseSplat
             Write-Verbose @VerboseSplat -Message "Rebooting $($Using:VM.Name)..."
@@ -650,7 +654,7 @@ Process
     if (Wait-For @WaitSplat @VerboseSplat  -VMName $Settings.VMs.AS.Name -Queue $VMsRenamed -History $TotalTimeWaited)
     {
         # Setup webserver
-        .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS.Name -Credential $Settings.Ac1 `
+        .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS.Name -Credential $Settings.Ac0 `
                                           -Force `
                                           -CAConfig "$($Settings.VMs.ROOTCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.ROOTCA.Name)" `
                                           -ConfigureIIS `
@@ -665,7 +669,7 @@ Process
     {
         $Result = Invoke-Wend -TryBlock {
 
-            .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Ac1 `
+            .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Ac0 `
                             -Force `
                             -EnterpriseSubordinateCA `
                             -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)" `
@@ -714,7 +718,7 @@ Process
     if ((Get-VM -Name $Settings.VMs.AS.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         # Setup webserver
-        .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS.Name -Credential $Settings.Ac1 `
+        .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS.Name -Credential $Settings.Ac0 `
                                           -Force `
                                           -CAConfig "$($Settings.VMs.SUBCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SUBCA.Name)" `
                                           -ConfigureOCSP `
@@ -731,7 +735,7 @@ Process
         if ($VM.Value.Switch.Contains('Lab') -and
            (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
         {
-            Invoke-Command -VMName $VM.Value.Name -Credential $Settings.Lac -ScriptBlock {
+            Invoke-Command -VMName $VM.Value.Name -Credential $Settings.Value.Credential -ScriptBlock {
 
                 Certutil -pulse > $null
             }
@@ -748,7 +752,7 @@ Process
 
             .\VMSetupADFS.ps1 -Verbose `
                               -VMName $Settings.VMs.ADFS.Name `
-                              -Credential $Settings.Ac1 `
+                              -Credential $Settings.Ac0 `
                               -CATemplate "$($Settings.DomainPrefix)ADFSServiceCommunication" `
                               -ExportCertificate
         } -WendBlock {
@@ -763,7 +767,7 @@ Process
                 {
                     Write-Verbose @VerboseSplat -Message "Issuing ADFS Certificate with RequestId $($Result.WaitingForResponse)"
 
-                    Invoke-Command -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Ac1 -ScriptBlock {
+                    Invoke-Command -VMName $Settings.VMs.SUBCA.Name -Credential $Settings.Ac0 -ScriptBlock {
 
                         Certutil -resubmit $Using:Result.WaitingForResponse > $null
                     }
@@ -804,8 +808,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUv+b9FT9nw+1e2yCxC/wWzPnZ
-# KBSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKAQscuWeDQ6UUIxFJeo0GtP+
+# KcWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -936,34 +940,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+qzmieoq
-# 3bhJD76BMWYMUcjQ0wcwDQYJKoZIhvcNAQEBBQAEggIAe8HmKnS6bw6NoRI/+0rp
-# DPhFPNtGv7QzH96mWN1TzL9WFrZGP6+jcZCTb6wapMrjPIin0oQ4J6XEdzyibasw
-# tzngq0Htcc1yyVHHVl1FgqfaZepSfHNspkLbHjQ1FnJcpMcCJX2oejlmtKG2m0Gn
-# kI1RLpbyztD1j5HTbkj8Fo1VTzi5a0c7OtSR3PtsnEmyEXd1KJK4N907h85uDLAZ
-# u66nhNzwepOHnGs6GCRl+IwGFRdASoIkp1H22ZJkHaljnBw33cX/DLL8A9oQSXh1
-# PUCLHHtPbLW1LGvGyw+wmaljBMd22y1pc0sHMokHjhfRwv4Et9LYK1ER5ztlOl9A
-# XE9LaZfT7f9oT7SjVxpp+FdnKH01H3qbTJfJmT8JAWVpXkJDywkTY9c25fv9UmAf
-# VU8x4i3jsvXpb8o/wddNUf6G1VHM6RFmVQlvucKWlUVm6VD9P7p4qkjCQTlEXsFd
-# 0XJbb5lT0MlpFNzVcZORpAWx8i+6ysqiRy+K4JI1y+Ef0PBgkSeGNPjE+7YwsFYb
-# 5Phj1gW1VLMb+1c9NJdCDyW6TNi8KDgZc0pysiRjvJwPtDXdE/Pu7QBOpNAHiP/P
-# zq8tOEUhgpfcRcFsbBqovKQ9D/TB6CJ+iONBxzDcHlEAhRaqAD/T9Sl80y2PdLoF
-# E3SGBtScy4F28eyitCN3NW+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUAm4mChOK
+# LaPv4oZcfRSsqdsC02cwDQYJKoZIhvcNAQEBBQAEggIAECJUGDUfw5/CQEkB2QaO
+# Cys0GboZ6mEFLGKrWnhRC6OEadFzV+7eitFbbLi13G0cdEfx45W1g5+zZHHoiM/N
+# wUEY/jNkxCDZJlFcYToPyJ+ltlEBjk6+DsVtNfg+DsFWTyJGcR7vQByKQarxLsSZ
+# wQhZGq1WobYwHJ3+he2Vwvaai6WWtPWPsnTgszXGwGKds3zacYFfQSTkagiY8BLe
+# 1mcOjAouwrafnNxXYYWLyJuFCO89d1JXtq9xUmsJak2nAwWCvG6g+dZ3HW5i37vU
+# +lIMm9mTd4HMQve20WZY+ulbbV4R6ylBjR/pShaVeQOJY47rRarpYJ47YI+VLYO1
+# NG0//orz8BghcS+biEa9Vl+r2TYAxPVG+u4X28ERe2+PDS4Z9bDVRxs9Zjt4n/uC
+# rX+Tqb4lEDmPIQ+1X/pXOeWQB3swLMK14qpWUmQvV6qnkkpcGxejdJ/DmGbA2V9M
+# HxVQ7Z2cBrPeMdg6BaSimJoa9YvX2wptAGstnL8rbf3o31SslMMUVU3ZuAs+L9eH
+# md749k5KoX49iBC3AFjEVV8agHgr4jTb7VcyRaq31YR1J0xRqv//+F9Gg0mHR3rQ
+# WbvWWF5lRMFW7ZxxTd3LqzWTLeTiSKkPkdHtiXfSwHVLGUsfopgF5Glo8IU5xBTG
+# nUmURm8tQCEpmwcw24ZgOq2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTMwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgfDDMMqJhW4Z0llvBPhRfAZGFi5BiUgL7LhHmShj0
-# 5OgwDQYJKoZIhvcNAQEBBQAEggIAdvNu5KFwOkFQoLuwWGDiFpvzkAC3K7JF8koJ
-# w8woZQzsSNsz54pipLQFAwUjOz4Aw7ZjUrQdoEoqjbKGaB4i1qPhYCdCzTZmBMOb
-# b1uDCR9SnouNJnuWW1BGyhmsjnfdHWPKRFc/3epmyVY/hxv8TshhBfr9HBAfFFfj
-# NDlFUH3HD1AmmgmWiOWH6lZt4Dm4qCWScY6gJE1GNPyF0/ZC1qwQPRj3y4uRKJwT
-# ZcmKpoIngiOSwLhWImdkUr8gYvMuecju93BHsC6bLyQJTqO9coY1y2f6XTPGf8LE
-# BiqgB2oz7igRXoSN1ft7+E/NKrY52qGBX7XIZOGnqvyVxL9GYjdwhSJ1h2SFB40d
-# I7y7gBdu+3dCmo/4BZ5/Gqxm9aUk5veVexZOQhezD5jLOsvgmQDzAlRSqPTAnN0j
-# oXtDpAZM+pI9sVnVWO2aM+0EH15xDuTCXACzriR++KfhZHSazuGAV4em29VURKBE
-# W3KS3C7ItfsG6nYQHdi0UZnmyHmypztIP67hQi0xqPP4HTJti9QNzLZ7YNkGR4oz
-# Wt3zMCr3uormOXJjRNYbT272+FBU40YIeN/IJs9o65Rj78uZ6sxaDt4OG4lZzhJJ
-# Q4X3DCllBeek4IRpmqaefxEDZa3UYjDxZ9jAk7BfWglKilFOfUl7hD5F8HgFGjvu
-# rkbMjVY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTUwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgGlGYSGFwXTQQOL70OMi1cc0mjhNf1+zz814JQGjf
+# MZYwDQYJKoZIhvcNAQEBBQAEggIAP6XeZ+AjwYs7GsPtf8pIassItPCAUTXWmzUm
+# 856kNly42BC10GEpzAGEYGroooyEAGr6YvQX5JLD277pa7Z+Qi5JEejEnM6T1Fgl
+# /KKZukgQrWxTJQIc2dJut+uOy3u+XxnBex99k7/u8ErfbQArwxsR1kZJrvVzr2RB
+# m7S0iveoqQSVqMu5TBSBowuqllVs1UQWQ16jGh1apwMZlak0sywdgj3gYYlsg0r2
+# Np/9+8d3+mdfpyicAAQCvRE9aY4o12iVPhpm+294yKLHOA8sOncqk4hXxzlKtUb4
+# MdM2QTc/huvNZoT2U6l1jk26jLvYfdI+nJ+d6bUE6seBUCgtDDutrfMfXDZ312he
+# 97LDbVVM+rdr88XFfY+dpdj7aLYf4vWeDBwOt+xtv1f4YgDlqBCCJx88C42z5VFu
+# ruzBfOa3u+4TqMHoYWg0iohuDm3G2i4dLlW9cN9D8BZ2+z5OrGoWQ5sPyOyOrwC9
+# gpugbt0B/g+Ths3qbyGCsDwipMxYKM9IvwnNq1lSnkOX0n/WQPlwA0DwPv8P07Mr
+# 7sTiv8D33CJZwnNVY8AWfrqUY3aD0h65Qn11WIIh8mnJ9OYcgi9A3UMdq/rT7d6W
+# Ae0SaE9hXS/NYwPyaP7W+I+bZZHt5KaOsyBCGb8ZFzz/t1RlhyDLrMPjD1O6hMR0
+# /4q8uDg=
 # SIG # End signature block

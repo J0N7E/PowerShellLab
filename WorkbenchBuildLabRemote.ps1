@@ -10,27 +10,18 @@ if (-not (Test-Path -Path $LabPath))
 
 Set-Location -Path $LabPath
 
+if ((Invoke-Command -ScriptBlock{ pwsh -version } 2>&1))
+{
+    $PowerShell = 'pwsh'
+}
+else
+{
+    $PowerShell = 'powershell'
+}
+
 ###########
 # Settings
 ###########
-
-$Settings =
-@{
-    DomainNetworkId   = '192.168.0'
-    DmzNetworkId      = '10.1.1'
-    Pswd              = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force)
-    VMs               =
-    [ordered]@{
-        ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-        AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-        ROOTCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                }
-        SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Standard x64 21H2*';             Switch = @('Lab');           }
-        DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');           }
-        WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*Standard x64 21H2*';             Switch = @('LabDmz', 'Lab'); }
-        WIN11  = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');           }
-        WIN12  = @{ Name = 'WIN12';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');           }
-    }
-}
 
 # Get domain name
 if (-not $DomainName)
@@ -44,30 +35,41 @@ if (-not $DomainName)
 
 $DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
 
-$Settings +=
+$Settings =
 @{
     DomainName = $DomainName
     DomainNetbiosName = $DomainNetbiosName
     DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
 }
 
+# Password
+$Settings += @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
+
 # Get credentials
 $Settings +=
 @{
     Lac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-    Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
-    Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
-    Ac3    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
+    Dac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Admin')", $Settings.Pswd
+    Ac0    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
+    Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
+    Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
     Jc     = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\JoinDomain')", $Settings.Pswd
 }
 
-if ((Invoke-Command -ScriptBlock{ pwsh -version } 2>&1))
-{
-    $PowerShell = 'pwsh'
-}
-else
-{
-    $PowerShell = 'powershell'
+$Settings +=
+@{
+    DomainNetworkId   = '192.168.0'
+    DmzNetworkId      = '10.1.1'
+    VMs               =
+    [ordered]@{
+        ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0 }
+        AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0 }
+        ROOTCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac }
+        SUBCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0 }
+        DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Dac }
+        WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('LabDmz', 'Lab');  Credential = $Settings.Ac1 }
+        WIN11  = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2 }
+    }
 }
 
 ############
@@ -591,8 +593,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSnYrq6Di7j9QIkZw7TXy5oUg
-# i66gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUl8nTuz/FXQ1QZwK0izfBO4Aq
+# jGigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -723,34 +725,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUY8Dey1Ck
-# qX1S8fa8v1UVqCzzSqAwDQYJKoZIhvcNAQEBBQAEggIAR2a/ze/dQVsoSJ9qwCw7
-# xNjzYvPxP873ainjAnCwLIn1YIgaRHe+JRsq4nQ9jw1wf/JH0a3KyphZNaV6obdf
-# cM8PO15u3cM/Y6w5NGaYg9FOrbCrBjtnLB7d3GdKHn4ip2XJpTiNOubFFsnsp4TZ
-# vymR4NpAK1RllsClchpn4Eh+M/xPj0Uqgc9V2JK93n3UUJSNUoXDjyvD1/zk7QJo
-# fbSl8HKogy0pBECFkkw7STAvN6E7LX5DMnM9qlJY9naIh34mUg3K5BfS0dGI8yKP
-# v4mDoVxubxYC4ETX3SWVB6C3+vvz78YkQc9oM5991omrSQlsTg4QtVUg1YJAGQNX
-# LY7LNe7peSR/JaZsnSeCyqh43c8nnd6yaDj2wvpeDCTxzWjzAMPWvZpob/ybfYfw
-# TOPWvfbDRbqkVwgYi2Zyc5BPbHzVQBOgvx98k1T9bsd1RNvowOz51hufR34FC5lc
-# RG7Z1reWfvh95x7Ds8E7ShSr5aIqutg6igUtapze2jXtKXrabM7LSsEr/l1KKAsL
-# iZ0NGq+Y3A4MYTLJwn4LQ84skm3tMQfB+Syx0h6umKJjh59E/xxgMy7Y9wMWZeNI
-# 5o6yrI34Gx9EkYpBOWH7oAY8l3oRUR/+vJKYoP6GW99tU9931XKba5OX5D8DlDjy
-# iEFSYaTmJnPwlW2THwl9dg+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU81YJxNWZ
+# j9dQUlmsWbPDNDNri18wDQYJKoZIhvcNAQEBBQAEggIAbisGeLTOZ1maRlGNATUO
+# 86zIWUJC0SBRlDwEGFDtkS6UzEAsQZZQycQLSQiYcTSBz8T1vVJIodJpqm6JSn9j
+# obY+TSG21OSLDc07Vkm3VIirF8oX2q1QQ3AxgbM3+sFP/5c5rdHsp7atiHLbHIsv
+# YdEU6wnvw9hZnwmVrkNXDX7vkCIbrnn4Bvm36QefcZ5DLbysE2YSriP6TBFqH7/K
+# 3QgmsJGGON7DFEblZPzw9f4QdEecnLWgF33AEzOfYCCgbwS3p+P25GahUYju1UJl
+# oL3eZVhFcGHSQmU3BWYhv09uZh0vMG+IF+TkoNV1bZ29nK0peMtdaqR6+OWLMxDe
+# JCubmmGVaUuGT4oe7Y0HLUAoUb71WCfFb7P0i9Izx2R8vRk4Z04nvyzNscyUehit
+# 9TKK96yd5UbsBYYq371NOIzToI9F0aX/P5XNuViM332BC6J28iSCag6NILB1vm8T
+# WrKvhkcDy83o9xZGvpVBJcha3areMveZFqkP5JOnuiPDoi9dRtFLTYmJugnRkT0/
+# kTVPuraFpEl/3YLKHpVXvNMIGLS7rBSDsY5yncHbYRYy2UtNq+SaYRTaBuWYQCbY
+# 1PIVPWcDyBgbEqaKIUDwGzhaK9uKgKprFer/5q/mF56VOA7jJsiDLZV/iqEYATyD
+# 2isNW8IaqOs2gumN8PDXpoehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTMwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgTjlzZkDuxh6BtWX1PdyzgF3Z8QJaSGMxluTNS3zD
-# KmkwDQYJKoZIhvcNAQEBBQAEggIAuWZa9rlBwmKKaI9wVi9KZnLvBL+UskQMwpvd
-# iA8PJAdJWQU7I/7hx5E67oXLHc2O9mGHHUewKc4N+3bKuwWw522AVFp87J/Ztewb
-# L6GOZr513ggkxnYPIGMHcyKN92cq6kae/WBWLTwJqX6qWQGjBdU3reWsEflhJ88R
-# TbdjpusXyQIy2iFRAkjqxCtuY9GlXc6MrIMomRO20ZsFBEg4oB35wffLjf17oDTH
-# j0nVIe1Ma3pQBpIkiEEJWpP7+ZF3346WWFjnpeabI+Gd0pvPGDtNRnJgz71WGIci
-# DDUIAy9FamttJOmeLkq3IDah5lHxvkX5md/NmH814E/lnqqC7iKMpZ88qrlrzz2O
-# HShchdm2K8E2CMp+7yoIhV/O06vhR+/G83s16NswZXNi1hEUlLYJ9REtNTfJ8ikv
-# CE0Jdr2RvetWBAefMNB4kMphqO8+Zl/4POhHVozZgz2ndnqKuY/ipr46wFg/uivV
-# UjCVspeWjsJH8IOmC89rBLQjA7BfxE14BKHdFgdEOFw3mmX43spkJEF4qWYfMYJH
-# 1p6fvuxof9J33b848u1yjLnth22ycSmvrTy+xM6VmHqPZ6jic1gXCawQbmL9LixQ
-# r0I9uxLdgg1/Ohp+P7v+Z17js5gzRQUoyKLdNND8r+/pg40izPXBm14wS3lrP6lK
-# a6soLXA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTUwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgVPLI04stwZXo+4J/5YfeBPt9oyoX/I65zkiSfVYx
+# PrQwDQYJKoZIhvcNAQEBBQAEggIAIjmOZL5XvIgCU3FhnLiBE9MHrKC6uEVRaaDh
+# wi6hhYsb8fPPePQd9gXcePIYfACfPEr4inqXXWyH5BrnmJWz9PXRCfby70Mo0JN4
+# jonluVRniF98nAFfnPfnzndXNKwIFgw3Tgic0pivyNE5t0bwMoVw2wNFfXFfex6Z
+# z0cjbFfk2l5YQPVjmGG0WafKVxky89EJ24wmCYcI1SDVF6BeR7e2zJoZpf5CktyZ
+# +lC+oHqWMkXk2fpX0XIzzHsC+oxeIVo0uNY0TksaErfha7toU4SpVLssIqyR1Nzz
+# GiXLvzyT7h8A0l9cLgGKPVfhwEnbr2m6LuKr74OkrhEQx+RB0A8FdSr/bUM9MMe2
+# gWPHdkbmULQRmRM5zxdJvXhRyrRwt7c75CwJ6M05nHKAm6nUD3JpfwtAPBZ/k1d+
+# FLRiYAT9/Rsu9WMEWoc/XVC0Z331QfSmBU3vj/h9C0eYv91so+clthEnEkXufFHQ
+# wBdSHRz1h39cx9bTdHbwp370StrZNmyz6iyRtQE3gMpysxQCY8zYJk5H2kkYffI3
+# sv6VaUYyP9W9tdTA3Db9/FKzePUqtRJWXmKYR5bYT0bdO4HWra3R1iV+VQI/Z7d0
+# blocOARVzCfFrZbwQkSW95TCyWmZJ+d6Q3ql1X2tvGOg0iUTFjT64BMxVXrF96OV
+# xtsCZ3M=
 # SIG # End signature block
