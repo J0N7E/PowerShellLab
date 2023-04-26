@@ -689,13 +689,13 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
             {
                 # Enable schema changes
-                Add-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins'
+                #Add-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins'
 
                 # Update schema
                 Update-LapsAdSchema -Confirm:$false
 
                 # Disable schema changes
-                Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
+                #Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
             }
 
             #  ██████╗ ██╗   ██╗
@@ -712,7 +712,7 @@ Begin
             @(
                 #  Name = Name of OU                                               Path = Location of OU
 
-                @{ Name = $DomainName;                                                             Path = "$BaseDN"; }
+                @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
                 @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
                 @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
             )
@@ -982,7 +982,7 @@ Begin
 
                 # Computers
                 @{
-                    Filter = "Name -like '*WAP*' -and ObjectCategory -eq 'Computer'"
+                    Filter = "Name -like 'WAP*' -and ObjectCategory -eq 'Computer'"
                     TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
                 }
 
@@ -2103,7 +2103,7 @@ Begin
                     }
                 }
 
-                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
+                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl -Force
             }
 
             #  ██████╗ ██████╗  ██████╗
@@ -3215,8 +3215,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoZOEsIyaZyDAFM7E1VK/Lrkt
-# Iq2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUE2t3IVeyvtXkDxmB8gfjTZ3V
+# 6KWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3347,34 +3347,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBENS2zPu
-# YA0SRb121532bvscMJswDQYJKoZIhvcNAQEBBQAEggIAo8rrsUNe3WnjMqeQXa8V
-# OqFNKg4W/VAuwxd6nZPRLFnO8MhRqF1UhkIMssXqg0AD+Q9iVI338R5putAcJWWX
-# +wzbsiJtXmpHssgsetlaZAsrWun58B+JiJO+65ko1oTOwUJnsH3MINTy0j/aWzrX
-# F0Uvvg8gfsL1JvUqJDfhsv+rYizYX6WX+6qxIXDiZUlG7tyikvONbgoWiaOEo4q0
-# A8omKJrU90rBPkqo3md6Puo6BS6G5coLNEhYjxQoKBQwQ56NCfo9i+BPre5fTSl7
-# cYZK+mI9jKPyNx1NVgCC3wTeQlJ9mo/Y+NYvmWxzwXGfPklNttcbwqN3GnQ4wfhI
-# Tn/0gJ5XUtwlc7jxNjz158wTHVCXohSD6NQwy+wzcn97l6l1WUIztHBlmEHcegwJ
-# fBW9rBydh8j+sbsbaQBUXJrGWlngo6Ah/WbUg73ot0WC8FbQY04NaK3rm6Or3WIm
-# AjNWJoUXFsHLvzhG60oe9YMgHtkXbZjmRi6+ohjgaNYlaSqVcsyJPEIqT6PdD6Jj
-# OyLGsgqpJLi4qEkvtoI0oYYleR46jYH5EyBSmTspfx71OozAB9ZtkehQUb5VKf6q
-# +vidnYW6GDkleSasDM9lmor3bbj4SBIiyWT65P9tL7py4M6y2CM7DwIGIPBz6mch
-# k8HCqCkv/qle3YGw9L8E4YihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4255gOJK
+# XDiVkrC3lHjcPj6LWMMwDQYJKoZIhvcNAQEBBQAEggIAayvlk4XbWwCTxF3zXokV
+# XU2KwHrZHeblF8bPidYMP0QCb03fHOJUnDqzdfMddtxf7y0i9hFzcPFZxWoUaCuL
+# aTGiq5aRGgxFOb7pzbI/wLYZZUA4+/UZwimhw1KC6Vg2gt+mN6Yguq/Jl4wJoREU
+# jIsA4LtHdduQxYxCt5uagmCNMh+IecXBcn2VRDMgIId++X7fVEnFi1fGd8bWmkjD
+# P5o0i5VuAL3sZUB/GeRu/3v54ERWnHkWGET0EOU47sH5Luqx7OgBDClA+XSdUYlk
+# pPLmWeTDNUrPLyiNxCuSmgX+gzrjQrXZTVfkneyQR7VM8u6kGozwaofFldlz/oEh
+# aZwgw46mrUmXuOevVMpfa6PFCcIfvsfPJ64Dmxx0JXShue0R9StgpVUHqh+GTKec
+# utiFVhtvX1ejg7YUK9VZVDb3vCEwrlxJYVAmYLfLkSdsZMlVPC1kXGFreGZF41Uj
+# JKMmFhAlvBaBo+V3zo0dP0s3BW8JE7uovYlPhSZTp2om9OzN1wTdMxRTGnI03ksl
+# SaY6MZDJXbO8Hz0cZIBqUBBUiKjnLG9CUWPv1YgACH6C0zrN/Paf2y72GjRIWKrA
+# WlqymjnYbHtM8BOCD7ly7gOclbbD4e48GRVLIcKZp/RwGx5/xOoJBP7Jq8Be9Eck
+# H6W/K3cpP02xe3j6pTxPKqWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI1MTYwMDAw
-# WjAvBgkqhkiG9w0BCQQxIgQgZ7YiI2XIix9cNTGT80YiOoUW8BgnOb4nwPs88Cxs
-# jbwwDQYJKoZIhvcNAQEBBQAEggIAacSe75vk5fYJopNSCwM7BupCpT+JwyJZnq0o
-# 8VySbvUeYgUbAw69+Ym2r+9sthzGROw6X5Q5T7opQ2djNTx3n/S+QYlGyrxPPb+m
-# WpqZxl9g01yQSVNT3oMqxfejCAatjkXLQ4KMk1sofCcBtKVrw1V/n4Wr/b49Vfen
-# WRpjyS7S3wO+A7DetFXRUfUvZiJhjffR/IBRiHRN0DrCiYM//E4Uf6DacLcL2tyg
-# haBAsji39O1pI2KEDkc/SCGJ5aP2SBRjl6ojkP3mBzKhgd7C8ENOP3Put8xKPeWO
-# D+aicba4d8be7z2FZLuPALDzOrqBPoTHe6BajxqlFmLtjUksdBlIw3+iasusWIAz
-# g5GMKLPFv1pk8i+ZDXUTI2+2np6sdfgFzTxEyu9lt5OFGAGsoBw9Wf89+K6cv/iM
-# hDFRJNAyTVLnw+oQv2V+lKQwMj2lHX2Mp8zxCz8Hj8QNRDwNBdwwYNdvk80tXS1J
-# Ke31fCXsndo2Jlfd/w+Tjs+sWMe0kWirrGHvfxlrCZKM/zJMJE4VwVDib6WYPs1l
-# A0yWcjflpS5FaBUqB/sVz8RXnrg6GrX4T/EgPgSaqYaBq0qD8T1iBPFSaRFY7j+9
-# fc/UasKWpEkc1vtAeSFfhHkaz5FLzXJokYVjtfkwXcNJ4SuF7phgDB1jwNz4g8lT
-# X4v/fiw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MDkwMDA1
+# WjAvBgkqhkiG9w0BCQQxIgQgaCcIZU/hWsFl75MUX2vbfDKDWSD8vTF5u3fcI8HX
+# IIUwDQYJKoZIhvcNAQEBBQAEggIAFkXg0YSBX3ZdQrod8XRRoBNZ4KdFcoSXdRoB
+# Z88UKPcGjphmyiCm6wwqBeX/wSVuSJcOdm1TGwS2f4f7ga85UpkFx0PUWRicu3pO
+# OJ0ZSg2e6xi25cYCGlxPygcokgk2m0T5aML0rZtkEzUjUQItgcEDF9I6/q8oKoo0
+# cMf15X/fzP3MWHXWrD+dswFXnjK6Bzy8bQcZM1Q70A88U9ZOMUaOy0uf8MqqhG5s
+# dUHycynCem7ZyCJtdtYHRXi70FX4sfgDghCM9lY/1R3gduHz2Rtm52JchIiCc26/
+# VrYJUNnZZsDL8mgGVzPtjwAD+85dHfAZ6fcU/lYjF0+q4hgHzAo/DRezAnRr/VV6
+# kt5OrGXSifnNSYhDUYsVvSqH+XWXejr6EmGkgBnxLF4NqHlwuptgBgtclUSbs+cQ
+# sUUzD3OoW1h/hyyVmWQBk6Zl+DX0KT+reJ2dXfJidkO+0HT8lM459oNmZfr+MYW7
+# lMdSi1BJOjIE9pvJSBvaTgZ3P12fIJyGCWubnOgi1zKhMGLBrrmhKac1hxFTq88U
+# zTQUnYnERY03HMeiLvviWMrXgw6a0pnpTEubfQ1NLMb6Q8v+5jb0HTSOmls1xEz0
+# nz2ebDF2qXnuZsAmMpzeskZcWOcIrvMylZ0HHYEIu3KqL8zR3vpRhSdi4aPCEv++
+# 9OwqOsk=
 # SIG # End signature block
