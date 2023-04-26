@@ -548,6 +548,7 @@ Process
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
                             -DomainLocalPassword $Settings.Pswd `
+                            #-SecureTiering $true `
                             -GPOPath "$LabPath\Gpo" `
                             -BaselinePath "$LabPath\Baseline" `
                             -TemplatePath "$LabPath\Templates"
@@ -787,19 +788,19 @@ Process
 
     if (Wait-For @WaitSplat @VerboseSplat  -VMName $Settings.VMs.WAP02.Name -Queue $VMsRenamed -History $TotalTimeWaited)
     {
-        .\VMSetupNetwork.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac2 `
+        .\VMSetupNetwork.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac1 `
                              -AdapterName Lab `
                              -IPAddress "$($Settings.DomainNetworkId).100" `
                              -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
-        .\VMSetupNetwork.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac2 `
+        .\VMSetupNetwork.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac1 `
                              -AdapterName LabDmz `
                              -IPAddress "$($Settings.DmzNetworkId).100" `
                              -DefaultGateway "$($Settings.DmzNetworkId).1"`
                              -DNSServerAddresses @("$($Settings.DmzNetworkId).1")
 
-        .\VMSetupWAP.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac2 `
-                         -ADFSTrustCredential $Settings.Ac1 `
+        .\VMSetupWAP.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac1 `
+                         -ADFSTrustCredential $Settings.Ac0 `
                          -ADFSPfxFile "$($Settings.DomainPrefix)AdfsCertificate.pfx"
                          #-EnrollAcmeCertificates
     }
@@ -814,7 +815,7 @@ Process
                     -DomainName $Settings.DomainName `
                     -DomainNetbiosName $Settings.DomainNetBiosName `
                     -DomainLocalPassword $Settings.Pswd `
-                    -SecureTiering
+                    -SecureTiering $true
 }
 
 End
@@ -825,8 +826,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUc3BpB568tm93iia15wi31ihJ
-# bhOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCee4eJsCXjUyzxpsALRseJjh
+# RuqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -957,34 +958,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUPJx0r79a
-# N5LDtGtgWRO/RKb5Az0wDQYJKoZIhvcNAQEBBQAEggIAamG+f9uMQq4XhYlQTe/M
-# 1Xg0iWxKs/7dIL64NILQhBPCe8fg47CQ6Bc3UkTH0WWte8DMem8T4B+YhRzKC5WA
-# znrpZIdAQXNExVCoakOPAJg42GoKiUi3203bAcnAX+yg9ItMw0K8pW0GvpCEiWPz
-# +ccWrrl7eJVIrySm5RLkUXbZeGAybHFLFh40lqKsrN/hTPm6pSVF6K49y6mYjMfz
-# 8Re1zmrjubejGlyvVLOJvVDFS20lwWU74jEyLnUYglita8wO8IB0IztRGc/FC4PK
-# ED+5BrRw/3JGwULlMdhVRr9IczqOnDaZboEQlpfaRZwY6XtChYc0CRYPc7c5xK5i
-# 2xKlu3rg4dEvcnz/d7hD4Pnjh/9Wr6A0PiKD24Hqd/qukKcNIHFArWEvarTLxSyI
-# 6B4v9zDM7YUAIyr33AWVW7EvM9vNseAD6lzwXQSI0cRjqDl12j3DTg8w8QnhNJdk
-# pHpVnua57Sz8WPZmsv5N/iYUwT+LgNxyaBls9iKSxB+4FBt+ce4W8d3SZTL0U84h
-# F8dNfGQ9MyyD4dq8j3ZAsS/1/cS/KnXXTwvd5nhTqJuQ6N1+gfKhXXa9cjjgMpOC
-# oW339SDe+UyJC4W46x87lfv48XBco9aacyLmmVi4R6S2T47iZgjjF3nKD2E0MXDf
-# fuI51Y9S+HAX3oH79S5ps2ShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9YXoSKlr
+# 7SzzUDgCvb4h0NCfy90wDQYJKoZIhvcNAQEBBQAEggIAP/lcdwIjMPGSheC0RB7U
+# w8l/VJjNhUBnE1MXMKlOtapCiWC9x2QVtIsZGEn5bLjD8cO6bbh0LQySQaZaT+uF
+# wow/qP/jTa8JvO88y1kJ7q0NhhwYL+5Tzg6HgpaJyV7hWXg3RaQ6+MjkQKa2Cj0c
+# JEySdY+JyJg/iMcT7Y5z3SXCSZYLynrSGjJ3Fbd7o95bY6ltEnvUQ27+YJWzPCi8
+# mdBoZ5L3wvQrJuOfMN/kw8E7gwZDtUuKfqfcQ+s31ad8vEhXWd+ATngHiAmN80o/
+# X9M6mzZPYxNxZuGp4CJay8p0wiz0PZmPanI1bxaYE4eQYMXTCNq1yJ8niEUToDAq
+# fkO5flZfptH3+dj253cCgLULgFhu6MdNCD/A5p6VSICNwX93aDs0EyiYJkzy5osx
+# fU9nThRnNZaBLFeRgx1DW4RtkzHF4WXZ0zoAschEAWyXRQwu6+qvB/7T5hmeJ6rI
+# d8+a0JNehEepPMIKeOC3Vg49kQYe1E4sgMgv/baWlNpvUpRuhgJvIYMhyZZ+2qYq
+# d1Ydil+jgDzWbiPiBDwUE2MUiCH4yLoJ+xqL/gtxBK1MVvgkrC1PZRSY4D1hLNpv
+# a0CePXPOSMAyhMM/eL/FdGADmmOf6qx1haBQAXUVPas4ErxA9xDqQwTBnOZ5xVIc
+# 5W8ixmIWhxhJlHatQHP9b/ShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MTAwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgQEIe92jNaHhdGlqDk++VoVfB1KdxRmNRFtRXE6YJ
-# RhowDQYJKoZIhvcNAQEBBQAEggIAYaz2fuZRycv8+OoVzqBUega8nA1Ob1fZ2RMg
-# 4V8d3HpD1E3zpp855g49V7hanSzW1Daftk4E+X3UwJqpaObgkbnBX96SlGXuQyzs
-# YlcxsG6SG+hQFjAbLDje6sYaWoR3Ay7yDXqaRpSNCcOUB5UdFEXHsRFddLCpvXPx
-# IwsKyKAkTbqZ8Mowe5iiYzgp5yhgTyQNrSdzTllfUWFcbECDTWZ8nO9r5SrmyywS
-# eh+yZ5CJG7z5+7enhtrmmjUOrK7+HtRFr/GUKIlevw90nn5GVQw4PgEOO4Qbc4PZ
-# Gl8GRum3GHj9KyfRkty20crT/jj2iZhnfVG/S3YfFqkdO19GHBXChGNXN5JsnOYO
-# LmeNJyk+OpAtULbeHfQLtHSZr2AxMKZjNH51PAbEgza77oDwoeQOkLwIvwFPTkMx
-# JFNJGhoxrWXUXjHesHDRRnsRtUrXahRrEcQW2Woe7L9uZy8FD2URh0Tpsb3bhWzY
-# /YsZPVmreEQsjriFJy2iThykUJqbvxs6+sY2oqTQxa8S+doQa+kZZGrvOexVLYT8
-# t/AuzaSC28Hbm7mMh8UmfYPMKhwgKvjtxk3+nard5C65xKv+ThxXhB8R8GGtQ9Xj
-# 0vm/wmT4nBHzqyh6kUGyq9ib+fBvBHSRLv9JJkhPNeqE8ya0/oXPpOP9Tul+jAJs
-# upnqeVo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MTEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgtY9KAHt8k3m9NjOlJK3epp9+/3hoS9FZnbPJPxS7
+# XlgwDQYJKoZIhvcNAQEBBQAEggIAzouHdBvnnRudxrVhJGHzlW8vIR/kQQsyXugs
+# +5D8NT7JaciOwxdLTZKn4YcymojBDMpYp3JYnK0EHSiWAIRWehoSJEh0ZWcXdv+j
+# dxVwrdv+fZ89aATTyMl+kOL5Yvh7JTT4Ey/tHvjgwWzDr0n734A0mhHVO0IVZ59t
+# vyQTOq4Ud7Y+ldq+RcLvIs93TOk9/2QQtTtseH1LK9W2sZS+Q0yDeMAMFnWmQFU8
+# fn52qSd2eVKdWhWdcXlcSR2LipGSWUTxwFYMvCI+HPc5EvmEA3g1O7eNKcuEd4Ga
+# kc3OxhZfSrTftRTFg0geASePwcXU/gRs/vQudQljn3ZVYBYQIvtodAgtTxIOHIr1
+# RUaSwz0dheXQja/BRNYtkeyysvuEeDLvIhlLnu0BRjOwQ2AdbW2WdMq6SXrCoE75
+# ntNcnszjjCc4eG5o7bbUpjvqnDqaDHMW+E9ZhwAHrqfZlfsC4n54OmVA/Nyj6ntP
+# 0EW17m/xIG04YtJr7bRRpbVBZy9d8edEmsMH9G+nBCv12AG6b5zcOwSe/3B2VgoK
+# 6e74RMFMT+zouzDIyks4u9rbHPxKOVQnNgZPT0ygWDQ83wDU7yugDHqjwx8+l8iP
+# 4Cf5Is/rnylujplZqEekfrCjzQBbajpXS7RNKPQywsLSCfh+2+2wJLlEmM0WYGSG
+# VvkJcco=
 # SIG # End signature block
