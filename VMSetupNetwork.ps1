@@ -93,7 +93,7 @@ Begin
         foreach ($Adapter in (Get-NetAdapterAdvancedProperty -DisplayName "Hyper-V Network Adapter Name" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayValue -notlike $null }))
         {
             if ($Adapter.Name -ne $Adapter.DisplayValue -and
-                (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Renaming adapter `"$($Adapter.Name)`" to `"$($Adapter.DisplayValue)`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Renaming adapter `"$($Adapter.Name)`" to `"$($Adapter.DisplayValue)`"." @VerboseSplat))
             {
                 $Adapter | Rename-NetAdapter -NewName $Adapter.DisplayValue
             }
@@ -114,7 +114,7 @@ Begin
         }
         catch
         {
-            Write-Warning "$($env:COMPUTERNAME): Adapter `"$AdapterName`" not found..."
+            Write-Warning "Adapter `"$AdapterName`" not found..."
             return
         }
 
@@ -123,7 +123,7 @@ Begin
         ##################
 
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty TcpipNetbiosOptions) -ne 2 -and
-            (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Disabling Netbios on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Disabling Netbios on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             $Win32NetAdapterConfig.SetTcpipNetbios('2') > $null
         }
@@ -133,7 +133,7 @@ Begin
         ########################
 
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty WINSEnableLMHostsLookup) -eq 'True' -and
-            (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Disabling LMHost lookup on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Disabling LMHost lookup on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             $Win32NetAdapterConfList = Get-WmiObject -List Win32_NetworkAdapterConfiguration
             $Win32NetAdapterConfList.EnableWINS($false,$false) > $null
@@ -147,7 +147,7 @@ Begin
         if ($IPAddress -eq 'DHCP')
         {
             if ((Get-NetIPInterface -InterfaceIndex $IfIndex -AddressFamily IPv4).DHCP -ne 'Enabled' -and
-                (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Enabling DHCP on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Enabling DHCP on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Remove all ip addresses on interface
                 Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
@@ -158,7 +158,7 @@ Begin
         }
         # Compare ip addresses
         elseif (-not (Get-NetIPAddress -InterfaceIndex $IfIndex -AddressFamily IPv4 | Where-Object { $_.IPAddress -eq $IPAddress }) -and
-               (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Setting IP address $IPAddress/$PrefixLength to if $IfIndex `"$IfAlias`"." @VerboseSplat))
+               (ShouldProcess @WhatIfSplat -Message "Setting IP address $IPAddress/$PrefixLength to if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Remove all ip addresses on interface
             Remove-NetIPAddress -InterfaceIndex $IfIndex -Confirm:$false -ErrorAction SilentlyContinue
@@ -178,7 +178,7 @@ Begin
         if (-not $DNSServerAddresses)
         {
             if ($CurrentDNSServerAddresses -and
-                (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Setting `"Obtain DNS server address automatically`" on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting `"Obtain DNS server address automatically`" on if $IfIndex `"$IfAlias`"." @VerboseSplat))
             {
                 # Set interface to "Obtain DNS server address automatically"
                 Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ResetServerAddresses
@@ -186,7 +186,7 @@ Begin
         }
         # Compare dns client server addresses
         elseif (@(Compare-Object -ReferenceObject $DNSServerAddresses -DifferenceObject @($CurrentDNSServerAddresses) -SyncWindow 0).Length -ne 0 -and
-                (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message "Setting DNS server adresses $DNSServerAddresses on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set dns server addresses
             Set-DnsClientServerAddress -InterfaceIndex $IfIndex -ServerAddresses $DNSServerAddresses
@@ -201,7 +201,7 @@ Begin
 
         # Compare gateways
         if ($DefaultGateway -and $DefaultGateway -ne 'DHCP' -and $DefaultGateway -notin $CurrentGateway.NextHop -and
-            (ShouldProcess @WhatIfSplat -Message "$($env:COMPUTERNAME): Setting gateway $DefaultGateway to if $IfIndex `"$IfAlias`"." @VerboseSplat))
+            (ShouldProcess @WhatIfSplat -Message "Setting gateway $DefaultGateway to if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
@@ -286,8 +286,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6xaxgpzPQNaqRkjFhwlHUpac
-# IlOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXDmdfTU7r81bRIvv/aUfHT9F
+# f+2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -418,34 +418,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUpXHo0wGz
-# SykEuUYFKIi5koHtbfYwDQYJKoZIhvcNAQEBBQAEggIAxfW73DynaLuiEGu9fnO2
-# dnOHEANAftiUg9n/Hpvu/QxUk2PsrRLjQwAuJ1fa8iRwpskyjYz26Wkj9q2Xijdx
-# DCRE5vwVflCpfKnJqSNwhtvOWW8qY/z0EiOja2vXqFnGxoY/QHd/ses8pfm5AnKA
-# 7c6+MehJzhjycEoOipJnICCKHd0hG28tAGAmgwA1D1+AwwmlH6ZR8zp8B9h/f4wP
-# VnfdFqlM8CtkkQRywWXm+BEyNumzMZhsE28L2nGImUbORbl3FRZTeb1WquTGarz5
-# ScgTjKkWJgJXJcf18BFiPPmM5XKc28G9mrDzOI9ffa3YTGLlLNRb+8zRPfX0wDQ3
-# puPQ5CgoFHjv1Ivkrz/nj1Oew0niBe4bzeWmXcjnLi4fKxOIiGcVLapTCChpnpJg
-# S8AnCEHMmJUjC7wpXvqlx4gTJo1k5dYed1AqjUhU2s9FzIhTv3x44f7clj3Cca2D
-# kntS3S6Y6iMOqOJ8PadHLYo+yF0/DN1r9SqlvdH9rLpr8EEtzZcpyZJzzCop9Fzl
-# ebxeu/8S4UDIo41Wg6cgX2rrTMSb7FyxlIPIhGpYLG3itHmxh2bf3p1g0MoSOGFn
-# 7vQKVI8wLZTDPRRbhyCUAU8q6nJwUPoq8g54URCrKWAmN8Q8hbWtU1EPr+KkACuP
-# ol2pzEmNBp34kYfrwx3gUeehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUgiJikjr5
+# 8PDYlA2fNXWO683NdLgwDQYJKoZIhvcNAQEBBQAEggIAMnSYAN06QPeCPryBVJKw
+# PZws72h/7F4Fi7I/FZ4S+baOEgWR+DJZd2rPXUqeEwln67uNhdp1nzh+dRtxNpLN
+# 1YHhCeenuPWhO6WNFZc7DaZkZ0Ih6LFsfaZcjiCEXvf1Pns2nDG9KY9TSzNlbUv3
+# TSERFFVOTx1pBzzBP62JCNraBUs/o+94kbPm77UQpjQzneo7EQKVzQALUR11BRGP
+# IWVv9PS2xHnAw6E6IxRryiUgFNVnQxLiVIidOo492eIfHgxEBqmXxl+QiyckRMEU
+# LixjXBIyoAdWWws1c6JjPmZodS71Z9TptOwTMJrUQiISzSiDGFttkBcGybP/gnT4
+# TCDewhJoVZKiLVe5aWtwRifjVJG1yMZeCN50Jl1USA1Q04CAeGQLpsQYQ9qQXOrB
+# bs8fGm3VkA8SsgoYpHjBXx+qlopLzEIvXpKAEWzG8QF5HdMxXYJw4KOXWHLc4N/G
+# qFx7hAmrUldtdh1n/r/HAIV3j5O1qYBTUVa6zyMUOAC/fKR1lbo1RM86T8saDkFm
+# 4Nb0U5cnCHiJ4n0iraxU9lxqchnnDV0CjzSCgr4DzCW0LTiZmhHX8oozjOxm34Ys
+# a0bCCgoY8R4B2+9S32Z8sj/rJjAeoZxkvbhc2C6tbBG6pBnoKB0mSIcxlxepJ6hg
+# tmlxskutlQ533NM7iD71JJqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MTkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgsZUN7B/a02KNxXB1jlzSucGuUzusRRsw/l7oDAnt
-# 78swDQYJKoZIhvcNAQEBBQAEggIAuiTNqopkegvuMiKEeHmYEfNfdg3ngXl6D3hJ
-# JXrkk+CpPTTTEJVru5rScYqXGcUIATDNOjjlgrPVwxB56GXnu31iaW84QJfsYB2q
-# 8+wwQYm/e9PL6J+CbbylCDiWr+EEVkjXjnPGKG2J+RNsITrpYUHxTYYsYJ5yEPol
-# 8IocEByTbcPm8mSNr6CWnEZbzOxCfPSy5Dt9dnEHzvls1Fpvf/4zO9+ZVH/6Kkjr
-# Pyah6F9Q6KJkt4Ifa3v7A3D0p6scUT2XHrw/K0MOinAjwj1O+XAV91jxkWut4trp
-# W+vOA3/9IkZTdwxOxLbCzdwoRrI6d2TLRBxJrJ/A3xQLwYLc31m1p/X5Ek5MaJqE
-# qE1TGsVK0qV8N4ORrT/7LOHV40lISuJpEx5ohbMIBeUs1Mtl63kn4Ff0tbAcj2VK
-# O8I6SW5YcWwf78+q26Omaha3g/HNlCUFhft64aNx9TB3pU0D2WIo7znCQr3/9xB2
-# OKgm3U28k7MuHvTNae+pt06FUvpUiHF/rt7D0bc9aVAH3ir5wEmSKCKSZGF5F6ro
-# Zaz4stahN4GNaHKoX3JoH2AfelbXE5561F4JhCMSqGRGatcf3U3yi1NFjUoJWmTQ
-# WKDSBusEtS6M5XiKweUfWD1Rz5WG9xkIN2KjLQc2auXbBNPDswVdFz33zW5OHrML
-# Gv/fFRY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MjIwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgkjEa6kSkMfnsCk3igQmz3/yDxIiBH8uoMNc0cqLN
+# E6owDQYJKoZIhvcNAQEBBQAEggIAL87JaX3TbIFH0aii/2gX9JAyvN2dyloNHssz
+# sxr+IQuseWY6GeyOYGwWnvjaHmCELIXlTUxGWpZXcZJz9zaWek05wiBd5tPgWlAY
+# h0/FZNgFGBH2BKQKBvjThoz/+rbu8ljtRuFOnT2i9K8JHoI+OS3vhGymMh2JcHbP
+# hb9IsmNrjQGhPxB9QiUQv2pdMYja+WJPuWwcxYlJuTKV0+ZTJtewWAT8AIhdjcRc
+# PqJ8fwmr0nnyBPIz0LWlKfxir2COx35iVdEVsBGHeT4EMXcskIn6VaV/rB6y5Ple
+# 1HAy9Tc4C6QU4wyl4llzCxNK9lImAS44cUbszc27DFv6krVc47RH1Gz1QWC2Isui
+# 3ucraycUiuL15UBhxWZZUXJ+2Wa/Uf2ScaeEyTa5D2gnYxbJu2zGj9yO1ANNIduV
+# EMeXorpcveZ2JQuN10vRIKiSpqHIb5QYsre02caSu8s2jW6xX3/5pzUNiMjOiwa5
+# wvUkAJi1DUmAvTBhmYgusB+g1rVNwjdX+rUsxzm5rRm6/U6R8jN2daIIn/s+gkrq
+# EaJaGecC591d5KIZCp7LLEvQ3tXuc4kBmsEm+AJs+rA8QnsznG92pLmJ3qN0q1Is
+# cr9jktLkjiFTS7Mmlkhu1KwcnvNYZcONZBLwSC4ZPoO40cH3jMJzLxe/cmiuPS9e
+# tQajrcQ=
 # SIG # End signature block
