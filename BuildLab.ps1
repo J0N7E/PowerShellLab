@@ -425,6 +425,7 @@ Process
     # Root CA
     ##########
 
+    # Rename
     if (Wait-For @WaitSplat @VerboseSplat  -VMName $Settings.VMs.CA01.Name -Queue $VMsInstalled -History $TotalTimeWaited)
     {
         $RootCAResult = .\VMRename.ps1 -Restart -Verbose -VMName $Settings.VMs.CA01.Name -Credential $Settings.Lac
@@ -472,14 +473,15 @@ Process
     # Root CA
     ##########
 
+    # Wait
     if ($RootCAResult.Renamed)
     {
         $RootCAReady = Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA01.Name -Force -History $TotalTimeWaited
     }
 
+    # Install root ca
     if ($RootCAReady)
     {
-        # Install root ca
         .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.CA01.Name -Credential $Settings.Lac `
                         -Force `
                         -StandaloneRootCA `
@@ -548,7 +550,7 @@ Process
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
                             -DomainLocalPassword $Settings.Pswd `
-                            #-SecureTiering $true `
+                            -SecureTiering $true `
                             -GPOPath "$LabPath\Gpo" `
                             -BaselinePath "$LabPath\Baseline" `
                             -TemplatePath "$LabPath\Templates"
@@ -657,9 +659,9 @@ Process
     # Step 1
     #########
 
+    # Root cdp
     if (Wait-For @WaitSplat @VerboseSplat  -VMName $Settings.VMs.AS01.Name -Queue $VMsRenamed -History $TotalTimeWaited)
     {
-        # Setup webserver
         .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS01.Name -Credential $Settings.Ac0 `
                                           -Force `
                                           -CAConfig "$($Settings.VMs.CA01.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)" `
@@ -709,9 +711,9 @@ Process
         }
     }
 
+    # Cleanup
     if ($Result.CertificateInstalled)
     {
-        # Cleanup
         Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)-Request.csr" -ErrorAction SilentlyContinue
         Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)-Response.cer" -ErrorAction SilentlyContinue
     }
@@ -721,9 +723,9 @@ Process
     # Step 2
     #########
 
+    # Issuing cdp & ocsp
     if ((Get-VM -Name $Settings.VMs.AS01.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
-        # Setup webserver
         .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS01.Name -Credential $Settings.Ac0 `
                                           -Force `
                                           -CAConfig "$($Settings.VMs.CA02.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)" `
@@ -804,18 +806,6 @@ Process
                          -ADFSPfxFile "$($Settings.DomainPrefix)AdfsCertificate.pfx"
                          #-EnrollAcmeCertificates
     }
-
-    ###########
-    # Setup DC
-    # Step 3
-    ###########
-
-    .\VMSetupDC.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac `
-                    -DomainNetworkId $Settings.DomainNetworkId `
-                    -DomainName $Settings.DomainName `
-                    -DomainNetbiosName $Settings.DomainNetBiosName `
-                    -DomainLocalPassword $Settings.Pswd `
-                    -SecureTiering $true
 }
 
 End
@@ -826,8 +816,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCee4eJsCXjUyzxpsALRseJjh
-# RuqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTdP/LhXFJj07QVDDDsluIGU5
+# rcmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -958,34 +948,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9YXoSKlr
-# 7SzzUDgCvb4h0NCfy90wDQYJKoZIhvcNAQEBBQAEggIAP/lcdwIjMPGSheC0RB7U
-# w8l/VJjNhUBnE1MXMKlOtapCiWC9x2QVtIsZGEn5bLjD8cO6bbh0LQySQaZaT+uF
-# wow/qP/jTa8JvO88y1kJ7q0NhhwYL+5Tzg6HgpaJyV7hWXg3RaQ6+MjkQKa2Cj0c
-# JEySdY+JyJg/iMcT7Y5z3SXCSZYLynrSGjJ3Fbd7o95bY6ltEnvUQ27+YJWzPCi8
-# mdBoZ5L3wvQrJuOfMN/kw8E7gwZDtUuKfqfcQ+s31ad8vEhXWd+ATngHiAmN80o/
-# X9M6mzZPYxNxZuGp4CJay8p0wiz0PZmPanI1bxaYE4eQYMXTCNq1yJ8niEUToDAq
-# fkO5flZfptH3+dj253cCgLULgFhu6MdNCD/A5p6VSICNwX93aDs0EyiYJkzy5osx
-# fU9nThRnNZaBLFeRgx1DW4RtkzHF4WXZ0zoAschEAWyXRQwu6+qvB/7T5hmeJ6rI
-# d8+a0JNehEepPMIKeOC3Vg49kQYe1E4sgMgv/baWlNpvUpRuhgJvIYMhyZZ+2qYq
-# d1Ydil+jgDzWbiPiBDwUE2MUiCH4yLoJ+xqL/gtxBK1MVvgkrC1PZRSY4D1hLNpv
-# a0CePXPOSMAyhMM/eL/FdGADmmOf6qx1haBQAXUVPas4ErxA9xDqQwTBnOZ5xVIc
-# 5W8ixmIWhxhJlHatQHP9b/ShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVsWA1C4a
+# Cu3k7W2ICscBHBmMO2UwDQYJKoZIhvcNAQEBBQAEggIAe9AHl7dSRldr1IPM2WXP
+# 1QKsQTuK1XHDqwNabsfIXh4srXeqrckh7DiglNXVXNg3b87Zg9Hor3mPEPHApPDB
+# bahvorECKCfOdglthdGyvbC8WOFh1TidTn8ThZmH0TEpkrntIsx9TCcUl8k+TpuL
+# tRlAl/dYbT3TuO8ZMxIZzC8dXmUk5LYGoY+TX82d79ZIyXB5Mx1LUkoVpil7eTQE
+# y6cxHWNROjMwLnqLOmREyQ9nrRqjxaeTDYBpHFAPwkD9juI1IBxHblkElqZvT/6r
+# kGBbnq0Gspl5e6bBg0uETr2M1Qn6ZZJ6brLx0ZNHuXaOQvmrHn0M0fiYKwKJiSmB
+# 8PMCFXhJLDMBw4BayJdojkd1mQZDhhxZOSH3jDp4kdZHd8kdwklntek7oaNIwvYn
+# ixaEmqgi0ItxflQFgRvm5BJ3J7vB4AfIwXPSQvxpCex3AF3foqwLRO1Ez5vKt2OU
+# bWAYdqxjgJSe28w3xd+9oaKJxwlsgmAmQ3PnEfHh/pIXZeBD9wFPrUx49qTu8yty
+# gWr4UnYLW2YGkNwJTzcUbw7LtjFxRTwjhXGah7MjCGhFSKS5NJfXhcO7I8RzLSKe
+# af3cds/+5JCPN+OnMEAMCbhm4OfCq8dpPFfHWwUDiLkRreyJg2W//lY5wZfoHOpP
+# z9GfAdCkoCU1xCWL2qyI9VChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MTYwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgtY9KAHt8k3m9NjOlJK3epp9+/3hoS9FZnbPJPxS7
-# XlgwDQYJKoZIhvcNAQEBBQAEggIALm4wdg+Cj23yHJji+f8hLRaNkW4WnFvL2oio
-# mdtIRHeQhw80PO8qoL2vFMzcDoi8BBCbBW2CmsRQGmh83FuDmX9x2nZTLwyiaFAf
-# UmzB00kH2V6fONthlniBDi4/NfUXhfkxKt/qw2FWxskLrHDTzZlGqBaVqt9vAvZ9
-# 0/JgMhPMQEvV3y3inNcJ6ZhrAEOgsCKBat/azxURvHRxfVDd2HXrn19kbLURv0Us
-# meP1rVxf1Yy1hNfT8fg1GdVINX37M5426ci0SrNLf9XTD4QgqxMhGsYYhhtyt/8f
-# YfnAnF3J33RkXa+aj6B6aBxh51kIhta7uKgun7OjCutlNCPs99OYeIDpnaIYsUkr
-# jlkC6t/D0jRpLDjcXhMy00Xba2lPjgOt9UHq72TcDaHSx8NvegWWd4P0MtHXTjXU
-# 4pBxg0iFKilM+HV02uT78Hukhu3wPV5VuhkIP7HLPRf+OEs2BXutDZxDqQJhg8kW
-# 03LXyGPfzuJvvr0JWa2o7/azLyLn0LHwKo3swKJEKfG49fZKiGNHbFPDaFoLRIeC
-# sVcwnfS0T6UyaS+foXldQodAcZrirDOLw+mOLe7KF6oF4zU1DVD/xMAxEZf1QWTy
-# VBCKpZcEWVVsQI6fQPfktTpJgw/PGS+C9IoUgLPqDEC+LC1nq5Eg9IOdrHRbl8+I
-# LTbM1s0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI2MTkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgv625eT/EJ+7MILVacdMLjP4aK9uzwhB0oZ/iU5AX
+# rEEwDQYJKoZIhvcNAQEBBQAEggIAb+CeO2RHj0lNCj9w/2eFyrj8OVZCawGuP+aC
+# Nlb947nPinQ9yR8WHwGSNwgdrUXffa+e8UdpXWxHOl7nxEf0WIMkrnIumFGW/VQO
+# PP81h62E0YRvL0O4zzszU25lF7CK7itGDr3u/q7/GSUAJ/Rqpn93xNCtRsqsCgRj
+# XK8tVco3IgR5ODu/BZzIj2/Me9RAyDaEDsIB1fBA7DPotqwkb3+BlEQ4inkeDKka
+# 7MyKtmd5b1teIWoxwtgHPRSmZ+FJws+1rIcuJo1C59Kg5m2VlCdW1loiC5UsxNDm
+# IY5iguUiVa8cJB4I++XDyvd/brpGiOR38AqEmEtWc14gkCydbciJbRy+xXdWd84c
+# MynVCMs9920e6I0F0QrEjDuJwCexeYxhKdt9x1adk0oBMKx7aPuLrT8XqE5BG2UT
+# VCglhD91WJQXrXuuv/ZoPrzQo6gXQYnoG2Mg1Ms5Nt2ArJSO9cHooiS2osdfi0cA
+# Zd0Bb8bRYZZahJ5OvMrUpw4z8nuiiV9SFyICVanDZlb3ygDp+3OEK6c8mAKuG24i
+# +IvTzZ3JM2zH6UzaxqJ5EtgM/ZLvqy73/iyXLeWAkYuNosNSf5PbAo+SfldxW/6i
+# myNw+aLbjkmu20Su3Ztkl0b8sx0r15BvBR0ekCvrKSlGjmkm0TdZlYBNfXft9RrK
+# pwAXsqs=
 # SIG # End signature block
