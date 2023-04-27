@@ -622,7 +622,7 @@ Begin
             # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
 
             # Check msLAPS-Password
-            if (-not (TryCatch { Get-ADComputer -Identity "$ENV:ComputerName" -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
+            if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
             {
                 # Enable schema changes
@@ -1295,13 +1295,13 @@ Begin
                 }
 
                 @{
-                    Name                = 'PowerShell'
+                    Name                = 'Ndes'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'"
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
@@ -1319,19 +1319,10 @@ Begin
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
-                    )
-                }
-
-                @{
-                    Name                = 'Ndes'
-                    Scope               = 'Global'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
                         @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
+                            Filter      = "Name -eq 'ASasdsdfasd' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
                         }
                     )
                 }
@@ -1685,7 +1676,7 @@ Begin
                         if($Msa -and $ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
                            (ShouldProcess @WhatIfSplat -Message "Allow `"$GroupName`" to retrieve `"Msa$($Group.Name)`" password. " @VerboseSplat))
                         {
-                            Set-ADServiceAccount -Identity $Msa.Name -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
+                            Set-ADServiceAccount -Identity $Msa.DistinguishedName -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
                         }
                     }
 
@@ -1713,18 +1704,30 @@ Begin
                     {
                         foreach ($Members in $Group.Members)
                         {
-                            # Check if filters exist
-                            if ($Members.Filter -and $Members.SearchScope -and $Members.SearchBase)
+                            # Check if filter exist
+                            if ($Members.Filter)
                             {
+                                $GetObjectSplat = @{ 'Filter' = $Members.Filter }
+
+                                if ($Members.SearchScope)
+                                {
+                                    $GetObjectSplat.Add('SearchScope', $Members.SearchScope)
+                                }
+
+                                if ($Members.SearchBase)
+                                {
+                                    $GetObjectSplat.Add('SearchBase', $Members.SearchBase)
+                                }
+
                                 # Get members
-                                foreach($NewMember in (Get-ADObject -Filter $Members.Filter -SearchScope $Members.SearchScope -SearchBase $Members.SearchBase))
+                                foreach($NewMember in (Get-ADObject @GetObjectSplat))
                                 {
                                     # Check if member is part of group
                                     if ((-not $ADGroup.Member.Where({ $_ -match $NewMember.Name })) -and
                                         (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
                                     {
                                         # Add new member
-                                        Add-ADPrincipalGroupMembership -Identity $NewMember.Name -MemberOf @("$($ADGroup.Name)")
+                                        Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$($ADGroup.Name)")
 
                                         # Remember computer objects added to group
                                         if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
@@ -1757,7 +1760,7 @@ Begin
                 {
                     if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
                     {
-                        Remove-ADPrincipalGroupMembership -Identity $Member -MemberOf $Group -Confirm:$false
+                        Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
                     }
                 }
             }
@@ -1804,14 +1807,14 @@ Begin
                         if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
                             (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
                         {
-                            Set-ADServiceAccount -Identity $MsaAdfs.Name -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                         }
 
                         # Delegate
                         if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
                             (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
                         {
-                            Set-ADServiceAccount -Identity $MsaAdfs.Name -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
                         }
                     }
                 }
@@ -2884,18 +2887,18 @@ Begin
                 if ($AuthPolicy)
                 {
                     # Itterate all group members
-                    foreach ($Member in $Members)
+                    foreach ($MemberDN in $Members)
                     {
                         # Get common name
-                        $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+                        $MemberCN = $($MemberDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
                         # Get assigned authentication policy
-                        $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+                        $AssignedPolicy = Get-ADObject -Identity $MemberDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
 
                         if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
                             (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
                         {
-                            Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $Member
+                            Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $MemberDN
                         }
                     }
                 }
@@ -3235,8 +3238,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlJvYXq8G7lKHDGxgtP8fq/JC
-# KX+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgq3AmnDsAhpNE66CRL7FfYte
+# IRWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3367,34 +3370,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9n8Uxqga
-# QqhiasI4z/TslHVmAmgwDQYJKoZIhvcNAQEBBQAEggIAwWUsHgmB4mAnBR6hBwMM
-# N/DUCYRqMWlr0dMU/SLOzpbOVdud8NpR+eUN100EpOygWENvHsIxcTpCe6vCm+4c
-# MxBO0P7059Y/tpmh5WzdtAigsc/AASvk9KUrfFok4bR5pftM0Dnhkdq46VsGL8cn
-# yV1qeWm5F2yZu/3d2X6mRCJRutCkYf1X1UPQwRHWv0Cf+i1hsCVydQKBvBOwQk16
-# hJJ5rMZ/4GdnYkB7jo+t+y5rctDm7tJQ7S7WtmoMK2b/uELjnmuOYEDdi93k4aeX
-# SKDRnI+v7vAeFlblSgE0RcmVH3jVEpzXzSLIYijLzO3yhjeYBodWfihGijpubhDK
-# F63YgzQ/fHjz1lWb2QvSSRhrUdp53GTj0PJQ5Gf2ZFyT/VCXp8yUR0lJAHCT8r65
-# vuFatM4qfRPk/BJ1wsim+ihqvxWzCbwGqa6v1txcaWs22cgNYUgADS9tKcJ5S/GM
-# lu7dV83LZdWqNVy+wHvxm0xyHnZXiprka6HelMm8lOwexWzXyXQ5tzUrPuKD+ou1
-# nD30GjySVCOKjSTgSZqKx7aSMumWrup+redxNNdBhf3zk8lxImMiL+rn0Lh1z9PD
-# pTcNYu6vDlQr+S5m1jieynj19niXhvNJ6giRS939G+4VyaU7I17yNiVx+e20/MIV
-# +69eOcpGH+BkrvX67dT0Ol6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKw2D4Q1E
+# CnF95KlUzwVOz/xGLOUwDQYJKoZIhvcNAQEBBQAEggIASqaLRVH14PDIgVDTBz6M
+# vJI0edxM8V/ghG3c01pTLGCT8UYBvS3pkNbDFKKf7O8gocWvTomaVTPgXXsjVOCH
+# VwZBoudJU6i/00v3hJBfl249ygu5QGeP/uC9sHHdT4lusg9iE+Q6GnMv9gad3lCo
+# ynbS6ouKZxzcsmTfFRyDIBJp9NrEbMPJWJ9qUXTzbLVFHvdVNs5Z6arduJOnf8xA
+# Y9KGJ6jkirclg2e/R34jNksK1GFfxF2XNcsL0Xs/658czsOKJAKmlSmLIJ0PlLse
+# /8zei1GXxK66qD+k7HQYkXpjqWUss0TNA1U6FziXCZgVL/hynV2JKPa0BSklFSUQ
+# ulmFYxjMrafEPPq4+4Vk9skDfjKDueGrZheB5o7DMgl5eo0QWaEroCnVcCc7PX+E
+# 18DSJFc95ubYxOnA5KRLSCRabPymCLLZbDDmF4ePZMPfqOpsSAwWSdah1PUIHjdm
+# ZRHK+FkBZXpG1SZ9hyDYwukJwXLcilhDncIhUN/NPI/D84XQkfWMvqS0j0RjzjDj
+# 62E9+/9PtUJgr0bqryDGlnM8I44AZmss3BsvOvZW7mvRwOjiu431ROkzd9CYPATA
+# TCXhbx3sKZHV95gKJpwTXtVqbrzbxFS8f9TcCAXQOENtEl7TXXJd9SOQvNqDA3+T
+# 36LYQXPesn5kNA04a1ZjC3ahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgG4HM00TYrKrvUZLIcnObAXZ89y1FOoYQcD04mUY1
-# MlMwDQYJKoZIhvcNAQEBBQAEggIAtEEKiZydQ5l8nRfC0udJX4LRbuOxm5jYtp+x
-# X5h4yANtzKGGQ/WD9mYTQmXkaNgcQkh/2aD0DnUwDJ/ZgO7L7IbJA7lPMPjo31Kn
-# DOQ35yEPJRRqz3YYkdrWtAkq/x5mCCl8y+IvimySypedNS54TjWMmTafMxSNnNV6
-# yfEmkkXTV9FgshPEniOtKj0quytdbBrayvICLCMh7yk40rWTVpT0QbX27n9IFpQj
-# fN9vEjOnoO1boPDSWAodaUZXtlefoQ06Qu+goirLjan5Sn73eN0wjxbVGSlG7A4G
-# zN3XFvNp3+qfhegA9/RME187xtqasBxzsNv0oNCSRcc+QlzguHx6eXlcpeXyTFAz
-# 8l8BetVV84mLG+nwrBHbxpj2Hhet57IdHCFkg27yNTn0phuUvf+gC9QzRW0bR9ZV
-# BHzJsH0s/f6huMQaAW/C/9rP5W8crh6zBKr5XuLmOpNQrqn4gB8wXprZ6bzwLLnP
-# WSGF2rUJmvSA9gGr3hEd+e/L+jHpu57my+FVCLs96WfZ54m1Ra2JLJR4m1v/3qEy
-# IIIIIkJhAP7zymHVMLodylMZwQUQHbjuumxT5A6AtKOPO4VguQfZSzDrOtx7yLCl
-# o9NCjzvBUKsuAur80WTdkNgGSnW8r6lF1nOpljklqqMmZvCPC7t/kFNCOBK7qWU6
-# aDUNgpY=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgL3iDxFusx8FrSqNfMAvXhufMGFgAvQV73cTFKlxh
+# YpwwDQYJKoZIhvcNAQEBBQAEggIAwa1vsxu9I6iRUMHcFBOsIuPZoGEDhSzCeMdA
+# Suheo1ye4mGG1PUxlxKXm1PCI5FBJ3UCAgBwyWzdZunrXQBj3uj+6aq0I2Cv1G4Q
+# NOxwGxn/mlaLqsvlXu92i4AQSCUWl+NXCPAj4OzRcte8jsbJQn/EJIH0vlnnxjZg
+# Lt6RaNYfA3/yRyfH1bnc+Yhvbb76emYuEMhxMZ/1vNhceNea27k4KF1Cv32mDcdO
+# moDpqfOBkDFYdBiDMdi674KvMfWEaI09+Kn8C/IhWQl7JPH9NB2Vi5J4MZYq7q5F
+# k8ka2uWTbMqpfPRE6kmBNTbQP1mdmAZvmeCNZMLWhM4EpN1QL6cFwCrboPVhOlcr
+# 9Dy7ONOec1A6NevJSUEvwrGh/l/wJY3NRx78fabv3qrh1N+8I6thDlHdF+RZkwld
+# AmNnXtQDsxf/6aoTSTqCB3HNSODuP7p44t3/K6AcUciUTTKY7d2y0dilX2NX0Wtm
+# vfgn7QcMOaf49juLhYrFnmAb5Wz5jkMAVEM8v2nxzswIk1J1fNWsGenr8UZFMxFJ
+# NtmplqIcqOrHcIR1hqRM1qiKb5/iei6dsgI/xpvWw09EKmFog/YcxDO2nekLgmVt
+# NKN9BvVYU01xdF0Aoi0uR3CkOWYLZTCyL+b4U6pB9MKXMw5tVjRXL6vInOzHiw5z
+# AEu6IjY=
 # SIG # End signature block
