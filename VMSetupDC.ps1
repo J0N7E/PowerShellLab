@@ -1849,6 +1849,8 @@ Begin
                 $AdfsDkmGuid = $AdfsDkmContainer.Name
             }
 
+            $Result.Add('AdfsDkmGuid', $AdfsDkmGuid)
+
             # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
             # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
             # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
@@ -1936,8 +1938,6 @@ Begin
 
             # Set R/W on member object
             Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
-            # DEL
-            #Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
 
             ##############################
             # Adfs Container Generic Read
@@ -2173,7 +2173,7 @@ Begin
                             $GptTmplFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
                             $GptContent = Get-Content -Path $GptTmplFile -Raw
-                            $GptContent = $GptContent -replace '%join_domain%', "*$((Get-ADGroup -Identity 'Join Domain').SID.Value)"
+                            $GptContent = $GptContent -replace '%join_domain%', "*$((Get-ADUser -Identity 'JoinDomain').SID.Value)"
                             $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
@@ -3025,7 +3025,7 @@ Begin
                         $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
                         $GptContent = Get-Content -Path $GptTmplFile -Raw
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Join Domain').SID.Value)", '%join_domain%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADUser  -Identity 'JoinDomain').SID.Value)", '%join_domain%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
@@ -3240,8 +3240,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTQ6nglYKhjlLQh/fofYU1OQM
-# eF2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaFSAGuhjta+m3dLRyWb5SfGm
+# zpWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3372,34 +3372,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUdTwHG8RE
-# abDL4RrhR2PLqeAWzwwwDQYJKoZIhvcNAQEBBQAEggIALAs2SEEJ3YJqdiNDQXco
-# aeqMnmP7E2lVpiBEozPozu/p2PFBgSRjlWfWN5Qbj9HcKSOaeL8EeoCJQszR1wIG
-# oYy8rC1NaMFk1XNzrhqjJ8Kp8i+WZ+8vgVKl6RjJRugpCFXE8417B08t0SBd0uSe
-# FRoUUwkZAwyFWfsz0Uc/a+m3ET3rBtn3gVAOsulfIMKErm0EMOoja1V9GjAB8d3o
-# VhigtjT0poPlejfRmPWGnaqlFs92S15oi9AYGRX9BZlBFxxPRRK6n4dCV+fRrkxE
-# AxXOHX5X75XICwTMzbOrScNPYnv3WB07kVLC65KINJDVFCL5sg3d0L71kS17b3OM
-# s5fB47L0A2mrzaa8A5PUpPcM7qRVV8XIKZLk3ehtZJo4z0aL9jquxqrihsczqb3T
-# sKCXvfeMj6P2+Z39syTq2RzMn1t5+NMwdD/eGvM8CTIh2faBpMgUmq+V4FqndHpY
-# 9gLJrcB2K94f1ixRYBKjkrWyL5Lbl85Fv13v7yv9Jow/HKoaJcKdTtOg2yEsAl/Z
-# hhR6a/hqImNZJnPC4pwZ/JQ93JB5vR9kgcRJpFWVrXj0uQPgZEeGe6dFdQO9kDry
-# 67KsKa9jcPCUHO6ekoPYWkSqMDAqG19kxVkp0SL7G9MXkBHXcdtGxIw6nhDMQUBb
-# EoSJvAf0a+j+mUIdx8E+84mhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXert3pv7
+# 9PPOIgJ0PqTMDtet4T0wDQYJKoZIhvcNAQEBBQAEggIAiVOvUx7DumkknpqnnTMc
+# TLBzIpTD2CVsdg1WbrWQ51ShrqORxWkq0mDd3v815gLJRrnlWCtfUP5swCSQdBB0
+# FXYz6ionJ0u4oi2sD24l+MLCSvpdYh2Nau8t6Wi+kbLxLN0PyNYDGRWkhiKyvBS4
+# r4L7azMQ4s22oylOvxpHuw/QZr84ojijjfQneEYzlbYe9tUBLB8C7Y3dIQwXNMvn
+# mUwrMosdkq3vZbRv+aPa2o6ivcP3QZeTB17MBPcazjwkoKCfGJ7Cwcw9vj6Zv1X8
+# 1vLu3cfCdtlrapfhJ18zJF2dMzOPaaOq2KBj1J3/Yc7UYfdw1r+sWag57F70KtuE
+# VMpXGWEP1tQ4h4rTqcslSSNGmZBZ7RCYAt3YfpNnPIksnrASBVXBQuLzx1waPVss
+# +1tAD2BxHaWigx6I3o2luaVtBDyeRLsxqZI2QPx5b8SJDMABt4yCNneiI9FSv+4p
+# 5+5znaLrgYvCeh+SJIZj6LSUEXqyIJnpDE446N/qstziOVUIkseBsyR5yWgJgwxZ
+# aY0SM6P5AYWVnku1CGyHAW2KHasocO236JNTovOBDE7usOnoyoTEv9I6iczVBuXx
+# Pg24l6QIePAlfJZrdJ696nYobarGlfY45+WNF/lYQhAtjvzL15lhGDkElmm40hHa
+# 3fnExFfM5zeF6dfZs/pFHIuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTMwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgGjcFC3kc6Jqpn7I9ctuTUeNmYIK4gk/24W2q2Q9H
-# y5gwDQYJKoZIhvcNAQEBBQAEggIAppD0I37QEgjO5GKQZ6xZE9c2Dc0JHSbxLce9
-# b5PDSqgaujW9Pm7gU0h9+1w798BGNp0NfNsNeaZd+vC7AUgziOXjNc7x7OXC2Ick
-# 9X4jBIrWyrlR3iS29WKB5BDzf9tk4+N97A1MzvEHPf1J6OY7jpG5TQk88Mj5w5oh
-# GQA5tKDNF/Lin17A8Qa+hsIcTeRxr5TVGw4sZDn9lHzwEDqu3SdRJxgbxa/YqM2u
-# v8KgUMCvwnsj6vEWY7wNutsGzDuCA4DN1pd7Za3HEcsvMW6TPByfJBm5aS/SeIQE
-# 0xpE7h8fSki9To4+6sGMJUe1bAHVs+DacXVWUYdsHb4hCRxBRKbWaKQU6vtA8tP5
-# YkuZlm0/Rp++knarZpUEMZgWl7GoNcUq+qUVo6gg2LzY6wwSw75BG1+9u5LVBPJO
-# peJ58jq4IigmUS02F5EBs6+UXFPSxEE7LvgXwfPKBc5WWUjWxrY2YqBFUdo3pJg+
-# hD2oYvmvlD7flb3JlsNLlUhUX3xlmkEdQYcq5Y2FebeM2ADEY6uamIxo7XG2vHu0
-# Y7/i7lcQvNEJaBqr+XhW9HhsfBbqOiOw+BRsr7AYdF+INk/DWSU6BvcuqfgM+WLu
-# t1XbnO37R/JaC8rGoMnp2Q6SBLwEdeS67geJkjf+79jddoPlDZKL/mWw/7rETra7
-# UNexwls=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTQwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgnm23mAeYMj/s4CLx1CgCdEFfmhgGaNv2Fk4y228U
+# zHIwDQYJKoZIhvcNAQEBBQAEggIAk3mfKlU0/3FeCQ2K6M23i4VtTmpMddhAgrap
+# 0W5hhwgJd9dL1SESNHUKUSpXwc8Q03jXMEVJ7AbzY5YHMtSRnLT5ZkWs0SNtYCc4
+# 6VvP/epPa1chRfbBshH1uYPxA/+t847BKw34TxGP9Q+uCrsP/Nm0gmf4dibTbejD
+# 4bld/faVCF7PhjsEM/4kPi6+2m4rWW7elCEsVQnqyRkmWZkjyqLqPlPd/uncgkB/
+# jjG3EEC3PDCYhMHyQ8w9ncDy776anPLQ2+Ex5amb1zk1tA6ziAJLAy71WzTMRuIQ
+# sFjw5B3GOTNapiYrpVwOZl3a1JdGCAOeXsjv/OFIf/CTqMx/QMjSjpF/duFglDaZ
+# NMTF+1MskQVNRm2/xFbvH1u8ZrD6yQTb09MSoqlr6KktO3GfWfWyWFY7sPulh1y+
+# 6kGxu5STC7amhBBOpSsraX+a3j0CqFtufzt9UAXsZ24qFVwQY32Yj/qgXZkK+oxX
+# rUp6dxbhPaE67hU6tmvElw9+95xHBSB1rnXnG5pR2Wf0Dv5YEY4OKV18mrqLoslC
+# RjQezJMUtJr0DZaGM4x/DditHqRAg81FZacM93/v/0TGTEZxY67UKRqq8Nvu2mJO
+# M4T8Tx4wooQCNBoOB+f+2XPbGGyXfVOGoeePCydX13c3D2r6E3LnfBiO02zABPo/
+# NH2feFI=
 # SIG # End signature block

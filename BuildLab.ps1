@@ -544,7 +544,7 @@ Process
         }
 
         # Publish root certificate to domain
-        .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Dac `
+        .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac `
                                    -CAType StandaloneRootCA `
                                    -CAServerName $Settings.VMs.CA01.Name `
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)"
@@ -616,11 +616,11 @@ Process
             Write-Verbose @VerboseSplat -Message "Updating AD objects..."
 
             # Run DC setup to configure new ad objects
-            .\VMSetupDC.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Dac `
-                            -DomainNetworkId $Settings.DomainNetworkId `
-                            -DomainName $Settings.DomainName `
-                            -DomainNetbiosName $Settings.DomainNetBiosName `
-                            -DomainLocalPassword $Settings.Pswd > $null
+            $DcConfigResult = .\VMSetupDC.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac `
+                                              -DomainNetworkId $Settings.DomainNetworkId `
+                                              -DomainName $Settings.DomainName `
+                                              -DomainNetbiosName $Settings.DomainNetBiosName `
+                                              -DomainLocalPassword $Settings.Pswd > $null
         }
     }
 
@@ -745,28 +745,32 @@ Process
 
     if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.ADFS01.Name -Queue $VMsRenamed)
     {
-        Invoke-Wend -TryBlock {
+        if ($DcConfigResult.AdfsDkmGuid)
+        {
+            Invoke-Wend -TryBlock {
 
-            .\VMSetupADFS.ps1 -Verbose `
-                              -VMName $Settings.VMs.ADFS01.Name `
-                              -Credential $Settings.Ac0 `
-                              -CATemplate "$($Settings.DomainPrefix)ADFSServiceCommunication" `
-                              -ExportCertificate
-        } -WendBlock {
+                .\VMSetupADFS.ps1 -Verbose `
+                                  -VMName $Settings.VMs.ADFS01.Name `
+                                  -Credential $Settings.Ac0 `
+                                  -CATemplate "$($Settings.DomainPrefix)ADFSServiceCommunication" `
+                                  -AdminConfiguration "$($DcConfigResult.AdfsDkmGuid)" `
+                                  -ExportCertificate
+            } -WendBlock {
 
-            $Wend = $false
+                $Wend = $false
 
-            if ($Result.WaitingForResponse)
-            {
-                $Wend = $true
-
-                if ((Get-VM -Name $Settings.VMs.CA02.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+                if ($Result.WaitingForResponse)
                 {
-                    Write-Verbose @VerboseSplat -Message "Issuing ADFS Certificate with RequestId $($Result.WaitingForResponse)"
+                    $Wend = $true
 
-                    Invoke-Command -VMName $Settings.VMs.CA02.Name -Credential $Settings.Ac0 -ScriptBlock {
+                    if ((Get-VM -Name $Settings.VMs.CA02.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+                    {
+                        Write-Verbose @VerboseSplat -Message "Issuing ADFS Certificate with RequestId $($Result.WaitingForResponse)"
 
-                        Certutil -resubmit $Using:Result.WaitingForResponse > $null
+                        Invoke-Command -VMName $Settings.VMs.CA02.Name -Credential $Settings.Ac0 -ScriptBlock {
+
+                            Certutil -resubmit $Using:Result.WaitingForResponse > $null
+                        }
                     }
                 }
             }
@@ -808,8 +812,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+AG1NUzIwqlb6X/tXHufDs6H
-# RRKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8in9QlTyemT56UZ12WwDwpO/
+# kPWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -940,34 +944,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8O3tjlGH
-# knN8F7jyhUMsMmw8F3cwDQYJKoZIhvcNAQEBBQAEggIARsxoTNULaxKjcYf3POvW
-# +Y6D0i9klwXYqq0ro2H5XGGlfPYrSbeACmc1ppW/xInCU3FoByOO+PRtOHo1szpq
-# QWbnj1cbm4k2CLibHtBR80VF7691nrDz3fromkPasnzXTIvyqQe5Fr7ZXLgMWDhK
-# 8+hyg65XjH6dAocOuhzl3WMg3adKkelZmnzGWydXwcNDsqOm6Y/gB7XBxQgSWcIx
-# rs6+6Bukf5ZNe9ZtXhT+6rCkBKrCbDI+/u3ttV0g9krEArQ2eWnF2HDljDXw/Wyc
-# FhYJ3jBNXyRCkx/3gqf+FxvNvVRC08wXZCiDGePieFNyPRRLwOfG/KD2H8RzB5sg
-# HReLDp67qKkXZWheXHRVZi+NGMNxNefdLj3N4U9Yje9waruFgIHU7kfemJIjWDvC
-# dBBHUapJNblQ7Cx+Vz91HK1BdR7EMs0+HnXhFEz0U0uwSfdyW2Qge1a3oTnHgBnE
-# hWUW5Pey7IsB+QFHq3hg1QJ+yjCXARkZ9V4Z0ZXzD/7HLPX9Ya3hNRFW+oOC5x9y
-# XLtFWwv72ucXpLZH1UWqyDPkhdr+sSVyNbRVCnACNm4Q9XhGBv2O0lzJX8tM8clP
-# 2f/+RscY2bUA67NCcqAvkIc26ntw947IFU57K6REziadwf480xzv/rzzVC93/KHo
-# pErtCWUvjNScp5GptfX5dNGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUuu+VNgI5
+# EmCAM0dlNp4v7+ti2yAwDQYJKoZIhvcNAQEBBQAEggIAghpwX9ivJZwJE/wjjtFY
+# KjWFbzdTkYRS1WpIyIWXPJk57X8vTWilqlpS2v1l0BbFOKOoS7JVynRVXHMRN/M7
+# DaKayv93MAOi5vcDFvfYp8QQCLzo1oFvschShayBCBGOjFJhbbtTpNr6rAhFheZa
+# tP76vTAuU2efUBaFAdt/BOz8TAwb3IEvgBGpCckUo6g0ONAMMPdOgp+QpWulfMrI
+# G4ghA5kNqGr7u0t9+4T17naf9ocSL/TMcft/7I2WxmtgkgqVG3/pmc4BEnc0ldmE
+# Cp208FMtGGEdT+GmFXdTylge+i3sYbygCG8ZutkqmAVO11ekdRrWbUqB/z77MkkD
+# DM89e+UnwXI/PN+Wmspr0Sl68Xe5/7+fj/FGrx94EwOj+bTL0OjOoiWXjedp90eb
+# eA8wOuybfoMJE/8KSWjW8CX5gD0bM+Bt2G6Ym2Tzp9u4cd5Zp0zeB4CDIe3E3fQA
+# d9mZx40zambmpQ7zBJ2As+d3GR5ZTa+qCA9qJdOkj6bWcPb+M6vl+hekFKhiEVUF
+# YSH082oCnEH66zoX5wX32tEjlV2RYkJXzDBj2/5WtnEebOrTNa8pf1MyGbfwgVNK
+# N3FzfHT5hOxsuTGYg2KdvHBQOyxCskWSnm+6Hh4EKqY3ffipwfb8JNTiv3hnnX/E
+# R28a2eq1/o4Q67MuA/0e2G6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgJGsaH1/bwmQnRncHQaYd+qs/ssfGs8+b/kK6T+4a
-# jlEwDQYJKoZIhvcNAQEBBQAEggIAhVmfOL6Sgo5vX6oyJU2Nm6Cgbcx6fLz6r201
-# Dss7X2bfiXHxtLzWznoL7D/vVq879iX9Mu/JE05GwiwD119uy6Ylnb0orTZ0xJyU
-# DewMhb+Pwy+DqVRtRzi0rxpByLYSUvCaOLjN3GmEBbEq9SJRPeQDEooJ8hTvnoda
-# JM2lmA6ySRMxlToGnvFjIbzDuTgvsua2Qxb4/aCl7so8CGWTmsJKDnxogKO2HtXk
-# jQeQ5oPl5g+3uvODqu5qqCed1JqnDQkVyW/L1ehaVLQRje8WhKFmr1hzzMHgQkV7
-# HO3Vo40Mu5tJsryhQsc84sCGXFCaQrL/hVxu/jOyUeLco4/R+rlYaYbaHkEPEHu0
-# vxNtxjnHppk5BWr4+Z8DZZlV/9y2odtEFfSWE6NAOFxR4BxDPBPGneHTCvGn+psk
-# iVrgi4AVOsti4DTtOnaUd1R+cUX1jVOnsmfQsqsCOuBXxvGzWJleAneiRqN81vHX
-# S1zisuQfuPEyI7O/0XtoxBhhaAFTqk2AMzYy0pzmnHucp0AnFteP47KK82jm3o4H
-# 0NObClfry9L2gjSNYVTFLTJ62MYo3+KjH7bZtA0/Wnu6j48Im0kWenoWMEDf4EYc
-# 2K2wEST2y4Q0+N9amfNJuicKhhOgVS7aOd8GOD1sFcypsiEUhNQSeoxWNiYxiFc8
-# CMIfrio=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTQwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgDTL2bHag/ifRFqyuEWVq4VM44VR8hk9JI6Q3p/Dz
+# OjUwDQYJKoZIhvcNAQEBBQAEggIAidoMLUnFM2fpvG1Aln+aKcsmhuI9Jny506yN
+# lkM27qbwz9DuOFQOfkrA1BdpgYhWAQbN/2b+pNIWdlaWtAs5Cz6oSEIWBpRfPEkK
+# c5SOYf+mUaWoz+38shIIRpxM+nFJC4E7EV8TgPGYJ1v8d5tFpfzHzQx79ZhFXz/X
+# QWQlVKKG1b8QWE5v0rQZEhoXaBcmDewnsSK1O84ZgdDtqGQjKCu98puMNbfdVbAC
+# VjV0UFzLs70AdrGjKTTOiIFwR5cs+7esFjFQ2HE3fI0KM/jHLx2fSid3sca1zBTc
+# 3ZT13+O1MSQqgnQnCmpyZk3aPw4fF1hV4LwgXDLalrcO9zjNbzqBDOJrBRGtJ5jB
+# GpjcHYLFgtKDjG/Z7l7VccXUaTpA2+7dwQnEgs7Y68ZpM0FZPDRA34+DBE/SGFDC
+# m/bXbVUtijlsZnXe9FJqofkuxQ0FR+QHCqv6vDcu+90Vmy2b6MQyRO6yLmbYsuXI
+# EsREmcWuJ8oOzcZqiN7dn+mtmF+FvRI9OPWUiS7oBBt7Ydky9DLctvUfBft/9Rj3
+# ITX4kBoFPake9cf2j02JSiQ2e6KzH5dbACCQiSPJRUnki9EBfjLOw/Ze3g9LiQkm
+# uWNvgb+dp51SslXmUTyErihrmRGxMPiDtyJ5dNghnW6VsdhaGvnC7I8McPlPEie5
+# AehHIwo=
 # SIG # End signature block
