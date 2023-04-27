@@ -267,69 +267,6 @@ Begin
             Write-Output -InputObject ($DC.Trim('.') + $CN)
         }
 
-        # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
-        # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
-        # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
-        # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-        # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
-        #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-
-        $WinBuilds =
-        [ordered]@{
-           # Build
-            '20348' = # Windows Server 2022
-            @{
-                Version = '21H2'
-                Server = 'Windows Server 2022 21H2'
-                Baseline =
-                @(
-                    'MSFT Windows Server 2022 - Domain Security'
-                    'MSFT Windows Server 2022 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
-                )
-                ServerBaseline =
-                @(
-                    'MSFT Windows Server 2022 - Member Server'
-                )
-                DCBaseline =
-                @(
-                    'MSFT Windows Server 2022 - Domain Controller'
-                )
-            }
-            '22000' = # Windows 11
-            @{
-                Version = '21H2'
-                Workstation = 'Windows 11 21H2'
-                Baseline =
-                @(
-                    'MSFT Windows 11 - Domain Security'
-                    'MSFT Windows 11 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 - Computer'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 21H2 - User'
-                    'MSFT Windows 11 - User'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 11 - Computer'
-                )
-            }
-            '22621' = # Windows 11
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 11 22H2'
-
-                # FIX
-                # Add baselines
-            }
-        }
-
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
         # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
         # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
@@ -698,6 +635,69 @@ Begin
                 #Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
             }
 
+            # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
+            # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
+            # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
+            # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+            # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
+            #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+
+            $WinBuilds =
+            [ordered]@{
+               # Build
+                '20348' = # Windows Server 2022
+                @{
+                    Version = '21H2'
+                    Server = 'Windows Server 2022 21H2'
+                    Baseline =
+                    @(
+                        'MSFT Windows Server 2022 - Domain Security'
+                        'MSFT Windows Server 2022 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
+                    )
+                    UserBaseline =
+                    @(
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
+                    )
+                    ServerBaseline =
+                    @(
+                        'MSFT Windows Server 2022 - Member Server'
+                    )
+                    DCBaseline =
+                    @(
+                        'MSFT Windows Server 2022 - Domain Controller'
+                    )
+                }
+                '22000' = # Windows 11
+                @{
+                    Version = '21H2'
+                    Workstation = 'Windows 11 21H2'
+                    Baseline =
+                    @(
+                        'MSFT Windows 11 - Domain Security'
+                        'MSFT Windows 11 - Defender Antivirus'
+                        'MSFT Internet Explorer 11 21H2 - Computer'
+                    )
+                    UserBaseline =
+                    @(
+                        'MSFT Internet Explorer 11 21H2 - User'
+                        'MSFT Windows 11 - User'
+                    )
+                    ComputerBaseline =
+                    @(
+                        'MSFT Windows 11 - Computer'
+                    )
+                }
+                '22621' = # Windows 11
+                @{
+                    Version = '22H2'
+                    Workstation = 'Windows 11 22H2'
+
+                    # FIX
+                    # Add baselines
+                }
+            }
+
             #  ██████╗ ██╗   ██╗
             # ██╔═══██╗██║   ██║
             # ██║   ██║██║   ██║
@@ -789,7 +789,7 @@ Begin
                 $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
             }
 
-            # Build organizational units
+            # Build ou
             foreach($Ou in $OrganizationalUnits)
             {
                 # Check if OU exist
@@ -1132,9 +1132,9 @@ Begin
             # Tier 0 + 1
             #############
 
+            # Servers, server by build
             foreach($Tier in @(0, 1))
             {
-                # All servers
                 $DomainGroups +=
                 @{
                     Name                = "Tier $Tier - Computers"
@@ -1177,9 +1177,9 @@ Begin
             # Tier 0 + 1 + 2
             #################
 
+            # Users
             foreach($Tier in @(0, 1, 2))
             {
-                # All users
                 $DomainGroups +=
                 @{
                     Name                = "Tier $Tier - Users"
@@ -1196,7 +1196,7 @@ Begin
                 }
             }
 
-            # Local administrator, rdp access
+            # Local admins, rdp access
             foreach($Tier in @(0, 1, 2))
             {
                 foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
@@ -1231,7 +1231,7 @@ Begin
             # Tier 2
             #########
 
-            # All workstations
+            # Workstations
             $DomainGroups +=
             @{
                 Name                = 'Tier 2 - Computers'
@@ -1247,7 +1247,7 @@ Begin
                 )
             }
 
-            # Workstations by build
+            # Workstation by build
             foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 if ($Build.Value.Workstation)
@@ -1341,14 +1341,13 @@ Begin
             # Domain Local Groups
             ######################
 
+            #########
+            # Tier 0
+            #########
+
+            # Access Control
             $DomainGroups +=
             @(
-                #########
-                # Tier 0
-                #########
-
-                # Access Control
-
                 @{
                     Name                = 'Delegate Tier 0 Admin Rights'
                     Scope               = 'DomainLocal'
@@ -1390,11 +1389,11 @@ Begin
                         }
                     )
                 }
+            )
 
-                ##############
-                # Join domain
-                ##############
-
+            # Join domain
+            $DomainGroups +=
+            @(
                 @{
                     Name                = 'Delegate Create Child Computer'
                     Scope               = 'DomainLocal'
@@ -1408,11 +1407,11 @@ Begin
                         }
                     )
                 }
+            )
 
-                ######
-                # PKI
-                ######
-
+            # Pki
+            $DomainGroups +=
+            @(
                 @{
                     Name                = 'Delegate Install Certificate Authority'
                     Scope               = 'DomainLocal'
@@ -1440,11 +1439,11 @@ Begin
                         }
                     )
                 }
+            )
 
-                #######
-                # Adfs
-                #######
-
+            # Adfs
+            $DomainGroups +=
+            @(
                 @{
                     Name                = 'Delegate Adfs Container Generic Read'
                     Scope               = 'DomainLocal'
@@ -1477,11 +1476,11 @@ Begin
                         }
                     )
                 }
+            )
 
-                #########
-                # AdSync
-                #########
-
+            # Adsync
+            $DomainGroups +=
+            @(
                 @{
                     Name                = 'Delegate AdSync Basic Read Permissions'
                     Scope               = 'DomainLocal'
@@ -1523,11 +1522,11 @@ Begin
                         }
                     )
                 }
+            )
 
-                ###############
-                # CA Templates
-                ###############
-
+            # CA Templates
+            $DomainGroups +=
+            @(
                 @{
                     Name                = 'Template ADFS Service Communication'
                     Scope               = 'DomainLocal'
@@ -1639,14 +1638,6 @@ Begin
                         }
                     )
                 }
-
-                #########
-                # Tier 1
-                #########
-
-                #########
-                # Tier 2
-                #########
             )
 
             ###############
@@ -1784,6 +1775,7 @@ Begin
                 (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
             )
 
+            # Setup service account
             foreach($Principal in $Principals)
             {
                 if ($Principal)
@@ -1807,7 +1799,6 @@ Begin
                     }
 
                     # Retrive password
-
                     if ($Principal.DistinguishedName -notin $Account.PrincipalsAllowedToRetrieveManagedPassword -and
                         (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($Account.Name)`" password." @VerboseSplat))
                     {
@@ -1815,7 +1806,6 @@ Begin
                     }
 
                     # Delegate
-
                     if ($Principal.DistinguishedName -notin $Account.PrincipalsAllowedToDelegateToAccount -and
                         (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($Account.Name)`"." @VerboseSplat))
                     {
@@ -1824,23 +1814,23 @@ Begin
                 }
             }
 
-            # Add containers
-
+            # check adfs container
             if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding Adfs Container." @VerboseSplat))
             {
                 New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
             }
 
-            $AdfsGuidContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
+            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
 
-            if (-not $AdfsGuidContainer -and
+            # Check dkm container
+            if (-not $AdfsDkmContainer -and
                 (ShouldProcess @WhatIfSplat -Message "Adding Adfs Guid Container." @VerboseSplat))
             {
-                $AdfsGuidContainer = New-ADObject -Name ([Guid]::NewGuid().Guid) -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
+                $AdfsDkmContainer = New-ADObject -Name ([Guid]::NewGuid().Guid) -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
             }
 
-            # Check service principal name
+            # Check spn
             if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
                 (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
             {
@@ -1971,7 +1961,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName $AdfsGuidContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
 
             ################################
             # AdSync Basic Read Permissions
@@ -2428,6 +2418,11 @@ Begin
                     $UserWorkstationBaseline += $Build.UserBaseline
                 }
             }
+
+            ###########
+            # Users
+            # Tier 0-2
+            ###########
 
             foreach($Tier in @(0, 1, 2))
             {
@@ -3231,8 +3226,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUscQvsofCgIsGen0AfT1oHzvZ
-# fGWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUuO1y/HJjUWO5yr4AM52NmNm1
+# gIugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3363,34 +3358,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxIfOiOLE
-# xsV+JTMpb1VKRNGrg2IwDQYJKoZIhvcNAQEBBQAEggIAOgmDNxOjU9Ce0SDnv8HW
-# QB0kkq/J9dbX04FZekEIAung4lKcbnifHfdD1IGNtwq1H9HiGlIfzS6+YBdThiQE
-# 0sxFv7JB+ZsmomZwdbrG3PJMQRKD4UJBpXQEO5pyetyGjEH3SnqCvsACEEiuuJCg
-# XoXk80zE/BF92dJkyEjSnnXdIugLKTpmCIg5gZ1dX1vm9cSq6i2dc+7tNjHnLMEO
-# 5n/Chq7wB1rYASnzhcORDCh+63xoB5bxUqZDCIxLP0SD68MFwI5/W4imxc7uHL1N
-# f9fsUZInd20u0WZTGMzdwW/1ei62tELPQFsS/IwawZO4lBrfEbzwaPGklq/tDlJE
-# UmmONYlALZy4BhLG1M7/xn2owE38z84o1FV5GRQZ1W8wUi8UvY+hU1hwN60xLDEh
-# hgdc5QwgbKLsDc6ZtPiWaGtrfN0zkwqHYzb4r74r1A/nLsNKo/+uAs3dbUlGCO1x
-# 7cHv7Ls/uwLIfnQNWN3cej9/wkoHQEx8/rAEVMcZ0JPMTMRdyX1MancHk05jCl1Z
-# S5MJMNH2MAgTxF5LOhULDCPh7rmwo+18Vhb4qO6YZ5X0IBzT/UpM14HqcgD5KjGS
-# eXCnu3HINKq7B10SoWtqt8VopJw0+BuXcPorEHk3qs58733Cfoj1Zt0XNXOO9X8T
-# zqJr1rmvkCpm2EBtsMoxekmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9lnaNQ+S
+# SoGAWv4Mync36CM542YwDQYJKoZIhvcNAQEBBQAEggIAQono2TWUTFrWJpegBob7
+# pq+OcwNWQU+BrMm9k0FSKzp8nhkYpDH2glupeDSj4S345eo1K9njmUdPe2iw0rfl
+# gs7zHZoIFn1Amy0ePud+zePXwvwsGY+WxAh8Ilu+fDzWr56K3qtTgPfnNy3F7Sp8
+# 4wE6gtYUsq691lWPzsJcj2mLw4O0oBP7QA3i4vMncQc8XYPQk2EzVUpQbWw1edZ2
+# PkCkB+179CFlpbcFzxOpmwP+8UlBGWDMtEV2APey/c12l8AD6gJ1qz7g1xoXWG9i
+# t7FPHfvo/LlQ4mQFONEdastHxonsL9S7ETMd3dOuEI82KmIBuntolfkU+Aiw0aXo
+# wy+FVVk7K7hNKRu5kvBHA61osV/Mrrxlw5KDe+Bt7L/+OiY6pL68KlaGGc6xLdRS
+# Agrk8WHwJeNWQWNvOEaFjxcxwBnkmkS6PLD8REpYqpPrpuHTBvrVoGgAPTKVFBp6
+# lk3BpyFsKI/sij3GjY4WDsa/WtSFMoN5KqI4JETlC5Nhzy8znwmsJlJ08VRkC8NE
+# InCMm/OCM7b6jMUNZ4Ru76kANFanLHngvL7zikiYbd1OcYJInUa7L5vEJ/3RCe/3
+# i8wocF5lL3cv6ggyVggOJ90nq9K7ndgqaBO1QkBBqslTlyt7x9TEPaeWZAWnowRy
+# GBQaoJX6+bplTDWJ7prhkyWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MDgwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgMpKXiFud4LZax4OcxKfuuuTHVEFy0XAcCG0v88fs
-# +JowDQYJKoZIhvcNAQEBBQAEggIAO+88lmnGk3I1nndvtuGXv+RsFcMdrJCZyLJV
-# +RKsrKi1T4FrntQNzrPFnHApS31rmWJRy/x9wNIOMZrLq9dzolwwgkmu3h+l3fem
-# n8TTjNL1dI1yxridkT+w7AqPnUH4Veg9f8xNCtAxJhRPAaDkyNR5LGFceeOHj4wb
-# JWiZsZ7iiolFcs364JlCtJWSz4lg7H73yKuN6FRkmXokfRc2FKEX02mjEqxaN7kj
-# g+fhogihN2EaWDtEeUIZb2tpKk5DCEzvs8Dl724jyDV60UIdwis6XAiuigGqjfOX
-# NVWuqBq33DMTnA0OTUH/P5PeZiyNd7Rb6aQwPmOhPfZQxQtLEyyZUf8rgSdjYKKT
-# zYqu6aw0EOFhndnffHlavHRp8fRHZJOOqG2rWfr/5zHELJvMfTCKVERBnNCk99LM
-# 0LF7Zz6dpDz1EE0bT7tGOYZcV+N7zf3Gok8SY31bS3vJ4a7LsPDHbdm4ta7Cic6t
-# VbxOcVcU0LGOUMw6/mu5xanu/FTiUWbwX0Iw3yl/3Wl0xKxOxgGCW+lS7B9VgDh7
-# oKrNrzRAwvaKc9+TkqXuLFnIp6EGRvYZYaTZS+ZITp2PlDdqCHNc/e/7jJQUOY88
-# LpFUTtdq3H3kI4//0WybyDo2HwLA25R3BPKnE3qOqstZUtr3X+0KXpxsw07U4wLa
-# Cy+1I/0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MDkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgc2jvTXHA/P1HGBaySJWqGDBN3A54ZN3qx8TWG4Sp
+# +W8wDQYJKoZIhvcNAQEBBQAEggIAbGAnjDhOwjhk5IAAQvLQ1RIDKDjune6RRpLu
+# XTOasDuVabDdwPc7L7AnePTyUavBIXTzJoiAaN+7gdLeeto2v3mPXHKME4dL9gt5
+# xL3lBtfM1I/a7m1seRm69CSk5SfouObMNSQe5Rcyt6xfFu52Eei2V3rZCR0nwNk5
+# +cxZ+8uN6cd6ZerBlojKugalHHLKtW/jizdjD0WeDCEjbVpd+gfZyugBJz7TkgBT
+# pG0x7YOdy0DVCedOm3IfdYooOgifdBQypMsL6rYOBqzPhMcT+0+TDaoiM+rmgxe4
+# FDMgoZuyxpl3X1UsoR+upU51x9wkKk5pLGhxqrvi++GxyCoBpEJ/gGNPMHYoC/re
+# PoGDxozgyWISa8Ln0bGxqaFpALMUXdnWOnxF1vafq1nXemD8BaUuFayhK0EnIRrq
+# ZBGEMG27ksx7846Vdhw+R8QvZHuZ/YVuPcwk0YPSd+mU/JfvBbGTT/6SoRU35P1G
+# gxHcs9pY6Q7SO+aeJzuK0YcP4fvcucjaoH9HUUvjRJ5oktYIK6eGqXNoBU7hsJ0u
+# jSAeNHv3Qldo2dwfhIfduGak9w/NN5lkuKYRWICS/+kqsfkO0uvMgBf91BaCBTrQ
+# 3eAiadEvir+8NkIvHDbAYxLZ5NETDyOgW53ASht7qFFyYGSBkT9vXPjS0mCS27jX
+# FzD+Ps0=
 # SIG # End signature block
