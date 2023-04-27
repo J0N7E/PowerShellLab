@@ -614,27 +614,6 @@ Begin
                 }
             }
 
-            # ██╗      █████╗ ██████╗ ███████╗
-            # ██║     ██╔══██╗██╔══██╗██╔════╝
-            # ██║     ███████║██████╔╝███████╗
-            # ██║     ██╔══██║██╔═══╝ ╚════██║
-            # ███████╗██║  ██║██║     ███████║
-            # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
-
-            # Check msLAPS-Password
-            if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
-            {
-                # Enable schema changes
-                #Add-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins'
-
-                # Update schema
-                Update-LapsAdSchema -Confirm:$false
-
-                # Disable schema changes
-                #Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
-            }
-
             # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
             # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
             # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
@@ -1738,29 +1717,6 @@ Begin
                                 }
                             }
                         }
-                    }
-                }
-            }
-
-            ###############
-            # Empty groups
-            ###############
-
-            $EmptyGroups =
-            @(
-                # FIX remove Authenticated Users
-                #'Pre-Windows 2000 Compatible Access'
-                'Schema Admins',
-                'Enterprise Admins'
-            )
-
-            foreach ($Group in $EmptyGroups)
-            {
-                foreach ($Member in (Get-ADGroupMember -Identity $Group))
-                {
-                    if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
-                    {
-                        Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
                     }
                 }
             }
@@ -2950,6 +2906,24 @@ Begin
                 }
             }
 
+            # ██╗      █████╗ ██████╗ ███████╗
+            # ██║     ██╔══██╗██╔══██╗██╔════╝
+            # ██║     ███████║██████╔╝███████╗
+            # ██║     ██╔══██║██╔═══╝ ╚════██║
+            # ███████╗██║  ██║██║     ███████║
+            # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
+
+            # Check msLAPS-Password
+            if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
+            {
+                # Update schema
+                Update-LapsAdSchema -Confirm:$false
+
+                # Set permission
+                Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN"
+            }
+
             # ██████╗  ██████╗ ███████╗████████╗
             # ██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝
             # ██████╔╝██║   ██║███████╗   ██║
@@ -2983,6 +2957,30 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
             {
                 regsvr32.exe /s schmmgmt.dll
+            }
+
+            ###############
+            # Empty groups
+            ###############
+
+            $EmptyGroups =
+            @(
+                # FIX remove Authenticated Users
+                #'Pre-Windows 2000 Compatible Access'
+                'Schema Admins',
+                'Enterprise Admins'
+            )
+
+            # Remove members
+            foreach ($Group in $EmptyGroups)
+            {
+                foreach ($Member in (Get-ADGroupMember -Identity $Group))
+                {
+                    if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
+                    {
+                        Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
+                    }
+                }
             }
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
@@ -3240,8 +3238,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaFSAGuhjta+m3dLRyWb5SfGm
-# zpWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUysKsaIijfIpGhK0o5gf6RwYR
+# 9PWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3372,34 +3370,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXert3pv7
-# 9PPOIgJ0PqTMDtet4T0wDQYJKoZIhvcNAQEBBQAEggIAiVOvUx7DumkknpqnnTMc
-# TLBzIpTD2CVsdg1WbrWQ51ShrqORxWkq0mDd3v815gLJRrnlWCtfUP5swCSQdBB0
-# FXYz6ionJ0u4oi2sD24l+MLCSvpdYh2Nau8t6Wi+kbLxLN0PyNYDGRWkhiKyvBS4
-# r4L7azMQ4s22oylOvxpHuw/QZr84ojijjfQneEYzlbYe9tUBLB8C7Y3dIQwXNMvn
-# mUwrMosdkq3vZbRv+aPa2o6ivcP3QZeTB17MBPcazjwkoKCfGJ7Cwcw9vj6Zv1X8
-# 1vLu3cfCdtlrapfhJ18zJF2dMzOPaaOq2KBj1J3/Yc7UYfdw1r+sWag57F70KtuE
-# VMpXGWEP1tQ4h4rTqcslSSNGmZBZ7RCYAt3YfpNnPIksnrASBVXBQuLzx1waPVss
-# +1tAD2BxHaWigx6I3o2luaVtBDyeRLsxqZI2QPx5b8SJDMABt4yCNneiI9FSv+4p
-# 5+5znaLrgYvCeh+SJIZj6LSUEXqyIJnpDE446N/qstziOVUIkseBsyR5yWgJgwxZ
-# aY0SM6P5AYWVnku1CGyHAW2KHasocO236JNTovOBDE7usOnoyoTEv9I6iczVBuXx
-# Pg24l6QIePAlfJZrdJ696nYobarGlfY45+WNF/lYQhAtjvzL15lhGDkElmm40hHa
-# 3fnExFfM5zeF6dfZs/pFHIuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKJm/dcMX
+# ENQsi0els9TsAJ9m2P0wDQYJKoZIhvcNAQEBBQAEggIAM6I7HOl6RMQBXtjYeVYK
+# Aw98Q7OIc+cU4Mt/62l/eJlWzX2fK7HezngAcB0NMJEbTaUGS8v7FEUaUbB24z/f
+# Yeiac1TRWG31nI9S0eUvAgqvvQEgrC7iWClfDZ6nUw/UbDF+yucIv/Ih0kR/zA1b
+# mbLVNglfIrkvUcjVFyn6NYNXQaY+iGDfct/DsZYgQLUBuG6I/8H18YHNOsbhRBeJ
+# jq1HeHJuuz1w9Lxg/mNaH1rlcvxQlzfME17wMNOujTDE4dHZifaNM2uLKIDZTz8K
+# 284eso8PlrefaM9vWPAiKq5cu0DSNNQeYK7PpAxjAtyO9pY6TkWPSw60TsHJdgVW
+# 1OMUJn9tt5TYbvFM2S9zqWIu9cqz48JhSI0Zngka9w0PzDy92HXUPJLH7iRDxObA
+# T8ApnvnoCrJx8NiAogOUghfj5Oh1YahPcBEAu12ZyvBvZ+EmckRzgOSflgP3OfKv
+# /nL+kztmM+mLC6tt7fl6avmOfn3W8OoXRzHvOYmbRYiO04kezHn3f/G1fCCnXbYD
+# dXY4IY1lDNQIFTpEIhguRwV11s7k0Yy42iPxcoZGLuKFFNetXZoRFUALhLrU5jCA
+# l/cRKYi/1gxFSnvfDJlvN5PdNNxQ2pgmpGtgyfDL19K+ErJ6Nwk/UM/xZOnqnOAA
+# +1ilNTRr9rWbcVyv/P2tVAihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTQwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgnm23mAeYMj/s4CLx1CgCdEFfmhgGaNv2Fk4y228U
-# zHIwDQYJKoZIhvcNAQEBBQAEggIAk3mfKlU0/3FeCQ2K6M23i4VtTmpMddhAgrap
-# 0W5hhwgJd9dL1SESNHUKUSpXwc8Q03jXMEVJ7AbzY5YHMtSRnLT5ZkWs0SNtYCc4
-# 6VvP/epPa1chRfbBshH1uYPxA/+t847BKw34TxGP9Q+uCrsP/Nm0gmf4dibTbejD
-# 4bld/faVCF7PhjsEM/4kPi6+2m4rWW7elCEsVQnqyRkmWZkjyqLqPlPd/uncgkB/
-# jjG3EEC3PDCYhMHyQ8w9ncDy776anPLQ2+Ex5amb1zk1tA6ziAJLAy71WzTMRuIQ
-# sFjw5B3GOTNapiYrpVwOZl3a1JdGCAOeXsjv/OFIf/CTqMx/QMjSjpF/duFglDaZ
-# NMTF+1MskQVNRm2/xFbvH1u8ZrD6yQTb09MSoqlr6KktO3GfWfWyWFY7sPulh1y+
-# 6kGxu5STC7amhBBOpSsraX+a3j0CqFtufzt9UAXsZ24qFVwQY32Yj/qgXZkK+oxX
-# rUp6dxbhPaE67hU6tmvElw9+95xHBSB1rnXnG5pR2Wf0Dv5YEY4OKV18mrqLoslC
-# RjQezJMUtJr0DZaGM4x/DditHqRAg81FZacM93/v/0TGTEZxY67UKRqq8Nvu2mJO
-# M4T8Tx4wooQCNBoOB+f+2XPbGGyXfVOGoeePCydX13c3D2r6E3LnfBiO02zABPo/
-# NH2feFI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTYwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgBdK4Sd9oUm7t+SRL85B9OB+rGXQufH6bxxI/fXpL
+# 7tgwDQYJKoZIhvcNAQEBBQAEggIANKS6f+s9rOfXnpDAoU+m+ZGvrWb9ip62YvOK
+# lWLhmvgpEQrVkEx+Bt3MJA5Z2RLFFbSVt1ddKMdmfmCI3x5BiwYFNgaTWKRaQH8d
+# +yQ9QcBqEe0aKIDUkP6oKSw0s8YZpDpL5uWp6WZ/M3kDzmR85I1aCVdtzNSSeovD
+# XAR1Zsnq5zEhQK8LemBkUTMef+S9b1sOV6js4yK1f/70CHWxjRgGazJ5Lh3YLDjM
+# fhsKCr6ZHxu+xx6gUDMhu9z239DIaSfD7ZUUxYBnSZI4PDCplP/KdRTxH1MmxgOJ
+# hg5sD7NBvwv9vJBIdpGHB1FRNdAcy+yv+NyuHR4yGt8xe6ryeqccbImN8ZFKTKir
+# h0aTAaqukRnYppsxUDOt2XlFPh6aiNcV/ttR/kixGXg0Y3MRRjPKD+FAnq8DlDKb
+# 8SuyxhRTPNPVHxwTh4CcJQuzjSmPtolpzpV/1VLxLjyn/LJt5ywy4OhONu6GhoCF
+# uCABXSsg2PB8EOvSV05cGEfjPA3MfsXE1ONMEWMcXkpWCUKOJNU7ZcWw7IfcgIh5
+# ka8B36cjuTJC6Y2TXVyzhDj8OOGzEyAfKT+2pvmZuG/zwqacWBLwIL+xBXB5YbPW
+# IxfO39vpbggjhEun8OjnDFptuZTUvGXmMOxPzJuSVYElivUzWSmKvFn6jd5ipQlO
+# YSdeZ+k=
 # SIG # End signature block
