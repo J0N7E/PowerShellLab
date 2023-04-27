@@ -1721,366 +1721,6 @@ Begin
                 }
             }
 
-            #  █████╗ ██████╗ ███████╗███████╗
-            # ██╔══██╗██╔══██╗██╔════╝██╔════╝
-            # ███████║██║  ██║█████╗  ███████╗
-            # ██╔══██║██║  ██║██╔══╝  ╚════██║
-            # ██║  ██║██████╔╝██║     ███████║
-            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
-
-            $Principals =
-            @(
-                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree),
-                (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
-            )
-
-            # Setup service account
-            foreach($Principal in $Principals)
-            {
-                if ($Principal)
-                {
-                    # Initialize
-                    $PrincipalsAllowedToDelegateToAccount = @()
-                    $PrincipalsAllowedToRetrieveManagedPassword = @()
-
-                    # Get
-                    $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
-
-                    if ($MsaAdfs)
-                    {
-                        # Populate
-                        if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
-                        {
-                            $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount
-                        }
-
-                        if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
-                        {
-                            $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword
-                        }
-
-                        # Retrive password
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
-                        {
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
-                        }
-
-                        # Delegate
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
-                        {
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
-                        }
-                    }
-                }
-            }
-
-            # Check spn
-            if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
-                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
-            {
-                setspn -a host/adfs.$DomainName MsaAdfs > $null
-            }
-
-
-            # Check adfs container
-            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
-            {
-                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
-            }
-
-            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
-            $AdfsDkmGuid = [Guid]::NewGuid().Guid
-
-            # Check dkm container
-            if (-not $AdfsDkmContainer -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
-            {
-                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
-            }
-            else
-            {
-                $AdfsDkmGuid = $AdfsDkmContainer.Name
-            }
-
-            $Result.Add('AdfsDkmGuid', $AdfsDkmGuid)
-
-            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
-            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
-            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
-            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
-            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
-            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-            # Check if AD drive is mapped
-            if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
-            {
-                Import-Module -Name ActiveDirectory
-            }
-
-            $AccessRight = @{}
-            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
-
-            $SchemaID = @{}
-            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
-
-            ########################
-            # Create Child Computer
-            ########################
-
-            $CreateChildComputer =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
-                }
-
-                @{
-                    ActiveDirectoryRights = 'CreateChild';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['Computer'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
-
-            ################################
-            # Install Certificate Authority
-            ################################
-
-            $InstallCertificateAuthority =
-            @(
-                @{
-                    ActiveDirectoryRights = 'GenericAll';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
-
-            $AddToGroup =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['member'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            # Set R/W on member object
-            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
-            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
-
-            ##############################
-            # Adfs Container Generic Read
-            ##############################
-
-            $AdfsContainerGenericRead =
-            @(
-                @{
-                    ActiveDirectoryRights = 'GenericRead';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
-
-            #################################
-            # Adfs Dkm Container Permissions
-            #################################
-
-            $AdfsDkmContainerPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
-
-            ################################
-            # AdSync Basic Read Permissions
-            ################################
-
-            $AdSyncBasicReadPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['contact'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['device'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
-
-            ########################################
-            # AdSync Password Hash Sync Permissions
-            ########################################
-
-            $AdSyncPasswordHashSyncPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
-
-            ###########################################
-            # AdSync MsDs Consistency Guid Permissions
-            ###########################################
-
-            $AdSyncMsDsConsistencyGuidPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-
-            ############################
-            # Remove Join Domain access
-            ############################
-
-            <#
-            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
-            {
-                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
-
-                foreach ($AccessRule in $ComputerAcl.Access)
-                {
-                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
-                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
-                    {
-                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
-                    }
-                }
-
-                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
-            }
-            #>
-
             #  ██████╗ ██████╗  ██████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗
             # ██║  ███╗██████╔╝██║   ██║
@@ -2581,169 +2221,6 @@ Begin
                 }
             }
 
-            # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
-            # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
-            #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
-            #    ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
-            #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
-            #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
-
-            # Set oid path
-            $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
-
-            # Get msPKI-Cert-Template-OID
-            $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
-
-            # Check if msPKI-Cert-Template-OID exist
-            if (-not $msPKICertTemplateOid -and
-                (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
-            {
-                # Install default templates
-                TryCatch { certutil -InstallDefaultTemplates } > $null
-
-                # Wait a bit
-                Start-Sleep -Seconds 1
-
-                # Reload msPKI-Cert-Template-OID
-                $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
-            }
-
-            # Check if templates exist
-            if ($msPKICertTemplateOid -and (Test-Path -Path "$env:TEMP\Templates"))
-            {
-                # Define empty acl
-                $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
-
-                # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
-                $EmptyAcl.SetAccessRuleProtection($true, $false)
-
-                # Set template path
-                $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
-
-                # Read templates
-                foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
-                {
-                    # Read template file and convert from json
-                    $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
-
-                    # Add domain prefix to template name
-                    $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
-
-                    # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
-                    if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
-                    {
-                        # Generate new template oid and cn
-                        do
-                        {
-                           $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
-                           $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
-                           $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
-                        }
-                        while (
-
-                            # Check if oid exist
-                            Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
-                        )
-
-                        # Add domain prefix to template display name
-                        $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
-
-                        # Oid attributes
-                        $NewOidAttributes =
-                        @{
-                            'DisplayName' = $NewTemplateDisplayName
-                            'msPKI-Cert-Template-OID' = $NewOid
-                            'flags' = [System.Int32] '1'
-                        }
-
-                        # Create oid
-                        New-ADObject -Name $NewOidCn -Path $OidPath -Type 'msPKI-Enterprise-OID' -OtherAttributes $NewOidAttributes
-
-                        # Template attributes
-                        $NewTemplateAttributes =
-                        @{
-                            'DisplayName' = $NewTemplateDisplayName
-                            'msPKI-Cert-Template-OID' = $NewOid
-                        }
-
-                        # Import attributes
-                        foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
-                        {
-                            Switch ($Property.Name)
-                            {
-                                { $_ -in @('flags',
-                                           'revision',
-                                           'msPKI-Certificate-Name-Flag',
-                                           'msPKI-Enrollment-Flag',
-                                           'msPKI-Minimal-Key-Size',
-                                           'msPKI-Private-Key-Flag',
-                                           'msPKI-RA-Signature',
-                                           'msPKI-Template-Minor-Revision',
-                                           'msPKI-Template-Schema-Version',
-                                           'pKIDefaultKeySpec',
-                                           'pKIMaxIssuingDepth')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
-                                    break
-                                }
-
-                                { $_ -in @('msPKI-Certificate-Application-Policy',
-                                           'msPKI-RA-Application-Policies',
-                                           'msPKI-Supersede-Templates',
-                                           'pKICriticalExtensions',
-                                           'pKIDefaultCSPs',
-                                           'pKIExtendedKeyUsage')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
-                                    break
-                                }
-
-                                { $_ -in @('pKIExpirationPeriod',
-                                           'pKIKeyUsage',
-                                           'pKIOverlapPeriod')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
-                                    break
-                                }
-
-                                { $_ -in @('Name',
-                                           'DisplayName')}
-                                {
-                                    break
-                                }
-
-                                default
-                                {
-                                    Write-Warning -Message "Missing handler for `"$($Property.Name)`"."
-                                }
-                            }
-                        }
-
-                        # Create template
-                        $NewADObj = New-ADObject -Name $NewTemplateName -Path $CertificateTemplatesPath -Type 'pKICertificateTemplate' -OtherAttributes $NewTemplateAttributes -PassThru
-
-                        # Empty acl
-                        Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
-                    }
-                }
-
-                # Read acl files
-                foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
-                {
-                    # Read acl file and convert from json
-                    $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
-
-                    foreach ($Ace in $SourceAcl)
-                    {
-                        Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
-                    }
-                }
-
-                Start-Sleep -Seconds 1
-                Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
-            }
-
             #  █████╗ ██╗   ██╗████████╗██╗  ██╗███╗   ██╗    ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
             # ██╔══██╗██║   ██║╚══██╔══╝██║  ██║████╗  ██║    ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
             # ███████║██║   ██║   ██║   ███████║██╔██╗ ██║    ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
@@ -2907,6 +2384,529 @@ Begin
                 }
             }
 
+            #  █████╗ ██████╗ ███████╗███████╗
+            # ██╔══██╗██╔══██╗██╔════╝██╔════╝
+            # ███████║██║  ██║█████╗  ███████╗
+            # ██╔══██║██║  ██║██╔══╝  ╚════██║
+            # ██║  ██║██████╔╝██║     ███████║
+            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
+
+            $Principals =
+            @(
+                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree),
+                (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+            )
+
+            # Setup service account
+            foreach($Principal in $Principals)
+            {
+                if ($Principal)
+                {
+                    # Initialize
+                    $PrincipalsAllowedToDelegateToAccount = @()
+                    $PrincipalsAllowedToRetrieveManagedPassword = @()
+
+                    # Get
+                    $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
+
+                    if ($MsaAdfs)
+                    {
+                        # Populate
+                        if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
+                        {
+                            $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount
+                        }
+
+                        if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
+                        {
+                            $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword
+                        }
+
+                        # Retrive password
+                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
+                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                        {
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
+                        }
+
+                        # Delegate
+                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
+                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                        {
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
+                        }
+                    }
+                }
+            }
+
+            # Check spn
+            if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
+            {
+                setspn -a host/adfs.$DomainName MsaAdfs > $null
+            }
+
+
+            # Check adfs container
+            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
+            {
+                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
+            }
+
+            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
+            $AdfsDkmGuid = [Guid]::NewGuid().Guid
+
+            # Check dkm container
+            if (-not $AdfsDkmContainer -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
+            {
+                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
+            }
+            else
+            {
+                $AdfsDkmGuid = $AdfsDkmContainer.Name
+            }
+
+            $Result.Add('AdfsDkmGuid', $AdfsDkmGuid)
+
+            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
+            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
+            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
+            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
+            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
+            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+            # Check if AD drive is mapped
+            if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
+            {
+                Import-Module -Name ActiveDirectory
+            }
+
+            $AccessRight = @{}
+            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
+
+            $SchemaID = @{}
+            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
+
+            ########################
+            # Create Child Computer
+            ########################
+
+            $CreateChildComputer =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
+                    InheritedObjectType   = $SchemaID['Computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
+                }
+
+                @{
+                    ActiveDirectoryRights = 'CreateChild';
+                    InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['Computer'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['Computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = 'home\Delegate Create Child Computer';
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+
+            ################################
+            # Install Certificate Authority
+            ################################
+
+            $InstallCertificateAuthority =
+            @(
+                @{
+                    ActiveDirectoryRights = 'GenericAll';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
+
+            $AddToGroup =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['member'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                }
+            )
+
+            # Set R/W on member object
+            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
+            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+            ##############################
+            # Adfs Container Generic Read
+            ##############################
+
+            $AdfsContainerGenericRead =
+            @(
+                @{
+                    ActiveDirectoryRights = 'GenericRead';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
+
+            #################################
+            # Adfs Dkm Container Permissions
+            #################################
+
+            $AdfsDkmContainerPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+
+            ################################
+            # AdSync Basic Read Permissions
+            ################################
+
+            $AdSyncBasicReadPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['contact'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['device'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+
+            ########################################
+            # AdSync Password Hash Sync Permissions
+            ########################################
+
+            $AdSyncPasswordHashSyncPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+
+            ###########################################
+            # AdSync MsDs Consistency Guid Permissions
+            ###########################################
+
+            $AdSyncMsDsConsistencyGuidPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+
+            ############################
+            # Remove Join Domain access
+            ############################
+
+            <#
+            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
+            {
+                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
+
+                foreach ($AccessRule in $ComputerAcl.Access)
+                {
+                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
+                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
+                    {
+                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
+                    }
+                }
+
+                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
+            }
+            #>
+
+            # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+            # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+            #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+            #    ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+            #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+            #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+
+            # Set oid path
+            $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+
+            # Get msPKI-Cert-Template-OID
+            $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+
+            # Check if msPKI-Cert-Template-OID exist
+            if (-not $msPKICertTemplateOid -and
+                (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
+            {
+                # Install default templates
+                TryCatch { certutil -InstallDefaultTemplates } > $null
+
+                # Wait a bit
+                Start-Sleep -Seconds 1
+
+                # Reload msPKI-Cert-Template-OID
+                $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+            }
+
+            # Check if templates exist
+            if ($msPKICertTemplateOid -and (Test-Path -Path "$env:TEMP\Templates"))
+            {
+                # Define empty acl
+                $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
+
+                # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
+                $EmptyAcl.SetAccessRuleProtection($true, $false)
+
+                # Set template path
+                $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+
+                # Read templates
+                foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
+                {
+                    # Read template file and convert from json
+                    $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
+
+                    # Add domain prefix to template name
+                    $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
+
+                    # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
+                    if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
+                        (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
+                    {
+                        # Generate new template oid and cn
+                        do
+                        {
+                           $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
+                           $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
+                           $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
+                        }
+                        while (
+
+                            # Check if oid exist
+                            Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
+                        )
+
+                        # Add domain prefix to template display name
+                        $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
+
+                        # Oid attributes
+                        $NewOidAttributes =
+                        @{
+                            'DisplayName' = $NewTemplateDisplayName
+                            'msPKI-Cert-Template-OID' = $NewOid
+                            'flags' = [System.Int32] '1'
+                        }
+
+                        # Create oid
+                        New-ADObject -Name $NewOidCn -Path $OidPath -Type 'msPKI-Enterprise-OID' -OtherAttributes $NewOidAttributes
+
+                        # Template attributes
+                        $NewTemplateAttributes =
+                        @{
+                            'DisplayName' = $NewTemplateDisplayName
+                            'msPKI-Cert-Template-OID' = $NewOid
+                        }
+
+                        # Import attributes
+                        foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
+                        {
+                            Switch ($Property.Name)
+                            {
+                                { $_ -in @('flags',
+                                           'revision',
+                                           'msPKI-Certificate-Name-Flag',
+                                           'msPKI-Enrollment-Flag',
+                                           'msPKI-Minimal-Key-Size',
+                                           'msPKI-Private-Key-Flag',
+                                           'msPKI-RA-Signature',
+                                           'msPKI-Template-Minor-Revision',
+                                           'msPKI-Template-Schema-Version',
+                                           'pKIDefaultKeySpec',
+                                           'pKIMaxIssuingDepth')}
+                                {
+                                    $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
+                                    break
+                                }
+
+                                { $_ -in @('msPKI-Certificate-Application-Policy',
+                                           'msPKI-RA-Application-Policies',
+                                           'msPKI-Supersede-Templates',
+                                           'pKICriticalExtensions',
+                                           'pKIDefaultCSPs',
+                                           'pKIExtendedKeyUsage')}
+                                {
+                                    $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
+                                    break
+                                }
+
+                                { $_ -in @('pKIExpirationPeriod',
+                                           'pKIKeyUsage',
+                                           'pKIOverlapPeriod')}
+                                {
+                                    $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
+                                    break
+                                }
+
+                                { $_ -in @('Name',
+                                           'DisplayName')}
+                                {
+                                    break
+                                }
+
+                                default
+                                {
+                                    Write-Warning -Message "Missing handler for `"$($Property.Name)`"."
+                                }
+                            }
+                        }
+
+                        # Create template
+                        $NewADObj = New-ADObject -Name $NewTemplateName -Path $CertificateTemplatesPath -Type 'pKICertificateTemplate' -OtherAttributes $NewTemplateAttributes -PassThru
+
+                        # Empty acl
+                        Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
+                    }
+                }
+
+                # Read acl files
+                foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
+                {
+                    # Read acl file and convert from json
+                    $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
+
+                    foreach ($Ace in $SourceAcl)
+                    {
+                        Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
+                    }
+                }
+
+                Start-Sleep -Seconds 1
+                Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
+            }
+
             # ██╗      █████╗ ██████╗ ███████╗
             # ██║     ██╔══██╗██╔══██╗██╔════╝
             # ██║     ███████║██████╔╝███████╗
@@ -2918,11 +2918,17 @@ Begin
             if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
             {
+                # Enable schema changes
+                #Add-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins'
+
                 # Update schema
                 Update-LapsAdSchema -Confirm:$false
 
                 # Set permission
                 Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
+
+                # Disable schema changes
+                #Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
             }
 
             # ██████╗  ██████╗ ███████╗████████╗
@@ -3239,8 +3245,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqWpJB10vNE53i2udwBM71g+F
-# CwOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWqGokFsSFu6rwZsm/ozX2QB5
+# qLagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3371,34 +3377,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBJCg9nxa
-# ovsbwj6dfl3X4j+ecEAwDQYJKoZIhvcNAQEBBQAEggIAB0au0dK4RfGE2Tb0DNu5
-# 6EAphl7TMv8WDRxZoLNtD77fGJHG8fnOGL+ktTy0tdvmDB4O1gdnT/8K2Dq2m167
-# PkpCGhnT8lOxpOvAS0SSiKWYGEeS04RBIkVylrS+88zvGxfBRoXmTecVaIDPaAGI
-# 7zAMi5INItCK1tDNmp0e5vwkkp7DwzmzvCIcTqDK6Bvo3gy6MSevlj/CUj+0/66C
-# 5kTjX3mkHnTQCfzIDyKQ2qWLOUEavgEPoPiJ9XbiJI2URoK/iH6PkGPA/2Ztat4r
-# BqPWs9woeS5CrXGC5X5D/uZQe4oO42X8m0arayeikR2ShXo64UrF+B67/Z7srXIB
-# 8oXHTEr3xJ8A7NSXBHUzv9J3XaQEi80RxJlc0nMw4fw3EFr/sdxCkXYMDITpEqFq
-# Ht451G8TLzaQSkPCjq+kWb30tXVrdmoGsn0d3DBB6kVBh1w465XD7j76Mrh5IlsU
-# B8sJM+ZftqGV1wxdcxVILwO75yE4w0ts051cdjr+p8JQ2lA7TogGFHXds2drsSIP
-# TOe3lHLWTFonx7okO4IIqW5LEOA7hgOl6GpD46bo3D1b0nwxv4ozsDRBuiOkdCvQ
-# GLXYZiUGBwhfeBVYDvnPhlW8YVPTxbC8n+Kz3MPVcEvPji/aYoFtyOS4FaR1mxY6
-# P6QMR9FAVkwMA7PeCgbL+7KhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnVNtvGG4
+# TudG23LfEaveQtUQ1qkwDQYJKoZIhvcNAQEBBQAEggIAHcQfkMByQNLbpFlOApPb
+# Be4VhshE7TojsxYEE0RiA0zL26/Z46f9UDBPlBekN7lAjycHOo2GPlg9I2/TMItl
+# wtQkiJAFwthpi642ArfSium2UATK05qpfdTbSAC9gR52h0FaAQOnBKwkMt4Z3o23
+# l2WWuDF+ycWCCcai3lYi8KC68NzqOc42OcWMEHci2DeQJxVARQzK85Jux+pjaY0h
+# c2brd+DJvtNXldkMB7Bn8M/khaKqRrXnCoE3aj620RwEeP9PoGIo4s2KPmwOledS
+# JDraeSaRqVMbS9Yv56SUL+4HXk+/e+ws7tLF208blpj2wEjfWdIk/fUQhmuU56/T
+# qYKGaNWAeNPMM6IHyyskpbiSRuqGUHLq6BSc1tMAtObCXWcY4DvZvu0isbmbj5/b
+# Vq9hb3ni1p2Nrdl6qGM3qM6z/vglOogSx+CA3WQ9y2n3AeVOvNSupb9A60Po764x
+# 5E3IiRXGYXAdrPo+SnImO89KxI09TaXYvZVxULA2LBf3i4RXI+siBp6PpTPgDNk+
+# DbKd85vKc5I4Be882Sh1oshQOb/AcAozO8vD4gCJPEVJbMkQ5hf4dmBGAZbW+K9a
+# dQtar/bVbn9Bq+nObG32u9xbcQoEbot6wFA4oX7GuX5Cbf9DOk5A6I9j1lzS0Vdb
+# s7V8OCW0M44TKW/0NdQkI4qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MjIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgtD6mHSGtp04y5lDlJbUK6NO84adOQtmdsyC5GlKx
-# WAUwDQYJKoZIhvcNAQEBBQAEggIAzw02cHTnrqyg6OPBaDKzXO9EzsZD7kPdnPpA
-# xNPn6nNYX3SpEn+NYEIRgSpQLjS6ITOI9JK3gyiBeSiaW9oeNVcGh1PKlBooqzX4
-# TDBXEcutSrkW5GzrOgcqWA4PTg/MrnTECl6vc1e1DnkAKVEfdqfzP5yqLseVuujv
-# UtZnkNtowlprrYo/S3ZGTcR5H5ti88tA7a00LVsu2EK0dQtsnO18AMCQQQXho7+Y
-# bv11/hcBSrn/7WPZnyCr259JFBlZUkqWKx6Bynq/zAuM61u3VE8DWOFTmu53AIPw
-# KcKlTbgXUYjU1Jx7R3eVf2pOfVjAAb06qf5lqdH2QB42TZxhcUP6RTwHkzPT2SGd
-# LiKyVYqmkY54BzTiNPOdQ/a1PqzDmrxFGVoLcQa/VEwcZTwHHZrZwXwFMKJVRjQM
-# Oemff1Ic6LO+709/5SKWCNJLCjL+gkq9n12mmrU19PwwaTq93c/k+eYfmC7OGEEY
-# 0i5/aKri6NLaOGTw6OLrbhpDB4YgVOWYn4tVWA0km57GqHwImMqINyXHbr5q6izS
-# tryUvTVWH9uvLO0T164jtU6HAtNnNlqEaV6P5y1l65CPHcJIv27qUgk0sG2W9LL0
-# hVCRl791w8Pp5k51wWasQIjKO7m5mYmnJmHKr/WJdqoPals7h9c+Y/BDVIKUHb7/
-# /eDB94E=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MjMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg92HunLkk/kH8K9MEOVxjxwFHRgVk9Gr8auxog4wm
+# /0kwDQYJKoZIhvcNAQEBBQAEggIAXyVMbZ7aroLRgbj30t+Q878r00Ft7Jmu4EWs
+# RzVD/yZH4fecH8S+TG5Vp6JUS/AUAkRYRc/ta39HWxv/9ZJLk6uQWPyrDaCOG0gI
+# EiQAlgWmYeOk0EOfXSmyjaHXunMy/D10F/5Lft6FKG9fGGjaTvjANnavB07edF8O
+# cLeVRUk5Ghi+3y9t8nem6bwzAWy+vGa3MhxrcyjFau8EWj3aEQBAVJ6p7jgFj0UB
+# 8jYTVY3uBoTJTBpF/9xq+yNPPhsJGe40F7Hh3FboEijQwIi3jW+JryQIEfQbaB08
+# iNFPYE+D5GAp2BX/udllFE0uq9qViXcN8YwCorad26uaE9wC6ug9dhWSQxB3DuDw
+# 2fDP5WpmVwZbDa1OU94ySEnEX8azpKvy8E3ERFZ5FN6+YE10DJpAwqBo7FE/2DlA
+# UAVCXvVheksV5mA8IklRkJov9fyk/pngPqzjgrTSASp73onW/j57KL809YNxRbnf
+# 5Nq0IvmeL+EocNW+OHU9Y+Bb085rzrVNjQhzlJWPbxPrOVsv5VQedsIc9Dbzieod
+# 8VGjYh6sXuGbPcThCLo17CY4Wly30SIYTshSEgAR4EnoOCRxX4Iej6E4vtFq6/xF
+# 38+zUyV1b88x3D5I0OwIkBOgYQRavwLnDZZYhMRVQIav0nPp+8W5LdyvpAwSWm1v
+# OcgN6iQ=
 # SIG # End signature block
