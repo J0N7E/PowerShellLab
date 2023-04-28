@@ -95,7 +95,7 @@ Begin
             if ($Adapter.Name -ne $Adapter.DisplayValue -and
                 (ShouldProcess @WhatIfSplat -Message "Renaming `"$env:ComputerName`" adapter `"$($Adapter.Name)`" to `"$($Adapter.DisplayValue)`"." @VerboseSplat))
             {
-                $Adapter | Rename-NetAdapter -NewName $Adapter.DisplayValue
+                Rename-NetAdapter -Name $Adapter.Name -NewName $Adapter.DisplayValue
             }
         }
 
@@ -105,18 +105,18 @@ Begin
 
         try
         {
-            $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction Stop
-
-            $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
-            $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
-
-            $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
+            $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction SilentlyContinue
         }
         catch
         {
             Write-Warning "Adapter `"$AdapterName`" not found..."
             return
         }
+
+        $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
+        $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
+
+        $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
 
         ##################
         # Disable Netbios
@@ -286,8 +286,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMxiJsU42BZ9Jn9jKsaupr2zw
-# VvmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/JDesAt8MUwX0otrUcvqImaX
+# jmCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -418,34 +418,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU/96f37WQ
-# O8jkBz+c+zdAMCzY7BMwDQYJKoZIhvcNAQEBBQAEggIAowF2XGxHqAatGpQmBrE/
-# m6aOSC0GBdb0hxX2lMyL60ZAEuesAJp0k6ypLEpzMyeihGgcVXsKyKuAeF6C52na
-# vgP9snqoQ7X+yKKXl1kIgQpaR9abM9GQZzQZb9eW7oqnDgKX4N7k32rD18QyWisj
-# g0vqHNSphQMYFFfNXczrH3LIWoybj/C9Yl417yMOMe355uyZfwoUNNJSyjVH/kKr
-# fc2TFLDy7BXU5+o83Rncuh1c4HmV4wQ8iZLmrfX7nfyWe7RItsn9DefVKhbHfjmb
-# pNTfvabbbC4sgQx0CX0wKsIJn7drhU7I4bgT+bQAVWAQlzP8JMq7IVSIcOhwof23
-# Swf+UZSXVY1+LE25/JWuW6J2Wpak53zA45WBpJE3N/Owo9eh6rfBSfkWqC0Ow73i
-# Gi3nMLD6I5sOXUlLYhPtjeubBrxNd+j2R6ryRpe+2euqxiiKgioeSHmdhYMB6Adp
-# LsDgIQbvBxGEMOGQDZCUZxltx960DVmteZ7S8oJHqyb6mVJereGzyM0EPH0HXYAM
-# ntfaG9eBmcFHJh0olLc4N3Wf7LaQQR8C+2V7G2xv6vGbJHvAaXj3Qimrh8m9ZTzo
-# MAYE6wcWE8Nxtb3SjWrLMjX8xTpAvEOGdXbBOa/t0wgJZ/bllPZ2y1KpLGigB5pr
-# aEV7f//5XEij2zFaUBxcQcahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUx4ALGzo1
+# XRZwGOAC7+bwyAg8a/wwDQYJKoZIhvcNAQEBBQAEggIANav9ep1I2ApbRCLaSqPu
+# /olWUfYdizJb+MkwsDggPEhcEL7fR2R0hUfnWiymJIwgymAhXePZRTzQ6fKwu4X6
+# W95WZ8kjPXwIJyJObW17PQxiXkUxQsCNlQaV4stzH+5h+K+GeAq7uh1g9kg80qeE
+# p/9l81GCtkmhaubBNe3VN2NR6awX7NVVycZeo12TqeGvyAZ9qoh1tKlqE9Cd3bpJ
+# spteGnzUN5cFC/WXPWlVnEOhuQ1Oufhu8wB9hw2A9YzzNKXDrAMmNK0Wa+DIrnFJ
+# IsSc3SaUJDKyHkn1+f/u1zXAq8gZ4sQJQo2DlOCMSM1dGf6zeb+IogyqWg+WE0zL
+# ck/2zxXpZ0/gqQNkddnmw6NFlL4LXBmyqZHCCTT7O0XNvWvsm7mj5VXEcJ+YjrqT
+# vhWJ6Aoi+K/SKdzemv2WMULvqMYt5mNSuy3dkP5NHN77TPVN0cfguW92IRQHRW28
+# uDPE7+qthL0jswcVqU+b+G9h8SbdtAalW40cUIcZHYTWih2p2Eh7P1dVP0j7y+Nc
+# hz1fOaRYvAgOQ89Ki9/EnT1uDJRkaGFK0MkCUK1GYg3oEhOZM/88UakUV7K2zt9A
+# qEz4Mf58DIuX+pXvfN7fnzYd6qeftzr+E/J0uIs/FdQB81pMgevZZ7tyu1BdS1wn
+# +PIwuCoHr0+xD+A/1huWnxihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI3MTMwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgaazWjV1kkNv4FyoEY4ooglP0IT6fXxXRqFTLf33x
-# yncwDQYJKoZIhvcNAQEBBQAEggIAidlG7tjRlmWsfqsoUFgbLsd4qMcAbbJ8mU8I
-# IOr+ZwzXCHQ8a1B6/ugRdphzSg2LN2YMAoZ5gS7maVrCWizZN8QoOspcEVX6k+Bu
-# Y7n7XqFX9PH6ALScEG9hCDK0z4y/4SrScqTZZybK/MHiPgRkxPhzcf2PBbg0nhCK
-# apwOyzpxsxu/cfMkbVXMMKm9mr1yeDSwhPd5FzOtOgULN5cM0lOzncDZOxbkAdWs
-# z5+jgAZb1PEALfcGD/nNYeH8cHoHX/wl3SHsxs29FReTaP3xRS+cSQ5cyyyFIlRZ
-# ahUpRCPCbtAPBK1HWgCeXiHYX107A1WgMkTJDCKaCLyah/Ob0RpUXiwcsFXi0r3X
-# KcZgI2oN35AqTf7ELw8Himi/p0cNkATGhkuY1rX1retnUPeI76doKuYp3xjP46dn
-# QruYsQNJrvKCfTvkSKL6aOnyVwr/Q3yl8JVcVxKk+WoYb+nzSuWOSyM5SeF68rQ7
-# VehtIamECxYwkTwT4lTm+AVbTViisfCLOzWCdpjV/0750ZIdsLNQsso1u+b8Om5O
-# i892T7j2Gy5aK7/IX7r3JrS5A/wzUPK+1KjhtyN3s/Y+t8oboKlm+aCAD8v9ZIf/
-# zGHaTWFa8Soa0P2D49BFuq83TeaUVzUEWFbBD0I0lqlA6VehAZm5/BPEJywMKkxc
-# z7UANj8=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTgwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgzH5b+g/ePhpiKHzCS41JRJhun6gsw3WPDrUa0111
+# ekMwDQYJKoZIhvcNAQEBBQAEggIALD2mXmSlnf5VDeX29JavwQ94MmkCUhdhXbfK
+# S5qaVfq6AXRhdAfmpdQk9qNCWihP/n1zvSkNQ6/L4QzrOXwKi9ODrEAF9eb650uN
+# zcTWqjdtf1No4mpCI+P70Ybc4bO4G8UxhsY5Cfl9W2yfXeQV+9bUoQe7lHjsWhrR
+# y73SDfaYL3qBhDopuAnty+HfU4A7w7u533vFu+DCTL/xZo4YLeEhv01Tp0+nN6w1
+# G9iUkO+M2RF085MwbF2t3wg68VbEpNre2Iflun12DVC2WeGT8YskscYlZARZyQ0P
+# dpBPFN6RnvgTlQJm8X5UGgQVL3vMZ1t6NpSgpMxOJBYumbw2zb7al7gqpsIihmp0
+# 0YLbj6zYCO9R8Io3LZZcPc/zSLwwJfg1C2vqoLaP1gf6QzfUNMp++q/V1JqjDKFl
+# hoMMBbw6xr190gs+1OsXcDwE5eA7U/7/eMtTI+tMz0RDwHK3h6hym3t4NPTQV87f
+# y6Xm7eQr1pMTG/xlgrL/CIT5CTlluaMZm5cMe+ZvUTGSK1ffeOt83bOjtLAqo8ky
+# Y/y2ys73d8mj7PRZcU7ep1GdRyjHQaaDo/7cJDXNK94C3Gocue2n9UPIDaPyXY7c
+# Vzh2Xkl/ks9//iKTzhqvOlXpNsmzupZ/j1bxD7n5KdQViI3xmEiISIDqIHLscQCA
+# mBbc+CA=
 # SIG # End signature block
