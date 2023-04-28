@@ -893,7 +893,8 @@ Begin
         # ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        if (-not $CAConfigured)
+        #if (-not $CAConfigured)
+        if ($true)
         {
             $CAPolicy =
             @(
@@ -1153,7 +1154,8 @@ Begin
         # ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗
         #  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝
 
-        if (-not $CAConfigured)
+        #if (-not $CAConfigured)
+        if ($true)
         {
             # Initialize
             $ADCSCAParams =
@@ -1248,9 +1250,9 @@ Begin
             {
                 Write-Verbose -Message "CAPolicy.inf:" @VerboseSplat
 
-                foreach($Param in $CAPolicy)
+                foreach($Line in $CAPolicy)
                 {
-                    Write-Verbose -Message $Param @VerboseSplat
+                    Write-Verbose -Message $Line @VerboseSplat
                 }
 
                 Write-Verbose -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
@@ -1267,22 +1269,22 @@ Begin
 
                 Write-Verbose -Message "Post settings:" @VerboseSplat
 
-                foreach($Param in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
+                foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
                 {
-                    if ($Param.Value)
+                    if ($Setting.Value)
                     {
-                        if ($Param.Value -match " ")
+                        if ($Setting.Value -match " ")
                         {
-                            $Param.Value = "`"$($Param.Value)`""
+                            $Setting.Value = "`"$($Setting.Value)`""
                         }
 
-                        Write-Verbose -Message "$($Param.Name) = $($Param.Value)" @VerboseSplat
+                        Write-Verbose -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat
                     }
                 }
 
                 Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
             }
-
+            return
             ##########
             # Install
             ##########
@@ -1883,8 +1885,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiSGtKS/UchEysOsbbLKa3E+F
-# kYKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6UjwURxiBLYj5qX9Usj2Sx0I
+# iOGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2015,34 +2017,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0bY3sEZc
-# LGhj60evjUhxNw7bDccwDQYJKoZIhvcNAQEBBQAEggIANayZjDfvp3cs12caoY4u
-# umegB0kloHzCEFecilX9XbqJEkCnRKuS/ZtQ4K2n90t70wUWuixPAa3KHtX5Rguf
-# Daiatv5L5MIt8dbfT14F4w/JUMAuGXAF878di1pBuDALa7h9urYf7o6lwfXFZl9k
-# uyHRRAKquMszESjTnq+7d9KVGDX7vaqO09mrz9ZzCN/2eafLEoQY4CGm5m9lvvfc
-# wEFCMXKBoixQd1Sp60hu8mS9ekQGC7GB39CqrB8fkT1HFL3/yxCaBHEPhmuf93/8
-# b0Iq+YuHScPbwlLXJlJlzi8MT6+npD/7RsJEifHa3kVfLKiFuNUBV/4bubE3mzr7
-# m09phae3qzvF5iX/+sRylKlYPUIyujBVfsnKO04MN2ybHapaydt+92AM4oX566LM
-# anTlyKOEeIgQdyqZhQT3Zt2kw1Y9gnJRoQd2GMIhUoe4KTjdVGSmEz+FnusQ+RzU
-# P0vRCMs/Tnk/GWl+MX5UmRGIXNs0ckLnzyRqJVSwkhskExwL/QLC9BVDZd3E0EUw
-# 1HqTdlofW3E0XtBgPotn6B5DjjyQ+s2jVll9vKdik7Y+WYNTasm8iLOjXGGAkafd
-# ML+jrdobBlTEoJkuAo7emOnXUiBqGX0HRgmOyulLVsvtBfQc07HdmPy1rxZGlg+l
-# UyYx8bu/i6cRqmG1DXf82rShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUeqe9YZfO
+# 8AcxwlBUH9MqPwTdbVMwDQYJKoZIhvcNAQEBBQAEggIAD82+iP/TKMy63QS8VVrb
+# o5WgzJyMMC7r2QUSP7pA/+a1Q7w/7gXdoO9NP3V6i9rvzFj+Rgv0HOP4sSXPFUFC
+# Xri+7yxE1It7H98uU1CmYLDlUl4SvhTcZYNUPMoh3Y0R3RcT9Ofvoe6j5yql2lp9
+# C6I0kVwogIqNL4KXfs0k8CjSvy0GqmL93bY2Q8SXvlc4uUBsychuftYYVnZSEcBS
+# pcQWZmnlaIFf6mJQhPoZg3K4plyBM7XjAJ4vqon/1HBv/uIXB3mn/dBsOlOavRdl
+# VQs9DRvwWDXmYWAEhi9qj3toDGea3O7Pj1y4iqQUrUv4No67QbMIduQygRs83+VR
+# 5P5nldpvW7dxNcQemPbhFjdoFNCqJ3PIAPoJcuKrrBK+75j46QT9hPHCLTZZT2Kt
+# BP81rmzXabRdJaLhRz0YVO/T907Waqb8h/eBTODLe6M56/IAjdVZI6Fkevco2Qlb
+# 89uJiW/BGtSEu6B8LNHNlKrEmKjmd07OKiPEv4CyO6RH+sUb9W9a1rs9tGdxdmYr
+# q+8eLRiM3xXSvfTYW0sthfee+N3AcbJLMxqLPZSF6ReoNBNa821F2Reflb+wmH7s
+# V6Oz7R+SCR2sRHlpsZ6adztwgS9oxy6q9H4OODPeCqox/eajoziqysBVhr4UPNbm
+# bt0/yC37X8CqgMM3/OXP+oKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDIwMDgwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgwRcmUSGexcTRwRO4AgCgwvwxOK+gQzrX12d8KV0M
-# u6gwDQYJKoZIhvcNAQEBBQAEggIApt3o+edl2Z8iBuzE9Sm95pNOUCkpLFZ9sUCE
-# A16DtbiPpteyMUbK1pu9WzL+AZsBlQ0YKi3QANT0FHmu1j+r8qrhuVPO0e9CDv98
-# c9JBiHvq+ZnCHp4Wdkw5jroyvWnA5R9iD9FS6E7O6SYfAhEOIyqDQWlvrWMQJ5qI
-# /1CHCHMYaDoJCHcxmZbz36jjbLZuXBFG5CPr5gepx94M+1hZOCwHDRrTUXnfNkuB
-# lNvRLgvRNXZfpS7uvm5MUVGxVDe02p+ha/HPWca8bh/pE48Q/V5jDnzK/UZdeQ9a
-# fYRAtgESQbb9T9QwmjkxYsuLvwr20G5d7xwL2LGHHrIZ+2tzM7VZ1ZL4Ah6CxULv
-# 1Wxk2CPchhFWEOJcHvNXORI02AWfpOPyk2VZV4HynMhTd2pB0jb63gVvPDUwfh/O
-# Jl+EedpNWnbcnX9gWFsC1TEMNSBlESDV2BleObhYpEt2q9YVvL0jEY98kgjsyJjW
-# rvP+hlUVTO6sacWKeN6gseVAGtF1+mvJMdv2ubG2VKFJI92uNpzI8ovjUHmyOKur
-# UmLLSD98gHcjnCoJDj280tOgC/EyjxCU7XiXfYiD5fTjlNmu3WeIxOwOTqAjAol4
-# qm0DACFRyQkR+7X+okC6UUGfmdR30d8UkeTWM92RYPmllDCS0BV1HDfuawq0kS8U
-# V9SZ8iE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTkwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgDjE8FOrPnhKOf91qpWCzvzfsV0MEVmAU2V8q7D6q
+# EXYwDQYJKoZIhvcNAQEBBQAEggIAlhDb5C4TwkuIJ9jbdFMZOefHeNi+xNI8o+0z
+# W3/irBnKao0P5qIU1OpexRIzQL5UJZ7H/U2X/CnSC15EkSTlnbOqiLdP1HnaL9+f
+# Cp9/dZ/JtVg1zm+dDFtb3rODWRAIi+WzRMtnx7KZkKV0BIIycXbGahJuotCM6bIu
+# 96WeeW0q4Xt6gGDKcamLxBTmLcQbIjDuWhd2S6utiWTXhb/9Vm8PdBcxlmHuR6Wj
+# s1F5ecZ77H4OuJCbTTWgr//tdpDGgmX8WU9drCqMmDokHjrDpaFNqdNzGJR9uFwp
+# 3t4hWPChfTo1BFX2teW6kSypQsB8VPF+UTBahnFsbPxTMvVvjd20Z6aLqi9kSx7L
+# NcySF4AcaTWpAO0/SvRgnAEnAN14G/nbvGa3cxw2zXC/PG28BWnnw99FFbbwZQGk
+# QlnPIqlHYKVX70hoXDOE7POeh0yk/SEV/jb4r6pykCurDwATP6X77mY5foyEca8p
+# 3CEs23DL/XMHj01udL70oscDUU2IPHK6XeD1qq4xFXTCiz60FGufHaVHRB4xRx8a
+# IkElWbJwPQdFMQ3vfDrACmi1dspXqk2c4anrF+xekpJ0eG89aLrZnG4osQjm1MZe
+# 830fYNRhgSnswG8jYNpag2pIRcpxNnH7QFpSNSocvDuYF0EqzhzgD5dlPk7wva92
+# rC1bRFE=
 # SIG # End signature block
