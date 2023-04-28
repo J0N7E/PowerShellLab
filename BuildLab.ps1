@@ -20,7 +20,6 @@ Param
     # PowerShell lab path
     [String]$LabPath,
 
-    [Switch]$ForceReboot,
     [Switch]$SkipUpdateObjects
 )
 
@@ -84,18 +83,11 @@ Begin
     #############
 
     $Global:VMsInstalled = @{}
-    $Global:VMsJoined = @{}
-
     $TotalTime = [System.Diagnostics.Stopwatch]::StartNew()
 
     $WaitSplat =
     @{
         Credential = $Settings.Lac
-    }
-
-    if ($ForceReboot.IsPresent)
-    {
-        $Settings.VMs.Values.Name | Where-Object { $_ -notmatch 'DC' } | ForEach-Object { $VMsJoined.Add($_, $true) }
     }
 
     ########
@@ -555,52 +547,45 @@ Process
     # & Join domain
     ##################
 
-    foreach($VM in $Settings.VMs.GetEnumerator())
+    foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
     {
-        if ($VM.Value.Domain)
+        $JoinDomainSplat = @{}
+
+        if (Wait-For @WaitSplat @VerboseSplat -VMName $VM.Name -Queue $VMsInstalled)
         {
-            $JoinDomainSplat = @{}
+            # Setup network adapter
+            .\VMSetupNetwork.ps1 -Verbose -VMName $VM.Name -Credential $Settings.Lac `
+                                 -AdapterName Lab `
+                                 -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
-            if (Wait-For @WaitSplat @VerboseSplat -VMName $VM.Value.Name -Queue $VMsInstalled)
-            {
-                # Setup network adapter
-                .\VMSetupNetwork.ps1 -Verbose -VMName $VM.Value.Name -Credential $Settings.Lac `
-                                     -AdapterName Lab `
-                                     -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
+            $JoinDomainSplat +=
+            @{
+                JoinDomain = $Settings.DomainName
+                DomainCredential = $Settings.Jc
+            }
 
-                $JoinDomainSplat +=
-                @{
-                    JoinDomain = $Settings.DomainName
-                    DomainCredential = $Settings.Jc
-                }
+            $Result = Invoke-Wend -TryBlock {
 
-                $Result = Invoke-Wend -TryBlock {
+                .\VMRename.ps1 @JoinDomainSplat @VerboseSplat -VMName $VM.Name -Credential $Settings.Lac
 
-                    .\VMRename.ps1 @JoinDomainSplat @VerboseSplat -VMName $VM.Value.Name -Credential $Settings.Lac
+            } -CatchBlock {
 
-                } -CatchBlock {
+                $MsgStr = 'The specified domain either does not exist or could not be contacted.'
 
-                    $MsgStr = 'The specified domain either does not exist or could not be contacted.'
-
-                    if ($_ -match $MsgStr)
-                    {
-                        Write-Warning -Message "$MsgStr Retrying..."
-                        Start-Sleep -Seconds 60
-                    }
-                    else
-                    {
-                        # Catch all other errors
-                        Write-Warning -Message $_
-                        Read-Host -Prompt "Press <enter> to continue"
-                    }
-                }
-
-                if ($Result.Joined)
+                if ($_ -match $MsgStr)
                 {
-                    $VMsJoined.Add($Result.Joined, $true)
+                    Write-Warning -Message "$MsgStr Retrying..."
+                    Start-Sleep -Seconds 60
+                }
+                else
+                {
+                    # Catch all other errors
+                    Write-Warning -Message $_
+                    Read-Host -Prompt "Press <enter> to continue"
                 }
             }
         }
+
     }
 
     ###############
@@ -628,22 +613,35 @@ Process
     # Reboot
     #########
 
-
-
-<#
-    foreach($VM in $VMsJoined.Keys)
+    $Attempt = 0
+    do
     {
-        Invoke-Command -VMName $VM -Credential $Settings.Lac -ScriptBlock {
+        $AllPassed = $true
+        $Attempt += 1
 
-            $VerboseSplat = $Using:VerboseSplat
-            Write-Verbose @VerboseSplat -Message "Rebooting $($Using:VM)..."
+        foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
+        {
+            Write-Verbose @VerboseSplat -Message "Testing $($VM.Name) credential (Attempt $Attempt)..."
 
-            # Reboot vms for rename, group membership & dhcp lease
-            Restart-Computer -Force
+            if ($Attempt -ge 2)
+            {
+               Wait-For -VMName $VM.Name -Credential $Settings.Lac -Force -Verbose > $null
+            }
+
+            if (-not (New-PSSession -VMName $VM.Name -Credential $VM.Credential -ErrorAction SilentlyContinue))
+            {
+                Write-Verbose @VerboseSplat -Message "Booting $($VM.Name)..."
+                Stop-VM -Name $VM.Name -TurnOff
+                Start-Sleep -Milliseconds 250
+                Start-VM -Name $VM.Name
+
+                $AllPassed = $false
+            }
         }
     }
-#>
-    # Remove sessions after reboot
+    until ($AllPassed)
+
+    # Remove sessions
     Get-PSSession | Remove-PSSession
 
     #########
@@ -652,7 +650,7 @@ Process
     #########
 
     # Root cdp
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.AS01.Name -Queue $VMsJoined)
+    if ((Get-VM -Name $Settings.VMs.AS01.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS01.Name -Credential $Settings.Ac0 `
                                           -Force `
@@ -665,7 +663,7 @@ Process
     # Sub CA
     #########
 
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA02.Name -Queue $VMsJoined)
+    if ((Get-VM -Name $Settings.VMs.CA02.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         $Result = Invoke-Wend -TryBlock {
 
@@ -726,7 +724,6 @@ Process
     }
 
     #############
-    # Trigger
     # Autoenroll
     #############
 
@@ -734,12 +731,11 @@ Process
     {
         Write-Verbose @VerboseSplat -Message "Triggering certutil pulse..."
 
-        foreach($VM in $Settings.VMs.GetEnumerator())
+        foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
         {
-            if ($VM.Value.Switch.Contains('Lab') -and
-               (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+            if ((Get-VM -Name $VM.Name -ErrorAction SilentlyContinue).State -eq 'Running')
             {
-                Invoke-Command -VMName $VM.Value.Name -Credential $VM.Value.Credential -ScriptBlock {
+                Invoke-Command -VMName $VM.Name -Credential $VM.Credential -ScriptBlock {
 
                     Certutil -pulse > $null
                 }
@@ -751,7 +747,7 @@ Process
     # ADFS
     #######
 
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.ADFS01.Name -Queue $VMsJoined)
+    if ((Get-VM -Name $Settings.VMs.ADFS01.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         Write-Verbose @VerboseSplat -Message "ADFS Dkm Guid: $($DcConfigResult.AdfsDkmGuid)"
 
@@ -791,7 +787,7 @@ Process
     # WAP
     ######
 
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.WAP02.Name -Queue $VMsJoined)
+    if ((Get-VM -Name $Settings.VMs.WAP02.Name -ErrorAction SilentlyContinue).State -eq 'Running')
     {
         .\VMSetupNetwork.ps1 -Verbose -VMName $Settings.VMs.WAP02.Name -Credential $Settings.Ac1 `
                              -AdapterName Lab `
@@ -822,8 +818,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0FLmot6Vy7sgKhBKYXjwFQK0
-# VT2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaiv33IRLeAo2lGGAtob/Gp7o
+# CRSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -954,34 +950,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3rN4oCGy
-# sRZYsa2ZoN/fvHlj6mUwDQYJKoZIhvcNAQEBBQAEggIAIMN3k/58hDKJGp2NEPtJ
-# MK6988v3ibKLC37kTgQ+Dx0VAH5bUMeJ4jEc6WjtuDf+AvJZ8mroQoKpHCYpfGZi
-# GNMHkF+phrVHOwThHYF9iYNVerYLp5EDNC7xPt1no1CkRfQ0h3xAJGLCONv5Ek1H
-# SGjOjfHoP1X76q7IROzDuf/E2b0Euwl48R1H5xYZJEnBcROfS/WhBxgPQB0BeHv2
-# fKVjAOMYFCftKwjce4dnfTpUdrD+sJwPI/yWOXdoNf5fF+oNzgtp73Lbd7HBpVP+
-# ii613DkuSEnN/MXjj0iJDJ+Es1y/SY8vbjrWbRSBlpsLArV92rGUDegAyRfEN0D5
-# I2NTj8fnjxssmJTDcp3gmGDU7FEjGh0LygHoYBDdo2ZqfRaJOthexQUaFsefpuRl
-# +xlnpd9ODBYk7Hw0K9HTx1SbRqos33zmZnd1+jk/qoa6oMo7HcEOH6/03CUsZdaW
-# AKSY7qQMQdwbC3Q9scxvOtFpNjLtGBAi1so0YDUEViqUVSvU/A22DzgBXls4lpur
-# p7DtXPcULd5rUYHcWwTOC7vgAUe+qVyKayI/+U7H1zfCpAzH2fAaJ7en72r10Xp8
-# RCiq7bg8vUgsslVZDKmpilNxbE5NBmWQuj8ImSraSP5/7e7y31AvhTc4FIGPMnuY
-# qTQukTf8XAMR/vILPVQrHn2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUjH+Q/B2v
+# 5EzhYuZA3IREPtTNaVowDQYJKoZIhvcNAQEBBQAEggIAwyE/ZCqGSmAMx+BskGv5
+# Ml8IV7v3GWMksE5VPub1HW8XPDUKFdC/XXMoSXskdYHKCWVvQRujH9rj2JxnchXO
+# j4CEnDyD8BjAL1RRdWDkQ+qwrXTbQV/vLvgLom9eKPloJpCgK6pk7Kv4O5NF2pzV
+# NHxwct5s6z0oCQejcbxo0QZZbDfPMDPI2357U2B3tzlxV9jC1tRvt0Brqsrj8iiL
+# qo0kHZ2vlwr/qikSzRcOg4HncHS58XsFjKZCLvXFQbvE4RfPyyoEYY/YddSAygeu
+# 0W251mg+8nwR09BZ6vM9ls54U3cfwTZ/L8Dr3xrh+bSo8NZ6HsKbfw4INUxbYld8
+# hy9nWiBNKVVIi4oytOCUu9F4mOy4E5n/Uf8Ug/B6OyvMHOXodzOT02bNekiZ6D5C
+# WMcC7oELNOtzqu7SzSUEjkJ9TR2TcrV/uASkcQDgj5/b5sR+d/UHHrZAhVnXqXQB
+# 0fBEQPQK69gDGAHz0LB3bumDbkIvFzueLQv6R0/Pg/y2gQ7SLiJVPH0j4BwX73Ev
+# CAwOkhGoyWQX184kYpm7R6RGYuN+5h0ThpQe+f3qBgv2+EBTS/HgBNU4gQRH1lEM
+# cxL4jFqFMxO30Now4a5wfx9yWLG9Z8avOXFiwwBA2frlYifffaaK4E4268EJ7v3z
+# 6gc4oEBLifyu7UoC6Wm0z/ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgC4ISZWQh/tBt5fQPQbNlONSWPSyfyhzJJDM1csmn
-# NxgwDQYJKoZIhvcNAQEBBQAEggIAQkmkTJNYK3sBjPM/Le3SCmgtY7JuehR+XzzP
-# nyhTp7bZBdpHGt9qS3q7aFSEa51J6/HBtoFuviXwNAr+W3qclcEr9VDXj6/E7BJn
-# PCBj+zSfuRmn+tDAMsV5QEviu5aQjwVHWK6XAr4TDa1DaSjJIVZ022Gl3Ad8S4ma
-# O1FjqCQUDgKKzZ13AR2j+ibQoRk3xi2wRxlt8zh4fDTt33r5hwpuKPFARtNcfEBy
-# hw02NFsjyOHK/PanpEmK6wf5Z+VifidJZOZh6mZOFqhB9k/Jfac2cJK/Y6pDnIds
-# 4Nu6vFCMWG9p0C5aHKNQkmbHNX79drcShDezcL9KIhGrEbylmGvd0PRTq1HNyJKZ
-# aJi5TxYhYizpJz673HPLCZ2ckDCKrkUb1ncClNryG++mY0dcFzuaK5aOcdkGkfAY
-# XoN3R8kbTDNjJXJRC1Vwz1JASolMnVTTKjYJokR7m4Uc5F71vU6Z/pHKBp9IdY8l
-# N+Y+s1U9s4k9mcOTM/3wKnpxt1ahrBBH8FesaxzA1jk2N1qJ2PmohafEg+spA8zU
-# /9njd3x5aj5uGNv5Pq00WkoBHi1K2vYHtGhAogPko8nU35JTAJKaK1uGiOjGzEcM
-# fCESmhwxVzLmd2RdHIehCHEiDvkLx7Kf+oM9HzEolwsooYiYtbsSgjRy23l3Ij7a
-# ZHjgTRs=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg53rzf0Zj/HUbqkPOZi0i11cTbe6tZc3PE+sZIEjD
+# iU4wDQYJKoZIhvcNAQEBBQAEggIAIxSpQEg/w1YNUl5+Ux79JaSW+u7bClyu6WjA
+# gF4b/HTNoFAnJfhAPzJAlg/t16Fb89keiQSCgLRm+dzzhb7FPKi7dypu6UKcN2/Y
+# qA+MYo5qGwgf17pRwyj5fomW5uPKjlaDI9LZkuy0dytObQDPgSA935sG0VpFJsf9
+# XSrjBbAK0mNkg07YOB+ij2SKca/8IKBRz3pCLeME1IXoZbV09pOjbeTEE/4XzbA+
+# GrRvGs+CdSHkYTzja1rtvc1WhFB/MftLqRxncY7uKn2/rbUGEZweOMbDgVy97cyR
+# 5Vvvh7YVF7i0tVq4dhvzvjB/ipFxcjC6yAiG9dVIgj2nyJgmxfrkxlUPXJRc8nFP
+# bTtNl434zOcYcaY0IKjsD9W/d+YWsXYo4mX6X2ZziW4tpicRNpoouQGXQSjuZzaa
+# 59YJwnAASNC8TSfFH2kN5Eb+Rh7/KqyynNlGjP/ZqtVKASMeiK5voIzMWhrIs/am
+# 7tR4gkQfplNnxFClfPSLE9ZmeOk1Odmu3Mn4tlGD3JrTwcaEVIdYuFbiSTmHlYpY
+# 3xnc3gDbZ/zFRU4zjRdgV5fUDSucErWpaF7jnHs4P8Z8Ilm5+0YlQB18GGFEhrH+
+# taHi8ngRw5W62LoZDr7cQeJMizB9/6KiVPOTngCNGT0rzvf4FXxKZLAJcjrg/zvh
+# Z0QL5Z4=
 # SIG # End signature block
