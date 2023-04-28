@@ -2753,11 +2753,11 @@ Begin
 
             $AuthenticationTires =
             @(
-                @{ Name = 'Domain Controller';  Liftime = 45; }
-                @{ Name = 'Tier 0';             Liftime = 45; }
-                @{ Name = 'Tier 1';             Liftime = 45; }
-                @{ Name = 'Tier 2';             Liftime = 45; }
-                @{ Name = 'Lockdown';           Liftime = 45; }
+                @{ Name = 'Domain Controllers';  Liftime = 45; }
+                @{ Name = 'Tier 0';              Liftime = 45; }
+                @{ Name = 'Tier 1';              Liftime = 45; }
+                @{ Name = 'Tier 2';              Liftime = 45; }
+                @{ Name = 'Lockdown';            Liftime = 45; }
             )
 
             foreach ($Tier in $AuthenticationTires)
@@ -2768,15 +2768,17 @@ Begin
 
                 switch ($Tier.Name)
                 {
-                    'Domain Controller'
+                    'Domain Controllers'
                     {
                         $PolicyUsers = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
-                        $Condition   = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID(DD)}))'
+                        $SiloComputers = @(Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members)
+                        $Condition   = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Silo Domain Controllers"))'
                     }
 
                     'Lockdown'
                     {
                         $PolicyUsers = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
+                        $SiloComputers = $null
                         $Condition   = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
                     }
                     default
@@ -2786,7 +2788,8 @@ Begin
                             @(Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members | Select-Object -ExpandProperty Members) +
                             @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members)
                         )
-                        $Condition   = "O:SYG:SYD:(XA;OICI;CR;;;WD;(Member_of_any {SID($(Get-ADGroup -Identity "$($Tier.Name) - Computers" | Select-Object -ExpandProperty SID | Select-Object -ExpandProperty Value))}))"
+                        $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
+                        $Condition   = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"Silo $($Tier.Name)`"))"
                     }
                 }
 
@@ -2813,8 +2816,6 @@ Begin
                         $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
                     }
 
-                    <#
-
                     ##############
                     # Create Silo
                     ##############
@@ -2834,8 +2835,6 @@ Begin
 
                         New-ADAuthenticationPolicySilo @Splat
                     }
-
-                    #>
                 }
 
                 ################
@@ -2861,35 +2860,35 @@ Begin
                     }
                 }
 
-                <#
-
                 #####################
                 # Add/Assign to Silo
                 #####################
 
                 # Itterate all group members
-                foreach ($Member in $Members)
+                foreach ($ComputerDN in $SiloComputers)
                 {
                     # Get common name
-                    $MemberCN = $($Member -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+                    $ComputerCN = $($ComputerDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
-                    if ($Member -notin (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'" | Select-Object -ExpandProperty Members) -and
-                        (ShouldProcess -Message "Adding `"$MemberCN`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    if ($ComputerDN -notin (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'" | Select-Object -ExpandProperty Members) -and
+                        (ShouldProcess -Message "Adding `"$ComputerCN`" to `"$($Tier.Name) Silo`"" @VerboseSplat))
                     {
-                        Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$Member"
+                        Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$ComputerDN"
                     }
 
                     # Get assigned authentication policy silo
-                    $AssignedPolicy = Get-ADObject -Identity $Member -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
+                    $AssignedPolicy = Get-ADObject -Identity $ComputerDN -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
 
                     if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
-                        (ShouldProcess -Message "Assigning `"$MemberCN`" with `"$($Tier.Name) Silo`"" @VerboseSplat))
+                        (ShouldProcess -Message "Assigning `"$ComputerCN`" with `"$($Tier.Name) Silo`"" @VerboseSplat))
                     {
-                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $Member
+                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $ComputerDN
                     }
                 }
 
-                #>
+                #########
+                # Remove
+                #########
 
                 if ($SecureTiering -eq $false)
                 {
@@ -3245,8 +3244,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOxiAKsqCKPVV0M6jTY8vP0Eo
-# cCKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAQibVzGGx0y6rQESlNsFJPXF
+# Al2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3377,34 +3376,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGX+/kT3f
-# 4u5+Ka7qhUGEEjV3fDQwDQYJKoZIhvcNAQEBBQAEggIANxuW3xGoOg6SQCxzB08+
-# e5nkLdOA7wnhDVPRGztuLWAHUQlVaDECnj8K/i+VzT3AaL8ErhRTJbq22kKZ9yy1
-# vztfZS83rsfAvAOuaOs3e5hheK+9WKKK6ZqiCHvxcokhyi0cBrEYTwFk45bgO5SB
-# L9XCaeS+NB2ydBuvIimrd/+qV7WQ5oqBdd60oUq2XWhjJAQ0bnlf3/VKx9fnIT8t
-# 6wEPXiGBDHBW93TUOmBmZlxVNLc9L0St+qm4tSwkc2pDwCCPE8HNf6dH4jjZuKsd
-# rvGszn/7l9MrJodCmKpx05OJoCfDpQvQAsw3d733GEQ2t/qhxZoBd1rLv4i9GS1q
-# h52DG4gnBxjwP/U4wL9L0fW1zyg2/NslXIWI57uQPIhCym7D7N8y6/gZsDLfn/mC
-# +ZVP0jXEGgoQE8QLWEwuwHA0OPIMsIX7HWB721fx2eKfxk/POWITf9kPrKARBV/X
-# te2f8X0WHz6c2vfQ6/gLNePP8Xm1YDUCT2jdrz+qsdOq2gLxLA1Ecz31X1FG7/K9
-# eaKzb2Tj47LInf33tpvSY0sqkHkiw/K1kXchqpg8dI0Z7kAkkJeUX5Getn2Ctrow
-# D0ZLtUG+bJo6k076GrHWb344Gh3V6OIVfr2+HH9yFzN6h9cZ5QVJrzzMUSAi/BCc
-# GFgawaZrGwX5X5Iow4iejPahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFfPJEuJA
+# 1jxyJvKbH04lath9wR4wDQYJKoZIhvcNAQEBBQAEggIAmqPkDPxBQ/5BKJv3cVad
+# FdRkgrgFeM56hLMffVd5mzKe88Cwpco64F3e8xleukRfsq3pjOUg6vFWeMYOQihg
+# NOG/8bUMpi6n/7GH6NQUAaGDFk8BbRSjwVJvlexmGeyGGgV88Zg0C/WZZQstm1NM
+# +/B5WrjyxRGjTZkCY+TW3xFeX8ab/ZxolqX+swmKuiIwH7fD45HxnL/3A8bNLl28
+# E/+ap2uvOPffT1AUruppM4Vl/AfeKxqik7treVUb4+b+YAvMzFkkfLNOFNUJ3kmX
+# gYkUZwuu/3e2BtdCDzEGAlZ6wk5/7eohyFftbGQi0kYIgQDz+qHJ+1m/rcRR9iA2
+# zKCDFowjfRspwZ4UPEnqXB0pnEv/fTuUaPW/5wZirA/tjJzhwX0w5o3j71du4HIR
+# rESkkNTM8TaCOk9dMMDfdT3Ug2OasDkwN/Bz5qh+73tEx7CLeRxDsrKr9DLKL6nR
+# 4tDIuxHW0GUFLELA4HJV0ylNe+xXaQG1Zh993CengXtrhVitv020uaRXpWoZEra3
+# HlAefV8yFFvhlj1iLopJAPP9rRy3lQVFf5ikoNF+IBoCxK9HJY41BOnkVL7ofMpj
+# wrmovJEqWK6PcjTz/pRlcYWZOPL7RLO7MtDICvFSK5ymLYSIjRQ8sGEHxKfiY/mA
+# 44CzHt6P8G2Zm/lHAh2qgPuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MDAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgJ4ztlxMulEC0Q0nYh9HUjdViRVH321fu3pzjTT3B
-# m08wDQYJKoZIhvcNAQEBBQAEggIAnXa4UoPcegdIHNPkTwWy7qq7rsmCepmahWlM
-# MxLbkd20tQIUE4Wb30UWGYwxcHidO9aDcbz4QiWD8JOzdX5A4gR/UNKt4dpFo0gZ
-# +AqPJXtsJdJu7CnQSug+ZwVYeIwqug7VfimE5S19M5iKlOGxZEtzlC7su5cqPRuV
-# UQOqyXhKYyJC61QS9KGMsJbz3HjjO7jtZXbo65bMGGHSnwOngKh4D4NV+Nnv1Vna
-# H9mfuVbDQQe1ZrPKNZSYyqWw68lsxxx/giKV/bIdUzX1Le9iXUsUb+qhzj8UZfWn
-# rL7e68WxCz9O55u9jy62AGslHIkzSzR0w/5a8RT1R7CRVTg8r4HHOw+T90CnZ2kh
-# Rp+5BTYbwEQ3lAkHptyEr3m6r7Hq2YO0u5W1XTvhCP4BVEQfDcaLrfTj71FHm4y5
-# +7Ocp160b3yvMIdmoCZzGsgP+WpWfsCyeVSxVbOJGV05wLk7wdJv/LWhfyuCTwSa
-# SZn7PRgpXHQziq/h4PBQHqg0yiTy3hwTpHzPiWm4GeyQaa0FaREG1k2Yh5RUl1XS
-# bvx6DQoePE+NhaJU8vgFTIny/bVJGRIXzPmvcpibOoEAsnr6qZgDflYLoF28/5Le
-# TbknQffKdPLyuFuNx56WDuTiemoWKlpHWI1NECr2UNbIkq+zybVh5YM0aJDjhbSX
-# +zvX62s=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MDkwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg7PqxGdiCPzAuO9qQ3inD+OlU4OQnbdeaN2eyNa2/
+# E4EwDQYJKoZIhvcNAQEBBQAEggIAb45eATbfiW4JoxXyALYuIN9qgiinlAFAKIcq
+# q1dQjwMufd58DbwHv8xcYUsHVrc0v80ZM0t0g0D0pWCViYYeVy5DFJaA82oP+CDt
+# z/PGGsTnA8qzB4QtvqVjx5taJ18aqQM18GAeT/M5Qe7t4+U/zxsGJKjltlWBiRpi
+# Qb5NDvmuUfEtvRYTYTDMFmXx+fFqBz5Es/kpN8adiwQYOh6sVqL3G1W9IN+46Bjg
+# RtSHcVaKHcCi2lBpUJ9y8tA8DknOBOLuGEbA1+b+dcXnDChMjHXzAiWHTHi9pEo/
+# fLnf7hUg7SGjNSDjY+pgpDOsdox0t0EzykqB+U1GztqnzM1ywGJVd6MoN0stgsGX
+# eJRwNfk0uW+kS9R5Xtxpww1K0KVKp31qIwbjo6ByN6wBSluxggTHOfMQ3JsmutGD
+# 2zf2yaZhgy0q2tANwS8OlN46tyPj34vProt57E2rwQpzBSbYerHgxCTp7eDjDz5S
+# 4/tx9gMhhXceTSv0dqPY3xWWaJdqOT1YGQ2AyhKeIQHc/7g2nORWnsJvTQJ+TUsX
+# 6IkriLfeTtWfxAKlzigUnW0UeyqsKTRR9mlBm5WT0PR8peDNKtINYHIHjt0fCi2W
+# K+9FOR9smKn5Bc/kZXgXBoERp3HWFSwQigQf5bg2pZnW12ij/leYHZRLE7LoW7sg
+# p7Z+/CM=
 # SIG # End signature block
