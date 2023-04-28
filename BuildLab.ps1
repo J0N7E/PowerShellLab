@@ -82,7 +82,7 @@ Begin
     # Initialize
     #############
 
-    $Global:VMsInstalled = @{}
+    $Global:VMsToWaitFor = @{}
     $TotalTime = [System.Diagnostics.Stopwatch]::StartNew()
 
     $WaitSplat =
@@ -151,6 +151,8 @@ Begin
             [Parameter(Mandatory=$true)]
             [PSCredential]$Credential,
 
+            [int]$OverrideThreshold,
+
             [Hashtable]$Queue = @{},
             [Switch]$Force
         )
@@ -193,7 +195,11 @@ Begin
                     # Get measure
                     $MeasureVM = Measure-VM -VMName $VMName -ErrorAction SilentlyContinue
 
-                    if ($MeasureVM -and $MeasureVM.AggregatedAverageLatency -ne 0)
+                    if ($OverrideThreshold)
+                    {
+                        $Threshold = $OverrideThreshold
+                    }
+                    elseif ($MeasureVM -and $MeasureVM.AggregatedAverageLatency -ne 0)
                     {
                         $Threshold = $MeasureVM.AggregatedAverageLatency * 25
                     }
@@ -395,7 +401,7 @@ Process
 
             if ($Result.StartedVM)
             {
-               $VMsInstalled.Add($Result.StartedVM, $true)
+               $VMsToWaitFor.Add($Result.StartedVM, $true)
             }
         }
     }
@@ -405,7 +411,7 @@ Process
     ##########
 
     # Rename
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA01.Name -Queue $VMsInstalled)
+    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA01.Name -Queue $VMsToWaitFor -OverrideThreshold 8000)
     {
         $RootCAResult = .\VMRename.ps1 -Restart -Verbose -VMName $Settings.VMs.CA01.Name -Credential $Settings.Lac
     }
@@ -415,7 +421,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.DC01.Name -Queue $VMsInstalled)
+    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.DC01.Name -Queue $VMsToWaitFor)
     {
         # Rename
         $DCResult = .\VMRename.ps1 -Restart -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac
@@ -455,12 +461,8 @@ Process
     # Wait
     if ($RootCAResult.Renamed)
     {
-        $RootCAReady = Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA01.Name -Force
-    }
+        Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA01.Name -Force
 
-    # Install root ca
-    if ($RootCAReady)
-    {
         .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.CA01.Name -Credential $Settings.Lac `
                         -Force `
                         -StandaloneRootCA `
@@ -542,16 +544,16 @@ Process
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)"
     }
 
-    ##################
-    # Set DNS, Rename
-    # & Join domain
-    ##################
+    #######################
+    # Set DNS Server
+    # Rename & Join domain
+    #######################
 
     foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
     {
         $JoinDomainSplat = @{}
 
-        if (Wait-For @WaitSplat @VerboseSplat -VMName $VM.Name -Queue $VMsInstalled)
+        if (Wait-For @WaitSplat @VerboseSplat -VMName $VM.Name -Queue $VMsToWaitFor)
         {
             # Setup network adapter
             .\VMSetupNetwork.ps1 -Verbose -VMName $VM.Name -Credential $Settings.Lac `
@@ -585,7 +587,6 @@ Process
                 }
             }
         }
-
     }
 
     ###############
@@ -644,13 +645,17 @@ Process
     # Remove sessions
     Get-PSSession | Remove-PSSession
 
+    # Reset wait queue
+    $VMsToWaitFor = @{}
+    $Settings.VMs.Values | Where-Object { $_.Domain } | ForEach-Object { $VMsToWaitFor.Add($_.Name, $true) }
+
     #########
     # AS
     # Step 1
     #########
 
     # Root cdp
-    if ((Get-VM -Name $Settings.VMs.AS01.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.AS01.Name -Queue $VMsToWaitFor)
     {
         .\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $Settings.VMs.AS01.Name -Credential $Settings.Ac0 `
                                           -Force `
@@ -663,21 +668,21 @@ Process
     # Sub CA
     #########
 
-    if ((Get-VM -Name $Settings.VMs.CA02.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+    if (Wait-For @WaitSplat @VerboseSplat -VMName $Settings.VMs.CA02.Name -Queue $VMsToWaitFor)
     {
-        $Result = Invoke-Wend -TryBlock {
+        $SubCaResult = Invoke-Wend -TryBlock {
 
-            $SubCaResult = .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.CA02.Name -Credential $Settings.Ac0 `
-                                           -Force `
-                                           -EnterpriseSubordinateCA `
-                                           -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)" `
-                                           -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
-                                           -CRLPublishAdditionalPaths @("\\$($Settings.VMs.AS01.Name)\wwwroot$") `
-                                           -PublishTemplates `
-                                           -CRLPeriodUnits 180 `
-                                           -CRLPeriod Days `
-                                           -CRLOverlapUnits 14 `
-                                           -CRLOverlapPeriod Days
+            .\VMSetupCA.ps1 -Verbose -VMName $Settings.VMs.CA02.Name -Credential $Settings.Ac0 `
+                                     -Force `
+                                     -EnterpriseSubordinateCA `
+                                     -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)" `
+                                     -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
+                                     -CRLPublishAdditionalPaths @("\\$($Settings.VMs.AS01.Name)\wwwroot$") `
+                                     -PublishTemplates `
+                                     -CRLPeriodUnits 180 `
+                                     -CRLPeriod Days `
+                                     -CRLOverlapUnits 14 `
+                                     -CRLOverlapPeriod Days
         } -WendBlock {
 
             $Wend = $false
@@ -702,7 +707,7 @@ Process
     }
 
     # Cleanup
-    if ($Result.CertificateInstalled)
+    if ($SubCaResult.CertificateInstalled)
     {
         Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)-Request.csr" -ErrorAction SilentlyContinue
         Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)-Response.cer" -ErrorAction SilentlyContinue
@@ -818,8 +823,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgBLkhJTbvEsp7v/Z9UlNw546
-# 6eGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7FJPXPb3JVAP9rMR2J0CLzaY
+# f9KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -950,34 +955,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUYqnSFViB
-# +2/8jx46X0taQ+zBWrAwDQYJKoZIhvcNAQEBBQAEggIAUvj8H6MSlZ+I3K77aIwe
-# XAooaNBI1i9kcIdemVpfdy+6HnzVBPhZxEWPgPki2qgbOD3DxPAMx4mbrNY4i7er
-# CikP6alWjmBqbNZvOmTCqezPurdp7xA/XA0uS3X/lx98YOZI/uKeDa/83KVFUeGI
-# n0D0Z59Y+rbfT8o91pHcfvyTm2eIT01acEr/h2qXfuGKzVpJZ6qFJnrw0z31CaO4
-# /Kzq9u6PEOyjFWZSA+yjeKu58Zsb1JJSkehOUC0HBogcURJdEp1VoBQN+ZjABNJl
-# iMqKoCnsro2Oe2TgwRuh10hFbhK20YFYwPhh0XT+vU7g+kBajRz3kHcOr6ERbByw
-# G7vF7NQXt3TeBN7QG4u8S3bAXQKW6CLmtPPDgfd0kbYCD+L5FderXLEAE+cY1AKa
-# G5CmtFQYH+2WYHzsnsSyt40YHH2i6Zp/uDjk8E2ExGnGjVzRdkI6DYb2DUvThkHc
-# nojGz6XjCqqq3vFisesfwUrQM+xatOF7400fJm5Mc5N8X5MnCeXbtQtXgG8doSL4
-# eoNA/x0pk7xbaSa+R6ben1ekyuj5LDGCz8k/Z572xpxbWvL3UhJfBXPq3k2Bw3Zu
-# sKx8MbpEOcZcV2vtQV5gh4KbKNsNrj2bNciS0isGBMT/ha+jsVm1sSKG/URZ51MV
-# rGXqT0UBqN9pieWVMP8RHfWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUW60HPB0j
+# ul4BzSsRfUsgf67DjDowDQYJKoZIhvcNAQEBBQAEggIAr4FcTw1P5hbBcACGs32o
+# DLjrvSrJwGSmRJEFzi31mqoAEk2s4Md2yhVKbTI2AJ9HNfFWvlLYblkkaVwmDUU/
+# b6zH2UVl+6JEhwwLq5UBZa/DC0J67stlcCQx23l/xreXLYmeXPv94C98F1vSzwgf
+# Ed6AVU+y6lUp31bb1V+4w+zGBTmx2FaZmHkIJZYkMc1TWKEx034Lv7hU3OWa2UvC
+# aXjxT4yny4URlraI9pNkZcc6w89nIzlCcZwPsVVCHYshXBZA8K7EZQRPPuWxAUib
+# 79umhMWa0i1eKw0pZabQCdrD6jHTOsR37BQuE1R4o2+3pLQc2qDBDkAB8zJln6K8
+# n3ocvDnqkXHRYBJqh9pYY+CPJ61e6RPqImyxFmxJ2xrBk/+3TlCf6A7VS3ruvpr0
+# X9k8BSAdv7+TZQUvmiQUP7+VFZof2OGd0aXg7omcBQT16uO03PS5Xih5qtYNg1oE
+# LFeHqYFHLkdNBDtM0YVCv8JMHoOzcKLdW7H2ibtELlvDxzuaZdWcLhNSaAemY88J
+# 8vU6i1L7bs3ZsoKlEJ3oeYMlWIVcJNrMvqEhnfG7DvCf8v1lAlBZUmaBZk/gLaxw
+# TUGmp1TNeTX7XPQ+etRvFkAOLwvPxhelIa62YTf19fdX9S3mfbZzlLdxakttROx0
+# BarLEousBFoADQSHnaBmMdChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTgwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgZnzStuudygDAuNPOWj0r2fclv9rLQ8FyfJ+jO31Q
-# d7QwDQYJKoZIhvcNAQEBBQAEggIAlHhqpBBSb8TaV5rJhODSfygQeEmlaLPiCdl1
-# zHOfULD1CX8u3ehWUdF98SXHwBWLOYoAEIUHaKbmEqn97ythmJBjE1hd3afY+LGl
-# kjY7zPgY6QSGR4+Yevyu177KnhlDnxryA4sw1ver5IkC0jzgzKheM2C9e1Jo9X8A
-# ClwHtn906CnjQ3jaFo4+SLBKlMv6zTUjOr1NwaShRJ4TLhAPwF5cpDAI9KNdsNYf
-# IBFAkguHv8BRthNhkS3RL5yV2FVph8bBs5qxNkA3FKdJi8kqesPJOERQ5pW95ceB
-# ojQiwaqE419Azj4U0DF8mAkde8znsC6w4EB3EMVfV1q90cWF7Pg7VLq6QfJ8MCeB
-# 2KDaKSY/SgfrpHsula0tO4n2mQ+2At7CsktmkjoNJgJhUsLmKC8khVBZKuypB4my
-# +AsG5oqqi0V4xchTCHzepZnUdEa1701F1Vb79za/4Qmh6kiJKAPnDkJTYNQX5fX9
-# 0Eb9m8917kmC9bhXks0U5yYfGkskO5QVAyA4vwhqHgDU+rCKzU+bQ7wcdWKhpQ1m
-# 1cH61L0OWDuDnhIpWEnQLMYXJ8Ka3iG49P6scMRnW73tn+wvTtGdGBgrFjhzKT9I
-# eou0f7srqF+N1vmhIOW4ss7WYDCb/bgZJ73kl20f1+L66focTTXg/oASTHnlsxDg
-# Tvitx0I=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MjAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg/WV4zBhnGSAOusTfBjkdm86KO3YtlLlQTqWky4t6
+# Dv0wDQYJKoZIhvcNAQEBBQAEggIAhtue2eVh5+p+KSpesjrTFn1yYegzNsLE+bj8
+# ecr63zRhEdfmB8b4Fxjnqz7JQZrg3lZeBJQ9yCpILbzhXAtEb9MHisXqMCXlcMtS
+# V4hARYGSYvYyACHq1eTLgrC6UrQw+Cm5egVYQdwiCbSn8UcRJo6lPuCLTdRyLxKu
+# gXgjAXUDwrP2JKnt7Oypksran2b3Q/fsKhQz/wOGoI4uGf0LEJyTGII8wqstVh2X
+# +2TEylIJBkYsIz+7ZeYpUaoMlBBG2hyWv0y/6+OUFRD9FtvTOlGl/xKQ/3P8VQ23
+# oKvfiUc2FEBTX20plTICqBM4ywqyOequ+bQGgWTMRqU/0mtEN1luiKrScbjW3yco
+# 6Albgh0leTnDoKTT+6hODVpBzb5TakjojBqp55iRciL5shtvQebvkcvfWDGeq/Qg
+# emHdIUm1CBZPzMzvtP38swxTtGQ4dgnUOCJunfH5dzkC4j05qpgUAlmIA5xc1Lpt
+# OXYcKnWVW1K/8OeGgsS26UP4A4er0zGWWIyNHT9QmIuoTQa86Va+NCPT0zVaISE8
+# DSU1UkNq+cba4tcdtyugFHg8AObq+f/JJeJ76TTONqidG3E7FBfeFolpz8m67KB1
+# 37sYOanLy8KK7ryHF6eCrp38Gh/GJVf7uRFoTOZxhOZULxIgyD1FOrY9l1hL5bRl
+# rVLWtkg=
 # SIG # End signature block
