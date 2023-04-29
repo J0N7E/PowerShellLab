@@ -154,6 +154,46 @@ Begin
     # Functions
     ############
 
+    function Check-Heartbeat
+    {
+        param
+        (
+            [Parameter(Mandatory=$true)]
+            [String]$VMName,
+            [Switch]$Wait
+        )
+
+        # Get heartbeat
+        $VmHeartBeat = Get-VMIntegrationService -VMName $VMName | Where-Object { $_.Name -eq 'Heartbeat' }
+
+        if ($VmHeartBeat -and $VmHeartBeat.Enabled -eq $true)
+        {
+            if ($Wait.IsPresent)
+            {
+                Write-Verbose -Message "Waiting for heartbeat $VMName..." @VerboseSplat
+                do
+                {
+                    Start-Sleep -Milliseconds 250
+                }
+                until ($VmHeartBeat.PrimaryStatusDescription -eq "OK")
+
+                Write-Output -InputObject $true
+            }
+            elseif ($VmHeartBeat.PrimaryStatusDescription -eq "OK")
+            {
+                Write-Output -InputObject $true
+            }
+            else
+            {
+                Write-Output -InputObject $false
+            }
+        }
+        else
+        {
+            Write-Output -InputObject $true
+        }
+    }
+
     function Wait-For
     {
         [cmdletbinding(SupportsShouldProcess=$true)]
@@ -203,7 +243,8 @@ Begin
                 # Initialize total duration timer
                 $TotalDuration = [System.Diagnostics.Stopwatch]::StartNew()
 
-                Write-Verbose @VerboseSplat -Message "Waiting for $VMName..."
+                # Wait for heartbeat
+                Check-Heartbeat -VMName $VMName -Wait > $null
 
                 do
                 {
@@ -224,12 +265,12 @@ Begin
                     }
 
                     # Initialize
-                    $Invoke = $false
+                    $VmReady = $false
 
-                    # Get invoke
+                    # Check if ready
                     try
                     {
-                        $Invoke = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock { $true } -ErrorAction Stop
+                        $VmReady = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock { $true } -ErrorAction Stop
                     }
                     catch [Exception]
                     {
@@ -244,7 +285,7 @@ Begin
 
                             Default
                             {
-                                if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 50)
+                                if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
                                 {
                                     Write-Verbose @VerboseSplat -Message $_
                                 }
@@ -254,8 +295,7 @@ Begin
                         $LastError = $TotalDuration
                     }
 
-                    # Check invoke
-                    if ($Invoke)
+                    if ($VmReady)
                     {
                         # Start timer
                         if (-not $VmReadyDuration -or $VmReadyDuration.IsRunning -eq $false)
@@ -270,13 +310,14 @@ Begin
                         if ($VmReadyDuration -and $VmReadyDuration.IsRunning -eq $true)
                         {
                             $VmReadyDuration.Stop()
+                            $VmReadyDuration = $null
 
                             Write-Verbose @VerboseSplat -Message "Invoke failed, stoped threshold timer after $($VmReadyDuration.ElapsedMilliseconds) ms."
                         }
 
                     }
                 }
-                until($Invoke -and $VmReadyDuration.ElapsedMilliseconds -gt $Threshold)
+                until($VmReady -and $VmReadyDuration.ElapsedMilliseconds -gt $Threshold -and (Check-Heartbeat -VMName $VMName))
 
                 # Stop timers
                 $VmReadyDuration.Stop()
@@ -311,7 +352,7 @@ Begin
         {
             # Cleanup
             $TotalDuration = $null
-            $PSReadyDuration = $null
+            $VmReadyDuration = $null
         }
     }
 
@@ -426,7 +467,7 @@ Process
     ##########
 
     # Rename
-    if (Wait-For @RootCA @Lac @Queue -OverrideThreshold 8000 @VerboseSplat)
+    if (Wait-For @RootCA @Lac @Queue @VerboseSplat)
     {
         $RootCAResult = .\VMRename.ps1 @RootCA @Lac -Restart -Verbose
     }
@@ -436,7 +477,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @DC @Lac @Queue -OverrideThreshold 8000 @VerboseSplat)
+    if (Wait-For @DC @Lac @Queue @VerboseSplat)
     {
         # Rename
         $DCResult = .\VMRename.ps1 @DC @Lac -Restart -Verbose
@@ -476,7 +517,7 @@ Process
     # Wait
     if ($RootCAResult.Renamed)
     {
-        Wait-For @RootCA @Lac -Force -OverrideThreshold 8000 @VerboseSplat > $null
+        Wait-For @RootCA @Lac -Force @VerboseSplat > $null
 
         .\VMSetupCA.ps1 @RootCA @Lac -Verbose `
                         -Force `
@@ -648,7 +689,7 @@ Process
                     klist purge -li 0x3e7 > $null
                 }
 
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds 250
 
                 $AllPassed = $false
             }
@@ -835,8 +876,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUayWxytE7Bt3hdUfzD/8m/SPt
-# FsSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiD0SvA6pIwwvqeSTOCY1Zh42
+# xgagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -967,34 +1008,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIeFQTAhJ
-# Ve/J8JQYAzHUzYNY54owDQYJKoZIhvcNAQEBBQAEggIAhJVMFmegdX/zd9HCMPKH
-# wZQb5MmdYTddZ3YR6swZl6KnqxnDZbCXru0ZW5XvpiTrY4y5kSOv4O4MANs2yIaR
-# I33mAxHN381/ZkRTvJM5Vri1+m85w+Kco9y/1njqoDyG31/NT8HFyleeBrMVcUQ6
-# 0LvwNV9l+/Z390+VbMKGM6RmgsPdBoRrbvGrtc1yodrMnJyADwwWr8hFeiKSaxJw
-# 6tJnkLqLfAKGXTkwCJO0NfeAyGZL9KQGQpPLGbsfZlu2rZ+iXXPnNFMAQEYoB/ZG
-# zoZXvgFCvFFJYShrDLy30vqfk+FeVBmlrYomnqCKH1AUvc1Vu53FP9nZ86OeOAVt
-# oLq+9oKp5fCIOqfVxOdfwHKBcmbXaEJEuvUGvBRrkoGj3QIcjUv0CDiZ1UL8I7N1
-# d0ljhz0i8aLagIQ9WsTMD5mCduBjedaO7B9huGljfoHQW+iVrUzNUKS7Ejl5xbId
-# uKsxFEV7fFA6jP5UvXCsmKlasadaeO1FYHtKDPbGCU7sLKF4Hhm2tUC36VlyFOIu
-# /h+v/DAY5kNnKWdQeg13/nFt56zHBKY0QZZDl2slqFBsqQqt6KVuXOScSvY98X+U
-# mq7WQ5QPnJrRFb5ZuAcXSsRLRGBk0axPHk/ABVhESq5r0LVm/1fAtmDa8uxWkvpY
-# zO3qgaKUtdlqEVRRD52xkHOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9/Obw5T/
+# dKNlFD3UmY3PXw+uNMAwDQYJKoZIhvcNAQEBBQAEggIAr0zBliDn29RP6wOLZn3p
+# A2gvqimaKBDjACCBMqj6XfrNA5FKm3WOPfhNkVtVRaJXzNR7TJa0htYWfIMvCRkC
+# nG2qokVdX3slL9FcoAM2V5I3heRpBad0VWPa0Z90XdThbGP+6TQxLyZuslftn7ku
+# Qif8wdPGQyu0OPWQFhgeFcu/obnEWrzR7s0BlMM1Gkj0GQHBL691HEkazv9q152c
+# PDKspuQuMPOfTXRJtKHLSJ7fYhOpsp00vtm5314IQjgReBrkJ/z+IB8ueqdecRtR
+# v9McGcJOIoQkJvl5cKWZbthEywg8hAc38Ory8M8uwfjpAUeVgOS9HUI8cTUNSxb2
+# sbMN6ig8WN1wZmLHaKm1oR3pXzhwCXh8D+yt5LhdzZgOVRjWMJS9v6EOucRjvOXd
+# Ymz3ovWQ23pA/5B6UEWAIWLK3XY3GM2jUwKT886T5SCA4ruZ620/68iq+5oWmGSF
+# EiyY7WMjZKtMzrbZeGfsrhrXikW13oQJT8XTbXCXRso+UwsWP+U/0DLzNaXZViiA
+# f/Ymt2/73vtirxdQj5/qf1YSyfa/PauUNBiRBElCGO53tRx9M6jBFGys1ui43KMV
+# PCxcU4w8l9SrN++/iXyBmyxFsDCApiz1iROe+8Nk8LwM67ry+/SkVLEGtq4H77XF
+# F50G6JDbVRGL7xLz/0+iPHShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MTMwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgA69u36xMvbVhhnu2U8Y6nC/3XIfncKL/GDg6aq8F
-# kMgwDQYJKoZIhvcNAQEBBQAEggIANI6u0d81nX5KSrLhmrmfC3MxJuTNQKogbfmm
-# 9I24h0J4uk1ZUrZhdCtCgODz8m1mr+CWV5eBsjRn0NNtJcO9o3xCwxKmHuzZHHzJ
-# oASbZ8xuawxZB1dW5gEkbqbhgwHftEfHuJKHn4FW3QVljDxgz/UGBNC33ICfz9cz
-# eozmbaotspv5h6IAwel3PzWjAy1XTRxBA444ZZYj4HQSHTO9+K6NTcqpBT2WGerB
-# 2yyZbkAkxDoxfWgs9LGD+t+3DThETwRK1n5ZE50Zw8/A10xZH2rqqwXOPDhiH8lL
-# yjK7tLh8iLzetsCQtjVLgCkSrpvqxl8e8LqWjHpfqBo7u8688o3n899dpzB/kXAy
-# lqwRAapnXuHka88BUfMnwzhoHzxwLdIDhez9MnUlMz5844deE5doXgWhGEAOUJHP
-# ePujFvUUEd+BIYKLqpDMqQ02yLl51HmVBlmK3cwFn/XvUrU13CbNyspxVMyEdThX
-# hmA/Z0CCL9ahR/kBf1YejgeIGdD21VsG4HlnvOufU/N3mAqgJvHPlf3BKKpCwzwV
-# 5Y6jFVJeoftll7LsctCCEtk84eZ99UFQ9T6VB1+9D7QGvLnj2VNpuNagQhMqwAcl
-# 94vT536aBSY2+Chc6JBgxhiVVXRoQk1W24f4axb1/SWbzsSDY9FWeU25rucfeETD
-# P9Pyr6U=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MTQwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgbjN3ZBcO7zreMaOcD4kuwGUW1yQLydtzgv3i8I2P
+# SZEwDQYJKoZIhvcNAQEBBQAEggIAY0iOExxBr0NAo1wot5DaYYRqbeU17IyFK0s9
+# gVmjPgjFH8M6giRSynyDTU9NxpguB1e9G4OtMeYYIJAlK+9kshjgLcM0Xq9ak+JS
+# ItZA083uyHESMERwCtAXYXtQOI2eKMF8oEz3SoOrlqeT5T75n2YEV5aig+vYK4zh
+# 0bZm1Y3T+qwqvi8Mds9pbMBrhqYYZNHNSlPl0w1QS1Zkff+HYW96XbQwokdYCfTj
+# IxssuK+W9iTVGBaiZ0ADf+ACnIj5z/+AfrkpFd+4vLoh/I6h9fmnG4KFy90rhits
+# VLgoCyIT/fd2/INLr19NbSp1EfRHfy9vrhQHKUWhVILLd6km7ysg9AEtIiJNsqkC
+# gYxV4/vpR9bZ8fv9rch/0RniIxPkCZBwD6JlOyPhRqa4iD9cVpG9m+J5OEqdvGY9
+# oEkB8yWKP0QZR3g/fYFKh2M46H/GlvitVcZwJoVoY4EWo7+4yvCvviq76F2/FRo5
+# NiXnoI5Vet2WoWIV4osvjrnB/uroQya2A5B5OAGLHv3mACcs1P2hNK0EKgKm8F9i
+# S4ZGksF2iBK2G0uBYtFrn83ZbNpHXiI+3/BYPIGUm73vgQJRaZ9yeuTZS6ncG+z7
+# uals+nhMwDVmx6IJI8wm9tGcDh0a1FpzZhCD/MsW6IOh6b8PtR7PQWeHtp5pfgro
+# 9bPs3co=
 # SIG # End signature block
