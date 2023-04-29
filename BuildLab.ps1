@@ -170,22 +170,14 @@ Begin
         {
             if ($Wait.IsPresent)
             {
-                if ((Get-VM -VMName $VMName -ErrorAction SilentlyContinue).State -eq 'Running')
+                do
                 {
-                    do
-                    {
-                        Start-Sleep -Milliseconds 25
-                    }
-                    until ($VmHeartBeat.PrimaryStatusDescription -eq "OK")
+                    Start-Sleep -Milliseconds 50
+                }
+                until ($VmHeartBeat.PrimaryStatusDescription -eq "OK")
 
-                    # Heartbeat after waiting
-                    Write-Output -InputObject $true
-                }
-                else
-                {
-                    # VM off
-                    Write-Output -InputObject $false
-                }
+                # Heartbeat after waiting
+                Write-Output -InputObject $true
             }
             elseif ($VmHeartBeat.PrimaryStatusDescription -eq "OK")
             {
@@ -256,11 +248,11 @@ Begin
 
                 Write-Verbose -Message "Waiting for $VMName..." @VerboseSplat
 
+                # Wait for heartbeat
+                Check-Heartbeat -VMName $VMName -Wait > $null
+
                 do
                 {
-                    # Wait for heartbeat
-                    Check-Heartbeat -VMName $VMName -Wait > $null
-
                     # Get measure
                     $MeasureVM = Measure-VM -VMName $VMName -ErrorAction SilentlyContinue
 
@@ -298,10 +290,10 @@ Begin
 
                             Default
                             {
-                                if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
-                                {
+                                #if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
+                                #{
                                     Write-Warning -Message "Invoke failed: $_" @VerboseSplat
-                                }
+                                #}
                             }
                         }
 
@@ -316,6 +308,10 @@ Begin
                         {
                             $VmReadyDuration = [System.Diagnostics.Stopwatch]::StartNew()
                             Write-Verbose -Message "$VMName responding, setting initial threshold timer to $Threshold ms..." @VerboseSplat
+                        }
+                        else
+                        {
+
                         }
                     }
                     elseif ($VmReadyDuration -and $VmReadyDuration.IsRunning -eq $true)
@@ -896,8 +892,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMi6nIdR7YeMS859EhZ6Hwpjz
-# wPqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkpg4I37hDqns2Q+MplfK8/JW
+# eROgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1028,34 +1024,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUo0BkOvwT
-# YDUwBcRNxZp3qzE66ncwDQYJKoZIhvcNAQEBBQAEggIADgMaJm5pCD9pgQeK7vPl
-# oE0H09bPWauR6eRiS+VBNqs2aFqsAtqyufgGhL+NqscO/iIDaumGgV25xqlh2B2I
-# Q3n3A8vT90kXeKFgzYfAfuSPv+rQZqtgMqhaSI2X4Pc87W3ufZ2AEfmA7QUw4wv7
-# qftlLK3UJ0o8QpYySzvx6G9nLNKtF3OzI1BpPZSXIjMPGzZxK/GkMvtcLnpe8dLW
-# lzp+rgOWNT9Kxp5smjy8Uyxn3VUvBQzXdxXivqZwm35pX9/ILwg+Eywc+QyCpzK4
-# CCkg3aCpvAM2Fs/flY/MHaCMr9KgHDSxJGtt8+msTs0Nxw7j0mZLqtZxAAFjIckU
-# d6WlGkQwUfS+g//ce4hqPO1f7ytYPCGHotxWdANdCJF3/SNUHbLKzyrurpzqPnrB
-# uB9uxoorjg6rnZi3BFGPnpqt7DS5mgDcE8wCcyQO//+loRSZ/UtgJrPCETVAkSDn
-# yw84Xta0iPIe3PUGebTrI6qpacfvHNGz7mmwjzqlQ442+JXdZ97HrPrsUQdZBYg6
-# kBlnBhFVE6kv0gXuhUrOVVfFmRFnlNAelQbfciAX2Ds5+374uMsDaoY5T/g3FKhY
-# mKsybfF8ihiYe21Oi92Y5I66t8bVrmPWyyUlh187p5/3kNg1EAjhOZhfwlmT0fQp
-# c6Yr/LyMhBHQzB3Xylf+G92hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUWW4LyNBg
+# LUg/pVakjuq6olj7qzEwDQYJKoZIhvcNAQEBBQAEggIAuDEWFTfq6oXJT2qzxVgt
+# 3ylWhZSQn2Lh0D083qOga/fQ4uA+V3p2NH5daa6CurPvkuLORe3JyVmsRUUKz8t6
+# JU0EuGxgox8HfeVSkjzI9v+tLQW0+OmZ92AOtjuVoWghEChQX8GewXl1BGSnfdcy
+# 5+aOMHs4g5omNGfINlpT6NfYexpm+lsptb56o+ktaG88fnWqkT7Tg3L6jrzjUKxe
+# /POyGLYhHuvKsM0NvBrz0dUQG7Dbpfd01jG6qWnstrCh83Igiu3QMjkDvrtzw4mZ
+# zIyOmIay6AHoYHiXHK1X9zh7uE7dymFGEB6JkiAc6avjBXjZtvRb/FPPcEjsjWpU
+# O3wafbdmyew4qDzALiRHPOcDLQCcbcmDTyJqjUIAELFiFO45QuGYxkfwKD5pSyf+
+# auk4BEWn3Rxv3F2cIakk40w73+S6NZB3L1OXNJpDSxJaBWVq0YYP5CwJwmGWuaIX
+# yKwBjL7/Xz+0i4tFOFGLbrJ20rTPkTcfX+YBIb2iWzuDkm/XAPjTYlgc9rlnyhrv
+# D0O7+LKpkJcJMPwiMpb5e6dmPpL7hIITHtDpyjz2Wlb56vnRqYi9URurgTdBMq3z
+# E2dsS2z0J0BBjEWIppFcXxlxGiC6bkT0GUHVX4rcGr9AUbF/9K7pM8sHxZPpxNYB
+# qH+wXNA5tbpMkfxDjQzhia+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MjAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgVnwNZ5w73Gze6931aD+GZvGYcZecVA+Luz1nqIju
-# ut4wDQYJKoZIhvcNAQEBBQAEggIAidg+22WK0rKyufNQgaTOC83Wa1kCUZ9Td1Yd
-# V4HYj80AVgU2B3/3SbRduPK3Cmxv331TiRyXH3dEotRndaJgk2gAdY+tceYR+9mz
-# dcbMRi1pQ5QUrPILFMNa424EQhuS1iXqTPS0o5oBK/tVtSYjF9wUSSX44tBYu0Xo
-# 6eG4PTqM+arPzZTABObUwj/sdrQ/mc1QoHKl5jp7TSqsPktN9J9c3JBzPxz/nfuC
-# mOPkzLdbBex/AAwbGRdmhkvs3UGIPn5gsf87FjwfWtxmbJ/N4g4n1GIdwttYGsnZ
-# L+VYCdHUwenin7XuN6a9yhdSSFLZhoZHXw8r8JDr1U0vaRNg/630sPkP2Ejq1Wu6
-# BwSWiKadSW157th1AdJ3uMo8cEiXMbatEri/BCkrjuMxMHBHix1FDB60LUKTEtkC
-# DfBrLhhHTq8ROBIMyuiGpb9Dg1XXQUZzOQx93KKVCTY4AB82g4Tfg8KREJ1TS2Ko
-# aK0VbdltRiXi85o5kZTfcJvnddcqiF1NqOBua2uQ0v3dH73a9vb7T+unVDx0Brz/
-# y1tFU9cKIFF0ygFnvCI/QaB3+OtTLXkyMmRrvydsBomku7LDp+KjT+T2s0cFqUzA
-# H2CMZ30btAvE/NoFRoIPeCwk2C+Evlv7rObae0NBKOkhVl0haaA311ANd/RIpZ3x
-# ff6W/bI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MjEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgs0R7xW/HCDLsAdZqbKsdevZZn0A2n4eOkQDKRJwd
+# Uj0wDQYJKoZIhvcNAQEBBQAEggIAMuuYivadASy896HxGF68z2mYNPg8oMvA75gr
+# 56G8OWHwA2txCMu26g3/iwYFCRwCOxz2cpAgjR18g4ErrWm0mdZOROt8JIwmvtmm
+# /9elsgq/7yqfk2jMiOEgIFrKE+7AI2AOBRNy4wGkPpXK8pw58RdbFn4nPwyXQBEj
+# DxRPCDF2h46PPL79awyYtDWfU2Ql9/bp3PRbX+ry4Y2px0Gzvg+AIfI9FnY1fMs/
+# on9R/oupex1F1PMz58pcNF6djplxF12ojVywneTTpuD6+2SbE0s4UnDKaVKveA9K
+# 5TYcp9TvybCrZeap0tK+5sFHJsd57ugtmKRbkuimGdA7p+JwH+W2vf9s+N5BRe/G
+# aLqXkFgcCuYakFtPu/kYyr8DULY8Lf48LLssdj3cubFQHtVW5FLQRpIMPIJbliMe
+# 2ux38PvUyHXfQc/FJsrhClG2HgRWbOk2D8t5o6TpxIvmthFhPv+8UCmEnK3EM0KK
+# bLh5iGwLOA8DrXU2wRLoVp2YXyZZuKMTJxhTesUdqGTIYhWICmqxXfgNtwWQWUXo
+# O8DR1/ko8AwtWDRRY2uzufHnmYoN4aETs/3WRO1kUD4FHiPEKAts4l9SRIhJefJ5
+# g3buhdzf8eYeIWwBY52a80c++cU2l0s5ZA2LwlOO3/gKYQj6w2TRT+239pk8T4Q+
+# MAfF4bs=
 # SIG # End signature block
