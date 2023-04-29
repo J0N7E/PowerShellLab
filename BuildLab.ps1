@@ -287,43 +287,41 @@ Begin
                             {
                                 if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
                                 {
-                                    Write-Verbose @VerboseSplat -Message $_
+                                    Write-Warning -Message "Invoke failed: $_" @VerboseSplat
                                 }
                             }
                         }
 
                         $LastError = $TotalDuration
+                        $VmReady = $false
                     }
 
-                    if ($VmReady)
+                    if ($VmReady -and (Check-Heartbeat -VMName $VMName))
                     {
-                        # Start timer
+                        # Start threshold timer
                         if (-not $VmReadyDuration -or $VmReadyDuration.IsRunning -eq $false)
                         {
                             $VmReadyDuration = [System.Diagnostics.Stopwatch]::StartNew()
-                            Write-Verbose @VerboseSplat -Message "$VMName up, setting initial threshold timer to $Threshold ms..."
+                            Write-Verbose -Message "$VMName up, setting initial threshold timer to $Threshold ms..." @VerboseSplat
                         }
                     }
-                    else
+                    elseif ($VmReadyDuration -and $VmReadyDuration.IsRunning -eq $true)
                     {
-                        # Stop timer
-                        if ($VmReadyDuration -and $VmReadyDuration.IsRunning -eq $true)
-                        {
-                            $VmReadyDuration.Stop()
-                            $VmReadyDuration = $null
+                        # Stop threshold timer
+                        $VmReadyDuration.Stop()
 
-                            Write-Verbose @VerboseSplat -Message "Invoke failed, stoped threshold timer after $($VmReadyDuration.ElapsedMilliseconds) ms."
-                        }
+                        Write-Warrning -Message "Invoke failed, stoped threshold timer after $($VmReadyDuration.ElapsedMilliseconds) ms." @VerboseSplat
 
+                        $VmReadyDuration = $null
                     }
                 }
-                until($VmReady -and $VmReadyDuration.ElapsedMilliseconds -gt $Threshold -and (Check-Heartbeat -VMName $VMName))
+                until($VmReady -and (Check-Heartbeat -VMName $VMName) -and $VmReadyDuration.ElapsedMilliseconds -gt $Threshold)
 
                 # Stop timers
                 $VmReadyDuration.Stop()
                 $TotalDuration.Stop()
 
-                Write-Verbose @VerboseSplat -Message "$VMName ready, met threshold at $Threshold ms. Waited total $($TotalDuration.ElapsedMilliseconds) ms."
+                Write-Verbose -Message "$VMName ready, met threshold at $Threshold ms. Waited total $($TotalDuration.ElapsedMilliseconds) ms." @VerboseSplat
 
                 # Remove VM from queue
                 $Queue.Remove($VMName)
@@ -667,35 +665,45 @@ Process
     }
 
     ################
+    # Reboot &
     # Purge tickets
     ################
 
-    $Attempt = 0
+    $Step = 0
     do
     {
-        $AllPassed = $true
-        $Attempt += 1
+        $Step += 1
 
         foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
         {
-            Write-Verbose -Message "Testing $($VM.Name) credential (Attempt $Attempt)..." @VerboseSplat
-
-            if (-not (New-PSSession -VMName $VM.Name -Credential $VM.Credential -ErrorAction SilentlyContinue))
+            switch ($Step)
             {
-                Write-Verbose -Message "Purging tickets $($VM.Name)..." @VerboseSplat
-
-                Invoke-Command -VMName $VM.Name -Credential $Settings.Lac -ScriptBlock {
-
-                    klist purge -li 0x3e7 > $null
+                1
+                {
+                    Write-Verbose -Message "Restarting $($VM.Name)..." @VerboseSplat
+                    Restart-VM -VMName $VM.Name -Force
                 }
 
-                Start-Sleep -Milliseconds 250
+                2
+                {
+                    Wait-For -VMName $VM.Name -Credential $Settings.Lac -Force @VerboseSplat > $null
 
-                $AllPassed = $false
+                    if (-not (New-PSSession -VMName $VM.Name -Credential $VM.Credential -ErrorAction SilentlyContinue))
+                    {
+                        Write-Verbose -Message "Purging tickets $($VM.Name)..." @VerboseSplat
+
+                        Invoke-Command -VMName $VM.Name -Credential $Settings.Lac -ScriptBlock {
+
+                            klist purge -li 0x3e7 > $null
+                        }
+                    }
+                }
             }
+
+            Start-Sleep -Milliseconds 500
         }
     }
-    until ($AllPassed)
+    until ($Step -eq 3)
 
     # Remove sessions
     Get-PSSession | Remove-PSSession
@@ -876,8 +884,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiD0SvA6pIwwvqeSTOCY1Zh42
-# xgagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqRqlk7yuxHNAOECQm5cq2dXD
+# id+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1008,34 +1016,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9/Obw5T/
-# dKNlFD3UmY3PXw+uNMAwDQYJKoZIhvcNAQEBBQAEggIAr0zBliDn29RP6wOLZn3p
-# A2gvqimaKBDjACCBMqj6XfrNA5FKm3WOPfhNkVtVRaJXzNR7TJa0htYWfIMvCRkC
-# nG2qokVdX3slL9FcoAM2V5I3heRpBad0VWPa0Z90XdThbGP+6TQxLyZuslftn7ku
-# Qif8wdPGQyu0OPWQFhgeFcu/obnEWrzR7s0BlMM1Gkj0GQHBL691HEkazv9q152c
-# PDKspuQuMPOfTXRJtKHLSJ7fYhOpsp00vtm5314IQjgReBrkJ/z+IB8ueqdecRtR
-# v9McGcJOIoQkJvl5cKWZbthEywg8hAc38Ory8M8uwfjpAUeVgOS9HUI8cTUNSxb2
-# sbMN6ig8WN1wZmLHaKm1oR3pXzhwCXh8D+yt5LhdzZgOVRjWMJS9v6EOucRjvOXd
-# Ymz3ovWQ23pA/5B6UEWAIWLK3XY3GM2jUwKT886T5SCA4ruZ620/68iq+5oWmGSF
-# EiyY7WMjZKtMzrbZeGfsrhrXikW13oQJT8XTbXCXRso+UwsWP+U/0DLzNaXZViiA
-# f/Ymt2/73vtirxdQj5/qf1YSyfa/PauUNBiRBElCGO53tRx9M6jBFGys1ui43KMV
-# PCxcU4w8l9SrN++/iXyBmyxFsDCApiz1iROe+8Nk8LwM67ry+/SkVLEGtq4H77XF
-# F50G6JDbVRGL7xLz/0+iPHShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUB1g02xJS
+# mmuaZ8Ozsos+5/IYMfcwDQYJKoZIhvcNAQEBBQAEggIAQtOZBj6jyTjy9xpPcj9q
+# jKr9+GA4xIKnXH0ZtNjK/+JfyTz/04ZB5WQO6yR/pXnS2OUy+0QoYohtuCDHV8QX
+# KlRiap4kRcPZQJvTgdi4E1yr2WOJYuSkQJ8E4YJ2iW5/+q1xTbGuV93B3TriB0e7
+# m5byyKiRahars1NXfSEtVS9qClk+gXYfret+KMsZyxQZHASXvXBSOVVOvaOo95Fz
+# oBa8JqUsT1k3ItFIpfRr7JhYNDG0jZGkeE1CzprIL77YXP0BGHwUmG7XRa2XH0af
+# BbHUZoKBezjdMDyVZYJ4nLmLye4QgqwVVNqe/efJL7MmXl3yBajPVj1n6/aW58WL
+# iFK7YMJ7BYHNIF2ln61aM/MIk1fZYfCqP3wJXbJFIQ3ezsPg8btWmxppG7szS3+C
+# CB79S2D4uve4fdQDXB82rDu8NVKTeNUD63Dfn4BIn+8DgVlDkjvAY+daK0qTa8ev
+# ihU5w5KKW2SMe1wK2cd64KptujJi2cqJTFyVz0Pp4cAoTXdAm44eXzHh+tKDwd6b
+# gWsVAIHWpr2ah2WWBXRxE+NgEPxuMnzN033J4YtTg+tQVCCtd1vMl/IdGxkUPN7G
+# 7FYfLW+6UvB2/NxHihwBrxa596mAw4xs6AEvqRA/s7mjR3+HMLBqgMdJuNBx9nHH
+# NHS5sNKBhxBDXrHj0+e3GLGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MTQwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgbjN3ZBcO7zreMaOcD4kuwGUW1yQLydtzgv3i8I2P
-# SZEwDQYJKoZIhvcNAQEBBQAEggIAY0iOExxBr0NAo1wot5DaYYRqbeU17IyFK0s9
-# gVmjPgjFH8M6giRSynyDTU9NxpguB1e9G4OtMeYYIJAlK+9kshjgLcM0Xq9ak+JS
-# ItZA083uyHESMERwCtAXYXtQOI2eKMF8oEz3SoOrlqeT5T75n2YEV5aig+vYK4zh
-# 0bZm1Y3T+qwqvi8Mds9pbMBrhqYYZNHNSlPl0w1QS1Zkff+HYW96XbQwokdYCfTj
-# IxssuK+W9iTVGBaiZ0ADf+ACnIj5z/+AfrkpFd+4vLoh/I6h9fmnG4KFy90rhits
-# VLgoCyIT/fd2/INLr19NbSp1EfRHfy9vrhQHKUWhVILLd6km7ysg9AEtIiJNsqkC
-# gYxV4/vpR9bZ8fv9rch/0RniIxPkCZBwD6JlOyPhRqa4iD9cVpG9m+J5OEqdvGY9
-# oEkB8yWKP0QZR3g/fYFKh2M46H/GlvitVcZwJoVoY4EWo7+4yvCvviq76F2/FRo5
-# NiXnoI5Vet2WoWIV4osvjrnB/uroQya2A5B5OAGLHv3mACcs1P2hNK0EKgKm8F9i
-# S4ZGksF2iBK2G0uBYtFrn83ZbNpHXiI+3/BYPIGUm73vgQJRaZ9yeuTZS6ncG+z7
-# uals+nhMwDVmx6IJI8wm9tGcDh0a1FpzZhCD/MsW6IOh6b8PtR7PQWeHtp5pfgro
-# 9bPs3co=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI5MTUwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgD44L8zznm9SQyMZL8E3j1UVpBUPvoqNIEnqgdlne
+# ph0wDQYJKoZIhvcNAQEBBQAEggIAHSKA1h6xfYTweUCHxdFjmRcjn9QPTf6RdKcF
+# +BhhmeUAThQyuEVOntm9sNZVoFQDQ6FasMjGcShq4gcgRwtNsWNj+QaK6uHmjxyT
+# Q0C7poplqZzKf/hSm7cOhEVDnLNNq1h3a2uXVXfVrWvj445CQRtyqE5VoXiJ4Ybr
+# kX2V4h1mOvFqqKbdZ3boC9hfQRyzB4z7IUahvy1VC33m2QR53nnSkx6IscGFhMkl
+# O/88nFuzKQp052gPlzeWmWrmlPb/7QnfT+KH4b7Tr0vPsrACcm6aCUbS3Q6ExbKy
+# upabq5yn9WP0Aj7j6B+YDV/NkRwALRNGdJDiCU1U/7ayzboiBv6jgx7BXXGTNzOA
+# EeEexooz+HrUOlFINsridPD5g7dqFbxrF9ABE+6/EKx2/GiwFAfW9gFVSYc7fKK0
+# GftAX/exgLMpYIfFRcbAJBz3o15voW/eKFHxxfHC/R5BYkotQ13GmyifTdTz1CrE
+# d7gnrid0860w5nht//MbjBAnaGcqwO87r9etN28Pvy+V65/VVpBCdpLOuLAbw6m5
+# zwLEjBaHUYm7HWM+N7dSeWAFe4iOeftqfbPfacbMsRrhIRk+/ucxWMDu6BFiQv//
+# RoVBw/UZvx7aN8x63rgkrS2YH9cvxwl1BhIpe+jS+Qh8mtbV5ZE8ItNDEzawwiKS
+# ITr1loA=
 # SIG # End signature block
