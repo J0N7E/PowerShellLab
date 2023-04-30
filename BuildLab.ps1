@@ -82,7 +82,13 @@ Begin
     # Initialize
     #############
 
+    # Counters
+    [Ref]$TotalTimeWaited = 0
     $TotalTime = [System.Diagnostics.Stopwatch]::StartNew()
+
+
+    # Wait splat
+    $HistorySplat = @{ History = $TotalTimeWaited }
 
     # Credential splats
     $Lac = @{ Credential = $Settings.Lac }
@@ -217,8 +223,10 @@ Begin
 
             [String]$DefaultThreshold = 5000,
 
+            [Switch]$Force,
+
             [Hashtable]$Queue = @{},
-            [Switch]$Force
+            [Ref]$History
         )
 
         begin
@@ -330,10 +338,16 @@ Begin
                 $VmReadyDuration.Stop()
                 $TotalDuration.Stop()
 
-                Write-Verbose -Message "$VMName ready, met threshold at $Threshold ms. Waited total $($TotalDuration.ElapsedMilliseconds) ms." @VerboseSplat
-
                 # Remove VM from queue
                 $Queue.Remove($VMName)
+
+                # Set history
+                if ($History)
+                {
+                    $History.Value += $TotalDuration.ElapsedMilliseconds
+                }
+
+                Write-Verbose -Message "$VMName ready, met threshold at $Threshold ms. Waited total $($TotalDuration.ElapsedMilliseconds) ms." @VerboseSplat
 
                 # Disable resource metering
                 Disable-VMResourceMetering -VMName $VMName
@@ -479,7 +493,7 @@ Process
     ##########
 
     # Rename
-    if (Wait-For @RootCA @Lac @QueueSplat @VerboseSplat)
+    if (Wait-For @RootCA @Lac @QueueSplat @HistorySplat @VerboseSplat)
     {
         $RootCAResult = .\VMRename.ps1 @RootCA @Lac -Restart -Verbose
     }
@@ -489,7 +503,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @DC @Lac @QueueSplat @VerboseSplat)
+    if (Wait-For @DC @Lac @QueueSplat @HistorySplat @VerboseSplat)
     {
         # Rename
         $DCResult = .\VMRename.ps1 @DC @Lac -Restart -Verbose
@@ -500,7 +514,7 @@ Process
             Start-Sleep -Seconds 3
 
             # Make sure DC is up
-            Wait-For @DC @Lac -Force @VerboseSplat > $null
+            Wait-For @DC @Lac -Force @HistorySplat @VerboseSplat > $null
 
             # Setup network
             .\VMSetupNetwork.ps1 @DC @Lac -Verbose `
@@ -529,7 +543,7 @@ Process
     # Wait
     if ($RootCAResult.Renamed)
     {
-        Wait-For @RootCA @Lac -Force @VerboseSplat > $null
+        Wait-For @RootCA @Lac -Force @HistorySplat @VerboseSplat > $null
 
         .\VMSetupCA.ps1 @RootCA @Lac -Verbose `
                         -Force `
@@ -549,7 +563,7 @@ Process
         if ($DCStep1Result.WaitingForReboot)
         {
             # Make sure DC is up
-            Wait-For @DC @Lac -Force @VerboseSplat > $null
+            Wait-For @DC @Lac -Force @HistorySplat @VerboseSplat > $null
 
             # Wait for group policy
             Invoke-Wend -TryBlock {
@@ -620,8 +634,8 @@ Process
     {
         $JoinDomainSplat = @{}
 
-        if (Wait-For -VMName $VM @Lac @QueueSplat @VerboseSplat)
-        {
+        #if (Wait-For -VMName $VM @Lac @QueueSplat @HistorySplat @VerboseSplat)
+        #{
             # Setup network adapter
             .\VMSetupNetwork.ps1 -VMName $VM @Lac -Verbose `
                                  -AdapterName Lab `
@@ -658,7 +672,7 @@ Process
             {
                 $DomainJoined.Add($Result.Joined, $true)
             }
-        }
+        #}
     }
 
     ###############
@@ -687,51 +701,53 @@ Process
     # Purge tickets
     ################
 
-    $Step = 0
-    do
+    if ($DomainJoined.Count -gt 0)
     {
-        $Step += 1
-
-        foreach($VM in $DomainJoined.Keys)
+        $Step = 0
+        do
         {
-            switch ($Step)
+            $Step += 1
+
+            foreach($VM in $DomainJoined.Keys)
             {
-                1
+                switch ($Step)
                 {
-                    Write-Verbose -Message "Restarting $VM..." @VerboseSplat
-                    Restart-VM -VMName $VM -Force
-                }
+                    1
+                    {
+                        Write-Verbose -Message "Restarting $VM..." @VerboseSplat
+                        Restart-VM -VMName $VM -Force
+                        Start-Sleep -Milliseconds 250
+                    }
 
-                2
-                {
-                    Wait-For -VMName $VM -Credential $Settings.Lac -Force @VerboseSplat > $null
+                    2
+                    {
+                        Wait-For -VMName $VM -Credential $Settings.Lac -Force @HistorySplat @VerboseSplat > $null
 
-                    Invoke-Command -VMName $VM -Credential $Settings.Lac -ScriptBlock {
+                        Invoke-Command -VMName $VM -Credential $Settings.Lac -ScriptBlock {
 
-                        $VerboseSplat = $Using:VerboseSplat
+                            $VerboseSplat = $Using:VerboseSplat
 
-                        Write-Verbose -Message "Purging tickets $($Using:VM)..." @VerboseSplat
+                            Write-Verbose -Message "Purging tickets $($Using:VM)..." @VerboseSplat
 
-                        klist purge -li 0x3e4 > $null
-                        klist purge -li 0x3e7 > $null
+                            klist purge -li 0x3e4 > $null
+                            klist purge -li 0x3e7 > $null
+                        }
                     }
                 }
             }
-
-            Start-Sleep -Seconds 2
         }
-    }
-    until ($Step -eq 3)
+        until ($Step -eq 3)
 
-    # Remove sessions
-    Get-PSSession | Remove-PSSession
+        # Remove sessions
+        Get-PSSession | Remove-PSSession
 
-    # Add restarted vms to wait queue
-    foreach ($VM in $DomainJoined.Keys)
-    {
-        if (-not $VmWaitQueue.Item($VM))
+        # Add restarted vms to wait queue
+        foreach ($VM in $DomainJoined.Keys)
         {
-            $VmWaitQueue.Add($VM, $true)
+            if (-not $VmWaitQueue.Item($VM))
+            {
+                $VmWaitQueue.Add($VM, $true)
+            }
         }
     }
 
@@ -741,7 +757,7 @@ Process
     #########
 
     # Root cdp
-    if (Wait-For @AS @Ac0 @QueueSplat @VerboseSplat)
+    if (Wait-For @AS @Ac0 @QueueSplat @HistorySplat @VerboseSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 -Verbose `
                                           -Force `
@@ -754,8 +770,8 @@ Process
     # Sub CA
     #########
 
-    if (Wait-For @SubCA @Ac0 @QueueSplat @VerboseSplat )
-    {
+    #if (Wait-For @SubCA @Ac0 @QueueSplat @HistorySplat @VerboseSplat )
+    #{
         $SubCaResult = Invoke-Wend -TryBlock {
 
             .\VMSetupCA.ps1 @SubCA @Ac0 -Verbose `
@@ -790,7 +806,7 @@ Process
                 }
             }
         }
-    }
+    #}
 
     # Cleanup
     if ($SubCaResult.CertificateInstalled)
@@ -805,14 +821,14 @@ Process
     #########
 
     # Issuing cdp & ocsp
-    if (Wait-For @AS @Ac0 @QueueSplat @VerboseSplat)
-    {
+    #if (Wait-For @AS @Ac0 @QueueSplat @HistorySplat @VerboseSplat)
+    #{
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 -Verbose `
                                           -Force `
                                           -CAConfig "$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)" `
                                           -ConfigureOCSP `
                                           -OCSPTemplate "$($Settings.DomainPrefix)OCSPResponseSigning"
-    }
+    #}
 
     #############
     # Autoenroll
@@ -824,13 +840,13 @@ Process
 
         foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
         {
-            if (Wait-For -VMName $VM.Name -Credential $VM.Credential @QueueSplat @VerboseSplat )
-            {
+            #if (Wait-For -VMName $VM.Name -Credential $VM.Credential @QueueSplat @HistorySplat @VerboseSplat )
+            #{
                 Invoke-Command -VMName $VM.Name -Credential $VM.Credential -ScriptBlock {
 
                     Certutil -pulse > $null
                 }
-            }
+            #}
         }
     }
 
@@ -838,8 +854,8 @@ Process
     # ADFS
     #######
 
-    if (Wait-For @ADFS @Ac0 @QueueSplat @VerboseSplat)
-    {
+    #if (Wait-For @ADFS @Ac0 @QueueSplat @HistorySplat @VerboseSplat)
+    #{
         Write-Verbose -Message "ADFS Dkm Guid: $($DcConfigResult.AdfsDkmGuid)" @VerboseSplat
 
         if ($DcConfigResult.AdfsDkmGuid)
@@ -870,14 +886,14 @@ Process
                 }
             }
         }
-    }
+    #}
 
     ######
     # WAP
     ######
 
-    if (Wait-For @WAP @Ac1 @QueueSplat @VerboseSplat)
-    {
+    #if (Wait-For @WAP @Ac1 @QueueSplat @HistorySplat @VerboseSplat)
+    #{
         .\VMSetupNetwork.ps1 @WAP @Ac1 -Verbose `
                              -AdapterName Lab `
                              -IPAddress "$($Settings.DomainNetworkId).100" `
@@ -893,12 +909,13 @@ Process
                          -ADFSTrustCredential $Settings.Ac0 `
                          -ADFSPfxFile "$($Settings.DomainPrefix)AdfsCertificate.pfx"
                          #-EnrollAcmeCertificates
-    }
+    #}
 }
 
 End
 {
     Write-Verbose "Totaltime: $($TotalTime.ElapsedMilliseconds/1000/60) min." @VerboseSplat
+    Write-Verbose "Time waited: $($TotalTimeWaited.Value/1000/60) min." @VerboseSplat
 
     $TotalTime.Stop()
     $TotalTime = $null
@@ -907,8 +924,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUi4bQOwKl9cv4K5dal7AGLXoB
-# FzegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoq8I6mQWoK/PX/DJbIQqc4XX
+# zrSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1039,34 +1056,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUPvKnK7al
-# AvuzHRBbgR8+SK3ZrQ8wDQYJKoZIhvcNAQEBBQAEggIAMbX1Hbg7/2z3SiQWIhrk
-# 2HW2mgHTsMwNzFRbPhJc+PoQqp97/xBjOHLhNFeMo0/BhfOiFjOqVuI+KHzI6Gsc
-# h0o396IeqhFBg6wKPIVLP5nqSyfzBZemfvVlcGGE2TNvC6e0PNunupXT9VnzR2+r
-# EkStCxXRPNDRZCgkC8sl0roA7jVeDEFaiY5pmmG/TugnJoWnXY6rhTxPwFxl6NKi
-# nHTlF02uyMI2oImpTPvGZ+u4MVFqFTF5FJu9xrF0luO9GMa7opiLzYyvrxvkk/ss
-# gyLjOqW7K9ozVGeniPtlWlyRESErbkNqHgv5vT0/pCfeade4/4s3MGMYsrPgUuLA
-# zJgbgqN8BYmDZ8J9Qk8WeqKkMKHBn4yeUpmgGic3O2iMd180o47WnoDTFq2ch3t/
-# eSiRQP3YCVbreK05+GjQdq2hghUyXj65P3A+f1E24yiJW/htL0zQ2hmG1e5UplB4
-# Ban7IWBkyg+0HplfEvkxe54Ds6fwdECoqJVQnFk6Qnrm4/x1/9gjJ4kQBM39FRsq
-# AElJVaFo1/GyvYP1Ptr8LP9l2uijPHafOtedOJPI6MydoHFYWs+1XevdAvJmmsk0
-# m3zL1IziXgZn24Nh70bll/NI5FIrSzWkbUOXITufBizI+afYMUmwFQCmhiIUbLEH
-# jpTk5cFEtVUgJrcoml3FmKahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUYu0jrhVk
+# RTpp+a6j88IAQVxm4ukwDQYJKoZIhvcNAQEBBQAEggIAvje6XleqyvfgF0FfS2cn
+# rlT1tn2wk7AHs1MkI0yyYGXhzKt75ezMCUFpI7H3JPZF24A9Obl+PjziPTlh2/9c
+# iNAiUIRFrp23i+tBPAqhbYxNhf/dGlRpnU4Cr/kdIoXaJeG6oq/FUgYhmzqyN6Ci
+# +R0kmrJOAoZrJIPP85hxNbS6SdwztF159diBkkwtLQrbKtZtVPR5bg3QCoE/BSK5
+# 3uEUEMRFNvhM+BO2inaUIo+weWpJvlwVxIhTI4ecX+I7qngGCya5TW5SKlOtya13
+# 0lTZUIFQ0QjDiFCCv17jiz5M5TOdLTLYoCzvsWMTmYprdMQfHpk9HeHugPhotATG
+# s2s8L3v8o956mizAvEiwXx28U40g0iEpiA63rRonbRkrK1vW2FrLkwBfX+mI5A1s
+# 5BDStW2ladWPYzWl1ot4PpE7v0+EKFF1onqtKvRdUogK+uOSxUeRKe0ALxtLPYcT
+# jssRC8+XkSQhPoRQSNUCCowSbSb1QWr8b5Rne3JTOHT8oVr/BrgQPTU0SXWvVBi6
+# Jw8T9wH51n/1R9bgy7fs8gDJaPjnbFEuv8peXCQsmFPYIpHShOkNTOXzcI60UG5o
+# UOvPBuyGsvSbG/lUmSOZMfrSCh21rjJP2+8vQg/vHG8lux9rsNXTGA7oiDmDaSoK
+# 0Y3ObP8oBy2vL5L6XGRE2jWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTcwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg+k3ZJrcUOMPhkC46KLgika8ISEx+PyxcXnq1xa+J
-# Rx8wDQYJKoZIhvcNAQEBBQAEggIAdbwhkCcU1lKLOf2wYDNQhZf50hvQrQUBykpS
-# l/xFHQCKRlC8r6DDggraKsFqUR7d3INxwhN3nNis0uZrFqTQboU4OItT5B/T3TDV
-# G7Q9oMX+IUT6HT4jVO1ybSI1srBWgJN8F6NSOzyvD0d4Bdt9UealFrJ8oE/rzq67
-# HiYCNhvfOD1/prnHp1XKOJkWKmUJJVli/xnBM/17DCAwHeSxvJhMP9izr5TIdh6L
-# d+i4ITslhtiZkcyUCdA++tYx0HgoAE7Hogn8Xeruelz0tsd3x3AtBJK2oqksy7gW
-# CRssOPQ5RDX8rGvLqDwA/7J0HcKC7RajqfsnKf0ZDjiPsSuQNTANeLcP1SC4Uz8n
-# YmVVCDjoyZXWNxcRH/b9LT9vHBuYUny5DXDU6T4dmkGEREooUyehVyaxoSv86i9V
-# sF9/viuu4pA1lwks+Dn1UQ8gW34U5RSmBXK5fFSm7jh7MDND4w9qfL6859q8D/NE
-# R8NXPlHML+Za3YaO6d6idG+jHmfU8HzCjio44OFAUa9Xi87jVC9GB/FLnsQ3nIjB
-# VhhekzyhspzCFZdHcXoF+xuGZbf16DRWyo92Mo3h+PjxXH/boLtgcbgvpN6RbtNA
-# qXW/PqBj7GWUZlq5gzBwiv+PlCqP8qGMZpcUAWxDnDDCC7EfFqLylgCy1KZlXzoP
-# kwjUSJU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMjAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg30FK9Sp/QTMQMcDJjU9OR/NLuGffcBrHBQEGqQK0
+# iIYwDQYJKoZIhvcNAQEBBQAEggIAaNK/1HpVA/Filf76Pkt6m2WSsWk44UeFIga/
+# jDYF5T/HgTu5Nw37LcLTGf04MzQeUhc4JehFt+cp0F33TywEygXm5fH3N9qwrpxc
+# IJo4KZxrnO0zguL+WqbKwj6HSKtIaKDHTD3edZeWNjDN/gR/bj1UEbyjRMTyPj9r
+# kKQuH+aNpKxuchmoUj4gSDq0PVUDD7gQpD8PEsiDPqqb2eI8zpkSoy0n8+PW/nEp
+# 3e8LaCLTHD3+wCzneMbTJNgdNVpA+x+X3jDw+6RklJLsnEWFg0/DI5CXHooD+QxB
+# cnjbb+SUtLHMVrNg8L67c8DJjjvf7826wmZYzFgHvIiH+bzTtL2S/iAHhIkjUfmP
+# 2OG2Bt9VL9pNBjo9Es8Zn/JDPXDEJ+QE7ExsRNr+tXKMwWERZXCped7QdnzIYP43
+# Wkp6kysXgDPlCaVM807bGOwHiAXEkRA6ZmI8G+GdUh2cM6G5Y10t11/5sxVmxzuH
+# Fqt0vlZhIOsP9R/Rti5OVQfHwdVgYBTsB0sMWPZEjsZ3ruOxpYmDlo2zGkoQZNm6
+# y5xmQL2vyzr72s9wutoT5BEwkDyWefYitMtMLmq8+BvKzDKU7erCXxLRjttcWbcs
+# h3iVf5NGF5IZrbI64+IqNYXiVn3I4uwkL6o9JKGEeXjG9VeeQgdio/kwQcp5Xpic
+# 8fTRhR0=
 # SIG # End signature block
