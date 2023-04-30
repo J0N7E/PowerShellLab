@@ -73,9 +73,9 @@ $Settings +=
 }
 
 # Credential splats
-$Lac = "-Credential $(Serialize $Settings.Lac)"
+$Lac = "$Lac"
 $Dac = "-Credential $(Serialize $Settings.Dac)"
-$Ac0 = "-Credential $(Serialize $Settings.Ac0)"
+$Ac0 = "$Ac0"
 $Ac1 = "-Credential $(Serialize $Settings.Ac1)"
 $Ac2 = "-Credential $(Serialize $Settings.Ac2)"
 $Jc  = "-Credential $(Serialize $Settings.Jc)"
@@ -205,7 +205,7 @@ function Setup-DC
     if ($BackupGpo.IsPresent -or $BackupTemplates.IsPresent)
     {
         # Open session
-        $Session = New-PSSession -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac
+        $Session = New-PSSession $DC$Lac
 
         $NoExitStr = ''
         $WaitSplat = @{ Wait = $true }
@@ -331,9 +331,10 @@ return
 # Root CA
 ##########
 
+# Rename Root CA
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.CA01.Name) -Credential $(Serialize $Settings.Lac) -Restart"
+    "-NoExit -File $LabPath\VMRename.ps1 $RootCA $Lac -Verbose -Restart"
 )
 
 #########
@@ -341,21 +342,23 @@ Start-Process $PowerShell -ArgumentList `
 # Step 1
 #########
 
+# Rename DC
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac) -Restart"
+    "-NoExit -File $LabPath\VMRename.ps1 $DC $Lac -Verbose -Restart"
 )
 
+# Setup network DC
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupNetwork.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
     "-AdapterName Lab",
     "-IPAddress `"$($Settings.DomainNetworkId).10`"",
     "-DefaultGateway `"$($Settings.DomainNetworkId).1`"",
     "-DNSServerAddresses $(Serialize @(`"$($Settings.DmzNetworkId).1`"))"
 )
 
-# DC Step 1
+# Setup DC Step 1
 Setup-DC
 
 ##########
@@ -364,11 +367,11 @@ Setup-DC
 
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCA.ps1 -Verbose -VMName $($Settings.VMs.CA01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMSetupCA.ps1 $RootCA $Lac -Verbose",
     "-Force",
     #"-AlwaysPrompt",
     "-StandaloneRootCA",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`"",
+    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
     "-CADistinguishedNameSuffix `"O=$($Settings.DomainPrefix),C=SE`"",
     "-DomainName $($Settings.DomainName)"
 )
@@ -377,13 +380,9 @@ Start-Process $PowerShell -ArgumentList `
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.CA01.Name) -Credential $(Serialize $Settings.Lac)",
-        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`""
+        "-NoExit -File $LabPath\VMRemoveCA.ps1 $RootCA $Lac -Verbose",
+        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
     )
-
-    .\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.CA01.Name) -Credential $Settings.Lac `
-                     -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)"
-
 #>
 
 #########
@@ -391,21 +390,22 @@ Start-Process $PowerShell -ArgumentList `
 # Step 2
 #########
 
-# Wait for DC to setup domain
+# Wait for DC to complete step 1 setup before continuing...
 
+# Setup DC network Step 2
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupNetwork.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
     "-AdapterName Lab",
     "-IPAddress `"$($Settings.DomainNetworkId).10`"",
     "-DefaultGateway `"$($Settings.DomainNetworkId).1`"",
     "-DNSServerAddresses $(Serialize @(`"$($Settings.DomainNetworkId).10`", '127.0.0.1'))"
 )
 
-# Step 2
+# Setup DC Step 2
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupDC.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
     "-DomainNetworkId $($Settings.DomainNetworkId)",
     "-DomainName $($Settings.DomainName)",
     "-DomainNetbiosName $($Settings.DomainNetBiosName)",
@@ -419,24 +419,20 @@ Start-Process $PowerShell -ArgumentList `
 # Publish root certificate to domain
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Lac -Verbose",
     "-CAType StandaloneRootCA",
-    "-CAServerName $($Settings.VMs.CA01.Name)",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`""
+    "-CAServerName $($Settings.VMs.RootCA.Name)",
+    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
 )
 
 <# Remove root certificate from domain
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Ac1)",
-        "-CAServerName $($Settings.VMs.CA01.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`""
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Lac -Verbose)",
+        "-CAServerName $($Settings.VMs.RootCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
     )
-
-    .\VMRemoveCAFromAD.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Ac1 `
-                           -CAServerName $Settings.VMs.CA01.Name `
-                           -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)"
 #>
 
 ############
@@ -454,7 +450,7 @@ Start-Process $PowerShell -ArgumentList `
 # Domain join and rename AS
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.AS01.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMRename.ps1 $AS $Lac -Verbose",
     "-JoinDomain $($Settings.DomainName)",
     "-DomainCredential $(Serialize $Settings.Jc)"
 )
@@ -463,21 +459,22 @@ Start-Process $PowerShell -ArgumentList `
 Setup-DC
 
 # Restart Sub CA
-Invoke-Command -VMName $Settings.VMs.CA02.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
+Invoke-Command -VMName $Settings.VMs.SubCA.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
 
 # Restart AS
-Invoke-Command -VMName $Settings.VMs.AS01.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
+Invoke-Command -VMName $Settings.VMs.AS.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
 
 #########
 # AS
 # Step 1
 #########
 
+# Root cdp
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS01.Name) -Credential $(Serialize $Settings.Ac0)",
+    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.CA01.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`"",
+    "-CAConfig `"$($Settings.VMs.RootCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
     "-ConfigureIIS",
     "-ShareAccess `"Delegate CRL Publishers`""
 )
@@ -489,16 +486,16 @@ Start-Process $PowerShell -ArgumentList `
 
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCA.ps1 -Verbose -VMName $($Settings.VMs.CA02.Name) -Credential $(Serialize $Settings.Ac0)",
+    "-NoExit -File $LabPath\VMSetupCA.ps1 $SubCA $Ac0 -Verbose",
     "-Force",
     #"-AlwaysPrompt",
     "-EnterpriseSubordinateCA",
-    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`"",
+    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-CADistinguishedNameSuffix `"O=$($Settings.DomainPrefix),C=SE`"",
-    "-CRLPublishAdditionalPaths $(Serialize @(`"\\$($Settings.VMs.AS01.Name)\wwwroot$`"))",
+    "-CRLPublishAdditionalPaths $(Serialize @(`"\\$($Settings.VMs.AS.Name)\wwwroot$`"))",
     "-PublishTemplates",
     #"-CryptoProviderName `"RSA#SafeNet Key Storage Provider`"",
-    #"-KeyContainerName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`"",
+    #"-KeyContainerName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
     #"-IssuancePolicies $(Serialize (@( @{Name='Policy1'; OID='1.2.3'}, @{Name='Policy2'; OID='4.5.6'})))",
     "-CRLPeriodUnits 180",
     "-CRLPeriod Days",
@@ -510,56 +507,42 @@ Start-Process $PowerShell -ArgumentList `
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCA.ps1 -Verbose -VMName $($Settings.VMs.CA02.Name) -Credential $(Serialize $Settings.Ac0)",
-        "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)`"",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`""
+        "-NoExit -File $LabPath\VMRemoveCA.ps1 $SubCA $Ac0 -Verbose",
+        "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
     )
-
-    .\VMRemoveCA.ps1 -Verbose -VMName $Settings.VMs.CA02.Name -Credential $Settings.Ac1 `
-                     -ParentCACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.CA01.Name)" `
-                     -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)"
 
     # Remove sub CA certificate from domain
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
-        "-CAServerName $($Settings.VMs.CA02.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`""
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Lac -Verbose",
+        "-CAServerName $($Settings.VMs.SubCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
     )
-
-    .\VMRemoveCAFromAD.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac `
-                           -CAServerName $($Settings.VMs.CA02.Name) `
-                           -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)"
 
     # Configure sub CA in AD
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 -Verbose -VMName $($Settings.VMs.DC01.Name) -Credential $(Serialize $Settings.Lac)",
+        "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Lac -Verbose",
         "-Force",
         "-RemoveOld",
         "-CAType EnterpriseSubordinateCA",
-        "-CAServerName $($Settings.VMs.CA02.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`""
+        "-CAServerName $($Settings.VMs.SubCA.Name)",
+        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
     )
-
-    .\VMSetupCAConfigureAD.ps1 -Verbose -VMName $Settings.VMs.DC01.Name -Credential $Settings.Lac `
-                               -Force `
-                               -RemoveOld `
-                               -CAType EnterpriseSubordinateCA `
-                               -CAServerName $($Settings.VMs.CA02.Name) `
-                               -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)"
 #>
 
 ##########
 # Root CA
 ##########
 
+# Issue Sub CA
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAIssueCertificate.ps1 -Verbose -VMName $($Settings.VMs.CA01.Name) -Credential $(Serialize $Settings.Lac)",
-    "-CertificateSigningRequest `"$LabPath\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)-Request.csr`""
+    "-NoExit -File $LabPath\VMSetupCAIssueCertificate.ps1 -Verbose $RootCA $Lac",
+    "-CertificateSigningRequest `"$LabPath\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Request.csr`""
 )
 
 #########
@@ -567,38 +550,40 @@ Start-Process $PowerShell -ArgumentList `
 # Step 2
 #########
 
-# Rerun sub CA setup step 1 to install certificate
+# Rerun sub CA setup step 1 (above) to install certificate
 
 #########
 # AS
 # Step 2
 #########
 
+# Issuing cdp & ocsp
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS01.Name) -Credential $(Serialize $Settings.Ac1)",
+    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.CA02.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`"",
+    "-CAConfig `"$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-ConfigureOCSP",
     "-OCSPTemplate `"$($Settings.DomainPrefix)OCSPResponseSigning`""
 )
 
+# Ndes
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 -Verbose -VMName $($Settings.VMs.AS01.Name) -Credential $(Serialize $Settings.Ac1)",
+    "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.CA02.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.CA02.Name)`"",
+    "-CAConfig `"$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-ConfigureNDES"
  )
 
-#########
-# WIN 11
-#########
+######
+# WIN
+######
 
-# Domain join and rename WIN11
+# Domain join and rename workstation
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMRename.ps1 -Verbose -VMName $($Settings.VMs.WIN11.Name) -Credential $(Serialize $Settings.Lac)",
+    "-NoExit -File $LabPath\VMRename.ps1 $Win $Lac -Verbose",
     "-JoinDomain $($Settings.DomainName)",
     "-DomainCredential $(Serialize $Settings.Jc)",
     "-Restart"
@@ -607,8 +592,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8xFp5E8loak4h/tfJ/rJRAKc
-# 7pOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkLcxMimYqkDS5vBfFR46AK5m
+# alegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -739,34 +724,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU3Kcv18sE
-# zP9qRR5b9yoIGJNqhNEwDQYJKoZIhvcNAQEBBQAEggIAagopBroNXTnGTHxT+BUh
-# YLiFWuPBGV2l/g2AAU1TfD0ImlkLSN/+a81THjrMd3jRZ16tWOvX+cO8iXdOataf
-# L5mBF3wa7oBgmBBOtPhA1Fw5/WdH5tdFNQFO/9YM8x7Ak5eOyweB+2tTDIgU2m8X
-# Va1wX+sldSXSiXFnJki7kw4KYBzb4EwYj5BPauaOVnWe0vY37Uu8H4Be5jEe+f3s
-# 9quGyjcnEqQknv1LM1CDtSiGpuaRqInXdNNBiDVDfo4oC4QI8erGvyH4rGhDhou5
-# KJpHa6fzVaDCmkgoufiLezx9bxxhQU+DsaHgAPWgI88o0tXxX4ev7lOAhzBFCwzL
-# cQxJnh9hhsvjGBxjqSfukcylquGZwUwE+h4/AeJ+hS2Lpyp3snaaLjse1zyNlP4J
-# HewPCNC+NqICa7/8Nf3d3/5hWVDTosra39uXPUZ60XW0bSHGyJoVvlb43rxHYP3a
-# EcHZgj5a5NwjE2rxZJBE/udaLiI06sg5z5CMHjiZrbZaa0anyJRIeAdnyoR9/++X
-# dIBDH3Ez9tVfyD7a3IutRQfwRh6s0WsyisKBRKmRq2nOsfpeKSXtx3WPcHr/0mzr
-# eWTmeZF7XPU7Ck3mvxQza0IN/8MTloC8Ci2t/tflWs3kW7OZHyWaPFbcgiuru9Id
-# V0pvSP9HMsBHbG/l4vOM18qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUSDzhQuiQ
+# 6zQl8rs257w4OUGACT8wDQYJKoZIhvcNAQEBBQAEggIAL2YTVLp2lVt3afXP8QQs
+# C3BKw/bmYG2psJNmccwQyOHMmD3ipBKPMaWzvJaLhdccygK6ciSYayBSh5Y/gr/v
+# YrFOLVeeS9pKsCjl9LG2+ndAKcQ5+ok+tXtSNcUdjsXkP5FlafgMav0f0CzJ8sp/
+# ZUtK0KF87nUlozZEhtMxyKC9UaUSnsrB1gfBZLegIslnw8eCxC1VaxX6DqzxsIcH
+# YefrJQeN2zZ8WCIdq1k384Gz8r+WpiABHXJZjG+2IGRxAfeKDjPrEi6Xm7oou9kY
+# 1ccYpVE6qp7r4kzi0yiPENXXSyFfFgaEjyXZfGVO5wAawJkoESUGmzomI5COb9nT
+# lNkWuYHYCMbtIEXdvBs6Ica4nvYe3BHP0n8NgzsJIzEi4J2iz9FaNSCpLkf5cQSD
+# nCz21OM/yG0z5x12+HjhJfgYQKgC6MAJLyx8m7M1Ss1yIS/NYqCnR4DK3wvyGGLt
+# ZMIBxJedWU3hBaPyns+Q18TZT84dPdx+xQRxftybfYWXGpvC+XY38CTFd8B+bnBs
+# cgoWC3tD7vPG6OG3GK/gDdQGmTe1ADUl691wIjqIRu9hy9HQq87rL88qDNEgtm8i
+# 5J/bdQbBO6e73As3MXzhqV/b0M7mMGAjgRAbjiB1bSrLhCLUo3th8rUP8yfcKqlT
+# sDQL2gp7WFnlx6hJrxsHW4qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgvdDG1DhIlOug+Q3CYPxfYLvyQtfPlv1wJDX51vgm
-# 7i8wDQYJKoZIhvcNAQEBBQAEggIAP+A4xi8WI51PbqhAJrcxwGPvwf00Md/IXbIJ
-# peseL7QHpLrRe3kyjx2HdRW4vQkpyqdek2GeWFpekp5g5XxxPStnDKR1azeyFC6i
-# f1BZGDxvAAs/EGNhpJNS9xSocckHGJzoI3HYHqGOUJeBan2StX3onuOopA2LtW3K
-# O4YJKxaxLCvxF0v0aPGgoUQmQrfb08Sgp4CuFvQpRNHmwLpcpzVrpen0bx9xTCXR
-# G2xMjeNFIZKIUYMjDJsHtis+6J9NSBoMqNVbrI63tca9LAOUQIgnIL432GslVmlU
-# 3IPEspoNo2IrY0XaM2h5jg5kzQMgdAmIBy+BrGPFxkKxoyqGhyqtG8F8BDkxyoU6
-# GDRtWMhyGdgwkUxJFAE9GOTDhhsdeJfOMeX8wBBN2ExPycbjlGGzKa8GqfBGtf0K
-# r65rJZuR/M9qSFHZuAtNA7LA2CYXl3sEYlFI7uaeB1DatfQ1QgTtNdSxisymocOx
-# AtxwbkMLG9PF1T2NY/q7f8N/cFR/uf6ZO63kV9uYVdtPFMMGtiCEyBWnZEg6cdSP
-# 2tSnA7oklDVThZFvxdBqk21cM+oXbKfnQxR/DPgT+yx3RJcW7O4uvExzMBoPO0YR
-# Fc7hV1qAf+5b/+e0sx2uK+Kp505LRq3xiODJq8+kNqeUBMyfRc8ZtY+hB4REMwk3
-# GkPaOrg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTIwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg/yFCUMF3ta456F3iOADX/KMOljuKHRFGTmSXoU7B
+# yRYwDQYJKoZIhvcNAQEBBQAEggIAr50IBuu5HY3Q08V6Vi6xmNfXd9W4w8dCwP7F
+# qpeEBGZc3a/D3+hhp+GaPJdGhMDb2CdrjGtLHnZ6NV+aIIQYlCIKCU02Uhc8vpl8
+# Dujx7NlGaC8KDwRSwlZH53frn5Q+mmStfUj3aR8zGcNh3DEk0LahS7DrSfVs5Ez6
+# UH/CBaUEX3QaNgogPtz1V6AWtk3YAxIf2PssIUVA5P0Sw8tmdOvP4HFZM1iQPneu
+# Ig1gURNT9LpPzvGllDTqrLDZGUyG21bKiHKS2Os/0LwtyacWidUM/oFVlwlXsJw0
+# 4vfAnaj8l0kzQbi69QWPUPyLb0ZDvzyk8btsEE3tRC5DTdxMD/Oux18/c37GoRrm
+# viSvgMCLNuxLjKvDtEV5QLzXab6Ya0Qky1C72Vvdb6dgpmHrGbVfCC5Al1E6ldKA
+# SUu7TAlMUXOfij8Rl9p9cdtGSRnIlZOxxGRbXfxZyjx1LwSH1XcldHNG8yhC2ic7
+# xdU6dzjiEKOVA9abL4IhoMjPSNdwnyYYUKGQcn6u3VKSlzfknWlhERN6zoA1QN5s
+# RLk01ideOm/GGoJJKfXjd6dVdKZMV9BEA4UVUEmac+APTRjQNlIeynRCqgtlaVFA
+# FJRJtsdrwPTIPGOyHVnU5G2643eC2yxCWhtwIYnPk8CdzN7AHXzSzA5x94awJsSY
+# jq08Qtg=
 # SIG # End signature block
