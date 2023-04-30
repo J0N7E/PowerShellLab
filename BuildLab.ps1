@@ -215,6 +215,8 @@ Begin
             [Parameter(Mandatory=$true)]
             [PSCredential]$Credential,
 
+            [String]$DefaultThreshold = 5000,
+
             [Hashtable]$Queue = @{},
             [Switch]$Force
         )
@@ -260,15 +262,17 @@ Begin
                     if ($MeasureVM -and $MeasureVM.AggregatedAverageLatency -ne 0)
                     {
                         $Threshold = $MeasureVM.AggregatedAverageLatency * 50
+                        $Timeout   = $MeasureVM.AggregatedAverageLatency * 5
                     }
                     else
                     {
-                        $Threshold = 7500
+                        $Threshold = $DefaultThreshold
+                        $Timeout   = $DefaultThreshold/10
                     }
 
                     # Wait for VM
-                    Wait-VM -VMName $VMName -For Heartbeat -Timeout ($MeasureVM.AggregatedAverageLatency * 5)
-                    Wait-VM -VMName $VMName -For MemoryOperations -Timeout ($MeasureVM.AggregatedAverageLatency * 5)
+                    Wait-VM -VMName $VMName -For Heartbeat -Timeout $Timeout
+                    Wait-VM -VMName $VMName -For MemoryOperations -Timeout $Timeout
 
                     # Check if ready
                     try
@@ -288,7 +292,7 @@ Begin
 
                             Default
                             {
-                                if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 75)
+                                if ($TotalDuration.ElapsedMilliseconds - $LastError.ElapsedMilliseconds -gt 25)
                                 {
                                     Write-Warning -Message "Invoke failed: $_" @VerboseSplat
                                 }
@@ -298,7 +302,7 @@ Begin
                         $LastError = $TotalDuration
                         $VmReady = $false
 
-                        Start-Sleep -Milliseconds 50
+                        Start-Sleep -Milliseconds 25
                     }
 
                     if ($VmReady -and (Check-Heartbeat -VMName $VMName))
@@ -469,8 +473,6 @@ Process
             }
         }
     }
-
-    $Settings.VMs.Values | Where-Object { $_.Domain } | ForEach-Object { $NewVMs.Add($_.Name, $true); $VmWaitQueue.Add($_.Name, $true); }
 
     ##########
     # Root CA
@@ -905,8 +907,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNHKuP41GzspK742WQsz0U9LC
-# ipmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWN3EfvbnMgX8FyNFA1hIDF8+
+# FNOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1037,34 +1039,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUTFQAe6PU
-# XVC5uJbfwdMoS/4eOh0wDQYJKoZIhvcNAQEBBQAEggIAksMEgcvBbWuyNkZt3s1B
-# 08OFU9yG3f3W7DFTDZmqtt2SBbOsRCtry/ElYQZ4hZ3wqW7RdewIciVBGSAJEiAP
-# BE/3R1gj6Dd4RV5ugOuqYRaosuFgI+CTaU6F6SQjqdwf0WkDGZLVW1kE/26WrpDF
-# 0o/sKc1l5SC+NKjpB0k9SOxRfbqITWL1moFr7H5wv4ZIyo27uy1u7OXRPXksxRvy
-# WHBQnd6VPwtVZfwMtyxi/+zjeV8uXDbc/lKFmjpyV9VBVD/wkUoLPmSV/xVFd8EE
-# 24BCTyll5k0Cd1rrXM1IhM8EkR92e/D51pz9MzWgFSp85dpV5BMz8Z/51mH8yO+b
-# ounNuvYIjlAwwMHtt5moqdBNDvosHEx8ZQ+EcPs2/a2fcPpI1KYoGOI6xMFArEKo
-# cZfEZFqA8Lk9mlpCvFVWlwv1yNDiy3Kes7b0rcOnQ9P6FBbIX80VQ4pyOQn0589o
-# QjqSQJ6nFO8ty6q9bdrftdkTIywCp/AgU/xKPTgOxsMSWcicLM9oU936+sWcrGlp
-# c2yICJQKSXkd3DetsLIRowwkMWylQxzpATKDZGWwOuq9wYcXp1UyIedVm/gK26QB
-# MfziSXb74O/vcFWxQf6NFoiUREl9xOmjx/tfO3Jkt7N+Jcelxens5dZBP2Pmolef
-# blfq3hIdFwuOlGTaPTyvcSihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIZCPUbn4
+# qIIXOUWSx4t/bZT+QSswDQYJKoZIhvcNAQEBBQAEggIAOCm3uAbZZzNAYsH/yPOy
+# bGFt3gK+mAUdpChrCPAkwqfiaYfpFRCzQU91QtpmhCNRJQnNm+ksyCTGtyVyRGo+
+# igXGXguDgNUF3wF3raYLuobO+RmawXwiKNZLgdcUsqdOl6GLK/Uz2rls9vZOLRy9
+# ZCKV5WHktUdN+tNDD8J8bHzhAzv6frFQBkwAGLkD+uu6LarvaRJ5LgcY2+gaXnXw
+# ViWyKK5xEOU3XhYLXQs6wruvzvhFd/byzGPJ2YpcivWDygXWTXfmMfc75o3L7iDW
+# WGdv8uJMdVNFMxkX2lJWeX7/IAFSsPKwN8LbQ0CtalNTzZ3RZg60+d+GaYmYZEpy
+# Sl7o2t3JanKJk8/rhR5S53oACc/GpVPoNFON64lE4eh7spG9o5RHeW0aTH+RWrfc
+# mOg2Y7mBIBOYqVVX+zlkeby/AupEPtlVZYUSHLcWD+HCGKfTO02Bil4dq/4RdZTz
+# R1DF2wV1HNnxC/D7ll5vPsIR4gCTCkb6NurVjydXjHOkMsPVOsZQHUe1IAsvzojH
+# MUcFEAiMSuOE3AeusHR4IoZ3ZBcsehNlkDMw+XV48KA60E50iKj/mRZlR8ST7Hba
+# 0SUUQTI3iqjIeJWypXiSxfzOuRiVdDv+VpbRAn+wbcKym7kiIka+8DdIa94LJqvD
+# SyP0xx+OfeFP43bDHqlSTRyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTMwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgaKzLkpLsIWPRcEieB7uFDBqGDHroEkXNUaEgL/uu
-# 16swDQYJKoZIhvcNAQEBBQAEggIApJ+hnoTIXbL1iTCCKNuRg4+U5HVj12uDwZuD
-# BHZDH3ZulyEdLdeArrtuBYhyB9x2KtMGdxJUN+idYI3hGC4U9QAYEpoN9KK4O1N6
-# qrwytasTFKy0bWZr3kP3Ye/dOqSoqDfZWNwS81ZyxT6fHXbI0T2naj+KfcWmm0z6
-# pebKd7ENcuf9A3fWHDpyMnOKXUYSXa0Qf8ESz0/RRPO49Nxg8AKGuYUQg6yKn3B1
-# rAFtWJa21mfd0XmJ8ye6PmA64wUJi7a3veR5Qscz/j5lSoJW0eN26g1LTsPuAnNq
-# QZavtXNn9jrtvUJsOtQDWbk0Q/vVS9DskuQ5rR4bcvsGtpQJlLx3kYrlmB7iMXVF
-# QD6OwfByEGXRRMJVFvAQjAPvT4lAgOqRnX9hYM1g+icyQx53NmeDUvWiKAzNkyxl
-# rhsYQZmCodnHSNBOcPx5gANOLDDwU04a6kpWzOcH0x7frqSMQieHvnGgbbC7Ts4b
-# /uABG8v0zjoZjW9IWaPkPVdC/iXS+MpsFhgs7pHRP54v4kRGlS0P+Dmp3qzerA/k
-# IXfzR/jjKxztBz8ry3FOb3DXQvM+u+TDZN0IOSLkwCsOD2qXIouhP0jNGZwUrGvn
-# a1HKY3OW8pSZ8YPAjZXuvK2sG8juH7M+lTHVkZxdUh4WNcrkpZhE0o1tfRKFB1Vc
-# urjByZA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTUwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgQBWZRuhE8UWN6rnElLl0qikGBdolkLzLrSx1T849
+# hIswDQYJKoZIhvcNAQEBBQAEggIAFh4rSYVkTTznB+sDB+CRIMZGfGHZ8jZZON9a
+# O3ww+lh5lK7pQTMnbm1SK4yCQrH3NFI5btFJoUJifUUpqNdbffQ3wnS1ykqT/99L
+# Ks+CeGY8unkbT4oNyc7YMhp11Th3FUGJNEQKI6Lbp6SZZAkdg+jY/UBx4hQZcqqa
+# RFuUkxwvlWqA0r+TMwcKit9kLkbKSugh1Xe8gSmVckPfQ9+evXD/Rx14Y9wQMaur
+# TyN3QjzjgiK1YJvGqlb59kcG3aK3Z6i712MMj2PmtBTfkr+qy67o3kuZivgYqvBI
+# lUU74GaUi/LXFXJaaroIvE875ewqUbDIfJTwYa4oBLeYtqTs6dfMAYin0fhL4Xyb
+# H5clg7M+lCsDTESlQQPtGojpO7qwFS+U6nEXTdRje8hqnlaW3gv+eLyzW9gnJVX8
+# +VunTn7EI1KGPIbsz+AKzo3ux+e9znadKw0loauiiGsLsBAIslN5DOK1dM8mECbz
+# iq3mmc707QUvbySz0V6l/52bwR+x6/nMO2t1D7Dp0z5zXa8jm9JmiWr6V69Sabli
+# 0BBy+DTjiQ4jEH7ZWytMDIccnbnVhNS0j/Q3VS4yBRQRB2k0leVUMC50rjixLGJ0
+# tGypGIpZc9CeHoQbrTgAFJfw59DSU2gV05ww7omx+5Y0iPxehL85x4HKSEo4C4Nq
+# 1Z2DISg=
 # SIG # End signature block
