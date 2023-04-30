@@ -101,8 +101,15 @@ Begin
     $WAP    = @{ VMName = $Settings.VMs.WAP.Name    }
     $WIN    = @{ VMName = $Settings.VMs.WIN.Name    }
 
+    # States
+    $Global:NewVMs = @{}
+    $Global:DomainJoined = @{}
+
     # Queue
-    $Global:VMsToWaitFor = @{}
+    $Global:VmWaitQueue = @{}
+
+    # Set queue splat
+    $QueueSplat = @{ Queue = $VmWaitQueue }
 
     ########
     # Paths
@@ -451,22 +458,24 @@ Process
 
             $Result = .\LabNewVM.ps1 @NewVMSplat -ForceStart -VMName $VM.Name -Vhdx $OSVhdx -Verbose
 
+            if ($Result.NewVM)
+            {
+               $NewVMs.Add($Result.NewVM, $true)
+            }
+
             if ($Result.StartedVM)
             {
-               $VMsToWaitFor.Add($Result.StartedVM, $true)
+               $VmWaitQueue.Add($Result.StartedVM, $true)
             }
         }
     }
-
-    # Set queue splat
-    $Queue = @{ Queue = $VMsToWaitFor }
 
     ##########
     # Root CA
     ##########
 
     # Rename
-    if (Wait-For @RootCA @Lac @Queue @VerboseSplat)
+    if (Wait-For @RootCA @Lac @QueueSplat @VerboseSplat)
     {
         $RootCAResult = .\VMRename.ps1 @RootCA @Lac -Restart -Verbose
     }
@@ -476,7 +485,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @DC @Lac @Queue @VerboseSplat)
+    if (Wait-For @DC @Lac @QueueSplat @VerboseSplat)
     {
         # Rename
         $DCResult = .\VMRename.ps1 @DC @Lac -Restart -Verbose
@@ -604,14 +613,14 @@ Process
     # Rename & Join domain
     #######################
 
-    foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
+    foreach($VM in $NewVMs.Keys)
     {
         $JoinDomainSplat = @{}
 
-        if (Wait-For -VMName $VM.Name @Lac @Queue @VerboseSplat)
+        if (Wait-For -VMName $VM @Lac @QueueSplat @VerboseSplat)
         {
             # Setup network adapter
-            .\VMSetupNetwork.ps1 -VMName $VM.Name @Lac -Verbose `
+            .\VMSetupNetwork.ps1 -VMName $VM @Lac -Verbose `
                                  -AdapterName Lab `
                                  -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
@@ -623,7 +632,7 @@ Process
 
             $Result = Invoke-Wend -TryBlock {
 
-                .\VMRename.ps1 -VMName $VM.Name @Lac @JoinDomainSplat @VerboseSplat
+                .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat
 
             } -CatchBlock {
 
@@ -640,6 +649,11 @@ Process
                     Write-Warning -Message $_
                     Read-Host -Prompt "Press <enter> to continue"
                 }
+            }
+
+            if ($Result.Joined)
+            {
+                $DomainJoined.Add($Result.Joined, $true)
             }
         }
     }
@@ -675,26 +689,27 @@ Process
     {
         $Step += 1
 
-        foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
+        foreach($VM in $DomainJoined.Keys)
         {
             switch ($Step)
             {
                 1
                 {
-                    Write-Verbose -Message "Restarting $($VM.Name)..." @VerboseSplat
-                    Restart-VM -VMName $VM.Name -Force
+                    Write-Verbose -Message "Restarting $VM..." @VerboseSplat
+                    Restart-VM -VMName $VM -Force
                 }
 
                 2
                 {
-                    Wait-For -VMName $VM.Name -Credential $Settings.Lac -Force @VerboseSplat > $null
+                    Wait-For -VMName $VM -Credential $Settings.Lac -Force @VerboseSplat > $null
 
-                    Invoke-Command -VMName $VM.Name -Credential $Settings.Lac -ScriptBlock {
+                    Invoke-Command -VMName $VM -Credential $Settings.Lac -ScriptBlock {
 
                         $VerboseSplat = $Using:VerboseSplat
 
-                        Write-Verbose -Message "Purging tickets $($Using:VM.Name)..." @VerboseSplat
+                        Write-Verbose -Message "Purging tickets $($Using:VM)..." @VerboseSplat
 
+                        klist purge -li 0x3e4 > $null
                         klist purge -li 0x3e7 > $null
                     }
                 }
@@ -708,10 +723,14 @@ Process
     # Remove sessions
     Get-PSSession | Remove-PSSession
 
-    # Reset wait queue
-    $VMsToWaitFor = @{}
-    $Settings.VMs.Values | Where-Object { $_.Domain } | ForEach-Object { $VMsToWaitFor.Add($_.Name, $true) }
-    $Queue = @{ Queue = $VMsToWaitFor }
+    # Add restarted vms to wait queue
+    foreach ($VM in $DomainJoined.Keys)
+    {
+        if (-not $VmWaitQueue.Item($VM))
+        {
+            $VmWaitQueue.Add($VM, $true)
+        }
+    }
 
     #########
     # AS
@@ -719,7 +738,7 @@ Process
     #########
 
     # Root cdp
-    if (Wait-For @AS @Ac0 @Queue @VerboseSplat)
+    if (Wait-For @AS @Ac0 @QueueSplat @VerboseSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 -Verbose `
                                           -Force `
@@ -732,7 +751,7 @@ Process
     # Sub CA
     #########
 
-    if (Wait-For @SubCA @Ac0 @Queue @VerboseSplat )
+    if (Wait-For @SubCA @Ac0 @QueueSplat @VerboseSplat )
     {
         $SubCaResult = Invoke-Wend -TryBlock {
 
@@ -783,7 +802,7 @@ Process
     #########
 
     # Issuing cdp & ocsp
-    if (Wait-For @AS @Ac0 @Queue @VerboseSplat)
+    if (Wait-For @AS @Ac0 @QueueSplat @VerboseSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 -Verbose `
                                           -Force `
@@ -802,7 +821,7 @@ Process
 
         foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
         {
-            if (Wait-For -VMName $VM.Name -Credential $VM.Credential @Queue @VerboseSplat )
+            if (Wait-For -VMName $VM.Name -Credential $VM.Credential @QueueSplat @VerboseSplat )
             {
                 Invoke-Command -VMName $VM.Name -Credential $VM.Credential -ScriptBlock {
 
@@ -816,7 +835,7 @@ Process
     # ADFS
     #######
 
-    if (Wait-For @ADFS @Ac0 @Queue @VerboseSplat)
+    if (Wait-For @ADFS @Ac0 @QueueSplat @VerboseSplat)
     {
         Write-Verbose -Message "ADFS Dkm Guid: $($DcConfigResult.AdfsDkmGuid)" @VerboseSplat
 
@@ -854,7 +873,7 @@ Process
     # WAP
     ######
 
-    if (Wait-For @WAP @Ac1 @Queue @VerboseSplat)
+    if (Wait-For @WAP @Ac1 @QueueSplat @VerboseSplat)
     {
         .\VMSetupNetwork.ps1 @WAP @Ac1 -Verbose `
                              -AdapterName Lab `
@@ -885,8 +904,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGr1ijGZlKJUjSKxobLdgyfdq
-# soqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS9eksAkGRow9C2x/eKsQNILP
+# s1egghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1017,34 +1036,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU5LNRo6ls
-# 01itXGGfS63iA9kkZN4wDQYJKoZIhvcNAQEBBQAEggIAt1nPJsNpROamrt63qE+n
-# N8fVJtXGAJUL36yfoMZDsBQH+qQYG76QpzvHtINAxZ1M0mJqRNmSfDqH+LA/QKpb
-# xHcDcP7mpgtW25WsPYB+auOEcyoYTTNF5So9EanV30HNj+/NR565BmetKYXX2OOi
-# /3Mbe0rXeope47q0beKI5vsDTbEQliVQRcIBs1T3cJJhy47+JBvQ4x8Eh0Q/+FeQ
-# w0Q2zfhvB861ffRCte9QjGLkl2VNUKaYHKgKmTNFVikfmCideouXWJ7GWjSqdpku
-# SEMThrecWENmGhHwvJvb0yIDVIYshuhlXvs+khAH1qHvZ8GSt1vuQRWoU0DXsQPO
-# S/EZ+THI0Ph1X7VniQRNfnkXAPLLxtGCKmxAJT5ANk3O87ksBjKGW/b68kcoheD7
-# /fPkcS7IOu4EgBJCfspNyypU4P7P0MqPRGOSaQlKuAPyeUW3xL9hzGQWcTpGFOV2
-# VDHQHHfkWyr/7B9ZRtOLMYgugCVgBC6tU3e/RSXveN9jczwldAYDBSj7fUBt/3/j
-# bNy/+oDsPQE7InIwyN/NCZJlwDXkHw0hvW1WzQBIM5h5546n/pw+fG+x34BHzxVp
-# gei8lMQLbbJQjCZFztpAhq+GknCl2GQZCst5RpzyFNzcsJHaoByN1ojlPMSKOPbA
-# pur3xgMRWbR9xL9zTCXnw46hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUoMIsF3+U
+# NFdK7dS7parDOUsUrK0wDQYJKoZIhvcNAQEBBQAEggIAVkmxXyjLtyzUgO01DCMB
+# ZrzMaHmansJjHAIELYj9dRebjX2cceNGMHc6u9kFYG+Ou2zLLGhYq82UQ4+F7+NJ
+# BNjthUX4LhumRJOx8/0TZgm6efFs0pAFk7robTqZh4fAXheMrNffEioHHzUljvNE
+# MV+OaPjvKQHd+LkbPkDx0F1kF0hLa+QhFmxnuydq9xQlossJiNHhBGsWfq3AUynC
+# npJpsrj1SEWFhI4hQCmXJfIET0uyRdtvIcewAAX/r87pixndp6TrpGZggrRnekWi
+# x7cYmPPk1m1p4JfopjUpJQqKrQGUU29d6db9iFEVKq91vLzYIFJ43BvY/mdByLQx
+# p0bKV/GONIJIRFdOD2kKPlXT9i1x+szo62ZJzeKH1ZKg1ZVBVtl4mlpHnhStuA+x
+# +mJxTBkyJIW5scLDslMjTMi7HdOnJdu58vBFgWnnOo7I9ytpj7pv8wUtu0UGDVkh
+# X3hwPyDUWoDIYUYRnEkoKo1hXWC3PPud1n3UQnvjTqVDapiq/VlCc+XcK1kUrmx+
+# luo0XMuSAX9TFtGSsRQvrlb3losHka2cvj+oNROPbQPI9kjgtXrin4L1aMNQg7uj
+# Mk8RPKpJgJh9kpOBpObUUc2nr0KxqLcum6p0OvahQRvloHpte6mkIglBzT/mCggq
+# TgXPY+S5e6iXF3S9EGVT3C+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg6ko+1lvKoYKe849TfcgGYbXU7WPe/wH+sBQ28DBS
-# 2ZAwDQYJKoZIhvcNAQEBBQAEggIAWcLbSTaReHvBWLdgjFu5KqBRjmDIJK0IVSjF
-# DthUDCOXBOt6OaMcKRf/45/G14XyiPquGuVTLXjjjcYRB+qu/1KJMWjI4OuE9kma
-# sPIHAFWudf03NQK2uvhy1OqYm73bUVZ0pPsdzMVQ1XPTsbAeONKa9b9P3PQK6GAQ
-# hHGn8hVPN8wITtPluYjx753rKplAIjpArlOjt7TrZEDXq5JC6TTr11zmcuuKcXSB
-# 6aUmI0GzZSRGL/UT/0snpsbX++HSyVXs3ZK98nck4XXHwt4Rt/nI3wr4i4dqstMG
-# G+YnCYUBQGhhqkxJYwnnY4qi93AFYbBUA4N+R36axFRpC5ehq1s3gEFZPGO6rE0H
-# tIkushlvq6vJbLzdAJE/madMckV4PODPv6p2KcxtDMAvbl9++OIer5Umx/SFMdR+
-# rTIUpiI7wT7PZCAwtO1cR0cfBst0pJb+Allw8eHAhVgvpKBAOuJJfnNGOGu2/8zx
-# jDBm0R5rfdOfIJ0jWh+XhCfPlGp+ZYktmEmWs9mH/mZZ6IkWUW93R/hAsiEdmtTC
-# nyjVRaIUHl4vqgMD/b9kS53daCIJ+KBX9vqowSS2IYA0mndf1wMnDIuLSsFxMUEN
-# 4Oas69GtL2s+pR2021ISNJI2VofH2HGd+Pb8KBjTu1aeRB85zMACYOb/EHcdHhF4
-# XzxQliw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDMwMTEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg0Df3AJ3Ca50AAJmqB2t/02BJsKtC9je7CiCkRcl6
+# R/AwDQYJKoZIhvcNAQEBBQAEggIAsoVdhNcPrlLu5CHD+ll4/636PVmdOXcqj4xm
+# 9LXtdZEj5BCN0bmuP/VMHfzQn53LcBcTJA4Rj5ejvF1ASAfS/dObnqmgiuR0Th6y
+# h/fCkW78ruHw6LbSGg7J8YzWs5uA6sdoE2uqNARYr52/pYl5CQRME3s16hxsGeVt
+# EACvcZhlundb41OOikxXjBV1v7jlwQbdNXl/9GIPfWLLUplUwZNErO78zFbXbrE2
+# 5OsSvN79MSP3ktXAj0wHk25I+gqwSAcutCgVK8r8nBVK9KnNM5bw6kLhwE9Cfzah
+# vYcnm3rsmAG1Z8rY0uRdtCZifsTuHvO6obBBSFMl0rFZD9inK72VNnnnFuewvz1c
+# ZSqqozOcqBMVTpOtk7UR3n+hdQd1GIbeAr6CBXhnSLRaKnCPpjNvNPKpm/M9ID2w
+# takmkfj3vhc7hTHdqMU9fbERxiIcVD4iZ3+wb7M9IxsNpmYotwrfvzMh9RMPMjm8
+# 1te7R8sBx1o0++n58U4G8bJyU4S5nWXEnYvbWTXnMcdirEhYNg4Lorg0NmLlYJM+
+# OtlXqI6y39/VWpGJ7RN77ys4oh51AnBLGhtapKjkO81TXcNYtQf3IYJZhrNjqr3a
+# sJbxdtot47hq9ex0v6PG3PhtuE41tn2DksIoFfpY1ZNlf/VXPKSvl/BCgLjuGRAT
+# 10smf9w=
 # SIG # End signature block
