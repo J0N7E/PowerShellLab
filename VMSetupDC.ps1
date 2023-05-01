@@ -1373,7 +1373,7 @@ Begin
                     }
                 )
             }
-af
+
             # Join domain
             $DomainGroups +=
             @(
@@ -1424,7 +1424,7 @@ af
                 }
 
                 @{
-                    Name                = 'Delegate Permit SMB In'
+                    Name                = 'Delegate Deny Gpo Firewall Block SMB In'
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -2213,7 +2213,10 @@ af
             # Permissions
             ##############
 
-            # Set permissions on user policies
+            ########
+            # Users
+            ########
+
             foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
             {
                 $Build = ($WinBuilds.GetEnumerator() | Where-Object { $GpoName -in $_.Value.UserBaseline }).Key
@@ -2435,6 +2438,20 @@ af
             # Set R/W on member object
             Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
             Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+            $DenySmbBlock =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Apply Group Policy'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Deny';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Deny Gpo Firewall Block SMB In";
+                }
+            )
+
+            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Computer - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
 
             ##############################
             # Adfs Container Generic Read
@@ -3301,8 +3318,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq4N82+6YpT890aACMlrckSGW
-# 1t+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbjSA+8nO+CZNKx+6cnSvfUlZ
+# DN6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3433,34 +3450,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUvlSDVJtd
-# 4NJc6rX/Njn9ngqyeagwDQYJKoZIhvcNAQEBBQAEggIAOUs01M9cQf5qUNAcwDBC
-# oXWjqNXmVU71ygdS2QwJs76Gx06Wlvy1Oso+cpUxWisrE31nbMRhcOF6gItMZLYR
-# yi4UgPJ4kRUcUyGC042tPIlG0FEILg70pNoSHZgL4h8nJoozruve8QtMk5/tACX+
-# hkN8XkgVSyrgvetVb7E3gqIztV/clB1H324M7CL9/6fHj43Kv8uOqO4TCIgxAgLc
-# 0sq6fEysCFDkWNfDJ29T9UJlRX/NZPYxEawxCHDGPA2hTRYTOmMftfT45zrW+Jau
-# K5ZXdjwxo3oIEGsNKnUey3xufvbaEMu2MslE6NV7BbCuqbGcANbqy8jLPkTE6xs8
-# 3vpSIDBWQtp1C0leQC4h9ftXOKn6MGcw7mx9nQ1lHABaM0M4CGlLvtWJ7fBlPhA7
-# 4QuZ2Ha8PIpFAaRUDX/5GKTPOXAIjPvoR4GW2gGScmvkl4QTBqCUlc8arV09i268
-# 2oanGg/lMvOcwG7XB+Lw06AE3gYimnXvuF6Xss11N4c32Pj457JrC+DKwPNoo9QV
-# 9xJrRd9PQdSBIBkjaAF9xOK7uFACSDVFXL/Oc1pQo9jknayw7XZ3aMyFxBg6pjVb
-# /9xbzi4MK9mCeZ8YRVLf4oYrwI+bCUq5EuU5gFkwQvu8YZ4ZbgO8/+sizvOMO6Io
-# fLqwIIzVqCt1A2PZuTbnYYyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzkbDf+Xu
+# trsrHr+VlqyJj4lJnDcwDQYJKoZIhvcNAQEBBQAEggIAlrvg8UT0usS1+FDiXBIA
+# wru9QjU+B+GAXkrXN+yuxmMeqibh9shQUH9j9G4y5dvRPFnRbNWIFPFjboXdCKj3
+# s0KoacA/4hv4AjkPvz+T07HFl4M32v3l5MqVAPo2oGVqlwzVqtRrYfSfmmYNuEAO
+# stdaY7z4h0yOrTX/xBO13PQthuPDJ1bmG2dsWffXTqwCgtSwRgkJmO0O9+zmKjZr
+# sFmIzyHRVGMIe2gugq1Ga2r8yfnHrkligBVTW4tDm84GmtqxRuk+e1VsCKq/if1J
+# li+LEPTc0aPK2AsVB9/n9CX41rYg4kQKC8oOQdSbCNntOdLbrD5z4vPcXVRrEG6G
+# G8kleaFEOHY6NRdhkHidTlV7Q+nyQPZZBv4Ye4zrezxr5X7Lv6CN6fGqdpA6DN5Z
+# dZAR7VLvjEGK8IU2RK1wYcRe5K8nYlVwMT8iAlop8S4dIvUFMjiQb+BqToPVVBtt
+# 5sw4jYRMKs7hLMyImG2WGZBI6S3ld9r8VnknPtWN5ybhqpubbzSsfpRq4y1ImbEG
+# ATNEMsRV2/EsRTrB2w9rpZ9Ye9EychQRO5V+jlY7OvWZy+vSQ93G4CVidr9abDad
+# zhv80WK6p9C5LuTG7hF85tmkZ0frHtFTbmDBpsSrgb9De85YxXByEuAJpxzEe9C0
+# iOiEi0bEoS6/08T1UELADx2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTgwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgVp1vhLeEkRvVIZ0kR3q3mhid+IDQsFnZ+evt3Wvn
-# I+AwDQYJKoZIhvcNAQEBBQAEggIAVQOmTpuoz59uUgeEhmvf8ayGSIIekuY8znGp
-# hN7uAUHaSymEe9nLmvF94eBnkER+pJ25IguyzgDkcziBZOI63BiHNrj+Eu17i2yZ
-# pE12UiyVfhY44RUx07L47zsmyM/Vv1eeWlR0V/uoletkUTVeQDKjnPMrlLg5LdiO
-# VDeiyd4v/RTBN1vKUKl3ce/BVsWCjRvCDwbmag4MeViXqrLF7DIMI43fotL9hVsl
-# x9ZuU2stgVU0L/cI2WSGqPkp6blrH4noDI3p++QfUJzQMQOBuUkP7T2nBDPqmfvP
-# EqyqPBCkKsvYapxNN7/iR9ZK0k+pslt0TAx93j8MAzs/vpppXgyhrOALU1L3oNtM
-# Ip6sV7ReixTKjlc7ILiueFggyy2DtlAk6zX4x5sBNBskrUCAfX6CDyJHa4uzHc5A
-# LFJJFzn46Plsey0Q3hhgKITYbjjdgpNGuvgShGqbK2gcXS1pHRGce90Z+llwy3kN
-# 5+WtqQuR42T5giuMsixSY0znru/MdZaAbVFP6ZDRBQBuCM/cS8S+t4ANE4ibrO5v
-# +1EzRWzOwU6s0EqR8y9TgTkkP2gQ6QqwL9wDxycYgILYgDsNfYOTzxIejsXYBm2t
-# OIqZEZAU4mNfk/FqI/cKgw0NHQn2IuDpmNuIhX+yJl9DvnUekKvJJEbMiplwb+lA
-# e80E7BU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTkwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgUHYn6R/7NsfQoNUO1pm9JN4yfmZ9e8G6BFz76SAM
+# hGswDQYJKoZIhvcNAQEBBQAEggIAipKR6A8YpWsT3EEVl+G1r9qTH9E9era4Lzi5
+# 3EgCJrwN81sjioXE8TgHntWzLu4IoImbP6ajZMz3kp1z9jPTNkcWxLniWwRoppsq
+# Gv1sU8NqghNzAkO3Ecj3ulKnsIX6NDIiKaWFa5hGz6JAg1MBpz2owxfIGtSfQBzX
+# +vu/K7nYZrzZrvqJcK4e/hPiUXOHh8mhLAJYdJ56TYGYAQ05iEfpGJ+BZFdE2JQL
+# T+mdP62uvUtemhtmVID/DzvmK18wEVtvFTBsynENowMMNGF/iMhgFmhyqHAmzs7g
+# yAA2/Nn9wpAgcVaD6NPwG8d0ZwWqh079ZoXDGYjBGZpHMEvVV+DdEUQ3JMyBQITc
+# sVNrqzZD9XMxfdZbdkwxPqeeF5Ds/+EPWXlAYDLDV2By4WZtZtP7Y2cqWXKpQ3p1
+# gjMlg3uOMTj4Iw1Dc6ewqRaHdJLkdrrR5FHj9DS2rosZVNJ+wYGxQlB3TK5nHAhF
+# 3cBDH+J3Vn6Wj+c13vweNPISPbFnrcGrHI9NVYZVQu/+NMkUQSbBfUoHQepj7ht0
+# M0e6ySwP3/9nP4wKsTpAqn7PpmroDHRKUe2h8LXg92d4gexQl0GfRip2Fi1mULh3
+# PAH25lOpX6hVIMOVud/9EqoF55AobvQye/T0nEHWyc4+ZJ1BxPJUFNYRCIekxGbf
+# URAF86o=
 # SIG # End signature block
