@@ -1317,7 +1317,10 @@ Begin
 
             foreach($Tier in @(0, 1, 2))
             {
-                # Access Control
+                #########
+                # Admins
+                #########
+
                 $DomainGroups +=
                 @(
                     @{
@@ -1335,7 +1338,10 @@ Begin
                     }
                 )
 
+                #######
                 # Laps
+                #######
+
                 $DomainGroups +=
                 @(
                     @{
@@ -1367,7 +1373,7 @@ Begin
                     }
                 )
             }
-
+af
             # Join domain
             $DomainGroups +=
             @(
@@ -1405,6 +1411,20 @@ Begin
 
                 @{
                     Name                = 'Delegate CRL Publishers'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Delegate Permit SMB In'
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -2225,7 +2245,7 @@ Begin
                         if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
                             (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
                         {
-                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $nul
+                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
                         }
                     }
 
@@ -3281,8 +3301,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+mQF6qMvgoBHBEfcF3c1016k
-# uf2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq4N82+6YpT890aACMlrckSGW
+# 1t+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3413,34 +3433,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyjIxUAPH
-# saHZDusjx5/N2lKV33gwDQYJKoZIhvcNAQEBBQAEggIAxwGc0u16uVcmZS9jo/Ws
-# x/NhcTmNV5zcW1HE3QuSE8DCo79gaU+EKN7QpbQh1GNshHMfX0PypAxZjdv67RTF
-# ZGgdaeBqogvsStRPS0PLp2TPuweuF/TXrmENVcYS8HvD0OtjOPeyYV5vBkTpckp/
-# ksBBfDdSc1ShutpbsEQlskMLkVV8ZMwTRgBfe9NYwl74XNUTp5HqdkE3QislkT6V
-# 5JU3mU78Z9PBGsMz7drudZSjkknDRWWQivogvhAppPz8FRbvyfwj9CZ9n/I86E/v
-# EPpgNyrl83Dbn8GjdZyUZczgnqdJfE6RWZwPsMFmVAz+xCqa/gRuB8iExyRFJmiP
-# C5nyvM2lj4Z1RIsmeLRqDt42lbNSybtcu4cJ4eNBY2nj6mZ5bT054rh2daoK80As
-# 0oJRt9aOEW9eNv2Z1H19DN+HHUSnl2TT59NMj6fyvS63Z4TUc3MxuUmGz6c8tJic
-# 1w9J4uU/69KjzxD92YDZghe5Z9fM9jQ+wsCdc1LhnQT3KqQV9evy251mhPLe5jkE
-# DB0am9ay8Mfl/DsGwrk8xdcQH4YuzyccvlEreuAwnCF4U0MDWQo4GqMe/YGik8BU
-# LwWoVf3EvkiMI3Ie9R9bzZjyBMpEmHFZIKJmtf7nQee2b9F9WwQCmO7Odq+mUUTo
-# weSOrKEnqRKDtVAgHjbMfI+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUvlSDVJtd
+# 4NJc6rX/Njn9ngqyeagwDQYJKoZIhvcNAQEBBQAEggIAOUs01M9cQf5qUNAcwDBC
+# oXWjqNXmVU71ygdS2QwJs76Gx06Wlvy1Oso+cpUxWisrE31nbMRhcOF6gItMZLYR
+# yi4UgPJ4kRUcUyGC042tPIlG0FEILg70pNoSHZgL4h8nJoozruve8QtMk5/tACX+
+# hkN8XkgVSyrgvetVb7E3gqIztV/clB1H324M7CL9/6fHj43Kv8uOqO4TCIgxAgLc
+# 0sq6fEysCFDkWNfDJ29T9UJlRX/NZPYxEawxCHDGPA2hTRYTOmMftfT45zrW+Jau
+# K5ZXdjwxo3oIEGsNKnUey3xufvbaEMu2MslE6NV7BbCuqbGcANbqy8jLPkTE6xs8
+# 3vpSIDBWQtp1C0leQC4h9ftXOKn6MGcw7mx9nQ1lHABaM0M4CGlLvtWJ7fBlPhA7
+# 4QuZ2Ha8PIpFAaRUDX/5GKTPOXAIjPvoR4GW2gGScmvkl4QTBqCUlc8arV09i268
+# 2oanGg/lMvOcwG7XB+Lw06AE3gYimnXvuF6Xss11N4c32Pj457JrC+DKwPNoo9QV
+# 9xJrRd9PQdSBIBkjaAF9xOK7uFACSDVFXL/Oc1pQo9jknayw7XZ3aMyFxBg6pjVb
+# /9xbzi4MK9mCeZ8YRVLf4oYrwI+bCUq5EuU5gFkwQvu8YZ4ZbgO8/+sizvOMO6Io
+# fLqwIIzVqCt1A2PZuTbnYYyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTcwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgyBS6gri166tyXo+R7NMIoH7sf4cvDcGcoZwrLzL9
-# L9MwDQYJKoZIhvcNAQEBBQAEggIAijdkl7zjcYyms/qW6EUnmODwRPKtk62zJMIi
-# BwhuKKvdFza0iHyZlaCpLtzEE/csVVC7+x1NRK7fTppHZhHzU1/Btau4MmdHFgww
-# b7S52W42IIQKyIqBkLT3WMuhnejbO3IPkZrEf6xUQ0RTEwEUzESiQnyxUOkeNqHN
-# Dn20tur9rxtTT2My3ipzOKUCRrQKikeQVu/Pxl56Y9c7sbSOrlsN2771OH+z99P5
-# ZPLTFbSVVe6Mlj0ClgV0ZVRJpSvjvbXSvPmjSCilSal+MFqpBMxF/vv1mU+pZ1hD
-# eogPJ902YmALx/QVnOpH0Jdp45vyzPREFi0Kh9WtpONfre2Wcs3IIRoZV9HigvRH
-# VlsLUTkS70qJ74tTEuR/TJe8H8IW6JGw10iVjudTj0jD43bMySFZ6CZnCS/IspSV
-# LbT/9G99GUsK/zquiAiRExCxPEzSOzFspFym82MzcZDgzPSZshsLDvg2VdnoureO
-# kvNC8FtBU6IFdxqvaN4cuwBeE+4v5VVe9UcrzNs8yHT2muVzHBjnakDzqkkzY68Y
-# v1Z1aKXHo6j6gHgn+svx8yR4pgKQX+DEmAvWOqqRt899Dy5GWjKY9Wy0rvyHbKXx
-# 74sEatZkmskjrxGlWI0okHEB2jNgKMxmajZjMZC38n7OcI8BMAx8QIH9/vKqFv1L
-# z0NMNCQ=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTgwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgVp1vhLeEkRvVIZ0kR3q3mhid+IDQsFnZ+evt3Wvn
+# I+AwDQYJKoZIhvcNAQEBBQAEggIAVQOmTpuoz59uUgeEhmvf8ayGSIIekuY8znGp
+# hN7uAUHaSymEe9nLmvF94eBnkER+pJ25IguyzgDkcziBZOI63BiHNrj+Eu17i2yZ
+# pE12UiyVfhY44RUx07L47zsmyM/Vv1eeWlR0V/uoletkUTVeQDKjnPMrlLg5LdiO
+# VDeiyd4v/RTBN1vKUKl3ce/BVsWCjRvCDwbmag4MeViXqrLF7DIMI43fotL9hVsl
+# x9ZuU2stgVU0L/cI2WSGqPkp6blrH4noDI3p++QfUJzQMQOBuUkP7T2nBDPqmfvP
+# EqyqPBCkKsvYapxNN7/iR9ZK0k+pslt0TAx93j8MAzs/vpppXgyhrOALU1L3oNtM
+# Ip6sV7ReixTKjlc7ILiueFggyy2DtlAk6zX4x5sBNBskrUCAfX6CDyJHa4uzHc5A
+# LFJJFzn46Plsey0Q3hhgKITYbjjdgpNGuvgShGqbK2gcXS1pHRGce90Z+llwy3kN
+# 5+WtqQuR42T5giuMsixSY0znru/MdZaAbVFP6ZDRBQBuCM/cS8S+t4ANE4ibrO5v
+# +1EzRWzOwU6s0EqR8y9TgTkkP2gQ6QqwL9wDxycYgILYgDsNfYOTzxIejsXYBm2t
+# OIqZEZAU4mNfk/FqI/cKgw0NHQn2IuDpmNuIhX+yJl9DvnUekKvJJEbMiplwb+lA
+# e80E7BU=
 # SIG # End signature block
