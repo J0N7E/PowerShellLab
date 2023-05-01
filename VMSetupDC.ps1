@@ -1800,7 +1800,7 @@ Begin
 
                         # Set domain name in site to zone assignment list
 
-                        if ($GpReportName -match 'Internet Explorer Site to Zone Assignment List')
+                        if ($GpReportName -match 'Site to Zone Assignment List')
                         {
                             ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
                         }
@@ -1841,13 +1841,6 @@ Begin
                 Start-Sleep -Seconds 1
             }
 
-            ###########
-            # Policies
-            ###########
-
-            # Enforced if ending with +
-            # Disabled if ending with -
-
             ########
             # Links
             ########
@@ -1861,15 +1854,30 @@ Begin
                 # Root
                 #######
 
+                # Enforced if ending with +
+                # Disabled if ending with -
+
                 $BaseDN =
                 @(
                     "$DomainPrefix - Domain - Force Group Policy+"
-                    "$DomainPrefix - Domain - Client Kerberos Armoring+"
-                    "$DomainPrefix - Domain - Firewall Rules+"
                     "$DomainPrefix - Domain - Remote Desktop+"
                     "$DomainPrefix - Domain - Windows Update+"
                     "$DomainPrefix - Domain - Display Settings+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
+                    "$DomainPrefix - Domain - Site to Zone Assignment List+"
+                    "$DomainPrefix - Firewall - Common Rules+"
+                    "$DomainPrefix - Security - Enable Virtualization Based Security+"
+                    "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
+                    "$DomainPrefix - Security - Enable PowerShell Logging+"
+                    "$DomainPrefix - Security - Enable SMB Encryption+"
+                    "$DomainPrefix - Security - Client Kerberos Armoring+"
+                    "$DomainPrefix - Security - Require Client LDAP Signing+"
+                    "$DomainPrefix - Security - Disable Net Session Enumeration+"
+                    "$DomainPrefix - Security - Disable Telemetry+"
+                    "$DomainPrefix - Security - Disable Netbios+"
+                    "$DomainPrefix - Security - Disable LLMNR+"
+                    "$DomainPrefix - Security - Disable WPAD+"
+                    "$DomainPrefix - Security - Block Untrusted Fonts+"
                     'Default Domain Policy'
                 )
 
@@ -1879,12 +1887,12 @@ Begin
 
                 "OU=Domain Controllers,$BaseDN" =
                 @(
+                    "$DomainPrefix - Security - KDC Kerberos Armoring+"
+                    "$DomainPrefix - Security - Disable Spooler+"
                     "$DomainPrefix - Domain Controller - Firewall - IPSec - Any - Request-"
                     "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"
-                    "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Advanced Audit+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                    "$DomainPrefix - Computer - Sec - Disable Spooler+"
                 ) +
                 $WinBuilds.Item($DCBuild).DCBaseline +
                 $WinBuilds.Item($DCBuild).BaseLine +
@@ -1898,18 +1906,9 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Security - Enable Virtualization Based Security+"
-                    "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
-                    "$DomainPrefix - Security - Enable PowerShell Logging+"
-                    "$DomainPrefix - Security - Enable SMB Encryption+"
+                    "$DomainPrefix - Firewall - IPSec - Any - Require/Request-"
+                    "$DomainPrefix - Firewall - Block SMB In+"
                     "$DomainPrefix - Security - Enable LAPS"
-                    "$DomainPrefix - Security - Require Client LDAP Signing+"
-                    "$DomainPrefix - Security - Disable Net Session Enumeration+"
-                    "$DomainPrefix - Security - Disable Telemetry+"
-                    "$DomainPrefix - Security - Disable Netbios+"
-                    "$DomainPrefix - Security - Disable LLMNR+"
-                    "$DomainPrefix - Security - Disable WPAD+"
-                    "$DomainPrefix - Security - Block Untrusted Fonts+"
                 )
             }
 
@@ -1920,36 +1919,22 @@ Begin
 
             foreach($Tier in @(0, 1, 2))
             {
-                $ComputerPolicy =
-                @(
-                    "$DomainPrefix - Computer - Firewall - IPSec - Any - Require/Request-"
-                    "$DomainPrefix - Computer - Firewall - Block SMB In+"
-                )
-
-                # Link tier gpos
-                $ComputerPolicy +=
-                @(
-                    "$DomainPrefix - Computer - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Computer - Tier $Tier - Restrict User Rights Assignment"
-                )
-
-                # Link security policy
-                $ComputerPolicy += $SecurityPolicy
-
                 if ($Tier -eq 2)
                 {
                     # Workstations
-                    $ComputerPolicy += @("$DomainPrefix - Computer - Sec - Disable Spooler Client Connections+")
+                    $ComputerPolicy = @("$DomainPrefix - Security - Disable Spooler Client Connections+")
                 }
                 else
                 {
                     # Servers
-                    $ComputerPolicy +=  @("$DomainPrefix - Computer - Sec - Disable Spooler+")
+                    $ComputerPolicy = @("$DomainPrefix - Security - Disable Spooler+")
                 }
 
+                # Link tier gpos
                 $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
+                    "$DomainPrefix - Tier $Tier - Local Users and Groups+"
+                    "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"
                 )
 
                 # Link computer policy
@@ -1972,25 +1957,24 @@ Begin
                     # Certificate Authorities
                     $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - Computer - Certification Services - Auditing+"
+                            "$DomainPrefix - Certification Services - Auditing+"
                         )
                     )
 
                     # Federation Services
                     $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                            "$DomainPrefix - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Firewall - IPSec - 443 (TCP) - Request-"
                         )
                     )
 
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - Computer - Web Server - User Rights Assignment+"
-                            "$DomainPrefix - Computer - Firewall - Web Server+"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                            "$DomainPrefix - Web Server+"
+                            "$DomainPrefix - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Firewall - IPSec - 443 (TCP) - Request-"
                         )
                     )
                 }
@@ -2012,18 +1996,17 @@ Begin
                     # Web Application Proxy
                     $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
+                            "$DomainPrefix - Firewall - IPSec - 80 (TCP) - Disable Private and Public-"
+                            "$DomainPrefix - Firewall - IPSec - 443 (TCP) - Disable Private and Public-"
                         )
                     )
 
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - Computer - Web Server - User Rights Assignment+"
-                            "$DomainPrefix - Computer - Firewall - Web Server+"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 80 (TCP) - Request-"
-                            "$DomainPrefix - Computer - Firewall - IPSec - 443 (TCP) - Request-"
+                            "$DomainPrefix - Web Server+"
+                            "$DomainPrefix - Firewall - IPSec - 80 (TCP) - Request-"
+                            "$DomainPrefix - Firewall - IPSec - 443 (TCP) - Request-"
                         )
                     )
                 }
@@ -2456,7 +2439,7 @@ Begin
                 }
             )
 
-            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Computer - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
+            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
 
             ##############################
             # Adfs Container Generic Read
@@ -3092,7 +3075,7 @@ Begin
 
                     # Replace domain name in site to zone assignment list
 
-                    if ($Backup.DisplayName -match 'Computer - Internet Explorer Site to Zone Assignment List')
+                    if ($Backup.DisplayName -match 'Site to Zone Assignment List')
                     {
                         # Get backup filepath
                         $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
@@ -3323,8 +3306,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQFMVaSJ8BBlUzmKB1xNScdFF
-# 7UqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUV++Ndcl1iJeBrFXpAa5iioRi
+# gBugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3455,34 +3438,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQoF9hK7J
-# kq8FebBtSVMWe/YWNnkwDQYJKoZIhvcNAQEBBQAEggIAVjxAn4Cem34PRL/l9c1l
-# LQXRLzdlpUxqnPvIQ5UOKf8q4UqcTM/E4aiIIVyaPUDL8UUulqZLoWql6Rpq1Qcu
-# vRrbKJKQRPKB6UVxkNLw/KAOfpBOtR6SdRjX8Z0mVj2W3FAtOb1HhU7yXZ6NXqun
-# qATcB1Xp2VlT4rId4zy21B3SSpI1YeZYhPYcp1TvkHX2HBHph/NqZPhadVTr2sCB
-# vzP++7MGsekwsLRDIr1FkDsMfKLrf1w6y7uHiSIzWKzFflMrw57Ve+11K+weBCwR
-# trevhB2uWiUK3QCiw1e6CQhUBFRolh3yuyFdiyOPT7S2PMX2lX+8uMeOmoWxGe1k
-# tqw2JeCzRm6iPbAXhtO3DFy+bpfeoNvEFu29urP4j+lSNdnELDzHVqpV6rJHlQ0L
-# FjPhQRi/pmDHsKMlWXI7GalAq6iFjjIn9xh5HP1uGIQhbT3MxqAO2jJVnsCmgnrj
-# nWMLMwO98eU8/GUCP39u7ZL42NwfU29ecOcHNfKrSY6q5yEvCAYRb3NM9nLXQXeR
-# 5PEtdflbKGU7/4FRCBbnbOAXkoy5eeddwXnkbz2sBhbajUH4EIhwNITlRTRiLPpg
-# /GV6m+99CNxutFCRpYWimBmHvrRLVuorNO6LrFp3ZWh8udTKTzARP3Lf3UXFY2Zz
-# 8PC/3/g8cu5COb+atV/PWdKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJ4obIm7u
+# VRAPfsZ3mxhRbxAkxbkwDQYJKoZIhvcNAQEBBQAEggIAkQ2wv8nOBlyQUe9pGYdl
+# gR6AY6J49ztO7Bt2Li/w+syMklQOypaAXsqrW8sDL3lPQj4BM59qqL7xly8lOreZ
+# jsdOaxGCli28i2KeWuhQ3tAw2EAtY4tKakk/3doC9+Z3V7r0WINvQZ0jA+wI2k5Y
+# ynXsFZCtmi9eJqUg+/aImyK7He7kLWUbkN95WFjvMf8v2CMMzgGqcJVDQJZds4U+
+# 2uIPS7axl6rApTWLkvUN/RQlyhAx692OAW6Z3m96zV7aabBePhogoJ228LsX6wvl
+# Uu1fUE8po/HHux/vraRtl8WFq04tUCjcwcG02rA5cbvp4SlB87UZVTmIz4xbQGpY
+# ne3Hi2x5DJgLQd+WC8HSBKVV1aWlKB49oc7llVQERSlSiG7lCxxtd4eoGyK+dFt2
+# yWCK3vCC8MxSMcT51eHqaUmdCGzkVDquIx8RgVpSmRNZyJVKutufSjh1mhfkuMfF
+# XLmxnAZjhFFKd6R0JsBhi0Cqx7TLBZB++iczOnB5JB1yDuWQUAKZ6xKMt71GaqNM
+# stUAqYa2fKJu6hlymRCJwFkTmLGi9UC65H00GUcKbooZX4ZH0j5uOmp/rx773O0H
+# M+D4ZXJD2U5sVnoXx7CcVzsNPEedrmlqrNPJcqNLigqkX6+CfN6tBUhnfEucLdfK
+# f2PL9x4lzk+wr0sY/oe9JZ2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMjAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgPlyNSN+xOiQOQhMfvG5cW4H+ODggF0mTiflyHxt0
-# jzowDQYJKoZIhvcNAQEBBQAEggIAbUMmPkQZ5UeLBWEwXIf7m7wp+1SNnuc5qJ/X
-# S53n/p1Owb+jrcw4OtM6WnSEMZ1YiqobRRGzbmH9gljsv5328qFXqH/P99+H9kq0
-# sYGpMB/1F9duYpc5gTr+MWoePUBcFiKd2QHWCvys91EuKRk+MveA4GkUWKho5o9J
-# 6el//rOeNdZTis85erSHyNFW7KmFTDLKRZ/wEX/jEDnB7sL2rOYke3atq5PadYmP
-# S7WnDodTmuQ7slDeby8hIouqF0m+MGaHbdTxviPtpaI8uJtqCoR4py3mb3e8eUoQ
-# ZlDJF+bshstSHQr5qpfwyxCGV+mZW/mUTb+pqp7zNfwu4mxnH8gbnSMNcWOkL3SI
-# DMf7IvO8gg+0bpHW1AkdsPOGBfKpQscDFSqcBFNMLTcpRnAva2iMo2HV4W/VY0VE
-# r+iZ39xyQThMCxPD430kZcqFlrAvy1qKM2TuzU/ngqg61O7NFsDjcnFlWO7aCG9s
-# NwCL34p6vHmvm8xG/8hC7RI1SBZzR/Jj/fFO2zFPrZfimZO32dxN5Qr48gIc311V
-# XsMKV7DxDPzBQzh07tFKU5KK/LilZzvcWaCuVKN2tZ3vI2gwGiMZXIw0rCDwO6uO
-# OkNRyp9dtmpzYEuQQotGBrPDpYN16OlbbsSHuXgZDSUSp/tmy8xvDRu45FEyC3ns
-# 1iuIYlA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMjEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQg638o/nN7dDFjPCSCoIzqivjNe9Ryh7jRefRJIWlQ
+# XwYwDQYJKoZIhvcNAQEBBQAEggIABVMHicJBOy/rTgf/XMHtoKiSbpe96yjEFh1U
+# NZ2eVSOtyFS+9HMlZhaSS/sIZ8TlbpsW16qR0LM/FnYhRrvrcuLX5WJppyHEt0mL
+# ILbKf9KoUAXjE9dOiMMAStyJ1jt6Z8pnwgrrDAOLRnShPb5YaWNQvfh4mqoisYcy
+# bk0ZCXa++An/QHtjmcme6F9ieJOxtKuYUyWqoLO4AAZ5oZWitvcmNR4G3cvKJD9L
+# ELto0PbjTmnz8xyt8kmaWiHM4Vjl4q5I1H1IM9JlNhR3UDoaVKgn06UZXRcSj6uQ
+# JWXJ/ZUq5TU19yfoI8GcPFL622t9stfVu/8enn8fE0WFl/InrwMbjQZc9Hv9dTOD
+# +PKKJORA+A+vhu4cGFk9ZQpsKFqhDHucZ9oGrMv5ETGmDhbKyaPWl8B2praRaJ46
+# etOuaUrNcDLB3XwCHGL7GcBGwSLBmCccCA6KW/blK7VP+7YAM210jZ+DknkPJQ17
+# rRCMwAdmwv0r6ylsbppqqHd5rp3YNCrlofPULCVGpkB2dNTJhr9FMo7XMh8aKObD
+# A9yqey6gAhyE/IssCev12wT16PeRcIMCiliWqJDj9jW1BQJJXt8J3MlnhrOwWbv7
+# 4wvHBb3rH9odCgBeJUubM4s2Xbzi5QWroNIWneXCzLJJKkrW0BUOnik8UGPpznPF
+# Jvn4mnk=
 # SIG # End signature block
