@@ -1875,6 +1875,15 @@ Begin
                 @(
                     'Default Domain Controllers Policy'
                 )
+
+                ############
+                # Domain OU
+                ############
+
+                "OU=$DomainName,$BaseDN" =
+                @(
+                    "$DomainPrefix - Domain - Enable LAPS"
+                )
             }
 
             ############
@@ -2090,7 +2099,8 @@ Begin
                     $LinkEnforce = 'No'
                     $LinkEnforceBool = $false
 
-                    if ($GpoName -match 'Restrict User Rights Assignment')
+                    if ($GpoName -match 'Restrict User Rights Assignment' -or
+                        $GpoName -match 'Enable LAPS')
                     {
                         $LinkEnable = 'No'
                         $LinkEnableBool = $false
@@ -2128,7 +2138,8 @@ Begin
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
                                 if ($SecureTiering -notlike $null -and
-                                    $GpoName -match 'Restrict User Rights Assignment')
+                                    ($GpoName -match 'Restrict User Rights Assignment' -or
+                                     $GpoName -match 'Enable LAPS'))
                                 {
                                     switch ($SecureTiering)
                                     {
@@ -2147,7 +2158,8 @@ Begin
 
                                 if ($Link.Enabled -ne $LinkEnableBool -and
                                     ($SecureTiering -notlike $null -and
-                                     $GpoName -match 'Restrict User Rights Assignment') -and
+                                    ($GpoName -match 'Restrict User Rights Assignment' -or
+                                     $GpoName -match 'Enable LAPS')) -and
                                     (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
@@ -3268,8 +3280,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCKc2aWW6YuBdUNI9vTc7q13R
-# hAigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUg7KWqyHm0wLr37EJ8GyId9Rb
+# u5KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3400,34 +3412,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2q9GrPn3
-# MZ7ncAAoqPwWMvcDmP0wDQYJKoZIhvcNAQEBBQAEggIAjfxJyLRMRRlCfr7XOts9
-# 3rOI2Xis+eHc0cthc5+r1Y45aNzKGXjYgyigOuEB7GnruMunOnDIl/WeomloXOLu
-# wgvdZFYw4oxKmMiGc0WrdPlLGS279Ifl+KQQIdu7dZcyLf41geMC3XCUpdKkWCow
-# rEMQC4pl5GvNXhaX3etFrhVVfm3IDOkurHM5M1fpIOEIwxhXTNXaxtvEQfQLTO2j
-# ZgK7opXNuhmAknAwdX/2pNTo8bKjLGYgeYRdkxeUBRxRafaHj/YTblZZ+xSStKg/
-# i+zPCLDSDhjXPyAkj5HibV7k3JdJFcwKr+6SlXalYBg3gdtEza2mk9gxyyG7V8Gp
-# PRBsYr0MWFrbrpF77HfLpFI6zXI4UQl4+2L6FjQpuXURrsZcF7WsTXtIGJIQ7LKQ
-# pgMzC5Bauf0Q6KnhqXoM52E/c+MpU/BWr7GTjvGZg1t2g/YxvOgnCCf9/bqy9u4y
-# njZGeQBGa7dbjW487yoXEVRw2YoxjkPJ2mNXyIQlEK9KS8lc5tWGWNGj9nqwMbJ/
-# x4rFlxLS3VmPxkczEofdjOdxBYTl2Vopa9BX5i5qiYDfVMCQeLQx4BTlS8WFdmGu
-# +6dr47VhF1iXHYr/cgs4gzsBu6imZw6jyXS54dMtS3fYxEWw3vbYSuDU6RdZfEGP
-# IX8cHVE1UuQVVj8B5JF9iB2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUAAm9MCbd
+# hWnMQUsKap8SAdb5Po4wDQYJKoZIhvcNAQEBBQAEggIAFFEuASl1SQMeqVax+hcT
+# zOMzv4QQ7R6zKeJSdU9IAHPVT4C1U85IrswoLH8MuXPAvrXZV5xzDrjWP5nFeK9H
+# 3kysCpf6ma41KhYs0Trl/KADem6J6JAhkY4663MkiQhl2BfstSSSVB78HMZqXNtb
+# VIWaboGuxNjZ2Pw4VtnNPgXHiHrYgejnY1B/aQs5hFG6wFrg6mgtmB1DL0c0YEx5
+# KWiPMRVDXlNKP3pavsLy68hMkRd9VrPoMqzu3yM1g8Fx9EFe+cL9dTBLN+5+K3lY
+# SSCYrhlal5itpqi8JOBD5IrLESGnClaxkF1d1g+ijPzvZdAcAO/rimjADvV3J2qh
+# MLSEqfwqwEIfXwY3P1aheQ2HmK8GVCWSL1R4qou0zLWc2AuTsbB2Nyl0LxC6B/Nw
+# PSB1jlQ0rbbK2x9GiP5HxGdHNA7/yoepGe7FsXmsCxy3EzyiO2Aw2VkJElhbKiXE
+# AD/xJwieLAeXqu5BSfuzfKmuzDMw69c+jEPbY5MQOV/4/2kXVR+g/6ZmAeajG8c+
+# E2lWQp0vPKjmZrvWdaf6yrEGqUOfEVrexyIY8IzoSndGLh7ESsvTboobqTq7pANj
+# wu+3nDhxea/MBJ3X7jMVzDW3Rl2jPP15FS6iq4PWAXGrXx9B+c3ngDlJQkgePT4V
+# TFa5onPZAlG+hEUd/xD0ge6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg0JWpaUFJma1pY1nspplEq9vk6SjkJicUM7BPq0Fx
-# uU0wDQYJKoZIhvcNAQEBBQAEggIAyb6WjExCdbFCUuOYxPZ+FEnSh7adKCJmb/IR
-# oc72EATk1nGegP+wr2+kJ3Z7rQ/YqR3vPRb5DMBBITjWjuQ+0xxVM3lwD6TeDnmt
-# WpRDGgcVSrwTrentg/+mHVRQp3lQ+DGmV9IidA9YB0+wmD3E6z53mpTmAKVHRvzT
-# IDhwq2zXt13Nfb9sQmaef2aOcVxyami0wKMv++jBfXka+MkSFs4cbCh/5qyyVphb
-# 0YRFv6reSQ2ZzzujyMmpQCnr4x8GJngNy09zi5lmQJZvMEdMisB+OEL2OEByh5uw
-# VCYdZvku4W60/H0LFD71T34Qv2c4emxIyVLwNqpNuIv5ueSOqtela4kU8DnVQWmD
-# /cHeOVLEVoLdTrC1hKEi4y3xdwy39bj0mVZpVTxqJBQIZ6lpa+WosXg5ByFTL7J3
-# KlPa3Y47iBFsYG3KuvfYFynXjM0WeJoeSmd+DSJ8RX5soTHO+WIU1LH4AnJbxyPU
-# I7F5BFoNJa9uOxvyPXZbq66O2Gk3/8tkK0AmeHChV3eNTXCQLXA2jNTKDD1UHP2h
-# 4EKR1d43FpQ4GPstoHHUFZx7TDp2PveyPDGRArtlXFQPOxRaV0lYzBPEze0dAUJT
-# 7krhQUKEUJRAzHe08jxc4n51QW9XVOQoZHuGixV8yqkS6fyuYsgYCMp5JcLYYXYW
-# 93gr5+o=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTYwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgn30efWI7ibljelbCRMJDBNMtWCaov7MLIFW8C75S
+# gQIwDQYJKoZIhvcNAQEBBQAEggIASIgTSIJhvXCmFexY33v1qYyz/3wSqApPxrnW
+# lqwcf5Gv+fg8lsnI3UtnCTUKfP+6XwlU+TiljnBP+9PbSidULTIgIDEXcGacacBP
+# poOepua65Nn+z/g+kPe7gykukcb4Bzqnv11+5Vqsu6c7IiOHLPwHvZNyEN28sPyr
+# 6GHJEtwB1cMrV2QVDqFiAtRG33WUsq9Px19Lduhpv5kS4Am0UrxCV8Af05HE+Ji4
+# I10R63EOPEKGWhTtcUBwO4fnzTu75fv1wJ9JGrqo91mf7eyZnWE40S5pB9IIqF4L
+# /L8+TeCsGYgjFE4SgawKt+oiyECACljj7XHYOTJNCsC6ntxHqklhEPiI7Mz97qXi
+# 7IwW0Xre5nXQbJ/KsyyryZeWlERCkDekDkdzgCIAFPXtt2mSE8i5Svc/3xxbB1N+
+# PuyNEQcEMtO3oPJmX7a8BrEArP2/RfFiCM71BLCYzpXi/4XN8CfbpiCewmo2DwcY
+# dzgzL3pEBLkp+aMfCdELAVqByz93PdUmqAznx/Z+2MpyAg3/6c6X7P4F+jzgKKkV
+# RsknbeIozGLpLyPxFTd6010XNXd2KZmWF9B2EPWS11SNL6pRW1mO4axY+FgKPBQS
+# rqfW1ZJSwK0zYtWXAencqq0AWZKjA8FhJVh3YGcg+r9mDqSR4DwxKsQHU3Iej0EH
+# LH/kayk=
 # SIG # End signature block
