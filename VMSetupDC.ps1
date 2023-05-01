@@ -1374,7 +1374,10 @@ Begin
                 )
             }
 
+            ##############
             # Join domain
+            ##############
+
             $DomainGroups +=
             @(
                 @{
@@ -1392,7 +1395,10 @@ Begin
                 }
             )
 
+            ######
             # Pki
+            ######
+
             $DomainGroups +=
             @(
                 @{
@@ -1424,13 +1430,13 @@ Begin
                 }
 
                 @{
-                    Name                = 'Delegate Deny Gpo Firewall Block SMB In'
+                    Name                = 'Delegate Gpo Deny Firewall Block SMB In'
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
@@ -1438,7 +1444,10 @@ Begin
                 }
             )
 
+            #######
             # Adfs
+            #######
+
             $DomainGroups +=
             @(
                 @{
@@ -1475,7 +1484,10 @@ Begin
                 }
             )
 
+            #########
             # Adsync
+            #########
+
             $DomainGroups +=
             @(
                 @{
@@ -1521,7 +1533,10 @@ Begin
                 }
             )
 
+            ###############
             # CA Templates
+            ###############
+
             $DomainGroups +=
             @(
                 @{
@@ -1833,21 +1848,6 @@ Begin
             # Enforced if ending with +
             # Disabled if ending with -
 
-            $SecurityPolicy =
-            @(
-                "$DomainPrefix - Computer - Sec - Enable Virtualization Based Security+"
-                "$DomainPrefix - Computer - Sec - Enable LSA Protection & LSASS Audit+"
-                "$DomainPrefix - Computer - Sec - Enable PowerShell Logging+"
-                "$DomainPrefix - Computer - Sec - Enable SMB Encryption+"
-                "$DomainPrefix - Computer - Sec - Require Client LDAP Signing+"
-                "$DomainPrefix - Computer - Sec - Disable Net Session Enumeration+"
-                "$DomainPrefix - Computer - Sec - Disable Telemetry+"
-                "$DomainPrefix - Computer - Sec - Disable Netbios+"
-                "$DomainPrefix - Computer - Sec - Disable LLMNR+"
-                "$DomainPrefix - Computer - Sec - Disable WPAD+"
-                "$DomainPrefix - Computer - Sec - Block Untrusted Fonts+"
-            )
-
             ########
             # Links
             ########
@@ -1865,10 +1865,11 @@ Begin
                 @(
                     "$DomainPrefix - Domain - Force Group Policy+"
                     "$DomainPrefix - Domain - Client Kerberos Armoring+"
-                    "$DomainPrefix - Domain - Certificate Services Client+"
                     "$DomainPrefix - Domain - Firewall Rules+"
                     "$DomainPrefix - Domain - Remote Desktop+"
-                    "$DomainPrefix - Domain - User - Display Settings+"
+                    "$DomainPrefix - Domain - Windows Update+"
+                    "$DomainPrefix - Domain - Display Settings+"
+                    "$DomainPrefix - Domain - Certificate Services Client+"
                     'Default Domain Policy'
                 )
 
@@ -1883,12 +1884,7 @@ Begin
                     "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
                     "$DomainPrefix - Domain Controller - Advanced Audit+"
                     "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                ) +
-                $SecurityPolicy +
-                @(
                     "$DomainPrefix - Computer - Sec - Disable Spooler+"
-                    "$DomainPrefix - Computer - Windows Update+"
-                    "$DomainPrefix - Computer - Display Settings+"
                 ) +
                 $WinBuilds.Item($DCBuild).DCBaseline +
                 $WinBuilds.Item($DCBuild).BaseLine +
@@ -1902,7 +1898,18 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Domain - Enable LAPS"
+                    "$DomainPrefix - Security - Enable Virtualization Based Security+"
+                    "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
+                    "$DomainPrefix - Security - Enable PowerShell Logging+"
+                    "$DomainPrefix - Security - Enable SMB Encryption+"
+                    "$DomainPrefix - Security - Enable LAPS"
+                    "$DomainPrefix - Security - Require Client LDAP Signing+"
+                    "$DomainPrefix - Security - Disable Net Session Enumeration+"
+                    "$DomainPrefix - Security - Disable Telemetry+"
+                    "$DomainPrefix - Security - Disable Netbios+"
+                    "$DomainPrefix - Security - Disable LLMNR+"
+                    "$DomainPrefix - Security - Disable WPAD+"
+                    "$DomainPrefix - Security - Block Untrusted Fonts+"
                 )
             }
 
@@ -1942,8 +1949,6 @@ Begin
 
                 $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Computer - Windows Update+"
-                    "$DomainPrefix - Computer - Display Settings+"
                     "$DomainPrefix - Computer - Internet Explorer Site to Zone Assignment List+"
                 )
 
@@ -2447,7 +2452,7 @@ Begin
                     ObjectType            = $AccessRight['Apply Group Policy'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
                     AccessControlType     = 'Deny';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Deny Gpo Firewall Block SMB In";
+                    IdentityReference     = "$DomainNetbiosName\Delegate Gpo Deny Firewall Block SMB In";
                 }
             )
 
@@ -3318,8 +3323,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbjSA+8nO+CZNKx+6cnSvfUlZ
-# DN6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQFMVaSJ8BBlUzmKB1xNScdFF
+# 7UqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3450,34 +3455,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzkbDf+Xu
-# trsrHr+VlqyJj4lJnDcwDQYJKoZIhvcNAQEBBQAEggIAlrvg8UT0usS1+FDiXBIA
-# wru9QjU+B+GAXkrXN+yuxmMeqibh9shQUH9j9G4y5dvRPFnRbNWIFPFjboXdCKj3
-# s0KoacA/4hv4AjkPvz+T07HFl4M32v3l5MqVAPo2oGVqlwzVqtRrYfSfmmYNuEAO
-# stdaY7z4h0yOrTX/xBO13PQthuPDJ1bmG2dsWffXTqwCgtSwRgkJmO0O9+zmKjZr
-# sFmIzyHRVGMIe2gugq1Ga2r8yfnHrkligBVTW4tDm84GmtqxRuk+e1VsCKq/if1J
-# li+LEPTc0aPK2AsVB9/n9CX41rYg4kQKC8oOQdSbCNntOdLbrD5z4vPcXVRrEG6G
-# G8kleaFEOHY6NRdhkHidTlV7Q+nyQPZZBv4Ye4zrezxr5X7Lv6CN6fGqdpA6DN5Z
-# dZAR7VLvjEGK8IU2RK1wYcRe5K8nYlVwMT8iAlop8S4dIvUFMjiQb+BqToPVVBtt
-# 5sw4jYRMKs7hLMyImG2WGZBI6S3ld9r8VnknPtWN5ybhqpubbzSsfpRq4y1ImbEG
-# ATNEMsRV2/EsRTrB2w9rpZ9Ye9EychQRO5V+jlY7OvWZy+vSQ93G4CVidr9abDad
-# zhv80WK6p9C5LuTG7hF85tmkZ0frHtFTbmDBpsSrgb9De85YxXByEuAJpxzEe9C0
-# iOiEi0bEoS6/08T1UELADx2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUQoF9hK7J
+# kq8FebBtSVMWe/YWNnkwDQYJKoZIhvcNAQEBBQAEggIAVjxAn4Cem34PRL/l9c1l
+# LQXRLzdlpUxqnPvIQ5UOKf8q4UqcTM/E4aiIIVyaPUDL8UUulqZLoWql6Rpq1Qcu
+# vRrbKJKQRPKB6UVxkNLw/KAOfpBOtR6SdRjX8Z0mVj2W3FAtOb1HhU7yXZ6NXqun
+# qATcB1Xp2VlT4rId4zy21B3SSpI1YeZYhPYcp1TvkHX2HBHph/NqZPhadVTr2sCB
+# vzP++7MGsekwsLRDIr1FkDsMfKLrf1w6y7uHiSIzWKzFflMrw57Ve+11K+weBCwR
+# trevhB2uWiUK3QCiw1e6CQhUBFRolh3yuyFdiyOPT7S2PMX2lX+8uMeOmoWxGe1k
+# tqw2JeCzRm6iPbAXhtO3DFy+bpfeoNvEFu29urP4j+lSNdnELDzHVqpV6rJHlQ0L
+# FjPhQRi/pmDHsKMlWXI7GalAq6iFjjIn9xh5HP1uGIQhbT3MxqAO2jJVnsCmgnrj
+# nWMLMwO98eU8/GUCP39u7ZL42NwfU29ecOcHNfKrSY6q5yEvCAYRb3NM9nLXQXeR
+# 5PEtdflbKGU7/4FRCBbnbOAXkoy5eeddwXnkbz2sBhbajUH4EIhwNITlRTRiLPpg
+# /GV6m+99CNxutFCRpYWimBmHvrRLVuorNO6LrFp3ZWh8udTKTzARP3Lf3UXFY2Zz
+# 8PC/3/g8cu5COb+atV/PWdKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgUHYn6R/7NsfQoNUO1pm9JN4yfmZ9e8G6BFz76SAM
-# hGswDQYJKoZIhvcNAQEBBQAEggIAipKR6A8YpWsT3EEVl+G1r9qTH9E9era4Lzi5
-# 3EgCJrwN81sjioXE8TgHntWzLu4IoImbP6ajZMz3kp1z9jPTNkcWxLniWwRoppsq
-# Gv1sU8NqghNzAkO3Ecj3ulKnsIX6NDIiKaWFa5hGz6JAg1MBpz2owxfIGtSfQBzX
-# +vu/K7nYZrzZrvqJcK4e/hPiUXOHh8mhLAJYdJ56TYGYAQ05iEfpGJ+BZFdE2JQL
-# T+mdP62uvUtemhtmVID/DzvmK18wEVtvFTBsynENowMMNGF/iMhgFmhyqHAmzs7g
-# yAA2/Nn9wpAgcVaD6NPwG8d0ZwWqh079ZoXDGYjBGZpHMEvVV+DdEUQ3JMyBQITc
-# sVNrqzZD9XMxfdZbdkwxPqeeF5Ds/+EPWXlAYDLDV2By4WZtZtP7Y2cqWXKpQ3p1
-# gjMlg3uOMTj4Iw1Dc6ewqRaHdJLkdrrR5FHj9DS2rosZVNJ+wYGxQlB3TK5nHAhF
-# 3cBDH+J3Vn6Wj+c13vweNPISPbFnrcGrHI9NVYZVQu/+NMkUQSbBfUoHQepj7ht0
-# M0e6ySwP3/9nP4wKsTpAqn7PpmroDHRKUe2h8LXg92d4gexQl0GfRip2Fi1mULh3
-# PAH25lOpX6hVIMOVud/9EqoF55AobvQye/T0nEHWyc4+ZJ1BxPJUFNYRCIekxGbf
-# URAF86o=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMjAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgPlyNSN+xOiQOQhMfvG5cW4H+ODggF0mTiflyHxt0
+# jzowDQYJKoZIhvcNAQEBBQAEggIAbUMmPkQZ5UeLBWEwXIf7m7wp+1SNnuc5qJ/X
+# S53n/p1Owb+jrcw4OtM6WnSEMZ1YiqobRRGzbmH9gljsv5328qFXqH/P99+H9kq0
+# sYGpMB/1F9duYpc5gTr+MWoePUBcFiKd2QHWCvys91EuKRk+MveA4GkUWKho5o9J
+# 6el//rOeNdZTis85erSHyNFW7KmFTDLKRZ/wEX/jEDnB7sL2rOYke3atq5PadYmP
+# S7WnDodTmuQ7slDeby8hIouqF0m+MGaHbdTxviPtpaI8uJtqCoR4py3mb3e8eUoQ
+# ZlDJF+bshstSHQr5qpfwyxCGV+mZW/mUTb+pqp7zNfwu4mxnH8gbnSMNcWOkL3SI
+# DMf7IvO8gg+0bpHW1AkdsPOGBfKpQscDFSqcBFNMLTcpRnAva2iMo2HV4W/VY0VE
+# r+iZ39xyQThMCxPD430kZcqFlrAvy1qKM2TuzU/ngqg61O7NFsDjcnFlWO7aCG9s
+# NwCL34p6vHmvm8xG/8hC7RI1SBZzR/Jj/fFO2zFPrZfimZO32dxN5Qr48gIc311V
+# XsMKV7DxDPzBQzh07tFKU5KK/LilZzvcWaCuVKN2tZ3vI2gwGiMZXIw0rCDwO6uO
+# OkNRyp9dtmpzYEuQQotGBrPDpYN16OlbbsSHuXgZDSUSp/tmy8xvDRu45FEyC3ns
+# 1iuIYlA=
 # SIG # End signature block
