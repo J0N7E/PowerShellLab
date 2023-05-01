@@ -1315,51 +1315,58 @@ Begin
             # Tier 0
             #########
 
-            # Access Control
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Delegate Tier 0 Admin Rights'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
+            foreach($Tier in @(0, 1, 2))
+            {
+                # Access Control
+                $DomainGroups +=
+                @(
+                    @{
+                        Name                = "Delegate Tier $Tier Admin Rights"
+                        Scope               = 'DomainLocal'
+                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        Members             =
+                        @(
+                            @{
+                                Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
+                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                                SearchScope = 'OneLevel'
+                            }
+                        )
+                    }
+                )
 
-                @{
-                    Name                = 'Delegate Tier 1 Admin Rights'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Tier 1 - Administrators' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
+                # Laps
+                $DomainGroups +=
+                @(
+                    @{
+                        Name                = "Delegate Tier $Tier Laps Read Password"
+                        Scope               = 'DomainLocal'
+                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        Members             =
+                        @(
+                            @{
+                                Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                                SearchScope = 'OneLevel'
+                            }
+                        )
+                    }
 
-                @{
-                    Name                = 'Delegate Tier 2 Admin Rights'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Tier 2 - Administrators' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
+                    @{
+                        Name                = "Delegate Tier $Tier Laps Reset Password"
+                        Scope               = 'DomainLocal'
+                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        Members             =
+                        @(
+                            @{
+                                Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
+                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                                SearchScope = 'OneLevel'
+                            }
+                        )
+                    }
+                )
+            }
 
             # Join domain
             $DomainGroups +=
@@ -2922,17 +2929,22 @@ Begin
             if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
             {
-                # Enable schema changes
-                #Add-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins'
-
                 # Update schema
                 Update-LapsAdSchema -Confirm:$false
 
                 # Set permission
                 Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
 
-                # Disable schema changes
-                #Remove-ADPrincipalGroupMembership -Identity 'Domain Admins' -MemberOf 'Schema Admins' -Confirm:$false
+                foreach ($Tier in @(0,1,2))
+                {
+                    Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Read Password" > $null
+                    Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Reset Password" > $null
+                }
+            }
+
+            if ($SecureTiering -eq $false)
+            {
+
             }
 
             # ██████╗  ██████╗ ███████╗████████╗
@@ -2941,34 +2953,6 @@ Begin
             # ██╔═══╝ ██║   ██║╚════██║   ██║
             # ██║     ╚██████╔╝███████║   ██║
             # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
-
-            # ms-DS-MachineAccountQuota
-            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
-                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
-            {
-                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
-            }
-
-            # Subnet
-            if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
-                (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
-            {
-                New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
-            }
-
-            # Recycle bin
-            if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
-                (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
-            {
-                Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
-            }
-
-            # Register schema mmc
-            if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
-            {
-                regsvr32.exe /s schmmgmt.dll
-            }
 
             ###############
             # Empty groups
@@ -2999,6 +2983,34 @@ Begin
                         }
                     }
                 }
+            }
+
+            # ms-DS-MachineAccountQuota
+            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
+                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+            {
+                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
+            }
+
+            # Subnet
+            if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
+                (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
+            {
+                New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
+            }
+
+            # Register schema mmc
+            if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
+            {
+                regsvr32.exe /s schmmgmt.dll
+            }
+
+            # Recycle bin
+            if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
+                (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
+            {
+                Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
             }
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
@@ -3256,8 +3268,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiUhS+Wi76EYyJe1A8ZORYSXI
-# vTygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCKc2aWW6YuBdUNI9vTc7q13R
+# hAigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3388,34 +3400,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDysSML3q
-# m7IZYAzjU77R5WgbX8gwDQYJKoZIhvcNAQEBBQAEggIAKbbPfb3VTHtki1TylIsC
-# EomInLQq8yLNMYN4th1IclYOnbvAK+tc3kMWMXwbe4HX8vZpGvRd7KTtl+ytXlMS
-# YUO30wRpvgCBYuKLTMO7XrQVnSUfQ8PKxLOSOQofUACqWlVqgCfFEQtJbibSYrlN
-# kfmxtHq2eWlBZfSAopsNNfHL062BWyeoUFrrALeWlT8tUN1IVvJiFmSZ+4bb8SKC
-# 8zJr5I3P/QOxh1oDcq3NyGefYEib9xMrzw52uPqX3t0kYifrs1L4OBE5dn4n3tub
-# B5r4f8Z9jn/83wgyVZUutPaCDQVZk63RDeeRbwvTFtIbAx+GOyXQ28fnM7eapMl3
-# w2qWZ7kzdpgfokkKdE1bNAD55JopyHIM5FTAoQOxLRQJnM1hGUJXuGvgjLbLv2qs
-# hv9SpxFCdS9PsYFqa6GrF1wdtnOKGXXw8qguPwlrSHHckcAQMiZuIORY/rkwWaY1
-# oMLWjKcI3MCLSMfaNvOgAJKOacuEgTVd1i2MHS3Wo7FHhHavPp+WXmC0lHbCguDX
-# ivb86XnUFFewb3qTDc/q36Wo2hbyVMu5ZOYTokv0BzTXVMboH/kcWcJwaiBLaXQK
-# rgOPA6RXdEu99whHWKjyx+vRvzB0j8LwU4Uq9pzdpY/iLCln1CFx4dnxsQCHaGal
-# R3tsMQViTA5NPErH1j51cIShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU2q9GrPn3
+# MZ7ncAAoqPwWMvcDmP0wDQYJKoZIhvcNAQEBBQAEggIAjfxJyLRMRRlCfr7XOts9
+# 3rOI2Xis+eHc0cthc5+r1Y45aNzKGXjYgyigOuEB7GnruMunOnDIl/WeomloXOLu
+# wgvdZFYw4oxKmMiGc0WrdPlLGS279Ifl+KQQIdu7dZcyLf41geMC3XCUpdKkWCow
+# rEMQC4pl5GvNXhaX3etFrhVVfm3IDOkurHM5M1fpIOEIwxhXTNXaxtvEQfQLTO2j
+# ZgK7opXNuhmAknAwdX/2pNTo8bKjLGYgeYRdkxeUBRxRafaHj/YTblZZ+xSStKg/
+# i+zPCLDSDhjXPyAkj5HibV7k3JdJFcwKr+6SlXalYBg3gdtEza2mk9gxyyG7V8Gp
+# PRBsYr0MWFrbrpF77HfLpFI6zXI4UQl4+2L6FjQpuXURrsZcF7WsTXtIGJIQ7LKQ
+# pgMzC5Bauf0Q6KnhqXoM52E/c+MpU/BWr7GTjvGZg1t2g/YxvOgnCCf9/bqy9u4y
+# njZGeQBGa7dbjW487yoXEVRw2YoxjkPJ2mNXyIQlEK9KS8lc5tWGWNGj9nqwMbJ/
+# x4rFlxLS3VmPxkczEofdjOdxBYTl2Vopa9BX5i5qiYDfVMCQeLQx4BTlS8WFdmGu
+# +6dr47VhF1iXHYr/cgs4gzsBu6imZw6jyXS54dMtS3fYxEWw3vbYSuDU6RdZfEGP
+# IX8cHVE1UuQVVj8B5JF9iB2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTMwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgj2wQ8Uy8Syxvzvp1RAAo7+UDjXA2RjFmsjglJeeZ
-# xCswDQYJKoZIhvcNAQEBBQAEggIANwa/qo05i7Npqdrt/ZB+hEZTCcyHNzc/g03G
-# xv5nnY88ImY6rr1EEMXDM9Hyr6O92fayH99W5/DYddkAp3FzYHkRkkSCqhv0yY1S
-# KjV0wTHEAXjoiifqyuCqGOyirfjuvNxwHujQ7GH8IFnQf1h/Ys7DmFP1d/QWiO8B
-# wAE7vu7DEa1G4wNd4tkOo0MngDlaZNroG1taNmGhyr6ZRsya2m+cbRlm5Z4Igz0r
-# E3TgudXTGobHhfQ13/zW7/knbi+qnpCyesy9RsmdFuLMcLWjDqC9eGQ2I2fffPok
-# zwZRAPWpw0IfJjRi4tN90lQfaYWd8dL1XOdvmmMDT+wZPP4T1aHk4ZyWuaaHwfl/
-# 6nORNogOvVuMhNhGfm4Q+eIced5iWJ8UQkNz1/BVu0Ot45Aod5oj5Am8IMdN/Rqf
-# MGiggLl0pFySA6FnxW94n5B3ACeDRfrDV9fGFzmj1xx1ozvwYsVyox6uBZ7f7tDh
-# Ln4LSbFzmv2NDNei4M7kwf9XQlGyWEubH1oJvWMo3MHNFcsyRRdlxKvoBbeLoFpc
-# IBEyGI7JwkZVJWVwDhDeVmLJOaGCE8b5TjHIdbD8Vmy50J0YyCAcxC3L4bMHNcu2
-# BTNbGEqWOLXCsEfXKunXfJ3CuYG0GXLb46fyHQMuGCAXxGCBEIXrx5dxPt5VMPIF
-# KUXpkps=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAxMTUwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg0JWpaUFJma1pY1nspplEq9vk6SjkJicUM7BPq0Fx
+# uU0wDQYJKoZIhvcNAQEBBQAEggIAyb6WjExCdbFCUuOYxPZ+FEnSh7adKCJmb/IR
+# oc72EATk1nGegP+wr2+kJ3Z7rQ/YqR3vPRb5DMBBITjWjuQ+0xxVM3lwD6TeDnmt
+# WpRDGgcVSrwTrentg/+mHVRQp3lQ+DGmV9IidA9YB0+wmD3E6z53mpTmAKVHRvzT
+# IDhwq2zXt13Nfb9sQmaef2aOcVxyami0wKMv++jBfXka+MkSFs4cbCh/5qyyVphb
+# 0YRFv6reSQ2ZzzujyMmpQCnr4x8GJngNy09zi5lmQJZvMEdMisB+OEL2OEByh5uw
+# VCYdZvku4W60/H0LFD71T34Qv2c4emxIyVLwNqpNuIv5ueSOqtela4kU8DnVQWmD
+# /cHeOVLEVoLdTrC1hKEi4y3xdwy39bj0mVZpVTxqJBQIZ6lpa+WosXg5ByFTL7J3
+# KlPa3Y47iBFsYG3KuvfYFynXjM0WeJoeSmd+DSJ8RX5soTHO+WIU1LH4AnJbxyPU
+# I7F5BFoNJa9uOxvyPXZbq66O2Gk3/8tkK0AmeHChV3eNTXCQLXA2jNTKDD1UHP2h
+# 4EKR1d43FpQ4GPstoHHUFZx7TDp2PveyPDGRArtlXFQPOxRaV0lYzBPEze0dAUJT
+# 7krhQUKEUJRAzHe08jxc4n51QW9XVOQoZHuGixV8yqkS6fyuYsgYCMp5JcLYYXYW
+# 93gr5+o=
 # SIG # End signature block
