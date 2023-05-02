@@ -704,30 +704,39 @@ Process
                                           -DomainNetbiosName $Settings.DomainNetBiosName `
                                           -DomainLocalPassword $Settings.Pswd
     }
-
+$DcConfigResult
     if ($DcConfigResult.RestrictDomain)
     {
-        $Settings.VMs.Values | Where-Object { $_.Domain -and -not $NewVMs.ContainsKey($_.Name) } | ForEach-Object { $NewVMs.Add($_.Name, $true) }
+        #$Settings.VMs.Values | Where-Object { $_.Domain -and -not $NewVMs.ContainsKey($_.Name) } | ForEach-Object { $NewVMs.Add($_.Name, $true) }
     }
 
     #########
     # Reboot
     #########
 
-    $NewVMs.Keys | ForEach-Object -Parallel { $VM = $_
+    $WaitFor = ${function:Wait-For}.ToString()
+    $CheckHeartbeat = ${function:Check-Heartbeat}.ToString()
+
+    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
 
         if (Restart-VM -VMName $VM -Force -ErrorAction SilentlyContinue -PassThru)
         {
-            Write-Verbose -Message "Restarted $VM..." @VerboseSplat
-            Start-Sleep -Milliseconds 50
+            # Get variables
+            $HistorySplat = $Using:HistorySplat
+            $VerboseSplat = $Using:VerboseSplat
+            $Credential = ($Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM }).Credential
 
-            $Credential = ($Settings.VMs.Values | Where-Object { $_.Name -eq $VM }).Credential
+            # Get functions
+            ${function:Check-Heartbeat} = $Using:CheckHeartbeat
+            ${function:Wait-For} = $Using:WaitFor
+
+            Write-Verbose -Message "Restarted $VM..." @VerboseSplat
 
             Wait-For -VMName $VM -Credential $Credential -Force @HistorySplat @VerboseSplat > $null
 
             Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
 
-                whoami
+                gpupdate /force > $null
             }
 
             <#
@@ -911,8 +920,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUM8K72RB8K2/y9xPfP9ED5vmm
-# Lj6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoNFmCw7Rpttx2VRkkUOAHCyZ
+# VpGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1043,34 +1052,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUtZ0PP8gd
-# McrEN9YlX0AWrKKur7owDQYJKoZIhvcNAQEBBQAEggIAyNKvdVNcQNyKhSTktvkX
-# 8XT8itX7dq/WfrpTob74opxAbo5buDTFi2Mif1CfqsJJj/heqcyrjwH9lBjZ5SQd
-# G2OEql3ijyBs2GpBnjjVhka27Ynt5RxFZktzGnhX2WcHL2MVjVB1fqCtGupr2Bwn
-# WrJCElNvd7hqr8sT71/f1t/WpJapeIXTMsLPzwMeAbClTjOYXVyNC2gHbKT1Zana
-# NQVGfi/u3E7HSH/nzeZqXs/PbI12sQNgT27LvYodfKBCLHDWL8xQxuWBq7aZoJvs
-# szP7+Y/zNAcjriXOvpvZxDNtZyJnHIWjPVKZ7SjfGZxGUCbQuXpYlRQahCP8OfOS
-# 8DqXsRcyJVG01gDXZWm/HNgVJprOx23RagiNta9DwErMnK/TRoy+4JUEL3kByh+b
-# oc7xuAZnx4CeOIUmEX9hvij5vG9JqSI2U6r+tmUT5v5cf9D5E4UfpHF/N4TOlUSW
-# 3XV4TrLs/qB5g4b6iVPDi1VGAViVST73EOCr3C15pyKegnVbiI1cJ2+9bjKqzdVT
-# F5yUEBPPkZJ9vNN6hhpngXUvHYMGysvN/HFftiho36Ockj0Vr5kgjFTjFX7gCAck
-# 6OGeZP9fm/v/1J1QIxmtq4mKIq0ukCBYr1G3uCsULFrcK/H8J6QWFai2O+1vh4av
-# bwKOfQEL/t6I1g0hzlMbtsqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUxEnVmvZZ
+# z232MZI+Nu072bf60DgwDQYJKoZIhvcNAQEBBQAEggIAbyfRZNDgb91eTn64gZOC
+# 10dRVc2NYcjbV4Y460+xi4jr0fm6YAidmZK+BE8n0COGdQXLhf1/f34liCWUhh/M
+# NU5p0KdzjFlgIIKP2Jl2Z3LQLs9fgm26UMKAHBBT5HbBjuyMfecZE2I/z+rFNqeK
+# +oPKmWYkopWD3g968nq+DbVaVH3g+QtmsWz1LZ9JyJzjI+RVmh8Sjri2lcYC+Prg
+# hLtwFHILITx2TGOHxciMb+efwQHgGC0bYRph7TDahdcbJcTMMCDdDntB+Zehr4z1
+# iPOMt8z9bmATeD2M1UGIHehOlVfA3SxNAYsVfK8IhnwzrkI49CYoCTQ8gB2ogiR1
+# brunz8w5vqdpIReUlvVUrcbY+qdbt40Xf6QwWsJ6tUnoYKExmg7HuIxzfIDbXiy/
+# ihPXK6QRePwiBMOWDArhEbcUVIQMl3REvLqgcbFeV4pJKdsqdwYY3F0jR6SMOnhD
+# +dpHf08SIZunzGTif9m3GxtsQBtaA2EVRqDLcfwZMH6PIyJzrwsyfzd54fhN4BTQ
+# xpcgh1aloO4060KZhLpoDicoNnmFEX8mARYj1rupdnlsQ4uJL8CAmZSJtZrwNeZ9
+# nk5OHL/J0T79+tQOfXhr7MwBeCtX6RZOlT9N/9gS6jcLsbnJ3QB8YAP0E2oIQkN5
+# uFSndVhWGB+a7fGEHEBHm+6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMTAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgtvvv3lzDj/VTByUbx32Qlb6HpMMkSMZO5FnXifuk
-# e5EwDQYJKoZIhvcNAQEBBQAEggIAzbsixOoF6JvYYFUUyrIewgt1WKvggLxuBR8t
-# f0omI3WUrculrx8QcgdSQQDlA+dkaSfDhp1S92JXWq97npi+erKXYprZdXjkKy05
-# Okz4rqdvVjAPh7jvL0Udu7PG0SgY4gIR70zytb09UgATi/nLOIxJLNW10j2ngzry
-# Ojo729qTvVLQdUjjPmzu088zedsGdI0Dj6w8/tmNzxa5YewOZdjB7jY+3OSjyx1s
-# 215Kb7JxNFZrTltealXGYicTvvILLQ3fnQrsp4URMC1KjdkrNdhC0H0/F8LgejZw
-# i/fQ6S1STwaMzShTQKFGAz2SvOfQX0zrdD0eA3IMAhloYZExmQ551AAf43pNyBrj
-# rtrMZAaHWyILajhS07fn54AvwOxRQ4pdUUdlftylhx5cMKg/992hdFS1V7bc+xPG
-# ZWmnxoKoTmMO/sbcbN6Cip8gim7X4B4paYpw74dVuAnc58H2IFRTsgIs5KK2xnt2
-# qYzJ2nOz9QPy1/KXFiwz8Ne5YluFDtoiNH1wf/wBZcZDe11jeew4+eBl0EY5ZdEg
-# F9fvRy3M5X+FPQrshRV4vIEEFNNXtMJ/eSaAhsopPXucvxp9PnGMakG7g7nZAsMT
-# 1+ICCM9amJKIgyKmo/0Lg9kCA+kTBNDuLuOTDAAWSZIntEFCZkwCoABCO0QVUj+A
-# 5erLfhc=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMTEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgzknl8He1d6aoi9L2CMB4VU3Mi7lYS85RhoqqfzdS
+# flIwDQYJKoZIhvcNAQEBBQAEggIAF/atPtmvl26FbRxbfghrvJnkkeCbprujSrRA
+# 4Pp4B/9MfdwuBH/aWCz6UIqpN0xz2mPFZ8TNGEZOpkHQoQej3pPTQ4hg8/mT4jPo
+# L4TAZv9tDNXFzWEzupTJf0i+tkG+6/WghR0DU45zDdM0IyTs5uOZGOXIu6CFbX9u
+# k2nU9W0SkUtPGrWsLA9v16Jl7os/K19lW1S8ZpCxGQ29bO7tCL9djMgYaXVV2LmK
+# iJb4Bg2WGZcJf5HyeYhPQ051V+4ZreOyDvx62hPdLgls/8IoX6SfcHSGEfsSeku0
+# m9Btc+XFxMON1I4N9FXMlqvlTxqazGPE2ze8yKHELcRGGJI1SLOT5KAdcgYWqIWu
+# D3002CMDF6MVurVMF4NmpFKkdhrn/WlMQt7VyBeiVMdtpFgW6bHAC0j9mYdOfP6/
+# GYUsGacFblzxuXUe4K+rv764c3+23SlL2Tdf/ocgKifnTg04vBTJXZ9t35xpprln
+# 6dG2VDO4RbdnqPmNwKDGAu9niM4DLu1KXrN07kRKE0haKXF+dBnbFqf3ZOjnMx/3
+# 9nudQYPRPLWOq0yoWvNr4NhTTTo3z2Hn9aPvBCdHxynEw3i3966/Y38nhnObkR5o
+# 01I3XE+L3o3qG+HMsSjwJfj7t8fXQudimJ2DgwoiwheO43rXB3FcA209Ik99Az5Y
+# 0tV8E+4=
 # SIG # End signature block

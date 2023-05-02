@@ -2172,6 +2172,7 @@ Begin
 
                                     if ($RestrictDomain -notlike $null -and -not $Result.ContainsKey('RestrictDomain'))
                                     {
+                                        Write-Host "GPO: $GpoName -> Set Restrict"
                                         $Result.Add('RestrictDomain', $true)
                                     }
                                 }
@@ -2940,20 +2941,26 @@ Begin
                 # Restrict/Unrestrict
                 ######################
 
-                if ($RestrictDomain -eq $true -and $AuthPolicy.Enforce -ne $true -and
-                    (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
+                if ($RestrictDomain -notlike $null)
                 {
-                    $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true -PassThru
-                }
-                elseif ($RestrictDomain -eq $false -and $AuthPolicy.Enforce -eq $true -and
-                    (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
-                {
-                    $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false -PassThru
-                }
+                    if ($RestrictDomain -eq $true -and $AuthPolicy.Enforce -ne $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    {
+                        $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true -PassThru
+                    }
+                    elseif ($RestrictDomain -eq $false -and $AuthPolicy.Enforce -eq $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    {
+                        $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false -PassThru
+                    }
 
-                if ($PolicyChanged -and -not $Result.ContainsKey('RestrictDomain'))
-                {
-                    $Result.Add('RestrictDomain', $true)
+                    $PolicyChanged.Name
+
+                    if ($PolicyChanged -and -not $Result.ContainsKey('RestrictDomain'))
+                    {
+                        Write-Host "Policy: $($AuthPolicy.Name) -> Set Restrict"
+                        $Result.Add('RestrictDomain', $true)
+                    }
                 }
             }
 
@@ -3309,8 +3316,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqEm29Kyg7GiJlAV8iYgHiIs+
-# ss6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5Q+9fFpF8nVjx5W+WizQN1sx
+# +SWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3441,34 +3448,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU5ytF8y68
-# WYmBa68/4MgSBqbDyRQwDQYJKoZIhvcNAQEBBQAEggIADpKGh/ERegelTkyldiFp
-# VCK2xPFIuAMEGQkue4tIEEd6PqiIMgdBfF5sXjoeRctlpJ8aLSlDVgiL40Cv11Er
-# jDxvDQrT5cezWKvi+lH2TwgnqBZGnFxOpVWwpj4bzUYYBkjmHAdWgIIXCc37GgAv
-# 4cV9LLexPM4sPLsMUtkjuM/Yfu/9qNKq/eYOPU/6tbMUn9onsABpFSgUlLqa6inK
-# GGgCaqAThuNOjcL7UFMa0F6VChFdpi7MsA/foftXlrMoxHCQLRtNPhO4UaOjJ82e
-# RSyy79rcPJ/1fuR+rF3pavliSuijODMS8EwAcdiJn90FiTEGCa40nLRJb/5k4eie
-# t684hwzrx1NetPOT3eszYl1IxZCPwAfg44GMLtmp0XvdIUSwXzt9kcZx5fp2vmaG
-# QfgVkoYb+lDeUb/5iKzEm5wwR7XJ7/QJQLTwy6kwfimtarO6ZvvZt/MtO7zqYm/w
-# HjXCsRofr4/YX/sAs8mCBp0qw8Bk28MDEDYm/fjyghEPmJS2saME1gW7Ycx/65hw
-# yW7k9eZBg+fGzJR4UjCIHRYCwyBed5qf+cuCoNUxuK81fboV9GA1b659TWHkH7xo
-# 5DHQvyrNeYYNFLfSfiBmQea0ijI4gm3qMNu92WIA2jnRE+s8AYM3GBhUhIaqjbrY
-# IgKhuONDBlLqBpCiUN5kFh+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJefA4epH
+# uvwT7uVi6Pf2dw7IebUwDQYJKoZIhvcNAQEBBQAEggIABJQkk+RkQ2YBnttpF1IG
+# Xm4slcM24vgYDBYDAwmkSlPhGh/nb8VxKR4ER/uU5aDaQC+sI1BAvzjGTE2p6BDR
+# ZmOnD8sVhewQLbxc/vX5X0PSH8Ot3YOhmmYIZf890K+jpqvqQg17tDa8FV68DEqB
+# ub6PbieiBpvxJwj/Lvf1SmiuGBO+0Yu4AUbqs8GNw3VxCZnpRG7cU34UxVk02NS0
+# 9dF8enm7QUzCHyZTogVjNtV/Vmxr8huyi2Bzl3lLQiiooHY6vYsrJo4D8ZhydnZM
+# Sx51985uKJ1+rzLlF3cUAmrSjraoOeKldUm4y4Ul82WcG1Wu+4bODWjFccQZDpIQ
+# L8T2q0cmbgONfavJmN1HGOvXKAZ8DUO9wJOfyq1DpJ8MBsmyaf2a1zR+836oQ9+m
+# 7wVH58trCMx8gKkNKbEvJYPdlyD5gAsQAa3KZEPgJAy3GF1m0hYmrrhUDjmc3wRQ
+# l57cv26n7hbKFO/4pbBaTRTjSMGVcw6Wn+Sr1ZmiZ6wmm3v6OOEWSYWdozDxIgyc
+# FHKJsMMvlAYEDpZj1BtqV8s3BwEg0psNpgWSXeyhiXuKdQLwME1XgefsYKLR4xVC
+# IVaIF46jd2CMs9J4bX3vC85yGbMqFFJnBQqoDur+Oi2HHvidUOWqoiZSExD09IJ/
+# vUXDAAjV9DT5OH9Lhz+jXDqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMTAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg+C0JOuCbDNUFwSLrTWgFUn0Q6IJQgFhN/Pha7DzW
-# BnQwDQYJKoZIhvcNAQEBBQAEggIASiT9P2synpa1ZmBlAnr32UZRmb6wG0onoqat
-# kM013bOBwQVZ3jPUG4ixmo/T8ZBGSF3I3O/unfkHcsgs+tcbMNR7o4H4z91dmthr
-# iRTA+Z/PwQZ3CUqc79jUShZSbBkbJ92pZCWzbPIxZpfs3L7vIUVumsa96s6kfdbH
-# hdY1kg9tzgDGeeL8o9c69ONAYDHkyiNWcgaCZVOZvn3UDFX5NZmOQqWQC4WYtUKF
-# oXGjOTRdOtnBkPCIdyTkq3NPvx85kYkWvz0rk09AgCXSQe/CHca1uQfyH1Nkel+d
-# I/z0tYxp1Xi3vmgTDDpE3Q9KfsvpHo4PVFUgt9wahjqDR7+Ef26ETKOcqOKQmRyV
-# BpEylhl78PQGjWBwXn8tR0rjWWAS2hr9/rqb/bCnsbgSELYbmlJ+l7yDdYxj01pU
-# tK5FomklPw1Om4vnDmTp/ArMZcMXTz0VWrQD058QRR/907e4bDXbSdtE9MHR5fLm
-# URZ+rbhTp+1VDDCwDNBn0kA/sKLhlhQ8ASMoParbevNpyEhMkdM1GkFd313LMq3g
-# f54BsF2nurfmV7JmyhgUbPUNTVNvUnkBe1M/CuO1Fekre852IinZQtkwjVkAIp01
-# 2kJJlZX8l5cMsL7Pk3It7JOEW0+VS/4aELhumFendumioPAgwlKchO9cPCnQLDlJ
-# lYf/I+U=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMTEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgy7d9iQUCh239GQrs1sAP7FvA5RAjNztIBtm1C0jC
+# ujUwDQYJKoZIhvcNAQEBBQAEggIALIhH6ii5sZz9PaMFz8+nsQ03dFGnhtKbYq0U
+# 928tmNwKXYfYerGZMEXtvDDN0YRVee9B0RbMtrFDCvbKEq0uUwQxwu50g1sS8z3H
+# 56PMpmuAjGqcCbBpdENvvumlTmpiIChDFSCm+yLB/uNRt6L9v2xZ1Eet1y7zwwdK
+# xnjKXEdU9mnL2CExIBx2N3BUG3qDIDwcyU7n+hM8zxi3ZLAUsKyvU+DYSWD0iYiw
+# B9Ri3GdMKf2NlkA7fdzqCZvZViG+Y8QSLtU+CHDs5fTqExb5hZEkVUy45zPvAq2x
+# C7aY6L4evGynwkhFhBUtpHoMmWI+WO1Nd31o8VFVp2jYqH/KI4ezpZzG5XGl/pQp
+# ZLLI+6XoLRwYRGhW/gwxUzmj4qrBOt4gYRd+1TKRxA79konzFwN9NEvc0kKB/A+H
+# NEX9mRU397g1/U2/LlCmZ7ZZ71cPXkVoFXgZmvs9U79jMaYgrSEF7CPh7OI+zvP/
+# due/uKZye5jcYf0FeXe+CfxbbsHtYMJ8i4xmzg2bpmAFihICKKwBf7zsW3vCSmod
+# gVH2EHtT1+HHe5gtwx/tk5jr36RgzoIFpa8WEHrdHks35Vq6wfyOvP0AFYM2CaFd
+# feiziENLVOhDT808DKjTcFs9o32phz8RdRMSr/oVaXLMcvBzuIRv6Wa3SJTyHMky
+# bPIyxgk=
 # SIG # End signature block
