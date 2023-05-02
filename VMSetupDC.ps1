@@ -1906,6 +1906,7 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
+                    "$DomainPrefix - Firewall - IPSec - Any - Require/Request"    # RestrictDomain
                     "$DomainPrefix - Firewall - Block SMB In+"
                     "$DomainPrefix - Security - Enable LAPS"    # RestrictDomain
                 )
@@ -2165,19 +2166,19 @@ Begin
                                 if ($Link.Enabled -ne $LinkEnableBool -and
                                     ($RestrictDomain -notlike $null -and
                                      $GpoName -match 'Restrict User Rights Assignment|Enable LAPS|Firewall - IPSec') -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enabled: $LinkEnable -> `"$TargetShort`"" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Enabled=$LinkEnable] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
                                 }
 
                                 if ($Link.NoOverride -ne $LinkEnforceBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) Enforced: $LinkEnforce -> `"$TargetShort`"" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
                                 }
 
                                 if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Set `"$GpoName`" ($Order) -> `"$TargetShort`" " @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
                                 }
@@ -2837,45 +2838,43 @@ Begin
                 # Get policy
                 $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
 
-                if ($RestrictDomain -eq $true)
+                ################
+                # Create Policy
+                ################
+
+                if (-not $AuthPolicy -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    ################
-                    # Create Policy
-                    ################
-
-                    if (-not $AuthPolicy -and (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
-                    {
-                        $Splat =
-                        @{
-                            Name = "$($Tier.Name) Policy"
-                            Enforce = $true
-                            ProtectedFromAccidentalDeletion = $false
-                            UserTGTLifetimeMins = $Tier.Liftime
-                            UserAllowedToAuthenticateFrom = $Condition
-                        }
-
-                        $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
+                    $Splat =
+                    @{
+                        Name = "$($Tier.Name) Policy"
+                        Enforce = $false
+                        ProtectedFromAccidentalDeletion = $false
+                        UserTGTLifetimeMins = $Tier.Liftime
+                        UserAllowedToAuthenticateFrom = $Condition
                     }
 
-                    ##############
-                    # Create Silo
-                    ##############
+                    $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
+                }
 
-                    if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
-                    {
-                        $Splat =
-                        @{
-                            Name = "$($Tier.Name) Silo"
-                            Enforce = $true
-                            ProtectedFromAccidentalDeletion = $false
-                            UserAuthenticationPolicy = "$($Tier.Name) Policy"
-                            ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
-                            ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
-                        }
+                ##############
+                # Create Silo
+                ##############
 
-                        New-ADAuthenticationPolicySilo @Splat
+                if (-not (Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
+                {
+                    $Splat =
+                    @{
+                        Name = "$($Tier.Name) Silo"
+                        Enforce = $true
+                        ProtectedFromAccidentalDeletion = $false
+                        UserAuthenticationPolicy = "$($Tier.Name) Policy"
+                        ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
+                        ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
                     }
+
+                    New-ADAuthenticationPolicySilo @Splat
                 }
 
                 ################
@@ -2932,23 +2931,19 @@ Begin
                     }
                 }
 
-                #########
-                # Remove
-                #########
+                ######################
+                # Restrict/Unrestrict
+                ######################
 
-                if ($RestrictDomain -eq $false)
+                if ($RestrictDomain -eq $true -and $AuthPolicy.Enforce -ne $true -and
+                    (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    if ((Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Silo`"" @VerboseSplat))
-                    {
-                        Remove-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Confirm:$false
-                    }
-
-                    if ((Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Removing `"$($Tier.Name) Policy`"" @VerboseSplat))
-                    {
-                        Remove-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Confirm:$false
-                    }
+                    Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
+                }
+                elseif ($RestrictDomain -eq $false -and $AuthPolicy.Enforce -eq $true -and
+                    (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
+                {
+                    Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
                 }
             }
 
@@ -3297,8 +3292,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUowV1rSbrTHohatCoxgN9h5CQ
-# 8Y+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh1l+08Tg3ROUTmYzdBZUYI4U
+# u4egghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3429,34 +3424,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUbKxMSK7D
-# d4v/SJ1v1Vy7Mj11URQwDQYJKoZIhvcNAQEBBQAEggIAkGnCaXtp3Z5poTZEJySo
-# LXFNnJ6okdtO8MsXdZxZNUOeShWtUB7c2USlV7IitYUKfI7i8iV4knFPlkAaijIJ
-# NXi4NAU2kJPwDJvqLdg671fV1sirp+S3QKhtLBSfvKxeXSmuOlMmxWikQc7FOeSt
-# TCpNeS7QUSA8+JlrE0a1vgihSdcc4gyuWmvTl+QPykwIclqW7gBP6IzGeE0D8FlW
-# wePiLoev95IP87TYyx3LdSc8R/bYlhO1UJL/n0puX7HH2ZWw6f9crlU2+nJvbDYU
-# IJOqucE479C+ZcK8pMMCqBwZ3OmgSocL3iASTFSie3SxNQlG9lJpT5+O8SU7QHuA
-# Y6++pbBtHk1nrO3iIbsn52PbIASlL2blq8PYdnpOYtzsX+WM/Ko0/cfKxdnud4DS
-# KF9P83GIDKzwBF5WfWGQPM4omOk/klOenjwzeBuEeFQtrI6v+HIUO2IYRl1JeudG
-# wZ2WJcPioRXi3Y9kJmrAkww7EDESATCWT+Ally6ZPjuifHnRJGnbsF4j+v2GRhG7
-# l4LIpzG9oEkE5+SXGB6zbdfZGgj905ywcNnD7qeq0iOsOeRnNb9behKWAe5CmAKy
-# xpI0O8PzYiiwF3gv26yTpj0EFEJaVTc0tZdf2FDKdwqX/ln3oibiPrBjbfTDaw21
-# XW7b9iW73lEwepTFDpRnPXihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJZY0HiEZ
+# NwHZN7Sxzr4ZstK8oUgwDQYJKoZIhvcNAQEBBQAEggIADHcu7Yul09X7zls3pNHu
+# h9pC3gbqlsTp6/lmcPOmLdmQQXccyRX0bme7G2kALvkRcbxp8a1e4DHyFKyVMJqh
+# XnVPMIQDBVT+P2+QcwUbcCbRHpEaXcIH/pi2dk0u0mohf7/yPuVtEdQHNjjMfpnz
+# iLpuzxnDUIDvYeYuhAF2j+ei5n7BiIbZonSVsnGryO0P3aB/PwHPoSuOF7+eEPdG
+# lzEwvBsJdETTnEhOVFWEsRMHcINB4fa3hqnR2jpKWfXsjuX7dcJjQih7ruRxw2PI
+# 56LIDOxwQurVwnIpQcdRPUHi1J5kvVE7MovbYTAjuW7LN1HJt8psyKt2yXW8NqUk
+# ZRFDWCLTSGNi24U+0cOD5Un3/iIvtqJTMVSdMEe+yQVkQLBh7nlNcfxpRAzN2WPS
+# SXuTr5Z2nhLa3B/uKL3HEMTUuCApnkagWXxjn9Csa15NJyWZ/6Kb/ZRMfL6UjaVO
+# Ntu6ybpBdBDNxk3nqsMg2qu3k03iAXSnT9zUjsGLNflOi/we1ESLIWFDxiuPgSFd
+# qXcUgHZwyUgziQhHugvMJIbHxe+q/W9D0tI8EDo6KYCs0YAG1hBzR6yOOW1ZOFha
+# wJjLdlIveU43rGI5IWt3lxm1BHKpfSBQC6xaLuE0NpjO1Wd35Av6xP0ZSdyfhE4Z
+# Ovj7nuTKJgoxNmfErKsSP4GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMDYwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQgGKMoJJgzyoK7gc3Y87G0LRro9CfHu8nbQSkG0nnN
-# PgIwDQYJKoZIhvcNAQEBBQAEggIAHPCEJiKg/6yUIpDO2Sr+SuQh6vWEVjccbSoU
-# G6ckI9un5Lurm0Qrn6q0zOnU/Kl2X0Wf4lTPHF0NmP0TN3P0Vbh6Z/Bj5z7rSK4O
-# g74ogWYJgkKLfzmlMCccQRMTwXaGd+BPi34QUj3jLM+o+9BpqFshIOVYEtBs32zj
-# vIKQ5TW4gRSyLYooxJuHC+skd5wZRE7v8qLCU2cWQc86PaJWdvoLQr1hG9IMIvPU
-# wkUcR2DXKpLHnQ+SqBAY+Ly6U57eQAgkfxA5m2gPX2v9qm6NquNu72wcESMuAjpP
-# klW9u81JQAOwo9szswrr5KkLNvQIKGEcFLTnRJiznszxylWz81zSGoYZknYW7jTs
-# 2PSdBun6D4fs0Q+w44dJ2gHpd+zTp6oFztcwi9fGp7UMNH0assjSD4M3WCjTgdF9
-# 2CYcJdJZkj0tYpAiz2jXgmnbxDax18YDV57DiA/56hsg6TmIS157rAb1IaBDL3uR
-# n7cE9AVvY+RjG2bR2lTiQLkdjTppgL/FM/k8zESddiAsBkwxILL59MNurUyCD/Ul
-# ckmnnNN9lRoGI6dyVdIhonDCIeXe2A03CyVKY1Eaqw0l9avU/g/niGkbNyWAcI8h
-# YXQILlO5juonbtmgmHfoPXqqxjMpfuHBppH2zmvo2D/8xlwar3lymqdV48szF8gO
-# fKFRFCo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMDkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgwyPbMCjeQNspV/yNcQfuQPR54aEPMuec6jizp8j4
+# d9EwDQYJKoZIhvcNAQEBBQAEggIAcI2UvF9ZHuRw55uszjTZ3WNfgwGIEMxbqk5m
+# jVsd22qpBaE4zCCEr95N5LKsyAkgEwnnG8hhBIhk/0YUXEcEBZ/x46Q3QAP0ocmo
+# Zly6Hk1JzIgn6pZNmSWXMbk9XlQm6Iy1Rh2k79A5ZPO+YJVdnlJBT206QdcpNp4V
+# QTQnvdu2SvbZYhSEzP3VNSx3Rwyr07DOu+suV5Q6sBuoqfl9K05xx7dLmTaHyiEe
+# exAChGlgIrA2WCZ8F4F8MyZ7dRG+0rbPWFY8XeJP9s72vzK4YD5lOfvGWPlTEBiL
+# pBZVAj/pw7bHBcyg/EDJ/QAPOtXKsKkw4+y/d3pUs+ObVGQ1OGgCESyS5MBlla/Q
+# /g+iYWqH5QYxjhxvx/jTORDEsVddyvHB22/AaZMmPV9tKhEkkOEPE+62SZc0yvBD
+# O+Q56TXPgtYkXTQM3BOvnLdUeug1Pr2ofRngY1dq4aMFZ+0UufsWFovDCD30tReC
+# AC6Ogg0KjLC0/6dwSjyZ+GNJt5SbzkzJh5kXYuEsvnHFnZNtCDr0Q9h5f4tjOrSb
+# QTiDOvrdobnNavNk6sXHNawFY80IPRWSVx/GprhtyUA+NIcgy7w9zIkIkOCuQ3o5
+# p3eDBZIA8fSAi/a9UaJQd98HUN94hSKN/z4Gse+PbYEQT5cEMfgNxdqI3u+TalWp
+# 1cPrdeI=
 # SIG # End signature block
