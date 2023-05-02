@@ -2169,6 +2169,11 @@ Begin
                                     (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Enabled=$LinkEnable] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
+
+                                    if ($RestrictDomain -notlike $null -and -not $Result.ContainsKey('RestrictDomain'))
+                                    {
+                                        $Result.Add('RestrictDomain', $true)
+                                    }
                                 }
 
                                 if ($Link.NoOverride -ne $LinkEnforceBool -and
@@ -2938,12 +2943,17 @@ Begin
                 if ($RestrictDomain -eq $true -and $AuthPolicy.Enforce -ne $true -and
                     (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
+                    $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true -PassThru
                 }
                 elseif ($RestrictDomain -eq $false -and $AuthPolicy.Enforce -eq $true -and
                     (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
+                    $PolicyChanged = Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false -PassThru
+                }
+
+                if ($PolicyChanged -and -not $Result.ContainsKey('RestrictDomain'))
+                {
+                    $Result.Add('RestrictDomain', $true)
                 }
             }
 
@@ -3035,6 +3045,13 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
             {
                 Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
+            }
+
+            # Gpupdate
+            if ($Result.ContainsKey('RestrictDomain') -and
+                (ShouldProcess @WhatIfSplat -Message "Updating DC group policy..." @VerboseSplat))
+            {
+                gpupdate /force > $null
             }
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
@@ -3292,8 +3309,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUh1l+08Tg3ROUTmYzdBZUYI4U
-# u4egghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqEm29Kyg7GiJlAV8iYgHiIs+
+# ss6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3424,34 +3441,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUJZY0HiEZ
-# NwHZN7Sxzr4ZstK8oUgwDQYJKoZIhvcNAQEBBQAEggIADHcu7Yul09X7zls3pNHu
-# h9pC3gbqlsTp6/lmcPOmLdmQQXccyRX0bme7G2kALvkRcbxp8a1e4DHyFKyVMJqh
-# XnVPMIQDBVT+P2+QcwUbcCbRHpEaXcIH/pi2dk0u0mohf7/yPuVtEdQHNjjMfpnz
-# iLpuzxnDUIDvYeYuhAF2j+ei5n7BiIbZonSVsnGryO0P3aB/PwHPoSuOF7+eEPdG
-# lzEwvBsJdETTnEhOVFWEsRMHcINB4fa3hqnR2jpKWfXsjuX7dcJjQih7ruRxw2PI
-# 56LIDOxwQurVwnIpQcdRPUHi1J5kvVE7MovbYTAjuW7LN1HJt8psyKt2yXW8NqUk
-# ZRFDWCLTSGNi24U+0cOD5Un3/iIvtqJTMVSdMEe+yQVkQLBh7nlNcfxpRAzN2WPS
-# SXuTr5Z2nhLa3B/uKL3HEMTUuCApnkagWXxjn9Csa15NJyWZ/6Kb/ZRMfL6UjaVO
-# Ntu6ybpBdBDNxk3nqsMg2qu3k03iAXSnT9zUjsGLNflOi/we1ESLIWFDxiuPgSFd
-# qXcUgHZwyUgziQhHugvMJIbHxe+q/W9D0tI8EDo6KYCs0YAG1hBzR6yOOW1ZOFha
-# wJjLdlIveU43rGI5IWt3lxm1BHKpfSBQC6xaLuE0NpjO1Wd35Av6xP0ZSdyfhE4Z
-# Ovj7nuTKJgoxNmfErKsSP4GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU5ytF8y68
+# WYmBa68/4MgSBqbDyRQwDQYJKoZIhvcNAQEBBQAEggIADpKGh/ERegelTkyldiFp
+# VCK2xPFIuAMEGQkue4tIEEd6PqiIMgdBfF5sXjoeRctlpJ8aLSlDVgiL40Cv11Er
+# jDxvDQrT5cezWKvi+lH2TwgnqBZGnFxOpVWwpj4bzUYYBkjmHAdWgIIXCc37GgAv
+# 4cV9LLexPM4sPLsMUtkjuM/Yfu/9qNKq/eYOPU/6tbMUn9onsABpFSgUlLqa6inK
+# GGgCaqAThuNOjcL7UFMa0F6VChFdpi7MsA/foftXlrMoxHCQLRtNPhO4UaOjJ82e
+# RSyy79rcPJ/1fuR+rF3pavliSuijODMS8EwAcdiJn90FiTEGCa40nLRJb/5k4eie
+# t684hwzrx1NetPOT3eszYl1IxZCPwAfg44GMLtmp0XvdIUSwXzt9kcZx5fp2vmaG
+# QfgVkoYb+lDeUb/5iKzEm5wwR7XJ7/QJQLTwy6kwfimtarO6ZvvZt/MtO7zqYm/w
+# HjXCsRofr4/YX/sAs8mCBp0qw8Bk28MDEDYm/fjyghEPmJS2saME1gW7Ycx/65hw
+# yW7k9eZBg+fGzJR4UjCIHRYCwyBed5qf+cuCoNUxuK81fboV9GA1b659TWHkH7xo
+# 5DHQvyrNeYYNFLfSfiBmQea0ijI4gm3qMNu92WIA2jnRE+s8AYM3GBhUhIaqjbrY
+# IgKhuONDBlLqBpCiUN5kFh+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMDkwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgwyPbMCjeQNspV/yNcQfuQPR54aEPMuec6jizp8j4
-# d9EwDQYJKoZIhvcNAQEBBQAEggIAcI2UvF9ZHuRw55uszjTZ3WNfgwGIEMxbqk5m
-# jVsd22qpBaE4zCCEr95N5LKsyAkgEwnnG8hhBIhk/0YUXEcEBZ/x46Q3QAP0ocmo
-# Zly6Hk1JzIgn6pZNmSWXMbk9XlQm6Iy1Rh2k79A5ZPO+YJVdnlJBT206QdcpNp4V
-# QTQnvdu2SvbZYhSEzP3VNSx3Rwyr07DOu+suV5Q6sBuoqfl9K05xx7dLmTaHyiEe
-# exAChGlgIrA2WCZ8F4F8MyZ7dRG+0rbPWFY8XeJP9s72vzK4YD5lOfvGWPlTEBiL
-# pBZVAj/pw7bHBcyg/EDJ/QAPOtXKsKkw4+y/d3pUs+ObVGQ1OGgCESyS5MBlla/Q
-# /g+iYWqH5QYxjhxvx/jTORDEsVddyvHB22/AaZMmPV9tKhEkkOEPE+62SZc0yvBD
-# O+Q56TXPgtYkXTQM3BOvnLdUeug1Pr2ofRngY1dq4aMFZ+0UufsWFovDCD30tReC
-# AC6Ogg0KjLC0/6dwSjyZ+GNJt5SbzkzJh5kXYuEsvnHFnZNtCDr0Q9h5f4tjOrSb
-# QTiDOvrdobnNavNk6sXHNawFY80IPRWSVx/GprhtyUA+NIcgy7w9zIkIkOCuQ3o5
-# p3eDBZIA8fSAi/a9UaJQd98HUN94hSKN/z4Gse+PbYEQT5cEMfgNxdqI3u+TalWp
-# 1cPrdeI=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMTAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg+C0JOuCbDNUFwSLrTWgFUn0Q6IJQgFhN/Pha7DzW
+# BnQwDQYJKoZIhvcNAQEBBQAEggIASiT9P2synpa1ZmBlAnr32UZRmb6wG0onoqat
+# kM013bOBwQVZ3jPUG4ixmo/T8ZBGSF3I3O/unfkHcsgs+tcbMNR7o4H4z91dmthr
+# iRTA+Z/PwQZ3CUqc79jUShZSbBkbJ92pZCWzbPIxZpfs3L7vIUVumsa96s6kfdbH
+# hdY1kg9tzgDGeeL8o9c69ONAYDHkyiNWcgaCZVOZvn3UDFX5NZmOQqWQC4WYtUKF
+# oXGjOTRdOtnBkPCIdyTkq3NPvx85kYkWvz0rk09AgCXSQe/CHca1uQfyH1Nkel+d
+# I/z0tYxp1Xi3vmgTDDpE3Q9KfsvpHo4PVFUgt9wahjqDR7+Ef26ETKOcqOKQmRyV
+# BpEylhl78PQGjWBwXn8tR0rjWWAS2hr9/rqb/bCnsbgSELYbmlJ+l7yDdYxj01pU
+# tK5FomklPw1Om4vnDmTp/ArMZcMXTz0VWrQD058QRR/907e4bDXbSdtE9MHR5fLm
+# URZ+rbhTp+1VDDCwDNBn0kA/sKLhlhQ8ASMoParbevNpyEhMkdM1GkFd313LMq3g
+# f54BsF2nurfmV7JmyhgUbPUNTVNvUnkBe1M/CuO1Fekre852IinZQtkwjVkAIp01
+# 2kJJlZX8l5cMsL7Pk3It7JOEW0+VS/4aELhumFendumioPAgwlKchO9cPCnQLDlJ
+# lYf/I+U=
 # SIG # End signature block
