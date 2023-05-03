@@ -2170,9 +2170,10 @@ Begin
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
 
-                                    if ($RestrictDomain -notlike $null -and -not $Result.ContainsKey('RestrictDomain'))
+                                    if (($RestrictDomain -notlike $null -and
+                                         $GpoName -match 'Restrict User Rights Assignment|Enable LAPS|Firewall - IPSec') -and
+                                         -not $Result.ContainsKey('RestrictDomain'))
                                     {
-                                        Write-Host "GPO: $GpoName -> Set Restrict"
                                         $Result.Add('RestrictDomain', $true)
                                     }
                                 }
@@ -2938,8 +2939,6 @@ Begin
 
                 if ($RestrictDomain -notlike $null)
                 {
-                    Write-Host "DO YOU SEE MEE!?"
-
                     $EnforceChanged = $false
 
                     switch ($RestrictDomain)
@@ -2951,7 +2950,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
-                                Write-Host "$($Tier.Name) Policy ENFORCED"
                                 $EnforceChanged = $true
                             }
 
@@ -2960,7 +2958,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
-                                Write-Host "$($Tier.Name) Silo ENFORCED"
                                 $EnforceChanged = $true
                             }
                         }
@@ -2971,7 +2968,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
-                                Write-Host "$($Tier.Name) Policy NOT ENFORCED"
                                 $EnforceChanged = $true
                             }
 
@@ -2980,7 +2976,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
-                                Write-Host "$($Tier.Name) Silo NOT ENFORCED"
                                 $EnforceChanged = $true
                             }
                         }
@@ -3345,8 +3340,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrD921ahevMjvZZJMNIRrWYPb
-# wc6gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwT9RnVNiXNQXA+Q82Rt1+P+y
+# 4iagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3477,34 +3472,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUZ0j1VRHb
-# WN+CaLxgRUzVyUdIbaowDQYJKoZIhvcNAQEBBQAEggIAGbpwi6oWsUuKTLfvr6Pj
-# 8TanwEd1z66Rxz3uxz9pHM99+3nQHtVA0eh4ew+oKSgppcTqtuqG2UjNBjBMBJY+
-# 5fECLUbWHKyhWf6y9ga/GDO13BSsBdqk8p3kQL39+sKtuI9/mse3v9+b3oFcbwk+
-# kaapEQfW2MK1rROrOabDQE4YPCwEX2oQVCvUTYShwtwccmd4RyFEz07PEoMxNOqm
-# xaGHV9lJ06oTUvkJ5h2dGmqtkEMcwJBloNbWSPanQXsjwBFOgD4vbp4spa6NFmpD
-# bhztsfhNWQPTvhYloES6jLbAXqlwH9WdpTtWsN3nVtuAMd3TIW49Z0nlzJaYvC+m
-# UUjJhcATezRQo785YJRGLOzaxdjtArklUbEMYt1dCPxLKfdtFnZa/hwFWjiSBdHj
-# P2RsHQcKAK3lSDe9mcEe9T2tf7KKK+95VK/t9Hh/0OILgY6n60VHDccFFDHGQkI2
-# YkLQM+2vS9eCvstzFh0FRD2JXNTRSAZ5iiE6YTrX7JHBMrwE17puqFjeoEV9RZDK
-# i/JBhZFL/99zB0B2X7qfS1fMYSWGGk0Nuo9IzwRMNe77vtKRuChTtNTmQXVHX19w
-# J1ELvlI3s5W2Z6yJtFywzqeWn0pTN4BPCgrNpVocsApaTMzFHvF7dRlESo+rwEt7
-# STu52Uxgn8trVMnCXb8VWqqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyenRCRD6
+# 6KQIm97SokyISm4yNfQwDQYJKoZIhvcNAQEBBQAEggIAmXZ+NR1+GfClRYmTSJx3
+# j4YMSUwTO2B+dnlkFMx8l2z99etnqGFnXqkD2Tpzkak9GyCwwBLtMi4BzzT3YhVl
+# bIMlaaGpyAhjc7AJZ9Uf2XYN1rigJs5ujbVUY2FPNgFRGvK/n/X5oj58wdN7N7X9
+# fShpp6l/NRSjnQhcGEcRLSv+dP9Nhbh1YfBMfbJ0+DETPqqZvrDYhK4xlipYfC7P
+# ZZ5xWlRMIpkk9JYp2sZGnWljm4ZAlHB8LvLJ8ECGKO25yCkjN+1jDC3C8dxY/Lx+
+# QQ+NSXKkvyLsJcp1hobqSwRTFIl3XG+nnoKf8g0nCjI2l3XycylwbtBaxlKckgTr
+# xr5tWJllMD/OUYgYIaZF5A6fPzcaGQkX2u1xQXhTFIS1B0BZ88oA4wm3kl6IEX2g
+# QtVe7QXFxjQbScbIMYCf9I1k+KRQdgBHmMC4Zn/8hK2aKySgXAONpxEL4nqITrqY
+# yZ/oJE2n01D8yoabmkQwmsrIOpQGTxdYZ79XuI23R/rLrxmtqCDMn3kzVMS6nezG
+# lpEfCJVDxv6xB5V6L6BufWQyIyL7NwkQmmFzFhVLJfruz9kPy0ZWkqnWo/pjMOtD
+# 5clqZ0H9DevjMuNSUb59IOwCFIwIFZmOsxHGqE+7wX4C0cQluX2O06NGGjhhYCoV
+# V0aq6r0y9q5LLpdjWnVCQUmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAyMjIwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgPix5XUJrc+gb2it+/T3sHeppZurmQsZAI5RklEYq
-# t/gwDQYJKoZIhvcNAQEBBQAEggIAIvy6cfhPbq2dkSvcEIXDxyW1PtGGvbbb1xUc
-# LqXyPhZK8SJHSpewCyBpVbxjHdw24rb/j7wzVm8TPyBM99bYTyw3vWqBF2125aV5
-# 3Ag+z/bXdrYZCnMwdsPXhMorEz3bJpUuU5eCBDcX2h0o/DDcI/zuy1E1/qFL5pt6
-# eZ6UgTLkLK5i2TxHoG2EOrn18HuwDvGlhQqE9s8USIxTyy+PguTGqiXohDuil+XD
-# v6okWS0v89WzP1WuCPM9wuovjBPG8pAC9NrKLWugEiurXfBL5/JgMoH7Ylz5D+hi
-# YnSQbNlqrbX+XCdhnOb25J21QMK5NyT2KDgC0bpwS7V4Zqcxf1R4AYV/hGhiunLT
-# zh51mcO7jzdx/HhT8AZsIzud1IREfbJ06aNhs/ZUo7R/z4Mua5ezAUaDFP8xH/J2
-# wRVp6JeAqhbVHMPHcnEt8MgGMaBx7l/XWwqzi19TbY+Zq1duXu6mDCQMZwm4AAC1
-# QvX0SQDMkWx3hL2znBd12BodmI7Yp0d3rXVFRlczoQaWBiPm4uwTGc8PppWRgJ73
-# wthXZKOHuCuNCuQZxcNSl4lzvog04HlF+62sRd0hYF5JZ7FhXPePsFVjI6KO/tIa
-# Ps+AQOFo8ob3ZhbcWCfwaO0JsUePlMSt2AsBiV+DE7c+BYnH8IBLzi7/IyVHaFkq
-# Ou7TIqU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAzMDEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgiv34ChmJQmzsbl8nO13IbRWa39S3ggErZaR7gz/Q
+# JGgwDQYJKoZIhvcNAQEBBQAEggIAwwT2sch/IKubyMh2NJuCKMVRA+5/GtdhCo8l
+# GbhlRxuqZqPUyi5meUl/g5jG25nH4YT46kIeCbjOzUcGWVO/MW72oYyHpRxeLncX
+# at7zoSSHJcAJteNwxFQ3VXH0G2uRHqDX/zNhYVs0SI+YJ0Fhg3YWhlrJq8cc3XoJ
+# 19gnVcqwPHq+QbSt3rDTsNFstRXVbSwb1Gmdqd6I7YumoMdCgbc171dIxesnNu2d
+# djXNRGtz80Edp1R9A6be7uSEO2FpTJPMCSjHuFjr/bWFd+I9wxrdhecilsMbOwfq
+# b3ry1gblK6Hf3Rk6peVNS3gn9IjncxBIAR4TuA67jEInKQjNCatxw2yDvV2Tm6jd
+# KbZKWxeezpR3ZCGkqLiSNKNb7nZiIBt8+7SUSB8iIfIqGE4k143VjG7CWbBEVM+G
+# 8i/O5VbkyJGiLFADTfXNM/Yg6yUW1o51WeGd0yHfZ9pJBovVkWiETDuzGGIbkK5U
+# 77Htz5MQqfmzc42afZv3l5GhsxrkvCp+MwUjjBatsAHcvUMjRW4fZVEXUYsiBRVh
+# T/3nZD1ZALmuyQqqxLnSPQbkubcc6bLXmzgWkXhDBZsCTvMf7ZdnyC5csRmxCwha
+# llfGbvlIUh6ag/TACE8GmXBjtbFregzuc2wdEhIWyKPdBxOa5PzHv9zfSGoZAekj
+# 3ShN0aM=
 # SIG # End signature block
