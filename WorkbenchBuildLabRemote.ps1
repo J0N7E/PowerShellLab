@@ -181,69 +181,21 @@ function Setup-DC
     [cmdletbinding(DefaultParameterSetName='Standard')]
     param
     (
-        [Parameter(ParameterSetName='Copy')]
-        [Parameter(ParameterSetName='Backup')]
-        [Parameter(ParameterSetName='Standard')]
-        [ValidateSet($true, $false)]
-        [String]$RestrictDomain,
-
-        [Parameter(ParameterSetName='Copy')]
         [Switch]$CopyGpo,
         [Switch]$CopyBaseline,
         [Switch]$CopyTemplates,
 
-        [Parameter(ParameterSetName='Backup')]
+        [ValidateSet($true, $false, $null)]
+        [Object]$RestrictDomain,
+
         [Switch]$BackupGpo,
         [Switch]$BackupTemplates,
-
-        [Parameter(ParameterSetName='Copy')]
-        [Parameter(ParameterSetName='Backup')]
-        [Parameter(ParameterSetName='Standard')]
         [Switch]$RemoveAuthenticatedUsersFromUserGpos
     )
-
-    # Check parameters
-    if ($BackupGpo.IsPresent -or $BackupTemplates.IsPresent)
-    {
-        # Open session
-        $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac
-
-        $NoExitStr = ''
-        $WaitSplat = @{ Wait = $true }
-    }
-    else
-    {
-        $CopyStr = ''
-        $NoExitStr = '-NoExit '
-        $WaitSplat = @{ Wait = $false }
-
-        if ($CopyGpo.IsPresent)
-        {
-            $CopyStr += "-GPOPath `"$LabPath\Gpo`" "
-        }
-
-        if ($CopyBaseline.IsPresent)
-        {
-            $CopyStr += "-BaselinePath `"$LabPath\Baseline`" "
-        }
-
-        if ($CopyTemplates.IsPresent)
-        {
-            $CopyStr += "-TemplatePath `"$LabPath\Templates`" "
-        }
-    }
-
-    # Argumentlist for setup dc
-    $Argumentlist =
-    @(
-        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
-        "-DomainNetworkId $($Settings.DomainNetworkId)",
-        "-DomainName $($Settings.DomainName)",
-        "-DomainNetbiosName $($Settings.DomainNetBiosName)",
-        "$CopyStr-DomainLocalPassword $(Serialize $Settings.Pswd)"
-    )
-
+    
     # Initialize
+    $NoExitStr = '-NoExit '
+    $WaitSplat = @{ Wait = $false }
     $ParamArray = @()
 
     # Itterate parameters
@@ -251,13 +203,36 @@ function Setup-DC
     {
         switch ($Param.Key)
         {
-            { $_ -in 'RestrictDomain'}
+            { $_ -eq 'CopyGpo' }
+            {
+                $ParamArray += "-GPOPath `"$LabPath\Gpo`""
+            }
 
+            { $_ -eq 'CopyBaseline' }
+            {
+                $ParamArray += "-BaselinePath `"$LabPath\Baseline`""
+            }
+
+            { $_ -eq 'CopyTemplates' }
+            {
+                $ParamArray += "-TemplatePath `"$LabPath\Templates`""
+            }
+
+            { $_ -in 'RestrictDomain' -and $Param.Value -notlike $null }
             {
                 $ParamArray += "-$($Param.Key) $($Param.Value)"
             }
-            { $_ -match 'Copy' }
-            {}
+
+            { $_ -match 'Backup' }
+            {
+                # Open session
+                $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac
+
+                $NoExitStr = ''
+                $WaitSplat = @{ Wait = $true }
+                $ParamArray += "-$($Param.Key)"
+            }
+
             default
             {
                 $ParamArray += "-$($Param.Key)"
@@ -265,14 +240,18 @@ function Setup-DC
         }
     }
 
-    # Check if any parameters
-    if ($ParamArray)
-    {
-        # Convert param array to string
-        $Argumentlist += $ParamArray -join ' '
-    }
+    # Default argumentlist
+    $Argumentlist =
+    @(
+        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
+        "-DomainNetworkId $($Settings.DomainNetworkId)",
+        "-DomainName $($Settings.DomainName)",
+        "-DomainNetbiosName $($Settings.DomainNetBiosName)",
+        "-DomainLocalPassword $(Serialize $Settings.Pswd)"
+    
+    ) + $ParamArray
 
-    # Invoke setup dc with parameters
+    # Invoke with parameters
     Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList $Argumentlist
 
     # Function retries to remove files in use
@@ -593,8 +572,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQ61u4qDEYWZcaY3dFOAPmF5p
-# OCqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhtTBVWQTTPW8e8p7gBhnoRhb
+# EtygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -725,34 +704,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0n5OxG45
-# 9e6uPMGAi8buCqIG3P4wDQYJKoZIhvcNAQEBBQAEggIAb6wRdvU2so5zpVxS0P0F
-# LRRUsoTut3GprmE1omdm0hcVZaxmvTrjVZKnO/VCSkAQ3Q0GvI+pNwPqnGPWwZB8
-# OwPL31cQL3KEwwpo0w04KdwQJwU6OPY8nwfxLhp1ZCOSjzSPUtrgCBmSO73/7BqJ
-# CrWx5ivlhqP3skGur05udl457efB9vlBjRhSErK7R6cJZFQo0q88+VtaJyKyHBrn
-# 7jkrbjCW91DIvhtz01v2OI49qGXBdrOPI3eUd9uFMV1ZMLClyD0XoFUzVH1Nc2Dd
-# wC9vDbxeY+aS76J6JkEKEnsWYaM0QC4dgT2zwi4Rw+Ll1MN08igc7vCLN02nkbRI
-# +XcqAI8Sps6WHFhHs/A2buEgnfCi+2cgXgaNNZgTVUb8CGOBP7UUmLiEJm7ft/F+
-# hM9XXq/iiCfNssXQpWmhr/AGvhCO+otpfwM5R4sEN1Z9Vknt8grINpSTDLyTnGlB
-# UoHQKGRWoeQ/7rU5PtJFX2ZlCUb3L76eF0Oq4UaFmU65AEQeanGPh64nT0bkl3mO
-# PkX1sikzy9uOI6tGG58hiXQ3+DBpXeOuUrklWKwQwTnv80myvy3afmlwgAOS4LRt
-# m/uaqCsBDYJqMyZ5aF/bHM7mgxoPlhbwkNKbZ8+TIw9wn71VXMj7SSpMaj6CelIR
-# EiDPPyqnsO2mcCtG91qCKVehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUD5bqntVj
+# ocSwPYT+9MRRHukuydQwDQYJKoZIhvcNAQEBBQAEggIAcnHEpNJayPDOCDp3++76
+# duNGMqLSwIc+H5jHx2qEliUGdPg4cU6y8IE1VNOZh8OBtrCGexjSjq8dOpg0K7U2
+# zZ46wdC40+QjzBrqIDaY5PK1WU7i2nXnnG96s5C6rnfbH+WrjWXMqTSx49Ms4DPK
+# pULvN78aHR2XR1NU1eLsfIsiG35HQvxjlt8aJufdbsWgY1pv2j6k/Iyd2g3RBW4N
+# BNS8PClMfJuji51iunE4Kgu3CNTEKth+aBOXjmq0fumpSZxXErgpS04Mnz4yu6+T
+# PzaocfstgGtxhf/XBJeY/SzVKgHzIOjzxnYXciHPXMlnYQFOYewc6qS8/QK1hqqV
+# bWG5+nCueOvNjaxFdNMFscYE7TfBXGY2RJkzLGhUhip7htg9A2TmkBWIN9gwiBHn
+# L0nkOlHHJ3lIBhB2mVrZcVCLIwa1n5MBY8p1NYKPU+B8iiKp8y9NWAMKHsrsv9U+
+# oKgHx9ZWlWaHbm8YBt2adQrzq3a/jvV9JDgfUYpPPc2gKHii8gxGq8s/MYFn2puD
+# wqB8lXRKEnwhRfuPVFD7IZ3MSmMqYPefCh0rMLkWiBHTteMxQGzcg/FhG2ZAlhQq
+# JID2luznyk1nUrpjXfRPsbSNKCIkFUfXvO9laLQIVAlKSC4LwBwXb/kKkLg1UPXE
+# CUwX2bn29eTCpjb8juHmSXqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAzMTEwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgHPgaUwFE40LKGEYJJjl3SMxPDvjnSWzHQOHh125U
-# YMcwDQYJKoZIhvcNAQEBBQAEggIAjoh2lXqrHub2JGU9KGC/zbPoOE9Z0G80opXT
-# P/zQT/5HFW70x8hWBOXbbk/LiAwtcDy/iE4IFM7UIm4L9MKuyn2Ps1Xr1wq3Uz4n
-# OFHL0TltLXJSw5bxhfOhErFfNOvqHYWWGvC6n37ThocEAASSdaeWVDrkbIQqK5gZ
-# tJ1S5YCboPijiug5LGMKZU5XTO+1y0rmX+XU7QIJrtdzqCvEpYm3EreXtuOvGYpN
-# 6N8Q8dSgfTiyj9vk7o3PFBDhXlawC0IjF8YzeksYtx1afZWeKg7G6XjirtrrdkPu
-# 4WbwgwAGWP3MKk8fk+cdFOELgw5irI9I932ZJO4KredjswPCL8sNfwIS3yT0fccf
-# KXqVEPj5NHKdH/G/SInGaBxkW69CBIuaS8CMpK/kc5trahfO6CH6824x52cPlFl2
-# +DpIAD0tZ0+2LN7POccT53f6cBvVEgJY/ev6WdzTPpGJch75vFwiiix0kQ6kpvor
-# pOLXQ8Wk8tI0seVNNVwStaSDfjUiHpkX6RAX3fySJt9o8D1K11wfse4eHE91JdPW
-# 27i5ufkmwCGq/0xwILyqPCkGGAGKrjuIpUDItTrMXxIUDHO5MfvPOkTOxOArKJt3
-# SH8MpkzChoniiQGkBClfSSpCeuvCos8h3lQU+AIj4hnaoK9H2Fil0AH5jjNTb8dC
-# jDK2zmE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTA0MjAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgIVc2ccfgtaxr/AnDb4xORs+jBZIzSrsPvhswli3K
+# i8kwDQYJKoZIhvcNAQEBBQAEggIAWOElAoSfz67zuQQyfJpoQX80gwjM41i6T1oi
+# 3C1x9qLuXxta5a/be4p0SmisKlaGU+nfsCBrihhtUI0fm5ZfEryTuL0gtujxa5gi
+# gs4edZDKc3mR53J4Yu1l0YFYKnFNFkRP0H8OwoF+IpZIhyyVnIvmETbU2/bTcL84
+# pn7Js4LWNaqV4Zd5MgT5vr9gyrkg6nTa282GezbYCE+eBfuQYdYUzCdInKTHCnqx
+# aO8Bv7rZRh3XhZlKHmu8Qiyk5E4DRAHKFQ0qjqEU92kqggN1t9tg57qKY+l5Thdn
+# RNvCe4KjU3FoOXJr1mCt3bGor0K8a8L3v5zX3rPLI7yX5CQShwcqTVQNOHKR2pXS
+# IiaZ3lMrkZnHM9DtWJEY+8lHwlClb5I5+IiRKFd7l+06P68FN+E63M4yW3Qn4UjC
+# H+eINUOXGhvjXqXsIBgYbS3xU1y/zDJF4Twmy6ed1ahiNE2CoSqEyA68qKuu7WQU
+# qW0meQ8Rj4iwboJMJi+DXMml4MycLGz0msxV4lU0+sjO0SgSo9YME4ySZ0HSE9qa
+# uWsyDUod8Uh921azHTMSMpT1r2nMfRvrHhWhteDBonmAfMwm6xZkTwQw451xi+Gc
+# uTgl9L3hNrNyaRrp0k3r4LTO1RDpBbjanmrrox0XqlHDA58q3kOzS6Vrl3gHg9qj
+# Ns3aaoU=
 # SIG # End signature block
