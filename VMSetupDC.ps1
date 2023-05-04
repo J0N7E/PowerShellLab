@@ -808,6 +808,7 @@ Begin
                 @{
                     Name = 'Admin'
                     Password = 'P455w0rd'
+                    NeverExpires = $true
                     AccountNotDelegated = $true
                     MemberOf = @('Domain Admins', 'Protected Users')
                 }
@@ -816,18 +817,21 @@ Begin
                 @{
                     Name = 'Tier0Admin'
                     Password = 'P455w0rd'
+                    NeverExpires = $true
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Tier1Admin'
                     Password = 'P455w0rd'
+                    NeverExpires = $true
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Tier2Admin'
                     Password = 'P455w0rd'
+                    NeverExpires = $true
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
@@ -836,6 +840,7 @@ Begin
                 @{
                     Name = 'AzADDSConnector'
                     Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p'
+                    NeverExpires = $true
                     AccountNotDelegated = $false
                     MemberOf = @()
                 }
@@ -844,6 +849,7 @@ Begin
                 @{
                     Name = 'JoinDomain'
                     Password = 'P455w0rd'
+                    NeverExpires = $true
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
@@ -852,18 +858,21 @@ Begin
                 @{
                     Name = 'Alice'
                     Password = 'P455w0rd'
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Bob'
                     Password = 'P455w0rd'
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Eve'
                     Password = 'P455w0rd'
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
@@ -875,7 +884,7 @@ Begin
                 if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
                    (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
                 {
-                    New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $true -Enabled $true -AccountNotDelegated $User.AccountNotDelegated
+                    New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $User.NeverExpires -AccountNotDelegated $User.AccountNotDelegated -Enabled $true
 
                     if ($User.MemberOf)
                     {
@@ -3019,9 +3028,9 @@ Begin
             # ██║     ╚██████╔╝███████║   ██║
             # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
 
-            ###############
-            # Empty groups
-            ###############
+            ###########
+            # Accounts
+            ###########
 
             $EmptyGroups =
             @(
@@ -3050,18 +3059,31 @@ Begin
                 }
             }
 
-            # ms-DS-MachineAccountQuota
-            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
-                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+            $Administrator = Get-ADUser -Filter 'Name -eq "administrator"' -SearchBase "CN=Users,$BaseDN" -SearchScope OneLevel -Properties AccountNotDelegated
+
+            # Set administrator account sensitive and cannot be delegated
+            if (($Administrator | Select-Object -ExpandProperty AccountNotDelegated) -ne $true -and
+                (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
             {
-                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
+                $Administrator | Set-ADUser -AccountNotDelegated $true
             }
 
-            # Subnet
+            #######
+            # Misc
+            #######
+
+            # Default site subnet
             if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
                 (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
             {
                 New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
+            }
+
+            # Join domain quota
+            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
+                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+            {
+                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
             }
 
             # Register schema mmc
@@ -3078,7 +3100,10 @@ Begin
                 Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
             }
 
+            ###########
             # Gpupdate
+            ###########
+
             if ($Result.ContainsKey('RestrictDomain') -and
                 (ShouldProcess @WhatIfSplat -Message "Updating DC group policy..." @VerboseSplat))
             {
@@ -3340,8 +3365,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwT9RnVNiXNQXA+Q82Rt1+P+y
-# 4iagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXarru+MFJHxBtcUWLjpD2XJB
+# o1GgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3472,34 +3497,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUyenRCRD6
-# 6KQIm97SokyISm4yNfQwDQYJKoZIhvcNAQEBBQAEggIAmXZ+NR1+GfClRYmTSJx3
-# j4YMSUwTO2B+dnlkFMx8l2z99etnqGFnXqkD2Tpzkak9GyCwwBLtMi4BzzT3YhVl
-# bIMlaaGpyAhjc7AJZ9Uf2XYN1rigJs5ujbVUY2FPNgFRGvK/n/X5oj58wdN7N7X9
-# fShpp6l/NRSjnQhcGEcRLSv+dP9Nhbh1YfBMfbJ0+DETPqqZvrDYhK4xlipYfC7P
-# ZZ5xWlRMIpkk9JYp2sZGnWljm4ZAlHB8LvLJ8ECGKO25yCkjN+1jDC3C8dxY/Lx+
-# QQ+NSXKkvyLsJcp1hobqSwRTFIl3XG+nnoKf8g0nCjI2l3XycylwbtBaxlKckgTr
-# xr5tWJllMD/OUYgYIaZF5A6fPzcaGQkX2u1xQXhTFIS1B0BZ88oA4wm3kl6IEX2g
-# QtVe7QXFxjQbScbIMYCf9I1k+KRQdgBHmMC4Zn/8hK2aKySgXAONpxEL4nqITrqY
-# yZ/oJE2n01D8yoabmkQwmsrIOpQGTxdYZ79XuI23R/rLrxmtqCDMn3kzVMS6nezG
-# lpEfCJVDxv6xB5V6L6BufWQyIyL7NwkQmmFzFhVLJfruz9kPy0ZWkqnWo/pjMOtD
-# 5clqZ0H9DevjMuNSUb59IOwCFIwIFZmOsxHGqE+7wX4C0cQluX2O06NGGjhhYCoV
-# V0aq6r0y9q5LLpdjWnVCQUmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzEgKCQSy
+# +qc79Hk252QkeaNPij0wDQYJKoZIhvcNAQEBBQAEggIAeaxegGJWqVwOGWHidwpC
+# 41xhkxio67A9mB3CNtKfdrSfIqki2Uy82xInXTn4RIuQXrlyj4s8pPyQAKFpRFu9
+# KR0EP32l56XgJm+fh4OSHEx84abwEb7qdwdLsuOXd+EAUwvN/akaMKGTFF/r+VDI
+# 94ZpMcwiG107noErhEBdSqvW7nHfFqSiYH6ICLxVRcXJxYyieGbgb5wzf9T6rG1x
+# JPGilmCEg1ACcLVsOEVtpSA87tEHRLSGY5MgWiBJ5vPiGVCH4JyCKvzXxV+gL/TE
+# NPMBYgDbz64LTgkiSY1ZNWWH8XJoLVKVSiWEukty7Iz+f5i9d7gQ97SVwPKFZ0NC
+# QtoOSkpdWW3nQYGDmBwSocXVgFTthulJpXpoNOOy1WEaXg9ZhMyxvnSm62eFbqsD
+# sux8gI/r08UbPBgu5Tplcx0eQVOTdoNgveTpw0AOaJ9PQrjaisxB8Wfr4cpe3MhD
+# HsoxVjEsSKxbnuf55GD9odoCkvlWgiweKhuxWULLG8HL02shE8i1Bo33GvEfn6O4
+# f7Qoz67I7OgP9FTc0q8C1qI8pA1ZHOuj8o7jufwtc7cp9J8h66iUtxgC+z6mGT1b
+# ufqk+Zmydy1IsaYzOdZEwigrp2T9sbsXG4F+cTXfLRjJfCmH7Zw0ZNOLi2D1x5Up
+# 7G6u73X/HeCyySGPy9XLEyihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTAzMDEwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgiv34ChmJQmzsbl8nO13IbRWa39S3ggErZaR7gz/Q
-# JGgwDQYJKoZIhvcNAQEBBQAEggIAwwT2sch/IKubyMh2NJuCKMVRA+5/GtdhCo8l
-# GbhlRxuqZqPUyi5meUl/g5jG25nH4YT46kIeCbjOzUcGWVO/MW72oYyHpRxeLncX
-# at7zoSSHJcAJteNwxFQ3VXH0G2uRHqDX/zNhYVs0SI+YJ0Fhg3YWhlrJq8cc3XoJ
-# 19gnVcqwPHq+QbSt3rDTsNFstRXVbSwb1Gmdqd6I7YumoMdCgbc171dIxesnNu2d
-# djXNRGtz80Edp1R9A6be7uSEO2FpTJPMCSjHuFjr/bWFd+I9wxrdhecilsMbOwfq
-# b3ry1gblK6Hf3Rk6peVNS3gn9IjncxBIAR4TuA67jEInKQjNCatxw2yDvV2Tm6jd
-# KbZKWxeezpR3ZCGkqLiSNKNb7nZiIBt8+7SUSB8iIfIqGE4k143VjG7CWbBEVM+G
-# 8i/O5VbkyJGiLFADTfXNM/Yg6yUW1o51WeGd0yHfZ9pJBovVkWiETDuzGGIbkK5U
-# 77Htz5MQqfmzc42afZv3l5GhsxrkvCp+MwUjjBatsAHcvUMjRW4fZVEXUYsiBRVh
-# T/3nZD1ZALmuyQqqxLnSPQbkubcc6bLXmzgWkXhDBZsCTvMf7ZdnyC5csRmxCwha
-# llfGbvlIUh6ag/TACE8GmXBjtbFregzuc2wdEhIWyKPdBxOa5PzHv9zfSGoZAekj
-# 3ShN0aM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTA0MjEwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgM3p64y2C+34tsAAG53us4eCnCSTXqerXdBhkljbL
+# wLIwDQYJKoZIhvcNAQEBBQAEggIAv75SCfdgH/Es1Zc8j4O8lg6i3AIa4fl7Ha0/
+# eC620DEIBNgmc4HPTYsTUTTV/+OYEUipOXNZvYO4xfxgQJ1Lzl3Yy3aLJfBjQF5H
+# e6D6Iq7xh3DkRhpEYsbuQCnYLAWgjezOYqbzWvSzM20qiVmSIb3pI2v54IjyRs1M
+# fncmD3U2E4sZovXISwaFuXvj/LbAF9dxKHmFpNv9Jnz6x9UxJuKalgAMPzm9v58m
+# iobnihqEK9HWoEUoyUVkfw/rz8SDIPsYx/vQlbjA5EW61Z661yklD+rbftL0RdRh
+# rTARN60fKqpWG1LLPZqKGOPbhLlZlgLnNew8N7Sy42UvFtzCVNxRSW1yEmrkRgf7
+# LdF6SNXKBmEYvhgLgdBNdPT8iWlA7TYJzNxKuMFHj8Wi9e34IzRWwL5wr750P4x+
+# 81RGEOv5PNm47rW1WF501fanqZFnTZsl0AzQYL21HyvZ3CdrQFraR3bwaQScgBER
+# N7FwGaa9mS7mn35hI0lNNvJmtQHV2dpDGq4NdHDu9qk4D4xDENQFrq71OzCN3NOx
+# xLrvEL/0s0URWE6xQEUOJ7NVO+2WgIkH3ke2gQ0xAtGYM9YqI3x/Onte62p0kGcf
+# MZ2XUz9kUwyR0qa7yUPLCQm8uX6Rhx+vZJTEzWhoSPgGZxHGvmnD0amhogJPMSGn
+# 3SpwQyQ=
 # SIG # End signature block
