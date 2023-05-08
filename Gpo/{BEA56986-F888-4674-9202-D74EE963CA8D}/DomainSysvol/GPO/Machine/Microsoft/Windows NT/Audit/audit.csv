@@ -1,0 +1,4 @@
+Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value
+,System,Audit IPsec Extended Mode,{0cce921a-69ae-11d9-bed3-505054503030},Success and Failure,,3
+,System,Audit IPsec Main Mode,{0cce9218-69ae-11d9-bed3-505054503030},Success and Failure,,3
+,System,Audit IPsec Quick Mode,{0cce9219-69ae-11d9-bed3-505054503030},Success and Failure,,3
