@@ -2376,7 +2376,7 @@ Begin
                     ObjectType            = $SchemaID['attributeCertificateAttribute'];
                     InheritedObjectType   = $SchemaID['Computer'];
                     AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
                 }
 
                 @{
@@ -2385,7 +2385,7 @@ Begin
                     ObjectType            = $SchemaID['Computer'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
                     AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
                 }
 
                 @{
@@ -2394,7 +2394,7 @@ Begin
                     ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = $SchemaID['Computer'];
                     AccessControlType     = 'Allow';
-                    IdentityReference     = 'home\Delegate Create Child Computer';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
                 }
             )
 
@@ -3359,8 +3359,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtQbXhMPALppzhjgKSORox2Fa
-# pGagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG47WX0N5mbbOh4kcKt5hdRkN
+# i3agghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3491,34 +3491,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUBDaR6M5y
-# JdscjzdOVX80yPZ9mwQwDQYJKoZIhvcNAQEBBQAEggIAE7nMIg8vvrkXpL7LXBBA
-# bKnaukghJtfBcTnu1QLrxm2j9P76cVuDoJWoTLqS8Z66LoUxX2LVq2B6xahlH5Tp
-# QqNc+ykHJR3bx36k/PCK3gApibuk4M3688k6AuG2fqq+A/xs3/A2rKtINfktW0t7
-# djMuakCGoVjAzAF1eIMAmw6JOmVpQ+qWGcXtAj3/Y1misuqW94flOJVR8SvGzbK+
-# z75IJWUjUiKInquRY8D/GzREzTjiBCN//X0PthflxHWOlMhx3bUeYvUZIxscT3Ne
-# XlVP4X82DjCxI86hYwmMm0LHHY47OdUa633LM1XVui0RYS1XWr1Zn9T5jrIobsow
-# ScwiJKdE76gjvvEE3OZ1Vkn6iKSJA75pvcz91XDWM2hF6WQfhgbtTh19l3Za8tEr
-# 67Ddnatxx3Eqg7uR5w3Ab2jYEzoMO5hmpF1aDk4u0EoE+QUliAiIGgPVLmHvS7+N
-# bsJZJ/mwe873mO72uBmveHbhWZ7vmJ+9U+iGc1oF0J56cSYttW5Si/ipHKmdJ3Um
-# HcEsnyQdbq3D1Pryu8QI66QsY/X4xqHT+O3y670dQHDGuKeoeBtnQqH19Syplfg0
-# yDsaaWmKoazfyX6JSAA/99D/M+MfOclbseXIV2vPRxQ+bFr1f2nLQz2yoOZMhd6V
-# o3bI2Ila3qlz0J35PpPkeIChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULxuM/mdt
+# 0JM/5Sfn4ZMpPqP4srowDQYJKoZIhvcNAQEBBQAEggIAVXhUlvuwBJqoCbm9ViDK
+# VvkP3rDT9x8gT8rRInUIEgV6E8fBSYq+8gbJh3vC0C2ne7W9NCr2vbQ91Cqp3JVY
+# xqyhpapRIDDG4Q3ZDBZ7gxqtCzU9JQBQQ6KphfbsKG0+7rpSYl/HzAJSpwXhkLpk
+# gyeybaif02vLL8a8Qr3eB7RR7EU8dOaTIUv2P7xgbYec5/tX8LaVn+zhzFKiYyVt
+# zKMnVEf9aToD9gyehNGmD2du4znCs0eOIZj+WwrUkFkYppOlJqOzxXBuzbVNhsPz
+# UMhMFFk669ML4eImCfWaGZzry27x4H+jGzz/wpqTNYGsVAD0n6KIIWC1wcY5dMtm
+# ZvbrzGLVGc1N54VRyTYm2sigNU9DQDLgYuNxCAGXCA/5EH604zXODzSXP+5AgcQT
+# fzHIsT+YCz8TX8yWip54XGs9lxV2i8G1+Imghh3UTIv0ukNQ3bnsbmZieYDrr+X+
+# TkWy0IPOEAsXCv7omvakQWU7bgkmMk7RIok7Ql1m+qq9w7sLUMyKSEK2PImEaX6u
+# +6ZkwwauD+SP9o/OrNlTzM6GvEwPX0qcu69BCBctCD/9xRty5tacRnkyWS+bd56r
+# mZtb3ix7jqmA+4LdpFeT6XpEcvYfMBA1bjGFzQIGGdjcT+HzU0jH3itxxRaw5g7p
+# WQrgU6Igee+epqiq6Jds4MmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTA3MTYwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg2nqNP3yo0QawO5kbOJxRIh107I0+aruqfMUkV8pc
-# grwwDQYJKoZIhvcNAQEBBQAEggIACjmZTCbSKJPESgD1TyrQwyLLYcZ9pYITB9UW
-# ftlCvZ4bnO4CAQR355BmNxjNY8lM7Ai0DCKbA1QxOPlfdq1kkZDwArxhuKgIqr+V
-# /9CyF1WzZse69NQ0gCbwuoNZ4++sd5dtLxtrAujv9IafEv7LzTa+iI70LzqtzVVL
-# OHWKtdP1CA2Tf0N8XhrJpHfVNzghflr3oiaTOpmVcb4dQ89pLOE7ZlE5Yt6xBR9e
-# iSWY/pumqCr9XaBqDcntiM3OcIQiP75PkLvszgCZ1A192f5kE/+iI4qwxM9avZz1
-# 8mnVsJeR0p+YmepsbiWYFQ+byxv68DENK2NRBd2fUPSrnE4sUMXpIAKrd9Ltl8lT
-# 1/eic8qfifWxeKvLQwV5z20ikCvG+lwpwKw8nMPwhuaQdQm/gCmZV0yJVC8+yLi7
-# 4xnKqc+Yarxqj5TOGGdxXQvBOwG2SoGymP3XOjIiWR0cpnpdxHFgiYqeh1/FYPHC
-# kqrvRImLxXb1VIQg4EjblQ4B2b0BOJphy9W9t0/eDocgYwfItUMmGir0+mHyuE18
-# 84Ctqg4WAtOraZo77Yh246en2BryDjiQ4Wk0BZtqKK8ZU3rQBzYQqMqQQ8Yz8c4p
-# XUgFeXkkFa8Nz0fIfd4mNZq4Bw3cALh+UjeRbFOimTEPnZluoYVClpjpymO2wc8G
-# bY2afYE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTA4MTQwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg4inhjiLYPO1DivyNyJfokpb57dkigoJNJiAirckr
+# 61QwDQYJKoZIhvcNAQEBBQAEggIAOTceADCX0tLqIh84gvkRAZK9OkcS1dCuM0Hx
+# OKWifnrlD3m5+NuZ/aBbvTG/stpeQMLPQXhE7zW5wP1yoG3JgeatWb+RE2Of93SA
+# 0ttOsmVKtCy5UekM/s2iKsvnazKPBaxImsE96b3gYr3ncwUnJc6297NyXsD7jeW4
+# CQvxX07Q+PpgqotGOMMZ7Yh3Z90W2i68+cjio1Vj7tg/H2oLnKzfYUwejV1Aio5N
+# Rw4igAi0hA/i9tILGqzbvyso8YbtMUSvRdp3MPyBvr3TL2Ds0u3kXQDfidEZE8lY
+# avL7EDtCiQCsq20jRygM50Sem7UMbPT2Dyr/Z5iylThKSP8+mkoL+QgKQ6aGZ2sE
+# gQ7AmKBinHPn0adGt39V5M7Mjti+tQXQnlHVDPdCtwXiVe9yUFnokXwRyY82pyTo
+# v0i/mF9EriTwbaosWtkgyxsbCw0KmrrzDEsfRAx4WZRDZgJMrgT3O1YetOS9lTp1
+# d5udjH6R3K/pSw6FbnV3T6OFZE4ylNg3PQzUFj9R6RNUrVRZBA88gfyXLc6swL0k
+# s0FnW4s8KwEEo2Asr6s4XlJNm7OVbYlheCqtPCl6LuXXayAZS7KPXm/ah71Recmb
+# HzhXU/4Gx3/LGVou/pY1niRzNKVnOv5+LvTsN6mpgZ5AwJ8QsfZplt8g7nDgIo+l
+# QuBhg0c=
 # SIG # End signature block
