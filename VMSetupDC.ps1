@@ -1801,26 +1801,18 @@ Begin
                         }
 
                         # Set domain name in site to zone assignment list
-
                         if ($GpReportName -match 'Site to Zone Assignment List')
                         {
                             ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
                         }
 
                         # Set sids in GptTempl.inf
-
-                        if ($GpReportName -match '(IPSec|Restrict User Rights Assignment)')
+                        if ($GpReportName -match '(Restrict User Rights Assignment)')
                         {
-                            if($Matches[1] -eq 'IPSec')
-                            {
-                                $GpFile = "$($Gpo.FullName)\gpreport.xml"
-                            }
-                            else
-                            {
-                                $GpFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
-                            }
+                            $GpFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
                             $GptContent = Get-Content -Path $GpFile -Raw
+
                             $GptContent = $GptContent -replace '%join_domain%', "*$((Get-ADUser -Identity 'JoinDomain').SID.Value)"
                             $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
@@ -1834,6 +1826,7 @@ Begin
                             $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
+
                             Set-Content -Path $GpFile -Value $GptContent
                         }
                     }
@@ -1843,10 +1836,13 @@ Begin
                         (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportName`"." @VerboseSplat))
                     {
                         Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
+
+                        if ($GpReportName -match 'IPSec')
+                        {
+                            Start-Sleep -Milliseconds 500
+                        }
                     }
                 }
-
-                Start-Sleep -Seconds 1
             }
 
             ########
@@ -3136,7 +3132,6 @@ Begin
                     $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
 
                     # Replace domain name in site to zone assignment list
-
                     if ($Backup.DisplayName -match 'Site to Zone Assignment List')
                     {
                         # Get backup filepath
@@ -3147,7 +3142,6 @@ Begin
                     }
 
                     # Replace sids in GptTempl.inf
-
                     if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
                     {
                         $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
@@ -3368,8 +3362,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU747jDsIlPVFd9dszAp5wKjTF
-# G4WgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU956a7uY7Y9q5A9535rRir0kR
+# QeCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3500,34 +3494,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU+9OWM6Up
-# 2UEQ0zPoBtzVzR1/8J8wDQYJKoZIhvcNAQEBBQAEggIAlzv+lVyUub1UQ6HD5l4n
-# j9BvQ+IH77eWnBmqW1w51V9NlwjDGFpWOUDPGJcZF4wj+mu7LBScyCnvqQT9bqZE
-# IEAY0jFFP5st6hVkpacSVtyXVZ3EDYa7bNr/J+L4gRQLuSFmlrs5uXMo3elyZtJz
-# wX1AMIh9dgehgjpxNGrTCPNMGPuVi2sXVZxrPdSw4GkHs54OYujsuX+jbgI8Cs7U
-# S2/nMrfnqvsoKMVV8K6UiL+WBEu8PHT+b075GEwH+QhhACdm2aFwDmqT/dhqPpBI
-# akRKcGNMan74YU2Idcfw0T7npVe9BPRZyvYp5ct08ODSvgybKywZQqufzzYH7x3i
-# 62pdTviYfO6+GVJ/YETq54lmUkMqaqjwXteMOYmi3yP9TfDYTNUEioSs7r1nYVoU
-# bZH++rAmXI2FWPU/B2ZTYESe+GAX8kJGgWPw7mtXnnzVMH0OkfCQrkRKPNLf2PFv
-# pPCv6L5f0gdTWULCJ8eaYH/ruU/8qMSu9H6q9UM6Lj/TSDEeCxM+Yj4JoKz9CQr7
-# B/IwBETDbww0CiglHwKzyfyICVkuAVUyZy9F0S1yfY/iu5GD1U7TgijKd+aZ4w59
-# dgPqTy3uky96BXwMCzZ4dGfnbW0errjTDG1jsSxexjwDKRO16S/ZhdaSr1E4X23W
-# FGtbz0GQh/oZChFrvdn7c1ahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwI3IlXJL
+# i7uSH5FEpezdYw+tPGUwDQYJKoZIhvcNAQEBBQAEggIAL66ysdYA9vCI1sVjUBN0
+# j8b8kuJDMPQq/5YhFacX4gR13Q6rm6TuzodDz2i0/LivdX7smulqXnvH7GVhlzjo
+# VSEKXLLn0Z6pjri9PQAAHgD38rCKvAI5vsIEwjOYIbXUBrCYOUy/zRbUt/+wlVPG
+# n/jjvmxUO+fvqGecUtTrJqT+OUqXqOXaoFzK8Y8qJTX7qTcF0dgsAiGX4dnVwc8H
+# zZGs0/irBZHlO2FzBjKtZo4sXHH56TOTCo3jxJ6KRxKjDBrym6HS6z+ZFCAwH8sG
+# 0EiScpW4/GicD0sbQt9+xAAeD6pBE3OCT1qdbUtaCFJqs7sGv9YgF4JE6oAKLH0k
+# 7gaZCQVkkNmJC7GwZtBJCKmUC5cBY2YgR5bsR8de4QxEIlyHniqITuAdXYlhpDBk
+# qc377Jkaso8xX6dvS4gmtEBN5Jk41rwRtFWplswemq/zgg4qRfGRp9sYAtoLEuaN
+# ZK0ffsrgNHUPedjiPdk54uGR3BSDUBlcLt2mlM2Wp9pMXPLczedkLhuAwPsk3N0D
+# y7Js/JXWLXe6wmgvjWtQ/r9UEnt5pkCnT5RaCGmmga5y3aaFAOXX9F9RZkQr0Nm8
+# CX3/cXW3YxlTZpCiyk4r5BxFah1r1QqwHYpovP0t8/g2j4zx9o3mUcYDozerzlXJ
+# /A3r6klBadrZVqHkvdSLtqOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg9EBY+4100bS19IyxALv0N4rbxZd0Zj+T2loUi5nf
-# urowDQYJKoZIhvcNAQEBBQAEggIAn2SHUeY8k6qLLCuUyFeeORN4fuB6aUqP7b0e
-# He88tlfP7F5nt+Ji9DoX95x5qJpaJmlm3rfXAkkcTmorncJcqVRaoZD/GptKMkes
-# cp8glVuXDE0gw8Z1z5Z7j+qDcq/uF6kaSoxH++DPrSd535C+SeIqEZyn14ecVw3i
-# eKcHlu0Z3LYOv34yj0zw3Ytd3KHikG/8c/8KOxX+vFW54QRxQM41Eo0zyje+5R4Y
-# vN6HUixY6AxQjJiDEh19JUzs4zhaOm70neWd3jHyuRwy6CkFRzKM8u3cpIWDdbLT
-# OIL3LEzMb+645FqPPx8MwGt9fBBmlMEZYxtC52RtN+fWK9sQekPTAyInUw+7FKvo
-# LQBV0NYYjv4vwJLSEEUb1sxOlbiWIC8CWGfeRelrQdfXo9VVw2f7fHUJ5NUT7rTK
-# 9H4Zp1zeVMGlz19ulaHWNL/kgaqnRhE7j1a1pKeGRThzzBVJQ88bugIzQeed32ai
-# ZKuBh+k4EUstuJqPbXasl3KXZdq9NvKkvSOkiH4JLv6zpKO56smIfbEmXYfJO2mc
-# /2540VZYWNVO49HjVKgYmU4b8px2xJfQXWCN43c/G/N2EWsVycQa/W3rzE1/Hxff
-# iK7flcOa0mxNNO/y0XOZG7mCDRZ9qHaNaHPuCUbfwKjMe82sU9XiUiA0fkAxIIMh
-# QLoVIvM=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgupu0h9xqweWe9Ar+OzmHhFATykV/+5M2xYSyzB5E
+# +lswDQYJKoZIhvcNAQEBBQAEggIAtZPC0YnZ3q5XfTr22DUM99moI5RYj86nIN/v
+# 1gqYDlAKkjIl9/DoyFyOK4zvKFt+wE1ECYE27jC5hCJ3X20sAdtP9N1nym5fa0ls
+# xCxSS5fGzAQjdxeVMQ3G7K+SPhUTTxEBxl7hJ2MBuvEFm6szr78t8guZ2fcGmB1a
+# O6I23n2HVjUQa8Y5KDNXqIdwvRvsaObcAx0i0zsDeACp88xSZB+E0MOhzvHnTw1x
+# 9YdK5mLx0Q93mYg4OaXC91yUQgfFW7QKQFpAYghwUXAExZ/uqN2x/AEP/37ujMnX
+# J1xV233BIiWTQ4YuOGaHS5+VQaK300Xkbbrb1abG7RZMZ9Pp9FEYitdsaWyG/AsH
+# LI5/b6U7H6TJGsrem9MoM6eU26J5gmhnh2fTqdr4eK85VJEzSjGePAnSmC8B74f2
+# 00nLeA694GKw3Ku73N3grxDt8ihRis416sPpGa+Q0/XzwaXewQeWG9icGSGc3gye
+# 4oIE25UMdRn+gkOXzqVhaE84jPcMYLAz4FLC4s2EZ+En+SEp1w22j+vuVvmKtugV
+# bdQBRg4jGXrjQ+DZkTjUa2/5yXBz9edJ2fHdGID7r+ebfVC6oZ/EfgzXSt80UdPr
+# gUyB4k8bL0rWlnB+Ac3anzbjk+4mEt56MSi5YxkrsFDEms3tq/lk3SdFAkDea4IE
+# c1lFlg0=
 # SIG # End signature block

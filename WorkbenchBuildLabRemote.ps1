@@ -189,6 +189,8 @@ function Setup-DC
 
         [Switch]$BackupGpo,
         [Switch]$BackupTemplates,
+        [Switch]$BackupReplace,
+
         [Switch]$RemoveAuthenticatedUsersFromUserGpos
     )
     
@@ -222,14 +224,13 @@ function Setup-DC
                 $ParamArray += "-$($Param.Key) $($Param.Value)"
             }
 
-            { $_ -match 'Backup' }
+            { $_ -match 'BackupReplace' }
             {
                 # Open session
                 $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac
 
                 $NoExitStr = ''
                 $WaitSplat = @{ Wait = $true }
-                $ParamArray += "-$($Param.Key)"
             }
 
             default
@@ -279,7 +280,7 @@ function Setup-DC
     }
 
     # Check if to backup gpos
-    if ($BackupGpo.IsPresent)
+    if ($BackupGpo.IsPresent -and $BackupReplace.IsPresent)
     {
         Retry-Remove -Path "$LabPath\Gpo"
 
@@ -288,7 +289,7 @@ function Setup-DC
     }
 
     # Check if to backup templates
-    if ($BackupTemplates.IsPresent)
+    if ($BackupTemplates.IsPresent -and $BackupReplace.IsPresent)
     {
         Retry-Remove -Path "$LabPath\Templates"
 
@@ -297,7 +298,7 @@ function Setup-DC
     }
 
     # Remove session
-    if ($BackupGpo.IsPresent -or $BackupTemplates.IsPresent)
+    if ($BackupReplace.IsPresent)
     {
         # Remove session
         $Session | Remove-PSSession
@@ -571,8 +572,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9ndnx/cZmasZkSijQ2VvIu6+
-# N92gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUD5v7wRJqMiAormhVoW9VOQjw
+# qgugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -703,34 +704,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkluaQICk
-# Uez9UC6XBxvxa1LzK4MwDQYJKoZIhvcNAQEBBQAEggIAO/vN3TZ/jS0xPcvG+ThA
-# 5zK+qhrKngXNrKoOKVll9K+TrU1xYxu0iHF6den38DIR/QwmMaCg5iNvkYgKAEDE
-# CS4d4exD82pOakO/o+ED9bDoD0AT180L5h+y3f4uDo0n5xm4p396RNDlKUzI5In1
-# 83Zxxo6qo8jIxL8KhaA5yYSrZRqAZRGOcCn9RJBRt1sh5+JjSWu9Mz70iEbMIWsn
-# Ed9gCjErxrUckDMhz9h1dRgZDEGpV1ij0af3EvL9tlNIXY+B3dSZ3unlMK7y2Pjb
-# VnFecbMpcNahdmxtWEvSMhstXlAJLH6Vcif8AYDG0eUy3Vgaa1sS232WISorALgU
-# sTr6TLlUbN7aUISAVLc/+BRPS3VO0uDpQfAq8fHbA4HeQtsGIKY0F8+dgBpOD4AT
-# H2siDYlCEDlvyPFDStaOND30SZJkx2SR9beTBF3bBn/3dF7v/EMnKqrIqHiwTzVz
-# gGsQdHS1awcyo4Hr1cR1Fy7yzz/sJ2AdLNEI63jg5g9ysbqYGc05bMCENn701eb8
-# L0+TRuqkn3TLV2cu7bS3ArTN7mijDKfr+kSrWPNxOAXy/EiPzE3etGWWdGk+4cDl
-# Gpw1xwTL+g9qoo9x2pWng6Y1fkUzJ1FmhqrPkoiFnbuSyTEqa3bnfeAfEARep6XN
-# V2K+9GBaEywGs1kM2aQBRVWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnhnYBj/k
+# ngxpJPnfuTeY/2yGHFMwDQYJKoZIhvcNAQEBBQAEggIAC/SRkKdlnn3X8zfTinLR
+# SnXJgVFyuMJIk7E929O9ruLDd8av4ZYCVBVYWXx4zlL/EWj+6btTZgZOYisCxpwT
+# eOqzpHzofXo6svRiDikpmTnO6n7HP1VdZnyPnaHnLpmB1zZMglzf9GJYcqa5Uajc
+# JJtL2iGPqmujF8nLFlQkcPJrLTIgeIk5tvzso/eoqccXfifZngfu8jPDzC7Ogn6Q
+# 6qX5E5UkCk3Mp0Ubja4a6NgtvLWJe50hbqTehvurXXAeHockaXe9h+zZPLFkQb5E
+# eqbXYZMF51Vyb1YA4CAnW7uLd9Ddp12WC+RVT5IGGpRQpQRmBaOaJblBNJSf9GF2
+# Lfr7PFjRinhfm8K3Zz2Cuzg8aKaYdS+BKoMzKSeEO8oNqrBrb0NP9LFCtPtEIgch
+# EISxAfJLh6qGaxQwKWm5QH94ecuOE0HEUGaxJ2KAT3jOOfBqYigp42YJlL+dxrsp
+# Mko1tGth8ZesHyRQJp/TQfYR4TnMv9UuUR+weGwZV+xwTyg9u21459Y6NSYicpVK
+# OhoCm1Da9iVgjFbBnHytr2DF3fNyyvcJJw8i0DIKRZoDgqmBBYOd+6l4qforA9uo
+# 4pwM58jvMD+Vm7dy0Kjq+Hu68J8sG6Ehe/b/g/5XIw1/61bAwcaciXCkHUn+VYTN
+# NZacu4e/JuxRCPOAMLj7p4GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEwMDgwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgiGup0iSMVdmV6cz2L1Ltdk24mm2XFw3IFVVnBEQR
-# UGgwDQYJKoZIhvcNAQEBBQAEggIApBQObHFZtIRprKSYKjKFfjH17ebibwGZpgQb
-# FrO7/1NJfKkJo6Y5Ik0ohnEZ5rgalzNNoOWAWNxTV2wS4fya41m/4YLWMjQu1DPI
-# qHRiBSSo+q6WMq0kFa1JPTr6E+jHtWwagj0AccOza8a8BgSnGavMsOMranl3dNjA
-# 4EonGPq/TNXQvh6CcZ76COLSAKHqHCkymRI3y3Zob5XcdIztwW3UhrP+kxLTcrqU
-# +53zPdS6Z0NC9ICIsLPOJxnJtB4J1sL5nYlGAAXv/wjgLm58wLRdWtLMi9UzISbT
-# hjLBPmvb/1PFa8snpuud6lZDOPWp0qplGUaJXw5JbzpGO5OsmtbY9WfjzWDQYY9W
-# I5CJcK/L02XKu9ChST8NpiWSxg9FLyShI61/Ng6OwyuGe0Tp32Gvqw3zIYccYgf6
-# WpbVlvA6G2Ucb6FDphVLwZAW63TGzQCnvurb2npjkpmrAAujv1BAuFThNDieNrYq
-# NqajFhOcBNcQIlRlKa6iOf0FeMlmGcUrFZ8UdyUQs9QYOKM5FnPhcagS+7HUjWSK
-# 4NdFinSlhV1bV9IHwrEfaIohUmA+iGWhgLLYeAlbB/+B8Aaw8/hp/QXCGDSkWJTS
-# PLXAcrulwqMQGO9e573Eu64Bo/YFyTnI1fmInPMe0a4f8eZrnnEDrABfj+3XCV2w
-# zPuYwJo=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTMwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgMjq3EwK94NiatAGqtb27mv0+qiLa3nTPnueetRdo
+# QzowDQYJKoZIhvcNAQEBBQAEggIAizHHi/iPKm3DoLQIxD84SyMd5qS5r47CjSo5
+# A+K+J2G5L10PzMGQiBqTBk92Q5QnTv65ogm/yIwwpq2VIFWsOUCp8GXLmsvIRbA/
+# eMgXiOwDhHXKoxVMB6wR9bmH+Q0Rb9rugLxIlJ1SYoJnmrqZYm0cqKLxWf5lI3VN
+# Hmt+HzwAxaxaKH9QyrlgMa0VSgvkIbRFVYO0Pr2N5d4Y+v4r1xkeGRMEQRFejeoJ
+# 018yZfElisXTRweMsEgjgxuPnAKVloFP8NoLw5n2nGUJTrjNhwYw4ksnpeouTzTz
+# 0u0gp4uh9kgOoyk7vkfQ4vhq5VEf3gGauQZu5lQcko0svqiDNzIknGbo69HQ/jFK
+# 5LXubXPb+usx+oUulH2k5fKIky2ms0hAhf0EeK+HgPqcAB/IMswO4T3bzMvkzUsw
+# +PG7l917fZF3zOgsviOLJiAk+H8hYtcg6TWeb4bPMZ9bFhwYuVC/C+K2m/q9Z2Vb
+# 20l/XXLOIMZ0+B1Yw8A+/L2o6pFLZZQbtN41bOj+cI7EhtSuaR3DL0mVV5WOfLUp
+# dFV7qpcED8hoMPOGnDhjTc8mZCnaDVBmZ3HaRSMNXCRv4C4tqbXYS1KIcfM9AIF6
+# xNt8fbH1IlXmbE8TvSh1iYjLc1VVxsDBRiD6AMmOQFvijjqbSNW5N2yV99bqto4k
+# XGXFW8M=
 # SIG # End signature block
