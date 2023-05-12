@@ -1094,7 +1094,7 @@ Begin
                 # Administrators
                 $DomainGroups +=
                 @{
-                    Name                = "Tier $Tier - Administrators"
+                    Name                = "Tier $Tier - Admins"
                     Scope               = 'Global'
                     Path                = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1332,7 +1332,7 @@ Begin
                         Members             =
                         @(
                             @{
-                                Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
+                                Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
                                 SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                                 SearchScope = 'OneLevel'
                             }
@@ -1353,7 +1353,7 @@ Begin
                         Members             =
                         @(
                             @{
-                                Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'group'"
+                                Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'group'"
                                 SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                                 SearchScope = 'OneLevel'
                             }
@@ -1367,7 +1367,7 @@ Begin
                         Members             =
                         @(
                             @{
-                                Filter      = "Name -eq 'Tier $Tier - Administrators' -and ObjectCategory -eq 'group'"
+                                Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
                                 SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                                 SearchScope = 'OneLevel'
                             }
@@ -1410,7 +1410,7 @@ Begin
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1459,7 +1459,7 @@ Begin
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1478,7 +1478,7 @@ Begin
                             SearchScope = 'Subtree'
                         }
                         @{
-                            Filter      = "Name -eq 'Tier 0 - Administrators' -and ObjectCategory -eq 'Group'"
+                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1817,13 +1817,13 @@ Begin
                             $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_0_admins%', "*$((Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_0_admins%', "*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_0_computers%', "*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_0_users%', "*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_1_admins%', "*$((Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_1_admins%', "*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_1_computers%', "*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_1_users%', "*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)"
+                            $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
                             $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
 
@@ -1837,9 +1837,41 @@ Begin
                     {
                         Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
 
-                        if ($GpReportName -match 'IPSec')
+                        if ($GpReportName -match 'IPSec - Restrict')
                         {
                             Start-Sleep -Milliseconds 500
+
+                            <#
+                            foreach ($Value in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' | Select-Object -ExpandProperty Value))
+                            {
+
+                            }
+
+                            if ($Gpo.DisplayName -match '- (.*?) - IPSec - Restrict')
+                            {
+                                switch($Matches[1])
+                                {
+                                    { $_ -match 'Domain Controller' }
+                                    {
+                                        $TierGroupUser = 'Domain Admins'
+                                        $TierGroupComputer = 'Domain Controllers'
+                                    }
+
+                                    default
+                                    {
+                                        $TierGroupUser = "$($Matches[1]) - Admins"
+                                        $TierGroupComputer = "$($Matches[1]) - Computers"
+                                    }
+                                }
+
+                                foreach ($Value in (Get-GPRegistryValue -Name $Gpo.DisplayName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Value))
+                                {
+                                    $Value -replace "RUAuth=O:LSD:(A;;CC;;;(.*?))", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
+                                    $Value -replace "RMauth=O:LSD:(A;;CC;;;(.*?))", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
+                                }
+                            }
+                            #>
+
                         }
                     }
                 }
@@ -2842,7 +2874,7 @@ Begin
                     {
                         $PolicyUsers =
                         @(
-                            @(Get-ADGroup -Identity "$($Tier.Name) - Administrators" -Properties Members | Select-Object -ExpandProperty Members) +
+                            @(Get-ADGroup -Identity "$($Tier.Name) - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
                             @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members)
                         )
                         $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
@@ -3151,13 +3183,13 @@ Begin
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Administrators').SID.Value)", '%tier_0_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)", '%tier_0_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Administrators').SID.Value)", '%tier_1_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)", '%tier_1_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Administrators').SID.Value)", '%tier_2_admins%'
+                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)", '%tier_2_admins%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
                         $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
 
@@ -3362,8 +3394,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU956a7uY7Y9q5A9535rRir0kR
-# QeCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOMBi8ZgYj/stTS92ScX9Y9oe
+# 0L+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3494,34 +3526,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwI3IlXJL
-# i7uSH5FEpezdYw+tPGUwDQYJKoZIhvcNAQEBBQAEggIAL66ysdYA9vCI1sVjUBN0
-# j8b8kuJDMPQq/5YhFacX4gR13Q6rm6TuzodDz2i0/LivdX7smulqXnvH7GVhlzjo
-# VSEKXLLn0Z6pjri9PQAAHgD38rCKvAI5vsIEwjOYIbXUBrCYOUy/zRbUt/+wlVPG
-# n/jjvmxUO+fvqGecUtTrJqT+OUqXqOXaoFzK8Y8qJTX7qTcF0dgsAiGX4dnVwc8H
-# zZGs0/irBZHlO2FzBjKtZo4sXHH56TOTCo3jxJ6KRxKjDBrym6HS6z+ZFCAwH8sG
-# 0EiScpW4/GicD0sbQt9+xAAeD6pBE3OCT1qdbUtaCFJqs7sGv9YgF4JE6oAKLH0k
-# 7gaZCQVkkNmJC7GwZtBJCKmUC5cBY2YgR5bsR8de4QxEIlyHniqITuAdXYlhpDBk
-# qc377Jkaso8xX6dvS4gmtEBN5Jk41rwRtFWplswemq/zgg4qRfGRp9sYAtoLEuaN
-# ZK0ffsrgNHUPedjiPdk54uGR3BSDUBlcLt2mlM2Wp9pMXPLczedkLhuAwPsk3N0D
-# y7Js/JXWLXe6wmgvjWtQ/r9UEnt5pkCnT5RaCGmmga5y3aaFAOXX9F9RZkQr0Nm8
-# CX3/cXW3YxlTZpCiyk4r5BxFah1r1QqwHYpovP0t8/g2j4zx9o3mUcYDozerzlXJ
-# /A3r6klBadrZVqHkvdSLtqOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGiFPv1Iu
+# rY2v4dWRF9cMFydIbBcwDQYJKoZIhvcNAQEBBQAEggIACuoWFtBQB3vQ718qeNNl
+# cBAC4lJrLrGdBWeK+kZ2i/zFqLoBUI7j2YMIv+X7my6spTQIyy1tQNFm5qqioH9p
+# yiU2rP383+sH3L9FmtwcargPdvbm5bmNjblfd2mbd1pKu/+CR/UvK8JPkmOK/Ubp
+# 6RXrVK8pRBXwbVyaK2sd9gHoe3zwrwb43mRrdJoBJurcmlm97LiIQ+AdLNrryRYx
+# lkHKxwLBeMoJ9SzICV99YjcRNj4BYw5J56xXrR7LXiHk/LgEN9LhW4qVMTaayUj4
+# nczSwYNl8pNGIHZVo8/B71RoPjF2NPk0Ap5k+Y/nAqWiMcLUW6e9eHm+cIUTXVGF
+# NVJ+QncE2tP0XdcEtLc5uetL0IXZ+McrNOzgeJIGb4Mb3AiOqxxvFNSemVvghuMc
+# Cp4dyaXewYXym2lhwQTxMo0xGgF1HuOPolYugsmBlRu/8VewmQRCGITV7jHW7eB4
+# 5U0UNLmrM8SxbkHWGmE+SQNwSrYmzqdxwWGxmip/5wN1Q2NzfEwxO67hK3G57r02
+# RZIk179itY5e+rpJopkzj1kXjQQFm7nGUZYnM31tv7Ql4o9Sg4j7gRail7Y5K6Q7
+# DqvgVCDfu32yC1IbPIwe9rJR4huetw7Aa0lu3NXw9hEBxN6RHl+oaoL6pOBD7CTG
+# RRqGUccKwcJZh8K/0d4aq/KhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTMwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgupu0h9xqweWe9Ar+OzmHhFATykV/+5M2xYSyzB5E
-# +lswDQYJKoZIhvcNAQEBBQAEggIAtZPC0YnZ3q5XfTr22DUM99moI5RYj86nIN/v
-# 1gqYDlAKkjIl9/DoyFyOK4zvKFt+wE1ECYE27jC5hCJ3X20sAdtP9N1nym5fa0ls
-# xCxSS5fGzAQjdxeVMQ3G7K+SPhUTTxEBxl7hJ2MBuvEFm6szr78t8guZ2fcGmB1a
-# O6I23n2HVjUQa8Y5KDNXqIdwvRvsaObcAx0i0zsDeACp88xSZB+E0MOhzvHnTw1x
-# 9YdK5mLx0Q93mYg4OaXC91yUQgfFW7QKQFpAYghwUXAExZ/uqN2x/AEP/37ujMnX
-# J1xV233BIiWTQ4YuOGaHS5+VQaK300Xkbbrb1abG7RZMZ9Pp9FEYitdsaWyG/AsH
-# LI5/b6U7H6TJGsrem9MoM6eU26J5gmhnh2fTqdr4eK85VJEzSjGePAnSmC8B74f2
-# 00nLeA694GKw3Ku73N3grxDt8ihRis416sPpGa+Q0/XzwaXewQeWG9icGSGc3gye
-# 4oIE25UMdRn+gkOXzqVhaE84jPcMYLAz4FLC4s2EZ+En+SEp1w22j+vuVvmKtugV
-# bdQBRg4jGXrjQ+DZkTjUa2/5yXBz9edJ2fHdGID7r+ebfVC6oZ/EfgzXSt80UdPr
-# gUyB4k8bL0rWlnB+Ac3anzbjk+4mEt56MSi5YxkrsFDEms3tq/lk3SdFAkDea4IE
-# c1lFlg0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTQwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgbNBIBZenMJdRZoBm2Z0UpSG3orEpIjSr53FBlmsI
+# k78wDQYJKoZIhvcNAQEBBQAEggIAGz23wcK43WeViZon7KDoMHvdL8aCIxbinswz
+# CgAx2Gwe6BEiAipaflffERAyuw31GQyYmWxx/2r6LO325IkpUSpIGD77wPWrSade
+# 36BzuLm44oQLGvo9xdRa9q885lWRg9nt+tFoEJ89kkBD5qGV8IrV6nneHmcx0RKH
+# V1BHy7P2GIZ98877pnXaeOcrI6Npg93VD6SZ74opMFDCW04XQ4evYuSo+CCAu7cU
+# YUOhDDjbgjeCNn3fAw6rXu9imUBWqHhTR8K3ZNftuyTq7fjhi2gHhVvYTfRSUIhC
+# rHEJnU7KVRVEhHIaInrf56mnwALzBNIjDABMX9txxtN/u2UtEbTecSyId89PGxUx
+# 9gAYmm6w4xVg0ZohS/wJ/0TvvE+l1ppqoaxA+b4JOgDDuSIThvTYHyh/w+7Fkmp7
+# AFeWRr9aiL+ghPhN4/gG4RHomEGNFi3/CBXIPi8yzqr1MlbpDRddY6Mmo2Kr4Af6
+# sPRyZhZIA5rwy8yrBW356GoCpXEiVhT4Ozfdd89GrXfo9+OATUhRfEvsGGJiBSEm
+# KSrwmIW/6+b4wj1efEPYIgle3fGuYVK3a3S7g89Hl3UbjDtqJh1Mrfv83D3dabSW
+# 1U0J72xZDEJYeDwn0V8IK7lrgrjVYEW80S81v/gsbydb/gdl9Bcfz1DxIZvsKHHr
+# e1dcOCU=
 # SIG # End signature block
