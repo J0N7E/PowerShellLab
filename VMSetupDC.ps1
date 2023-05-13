@@ -1837,41 +1837,37 @@ Begin
                     {
                         Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
 
-                        if ($GpReportName -match 'IPSec - Restrict')
+                        Start-Sleep -Milliseconds 500
+
+                        if ($GpReportName -match '- (.*?) - IPSec - Restrict')
                         {
-                            Start-Sleep -Milliseconds 500
-
-                            <#
-                            foreach ($Value in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' | Select-Object -ExpandProperty Value))
+                            switch($Matches[1])
                             {
-
-                            }
-
-                            if ($Gpo.DisplayName -match '- (.*?) - IPSec - Restrict')
-                            {
-                                switch($Matches[1])
+                                { $_ -match 'Domain Controller' }
                                 {
-                                    { $_ -match 'Domain Controller' }
-                                    {
-                                        $TierGroupUser = 'Domain Admins'
-                                        $TierGroupComputer = 'Domain Controllers'
-                                    }
-
-                                    default
-                                    {
-                                        $TierGroupUser = "$($Matches[1]) - Admins"
-                                        $TierGroupComputer = "$($Matches[1]) - Computers"
-                                    }
+                                    $TierGroupUser = 'Domain Admins'
+                                    $TierGroupComputer = 'Domain Controllers'
                                 }
 
-                                foreach ($Value in (Get-GPRegistryValue -Name $Gpo.DisplayName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Value))
+                                default
                                 {
-                                    $Value -replace "RUAuth=O:LSD:(A;;CC;;;(.*?))", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
-                                    $Value -replace "RMauth=O:LSD:(A;;CC;;;(.*?))", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
+                                    $TierGroupUser = "$($Matches[1]) - Admins"
+                                    $TierGroupComputer = "$($Matches[1]) - Computers"
                                 }
                             }
-                            #>
 
+                            foreach ($Value in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Value))
+                            {
+                                $NewValue = $Value -replace "RUAuth=O:LSD:(A;;CC;;;(.*?))", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
+                                $NewValue = $NewValue -replace "RMauth=O:LSD:(A;;CC;;;(.*?))", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
+                                $NewValue -match 'Name=(.*?)|' > $null
+
+                                if ($NewValue -ne $Value -and
+                                    (ShouldProcess @WhatIfSplat -Message "Settings `"$($Matches[1])`" group sids." @VerboseSplat))
+                                {
+
+                                }
+                            }
                         }
                     }
                 }
@@ -3394,8 +3390,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOMBi8ZgYj/stTS92ScX9Y9oe
-# 0L+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS32TZcnMHEtRYUXXiLB1nWgy
+# WNOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3526,34 +3522,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGiFPv1Iu
-# rY2v4dWRF9cMFydIbBcwDQYJKoZIhvcNAQEBBQAEggIACuoWFtBQB3vQ718qeNNl
-# cBAC4lJrLrGdBWeK+kZ2i/zFqLoBUI7j2YMIv+X7my6spTQIyy1tQNFm5qqioH9p
-# yiU2rP383+sH3L9FmtwcargPdvbm5bmNjblfd2mbd1pKu/+CR/UvK8JPkmOK/Ubp
-# 6RXrVK8pRBXwbVyaK2sd9gHoe3zwrwb43mRrdJoBJurcmlm97LiIQ+AdLNrryRYx
-# lkHKxwLBeMoJ9SzICV99YjcRNj4BYw5J56xXrR7LXiHk/LgEN9LhW4qVMTaayUj4
-# nczSwYNl8pNGIHZVo8/B71RoPjF2NPk0Ap5k+Y/nAqWiMcLUW6e9eHm+cIUTXVGF
-# NVJ+QncE2tP0XdcEtLc5uetL0IXZ+McrNOzgeJIGb4Mb3AiOqxxvFNSemVvghuMc
-# Cp4dyaXewYXym2lhwQTxMo0xGgF1HuOPolYugsmBlRu/8VewmQRCGITV7jHW7eB4
-# 5U0UNLmrM8SxbkHWGmE+SQNwSrYmzqdxwWGxmip/5wN1Q2NzfEwxO67hK3G57r02
-# RZIk179itY5e+rpJopkzj1kXjQQFm7nGUZYnM31tv7Ql4o9Sg4j7gRail7Y5K6Q7
-# DqvgVCDfu32yC1IbPIwe9rJR4huetw7Aa0lu3NXw9hEBxN6RHl+oaoL6pOBD7CTG
-# RRqGUccKwcJZh8K/0d4aq/KhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUE8u/XIG8
+# 9umxvdYXt/NTSBVuCj8wDQYJKoZIhvcNAQEBBQAEggIAPhLmjnuGMtOSU8clLUeq
+# NI/PKh/2sIyY8A85aG8Y6Omwj2OZDAwVywVkQoGqHObdXJ/jRQu7JRlGFjqYEFT6
+# wLR8p5nyQX1R1yRhkAwOmY31WQhaZrhJVQySrDIgBmCt9T2XQAx/oUoEMQjwKrsX
+# HrwzdK8mFpUAgIGnqyvoIm5Ih7eTUSiTK8NnnmausxE+wbP/kfKrrGnPigtRsObG
+# +Z3GGTbL3bC4mW4mfWp7WU5y3fyubsRiCG0QSX4drkHZZ1SFsIGiObE4L2BO5qqF
+# V6QQtTGtt6gE9pokw3ecp6hWytlw3lDUpEzSkN5cGxYwTrhqeswCCFf1twEyCDBv
+# EhvHyIE1G5AfTe5kYFpRy+as8n/+SYGoDUH6benmOiTG8bzt6WO4O2J2GNmysNsm
+# sGEmLjGMlL6t9evM4WBenkTP66q7e96fINJ+OA/zX9PEYpZKgxZ5bjfJ7KUN5z/R
+# F+Z/NSJvSShSfkFzLEF1hhe9APb6KyiSJm0RvQm/p8wfXBbcZiXK9zrlPhV6UusP
+# gh6kx2piGEcamoTtaB6atvsYbnHGZrITrwUGqJulYo0kwN6D3D+H4apHRrP1taQw
+# KafWAGKRBTDMEKOp2AxtWRuKqFYdXmrp3Vk3NPpAu3ekFrqD77orqNnsv0KMwSCR
+# Ceo0q2tZV9uAh2oFYfMZnG+hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTQwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgbNBIBZenMJdRZoBm2Z0UpSG3orEpIjSr53FBlmsI
-# k78wDQYJKoZIhvcNAQEBBQAEggIAGz23wcK43WeViZon7KDoMHvdL8aCIxbinswz
-# CgAx2Gwe6BEiAipaflffERAyuw31GQyYmWxx/2r6LO325IkpUSpIGD77wPWrSade
-# 36BzuLm44oQLGvo9xdRa9q885lWRg9nt+tFoEJ89kkBD5qGV8IrV6nneHmcx0RKH
-# V1BHy7P2GIZ98877pnXaeOcrI6Npg93VD6SZ74opMFDCW04XQ4evYuSo+CCAu7cU
-# YUOhDDjbgjeCNn3fAw6rXu9imUBWqHhTR8K3ZNftuyTq7fjhi2gHhVvYTfRSUIhC
-# rHEJnU7KVRVEhHIaInrf56mnwALzBNIjDABMX9txxtN/u2UtEbTecSyId89PGxUx
-# 9gAYmm6w4xVg0ZohS/wJ/0TvvE+l1ppqoaxA+b4JOgDDuSIThvTYHyh/w+7Fkmp7
-# AFeWRr9aiL+ghPhN4/gG4RHomEGNFi3/CBXIPi8yzqr1MlbpDRddY6Mmo2Kr4Af6
-# sPRyZhZIA5rwy8yrBW356GoCpXEiVhT4Ozfdd89GrXfo9+OATUhRfEvsGGJiBSEm
-# KSrwmIW/6+b4wj1efEPYIgle3fGuYVK3a3S7g89Hl3UbjDtqJh1Mrfv83D3dabSW
-# 1U0J72xZDEJYeDwn0V8IK7lrgrjVYEW80S81v/gsbydb/gdl9Bcfz1DxIZvsKHHr
-# e1dcOCU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEzMjEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgNRjz8dI5zUHczC+7YSL34SyWyhXfqcFtvudaNO5e
+# +WYwDQYJKoZIhvcNAQEBBQAEggIArLlpK0pGFe1UgSYAMxcH4DvniJGkGbHoe+e/
+# tqC2GwpI/javrBGjAAm1wGQ41qKjdy3RsPmxPUvuxwe+9JclVLm/1HSTAAkzMjwW
+# kW8AddaTAhsgfbaWy5KCAjdwNP1cON7726WCmn5d6l7OUuN+pAP/+HBEs0DmTdEo
+# 7NXaOcmJXXZS8cpVDxN33KRYGqtB68HJFGrsQCMyTWoojPjkn0wXgPmT4aoKE+lW
+# y3tENAMpKrcJUnh2ypxezJ3Ri4job3o/Aqj0vwWcc9R47U1C7kUkLX8SyjWpwINe
+# eTm5nawVEz6Ln3W+umps+9cL6bVoVyZlZYf3K3ZAhMDhTr2SDMnKqagn3xvHmIh1
+# aSEWcRI55QFFhNNM5U620m2JAGO8+8EGtHpiWPNoY+ahjV32CtnHFJPJPYPzhOdZ
+# Axh66pR/xTV6zlAqS6GK5ayE/dAds+5d1cDWRGg6sYzqTo51xkH312eCLX/c/0l5
+# O0NQCgv48FyXQ8MJnUMiO4hqHuNtF+DSBmH4LM/9GmaIkg2na3DD1aNdRVvG9I1m
+# g6UdGFgPu6vqmTAxHZdD1wGhLpsVdwfAX0ZsTqAGQEd5hN9dXNu2wiMMydlmNPdI
+# TMLS+wPqH6gSaIIcxayBY8sMf0NbAXetTQqq1VvTZh2HAEiF6XDZJh7R+qi7Y3BM
+# jlMBBBs=
 # SIG # End signature block
