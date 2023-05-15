@@ -2172,7 +2172,7 @@ Begin
 
                         # Check link
                         if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
-                            (ShouldProcess @WhatIfSplat -Message "Created `"$GpoName`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                            (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
                         {
                             New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnable -Enforced $LinkEnforce -ErrorAction Stop > $null
                         }
@@ -2201,7 +2201,7 @@ Begin
                                 if ($Link.Enabled -ne $LinkEnableBool -and
                                     ($RestrictDomain -notlike $null -and
                                      $GpoName -match $RestrictMatchStr) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Enabled=$LinkEnable] -> `"$TargetShort`"" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnable] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
 
@@ -2214,13 +2214,13 @@ Begin
                                 }
 
                                 if ($Link.NoOverride -ne $LinkEnforceBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
                                 }
 
                                 if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Linked `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
+                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
                                 }
@@ -3389,8 +3389,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0kjtlrvAZvd1oM5k03Su5etD
-# CKWgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy75uKNozssOZq5E339I/wwZp
+# Sl+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3521,34 +3521,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4x2DfMVm
-# 6mm/NEOLncEKaFdzsu4wDQYJKoZIhvcNAQEBBQAEggIAVKunkRYX6iVrqwMgz5GU
-# as+O0fYn6iI2bZvqKlTl+Kr3MfMgqrTqqFlaw6o8UZbF9lzCAqAc9JCVQiSlpefL
-# CMr4VgtbxeDJcw3PmIp67np4f7r0wpErWYHyx3EA8MdQcsy3Wwd27JgAfID0mFFJ
-# T60g+iSGCaICEYz7LThvb4KVAV31DBOPXFbMNGAtX07iI+axbFdytqxdld4HCK20
-# 1Ppeqo0kCJCUI/u+ZvjlRqEL8ceO5qczbTqU4WfkWJLP9R59nJqAtRyPfwM65L8F
-# LMGLjHHLnVw2Ok27JMSlx7jT0K9aSL3Kk61xo2a//8rl1O268s32ua1IrDZFT/mV
-# +pME08HUkI8eOhWd0dnISZaUEME7W1iRWC2q1BAILbzwIq2rq9VGeOIuqhRDO/tw
-# 0FcRsGxC+pN1QAbFFCdXPhbRjN1sv911TjmescyjaJQilOvoQl5bWDQU8B5AHcnN
-# 4w/7rfqfwlf/dHGUXTuN9ssTjzViR1tgHYCKhGcXys19Mt8Ywd3N8+vv9xIGSBuo
-# 3RDNpVIDcubAi8+FnDqM/UO+jcqXWCrfVqxXomqJk55A3KcEc7eS8XGgoqoOsF2y
-# 9zaH4+/VmKNSSEW5TJ1s76zGPfOmRIVwRenBaN366JH+TFFfcYvrfcTkO0C4Jw2Z
-# MFsPaV2iP6JLgdRXB4h3UmShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUGNUPv6NW
+# Z7Pcnzj3k2DHiA5Oaw4wDQYJKoZIhvcNAQEBBQAEggIAHifh41v2vjZQbbDhikD3
+# JUzpBoj/0m7ItdDYG/c4yZXTpAG1P+a+qNW0NyzshUC1EGk0Pny470tClgNGESeF
+# kdsM0qBjGbbqFyQ3bOTte/KysvJuXSvLk0ATYgbUB2wiv+VYo4wuNojY13qfPJKm
+# WWv2BQFOnIN8AfAfIL5x7joweXW/WT/NHqJZUHWKxAtB0hY+56MetDP/xzO1w0k+
+# Yk3TFhuckGFA30F00SHZxuab5afDBCSkXYX7CSJQuc9Ca+BFJMNyUXreUD1k4QFs
+# 8pca4XKjVakfhI4S5lu1SjruIV+rpwTL35X91P49Cgyxjj8dhLwoCphUp/6brYg5
+# Csi7zeKzD2mcqg6QfGhvMNKzKXadYsK6owsSPDODKpDx0uDhc6uf5hFR+2G5z4hr
+# DqdDXKK6lNpziWipf0F8U5vyG/CsxZlZIa/eYrQELrwzJZRF0q6wWdQ87SZbAFOe
+# RcZzUeWozbKiNctldDT/W6XVOjmufhBQu0Zu1EtLZfsON+YIg8JUIkg8qookpLoS
+# iAx5g+fAaUM3pmUMvBmkG3neiyIrqnCbSB3m8+wOpPRoTsQC4gXlwR3LY7AxqGQk
+# t3YKBBWby3x+xD/GrBtFvJ+viStKUa4+po4CPHrMmDEDcZNApB6kvNco0mhVrmzM
+# jBtNTZA5kuQpH7LGQ+GKerqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE1MDkwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQg4t9JjCrcRxoAdYZH3RnBdT2agoD0xXNS4Ymn/7Az
-# ZZQwDQYJKoZIhvcNAQEBBQAEggIAFiQvDwyYNlOZFTt95qqifCnVU9buWxX+Xjus
-# jU1L1uYckqqjmlJdAwUAvLow5in1BjzX8fqe+KJPXKenPiMnNzaVtaZuupBPWFYl
-# sqLd+ooJs+6LNSEMrCwGlud8MembOnPZL6oElWlYJAKBd9HoBHYgRf+QnZnzDWDW
-# 8L67PpEqIqG3mIwQ+HaFa+Zr6ExXKjGlu4KhEuNqfbcUKxtAc9GjHDo+gXoKRoG7
-# EM5WwaiXtqqcWraYAflg8YA00s26Jt/BxZReBhnKUpiNYOJNHZhxh0EdDSQJWbMD
-# ViNUWmSKbXY046zWA06otDSDXlGoevVzVjK8OqLQGZl7K9j9CvJxs2zqJltfhieH
-# k2ADNumbySEVGRg4J9AEb5B5qMNHt91eBBZ7ptOPidZuRAku3VeBt9pBcwORsLkB
-# PCFLcn2mkrFFKC4RMPLKAmuhPqwwDYe5fk32LCPRCMswnkyHQFIT5kfl9xbdrn3K
-# c0SqRSBuK94uwp1HmbDXX9BF/GI5jjOJqFXR/QIFxlAsAZp7a2yLbFBzjspOXL9+
-# 054JNm0H5/drMLhDDJa5qmFLskbM/wEiwAeon0mHnv8UXhd+gI2RVOgS32r8gvUZ
-# 0Vm6RjdTv1ROWYXE3u5B1qJdT2ZTZwB9op7IiEZX4uskQR7EjM3j4Sd8DMiupS/a
-# ePHtSAU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE1MTIwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgDz0BrkWBoQ6XVi8pjtPONeJGfYB5lE39fzuHaPwm
+# e5QwDQYJKoZIhvcNAQEBBQAEggIAy8txNd4v21pn3u0W7+tiQlJ7QQwUr0Yz5fqT
+# 2QoX6q7jH7YL5OV/hUoqPO5BD/1IhF2imWPasSdddIAogzlgXQWXiFxunlU5oEgv
+# WTdzJnfVKp/SRjY3OnuM2X3K9NC8a4zBJAT1aJD9Jg32Br4xe+5OLV0N2nchuqwJ
+# P86vE/ziocDFdjqg9OlRQzpBk1T/JcGK46l7eSGhazADyxsqOrrL2lSg1kKqenEC
+# C1FrEYVCCdSCoo5+rEuoGqM73lMBI9qCXhartZPSwVKKVwOkyoqI8Mz8GM2+4n84
+# FYd5ZuVoakV75MY1UIPP0jXJjxvI5iin8p+sbMOhbIYY8weDfuLorgnkXC4iGq2G
+# oi+rOaS/oIkB2yrJUPNwUgoQvo+5vKOOO41H0Nv7jsxzPmF8ncs9zdvxJVXCSUho
+# AsrK/x0uBHbl1icKQ5KcFpwHODp4Xlc5JASkGdCzI+uVyOnFPXKcLA0O8CgLXdMc
+# Lxnpy3DC0tnIYqy3tT2H5+K3gJGkSK3Sw4xHG+8Gpi23+RD7UZsH2rpvXKFX6wnD
+# rTnOghoyPGLwkYS5b1dp6TRjVIwkxdIYR438LqtZFK3s7QOHqjTHXmoqhp+YFtYR
+# 6TqZMKnqpc7GlDfuKlX9xMsp+2ageyeX7d6AInMD+Ak1Wj83JIZzQ0S4mImXN8dQ
+# 1lh6mTM=
 # SIG # End signature block
