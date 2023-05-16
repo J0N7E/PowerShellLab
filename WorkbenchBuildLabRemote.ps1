@@ -66,6 +66,7 @@ $Settings +=
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
         RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
+        SubCA3  = @{ Name = 'CA03';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
         DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Dac; }
         WAP    = @{ Name = 'WAP02';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('LabDmz', 'Lab');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
@@ -468,7 +469,7 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCA.ps1 $SubCA $Ac0 -Verbose",
     "-Force",
-    #"-AlwaysPrompt",
+    "-AlwaysPrompt",
     "-EnterpriseSubordinateCA",
     "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-CADistinguishedNameSuffix `"O=$($Settings.DomainPrefix),C=SE`"",
@@ -572,8 +573,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUD5v7wRJqMiAormhVoW9VOQjw
-# qgugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaOkQVKq38Qx/bMuWll2bDici
+# Ip+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -704,34 +705,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUnhnYBj/k
-# ngxpJPnfuTeY/2yGHFMwDQYJKoZIhvcNAQEBBQAEggIAC/SRkKdlnn3X8zfTinLR
-# SnXJgVFyuMJIk7E929O9ruLDd8av4ZYCVBVYWXx4zlL/EWj+6btTZgZOYisCxpwT
-# eOqzpHzofXo6svRiDikpmTnO6n7HP1VdZnyPnaHnLpmB1zZMglzf9GJYcqa5Uajc
-# JJtL2iGPqmujF8nLFlQkcPJrLTIgeIk5tvzso/eoqccXfifZngfu8jPDzC7Ogn6Q
-# 6qX5E5UkCk3Mp0Ubja4a6NgtvLWJe50hbqTehvurXXAeHockaXe9h+zZPLFkQb5E
-# eqbXYZMF51Vyb1YA4CAnW7uLd9Ddp12WC+RVT5IGGpRQpQRmBaOaJblBNJSf9GF2
-# Lfr7PFjRinhfm8K3Zz2Cuzg8aKaYdS+BKoMzKSeEO8oNqrBrb0NP9LFCtPtEIgch
-# EISxAfJLh6qGaxQwKWm5QH94ecuOE0HEUGaxJ2KAT3jOOfBqYigp42YJlL+dxrsp
-# Mko1tGth8ZesHyRQJp/TQfYR4TnMv9UuUR+weGwZV+xwTyg9u21459Y6NSYicpVK
-# OhoCm1Da9iVgjFbBnHytr2DF3fNyyvcJJw8i0DIKRZoDgqmBBYOd+6l4qforA9uo
-# 4pwM58jvMD+Vm7dy0Kjq+Hu68J8sG6Ehe/b/g/5XIw1/61bAwcaciXCkHUn+VYTN
-# NZacu4e/JuxRCPOAMLj7p4GhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUU7v03ve9
+# wB7NU7IOHpX/Pu4JOGMwDQYJKoZIhvcNAQEBBQAEggIAAyHorfGrJiJmozyMaSSa
+# 8jlQwqGZRXtuUTx7nbQNQ1BsGjSW/21VPZMPYbKg5HctP+JlqY9UKj/rx5jjfXHS
+# 7DITeDkolTPR/vTCxwMBSvb0FXFzj6lZWuB9uROG+gRQnv5lBCw+Lhir4772aVsl
+# OJ2ovFa1RP0NBMtQ3dGJrSmwDC0yO+/jKZpbCi10QQ4lfZHOktwprb26BO+XWCpI
+# LoukxZ5gvLmlCI+xf6FzUrpvqrT5F2wgDkVYAGKBYwiXl8ItlyRy0FLASjVLawuZ
+# kgSbHxyg0gl3gmayaiuHE7vDoL0KCl4FvEPVz5P6rkCDpQ35eo9YQvSe4dWadSkg
+# mcNkNFzLj10lPKSBea0DQ07Nr/J69nvzZ7ifQUNoczj5vo0+S9phLMMkR4fXyTAC
+# Mpv1JCpUP+F8Uo1k/B+apTh/a6968LbitaKEs+jC8Vu1skwvETqwwJ0Vj39VqS0h
+# /CIj1dHzPO9KJOw450SCYee9dy0GM/uLEJwZDUDvIBIj5RO72eDOE5audHIIG1wY
+# iSNK+taRAb/B4F+chxbY+epa5CBCZyv71G5rfXaVsQWLRJgVrmLdX7zV14JH1NjH
+# pVZR1LvtXJ7SxARi/fNjhPTtJ750jIaKjLJb2HteUhVSDeye55pg0Tt+D9x+/hh/
+# 4AHX0RgLrQ+0/QRbpqzf2e2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTEyMTMwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgMjq3EwK94NiatAGqtb27mv0+qiLa3nTPnueetRdo
-# QzowDQYJKoZIhvcNAQEBBQAEggIAizHHi/iPKm3DoLQIxD84SyMd5qS5r47CjSo5
-# A+K+J2G5L10PzMGQiBqTBk92Q5QnTv65ogm/yIwwpq2VIFWsOUCp8GXLmsvIRbA/
-# eMgXiOwDhHXKoxVMB6wR9bmH+Q0Rb9rugLxIlJ1SYoJnmrqZYm0cqKLxWf5lI3VN
-# Hmt+HzwAxaxaKH9QyrlgMa0VSgvkIbRFVYO0Pr2N5d4Y+v4r1xkeGRMEQRFejeoJ
-# 018yZfElisXTRweMsEgjgxuPnAKVloFP8NoLw5n2nGUJTrjNhwYw4ksnpeouTzTz
-# 0u0gp4uh9kgOoyk7vkfQ4vhq5VEf3gGauQZu5lQcko0svqiDNzIknGbo69HQ/jFK
-# 5LXubXPb+usx+oUulH2k5fKIky2ms0hAhf0EeK+HgPqcAB/IMswO4T3bzMvkzUsw
-# +PG7l917fZF3zOgsviOLJiAk+H8hYtcg6TWeb4bPMZ9bFhwYuVC/C+K2m/q9Z2Vb
-# 20l/XXLOIMZ0+B1Yw8A+/L2o6pFLZZQbtN41bOj+cI7EhtSuaR3DL0mVV5WOfLUp
-# dFV7qpcED8hoMPOGnDhjTc8mZCnaDVBmZ3HaRSMNXCRv4C4tqbXYS1KIcfM9AIF6
-# xNt8fbH1IlXmbE8TvSh1iYjLc1VVxsDBRiD6AMmOQFvijjqbSNW5N2yV99bqto4k
-# XGXFW8M=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE2MTAwMDAx
+# WjAvBgkqhkiG9w0BCQQxIgQgCEqygU33Vtp+v+7dd0jSJ6VnTBl+XPeimgfi9Pks
+# g28wDQYJKoZIhvcNAQEBBQAEggIAxdgej3+d6R5kRHKE4dtSsmbrFKR9X+03jPeb
+# BUODYd61a05t33JFTIAdY/30Nl3qJg//1S57pnvzFmQWLjczbOzPE+2WuMUbAPOl
+# vOKKEgJV8UWrzO4l8NUKQVEmMI8r5LE68PLcDhzfOCA9F+VKxYdoqnfQi7kNx97X
+# PMpo2dwyZqaQl4Uki9EA8lTrvqOa1HqL+t9F1n0IrocMDAQl4SAAFgA3stClVrCV
+# UJLPC7+AAEd8cISnxPhq0BCJ/uAiGcsdRzep0tkOxiKhkFPcNwY8oHpvjtS87SIW
+# AoGNO2S+LY8EboH97a0tTpAvvYmj8OKp3jbC91j021fV+fW60rDy+kvCG6zUcwMU
+# IjUGBJhO9QDCypr+1RDagcdoh7X3sEdWpIjK04rwtVN5d76nXw6TymKRbr2gb/H/
+# 9wMkQO3f2DW7Nkf9myZyXcIIJDMI/fsJq+ciIF6BMCDaTRlCxHAeJn7lpmjR7ekC
+# X2frqBG1fKlLM3tNi0wLipH/IwBJcEKJFOuVLVXKW06rJNJwLCr2ePxpe+Cvt/0v
+# FeA6ihZ3Wce2bdwGI7fU/XCQGiqqX9roL89Okj0pv1ej7aURhWaBSJ2PEki6jNI7
+# I1Ps77y4ayHuqUve/9wgc+U22Xt5jtvHp1eES2V1nwgb1BN+sCM0+3gk9PtOYjz5
+# hDLPnFI=
 # SIG # End signature block
