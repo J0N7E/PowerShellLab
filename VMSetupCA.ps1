@@ -750,13 +750,23 @@ Begin
         ######
         # AIA
         # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-aia-extension
+        # CSURL_SERVERPUBLISH -- 1
+        # CSURL_ADDTOCERTCDP  -- 2
+        # CSURL_ADDTOCERTOCSP -- 32
         ######
 
         # Check if exist
         if (-not $CACertPublicationURLs)
         {
-            # Set default AIA
+            ########
+            # Local
+            ########
+
             $CACertPublicationURLs = "1:$CertEnrollDirectory\%3%4.crt"
+
+            #########
+            # Add to
+            #########
 
             # Check if exist
             if ($AIAHost)
@@ -775,6 +785,10 @@ Begin
             {
                 Check-Continue -Message "-AIAHost parameter not specified, no AIA will be used."
             }
+
+            #######
+            # OCSP
+            #######
 
             # Check if exist
             if ($OCSPHost)
@@ -801,83 +815,59 @@ Begin
         ######
         # CDP
         # https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-r2-and-2012/hh831574(v=ws.11)#publish-the-cdp-extension
+        # CSURL_SERVERPUBLISH      -- 1
+        # CSURL_ADDTOCERTCDP       -- 2
+        # CSURL_ADDTOFRESHESTCRL   -- 4
+        # CSURL_SERVERPUBLISHDELTA -- 64
         ######
 
         # Check if exist
         if (-not $CRLPublicationURLs)
         {
-            ##################
-            # PublishToServer
-            ##################
+            ########
+            # Local
+            ########
 
-            $PublishToServer = 0
-
-            if ($CRLPeriodUnits -gt 0)
-            {
-                $PublishToServer += 1
-            }
-
-            if ($CRLDeltaPeriodUnits -gt 0)
-            {
-                $PublishToServer += 64
-            }
-
-            ##################
-            # Set default CDP
-            ##################
-
-            $CRLPublicationURLs = "$($PublishToServer):$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
+            $CRLPublicationURLs = "65:$env:SystemRoot\System32\CertSrv\CertEnroll\%3%8%9.crl"
 
             if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
             {
                 # Add custom CertEnroll directory
-                $CRLPublicationURLs += "\n$($PublishToServer):$CertEnrollDirectory\%3%8%9.crl"
+                $CRLPublicationURLs += "\n65:$CertEnrollDirectory\%3%8%9.crl"
             }
 
-            ##################
-            # AddTo (Include)
-            ##################
-
-            $AddTo = 0
-
-            if ($CRLPeriodUnits -gt 0)
-            {
-                $AddTo += 2
-            }
-
-            if ($CRLDeltaPeriodUnits -gt 0)
-            {
-                $AddTo += 4
-            }
+            #########
+            # Add to
+            #########
 
             # Check if exist
             if ($CDPHost)
             {
                 # Add CDP url
-                $CRLPublicationURLs += "\n$($AddTo):http://$CDPHost/%3%8%9.crl"
+                $CRLPublicationURLs += "\n6:http://$CDPHost/%3%8%9.crl"
             }
             elseif ($DomainName)
             {
                 Check-Continue -Message "-CDPHost parameter not specified, using `"pki.$DomainName`" as CDPHost."
 
                 # Add default CDP url
-                $CRLPublicationURLs += "\n$($AddTo):http://pki.$DomainName/%3%8%9.crl"
+                $CRLPublicationURLs += "\n6:http://pki.$DomainName/%3%8%9.crl"
             }
             else
             {
                 Check-Continue -Message "-CDPHost parameter not specified, no CDP will be used."
             }
 
-            ####################
-            # Publish Locations
-            ####################
+            #########
+            # Remote
+            #########
 
             if ($CRLPublishAdditionalPaths)
             {
                 foreach ($Item in $CRLPublishAdditionalPaths)
                 {
                     # Add publishing paths
-                    $CRLPublicationURLs += "\n$($PublishToServer):$Item\%3%8%9.crl"
+                    $CRLPublicationURLs += "\n65:$Item\%3%8%9.crl"
                 }
             }
             elseif ($ParameterSetName -match 'Subordinate')
@@ -1882,8 +1872,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwKuUVx/25mzyDoeN9cw9+SzH
-# OFOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMDeWuv7nt7kVZe2LiE3EBd7e
+# HVCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2014,34 +2004,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUvx1R7BQu
-# EsxUWcLp5GeriXXZhbkwDQYJKoZIhvcNAQEBBQAEggIAe2QQ3xN1VIqUtRf6V620
-# Qp/EWMeAQR1o0AfpcE9rCbtqxk8XT4hiHg2jZGs7XfyN+e8mgEVuNdDb3vExHWmk
-# q9jVhLxT1jfjdo58qUwF/TdSbs7tUZLmFfu3KBYZHmYugoMHBucfoZbHY0rL6oIc
-# 6bi3BCGp5oTTUsMLbR4TIrn/2qdBrYhmmwHl1THz7l4IUbUnjdPf7nKRCdHRNsbh
-# Ej7dMQfzwFzFXK8DSW4TkC2+mNBngpmidWQzMQHAIM/NzKksaA1hnCYWeSdzUusY
-# K8Hva7q3fdSb92BaXzrUQ2XVyGyiDglFg2xwQnuqGawOrSe3i5qgncCJfeEYFoRH
-# HG3xpulfFiVTlfzS/UB7eDEEa5M2pJop3C/f0T5x3Itf16tT2Ifbas9e61vBbgHm
-# nZ/IBPLWsGQ4wdJoPRUtvTyq6Dw229Mi2kviFFnaLU13KzvhmefmPlpEZgzE+evu
-# ItTmHxT7xUSyAjD24645YzW/UkNvoqHaheXR3JyVrDVPHprKrSmcJzLp5qDd4wuk
-# bElsxDJJA0KmKF9fQBgKSFtujlE4f12mbFnX2SJ96abev8zdm09lpyWLBD6nweCX
-# i8aQa6KCDJzRMGwggnkAAgCGNhLdZHTzhNikMbS8DSA2tCAJCY8S9KJ2/uXRDIRe
-# 0zVg1Gkwp7B7Vtvfr9kfNpWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUKmcM7FUF
+# wymVrv5X+O1kz2XNwXMwDQYJKoZIhvcNAQEBBQAEggIAr4MaBUVh2kzNIRKblBzp
+# SYfSSQIc2kwzcRuR8tIXcUwWrA31JN+L6RUxcFk4TBsdCDnWphcC25Vfa8UgFjc9
+# wea0Xy7Y0D6sjWprbd0PTsPHXqtp/k0OeIzF4bUlWGp5OFqqucGjhh+AJc7x16HX
+# nks33QAv1Pzbd8zFYB2tHyDemywI0ERul5vaup3owr8JmiLMWL27FB4ePNwOOJz6
+# nenNlvNq0w9t6//Q5IxdvHGcNGqF6aZFrotokrAhqXC+40FWHTaGipvjRfH4QCF+
+# uXYdxH9SEFhGnI5R4e6Neh43kkr0pR12a419xH3q/iP6kMW0S4GOwBfjNj/xJj62
+# lo2Ta5UWc0CPOV8qVDUVFa2tGpxKbP3/jkXsyqO+doilYKdVMOn5QNjY21lbr+fH
+# lkOQZk4NTekbQlLc4d7tefCoAcYeYOPNxPUIZ6HlRbb/ywB3ysIlzac/fLUqr/H3
+# dcoo488UOOqIMWgnMS1148gkN3Nz4gkJHR0B97pEzPBQ6g5vFBwUR7J3+dYARZxi
+# IfEmbwwMWt6LMR+Bm3pNYN8T4l6J5CFylbPJlXqixyETnc/vf4dYlTY2bvsqm5p/
+# ZVzAGCBDbynxRYkaGPrXCp10Fix7gE8ur8bo9frVXvVr1IClS5aXQRFT0uoK9ECH
+# L8sgVANhGQ+GzZK6JNYRLPahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTA0MjEwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQg5ZLbk8bChNGr0rPhT5Pm+KUoySO5cm1O45L8lJKt
-# vWswDQYJKoZIhvcNAQEBBQAEggIAnZAdQu2M6o3IxEyL+wtVdXtlkMRZ/tx0EBqe
-# uaQVdZgzvmM/wYfe1lRpX2XF8rd+bh1E2SfO5irKx76e3t6BHthjzQwx5w5TQ8rY
-# V9b56YP6uH/eUk/eRK3IkNhqsvHU6WzA55IY5oV9Eo3XgE4XE8BrR09DpHrywk0M
-# 0CKyNcuA9fmsGKsJXePeFI2EytS0f50rUJ0DmhGd/sbXLPTO7RS457BElu62W8Gt
-# F1rPfYoCkQLZTr6Mi+/stE+MzumLE5bW95OxqanGqt9fOUjNJqoVDfwBqJ52l7lM
-# Tno+e2bN2RQZGmV2KZeAxpdZCzs7oFchyhJRJ1cChwyJmb20xWnEfuXhyfBLfd2a
-# 5mC15/lxEqilmSiBoDN4fHQU/sCP6ylBRVThHIrD75QrATK5DEGg616Lb3Eaxpf8
-# ffQp4m2gSUyugs6exaNEfA3orrY1HP8XrFxqjnzqO1xaqwpTrG/QTj8EoO2Wbzb5
-# LEdd7cgq1hXWCPBPdleT++ox/ZZSfqvAO0MVUTGfpEIw4yZKC5cVFfMEgxOCrKyx
-# rW7UiUhhS3gSGNpNUAHRXosqZNLruy2/diO8XAEoqXW7GNxhzEjUVHvxgmMA0Jig
-# frpp/yNYL6LBQd9VYINqfTfE0I1jsDSedx8/G8KSC52qonJZrTWW1n0JEPcxIKb7
-# 6Dy/ma0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE3MjAwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgpk4wTS80J2nBKpewnxpFvggU2eT9nq9NIPZTXc0U
+# QP8wDQYJKoZIhvcNAQEBBQAEggIAiyBhkHa8Lch3ZqVnyTWrwcgEtJyiz9/00RlW
+# gfeVU/J/je4zTPwno0s8RKicaIsUrF9h2i3uynncrLzpbykFsZ2ycDVzDnCIPD0X
+# RIwh3Wwugq8WZeCSUA3BoC0yWEkrD2G7MSqR7rmf3VooLHXqgogdKzWs+V3dfqqW
+# Mhv13NrZ1SN9MuvTbEDW4hN9jxWu9FQXaPT9D+snXSw+4Xu3M7NBS4X2qYl3rVdj
+# KTLUp5Uu4+sj4ilGGSvgYH3HWwkzHN9yiuybZINa++yUnIwuebSlOfMryhaId6pm
+# /jSvAXyiE3YpAOq65btVaQ071bl85aKCuTJugK6JZn4RTp3Wy2ctN4gkNAfU+SqA
+# xVRGkY5w011ufEMwOJP/pHV9WgC68a0XFp/bGtE+n/1Hk+BURrmTxNUNEalwnikZ
+# FslhoLnrrfYWPUnuV3UCGjKoB4J3By8LgPKiWFUyf9sVpnO/okogvHii69TnbzsU
+# c67S9ZkU7AZqCgZ/sIawKkYXC97Z7Oo+wyg01IpEeDKvyKAP8bk4Kf2NEU1dE+U8
+# p5cT9wyY4GX1GsAq2a000xyZsxCCRW+2dhUKqLyJy3GiinUhIYPi4SdCGukRYkof
+# nW43Rs2Vr7FXFv+I4DlcL4LmQHNm1pa6q3YywVSFuoIFG220I/vnl04usKGq2EAq
+# dJ3kf5w=
 # SIG # End signature block
