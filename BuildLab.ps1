@@ -105,10 +105,10 @@ Begin
     $Global:NewVMs = @{}
 
     # Queue
-    $Global:WaitQueue = @{}
+    $Global:Queue = @{}
 
     # Queue splat
-    $QueueSplat = @{ Queue = $WaitQueue }
+    $QueueSplat = @{ Queue = $Queue }
 
     # Wait counter
     [Ref]$TotalTimeWaited = 0
@@ -470,7 +470,7 @@ Process
         $OsdPath = $Using:OsdPath
         $HvDrive = $Using:HvDrive
         $NewVMs  = $Using:NewVMs
-        $WaitQueue = $Using:WaitQueue
+        $Queue = $Using:Queue
         $Settings  = $Using:Settings
         $VerboseSplat = $Using:VerboseSplat
 
@@ -508,7 +508,7 @@ Process
 
             if ($Result.StartedVM)
             {
-               $WaitQueue.Add($Result.StartedVM, $true)
+               $Queue.Add($Result.StartedVM, $true)
             }
         }
     }
@@ -649,6 +649,7 @@ Process
             # Get variables
             $VerboseSplat = $Using:VerboseSplat
 
+            #Invoke-Command @DC @Lac -ScriptBlock {
             Invoke-Command -Session $Using:SessionDC -ScriptBlock { $VM = $Args[0]
 
                 # Get variables
@@ -678,10 +679,10 @@ Process
     $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
 
         # Get variables
-        $Lac = $Using:Lac
-        $Settings = $Using:Settings
-        $HistorySplat = $Using:HistorySplat
         $VerboseSplat = $Using:VerboseSplat
+        $HistorySplat = $Using:HistorySplat
+        $Settings     = $Using:Settings
+        $Lac          = $Using:Lac
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
@@ -755,11 +756,11 @@ Process
         if (Restart-VM -VMName $VM -Force -ErrorAction SilentlyContinue -PassThru)
         {
             # Get variables
-            $WaitQueue = $Using:WaitQueue
-            $QueueSplat = $Using:QueueSplat
-            $HistorySplat = $Using:HistorySplat
             $VerboseSplat = $Using:VerboseSplat
-            $Credential = ($Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM }).Credential
+            $HistorySplat = $Using:HistorySplat
+            $Queue        = $Using:Queue
+            $QueueSplat   = $Using:QueueSplat
+            $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
             # Get functions
             ${function:Wait-For} = $Using:WaitFor
@@ -767,9 +768,9 @@ Process
 
             Write-Verbose -Message "Restarted $VM..." @VerboseSplat
 
-            if (-not $WaitQueue.ContainsKey($VM))
+            if (-not $Queue.ContainsKey($VM))
             {
-                $WaitQueue.Add($VM, $true)
+                $Queue.Add($VM, $true)
             }
 
             Wait-For -VMName $VM -Credential $Credential @QueueSplat @HistorySplat @VerboseSplat > $null
@@ -866,15 +867,18 @@ Process
 
     if ($SubCaResult.CertificateInstalled)
     {
-        foreach($VM in ($Settings.VMs.Values | Where-Object { $_.Domain }))
-        {
-            Invoke-Command -VMName $VM.Name -Credential $VM.Credential -ScriptBlock {
+        $Settings.VMs.Values | Where-Object { $_.Domain } | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+
+            # Get variables
+            $VerboseSplat = $Using:VerboseSplat
+
+            Invoke-Command -VMName $VM.Name -Credential $VM.Credential @VerboseSplat -ScriptBlock {
 
                 $VerboseSplat = $Using:VerboseSplat
 
                 Write-Verbose -Message "Certutil pulse $($Using:VM.Name)..." @VerboseSplat
 
-                Certutil -pulse > $null
+                Certutil -pulse
 
             } -ErrorAction SilentlyContinue
         }
@@ -956,8 +960,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIcqSgS1gzRLWyIwMuz73dO9C
-# FUGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBRf63l0xp6FFqGjGU1rwu1M8
+# 8wygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1088,34 +1092,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU6rUePTz2
-# 6FrwxG5dni6fJfa0k7kwDQYJKoZIhvcNAQEBBQAEggIAgClBLZXUx11qAX3xqcuo
-# s3Vup7QyV7ZY4CT91JROsRPo8YXWRQh2AEExzHxl8x87K1QHUAxRFH/1gkuqdIE1
-# 5mFNg1E85btZKBM6ig6pkb8hqnYq9uQGLs+hIOH3FDYmgDKUaGCuzy41Fb/Y5BnC
-# AaSCLw3qAu6VkBPugGDuBdBC1xUFOsF7JA2T6FmHYmKwZ5nE6MX1BgXqVXZFT8r1
-# lmBuq/4ZdAEIabfcNg1CByAiwdcQdH2OWe4lclyp/diCQP8pQHtFXTxPc9sFsxQw
-# JqWSzmFnMj9i5bmcauc9TWBoeBAHZu3bSNE+0PtirCIaCsNKdWFqGsn25TnRZ0Yw
-# ympeDANCPZhFFOOs6t3n/a1or7Fo0PfJjcj4qIGsg9RPha2YSHXsduHlNtIg4BK2
-# +f8H9IZGwkcJ+U1nLgyxmI3eyfp9dM43xJ8hW+vttbL4VBLwk9d7UmyMpHZiM7HH
-# zCl/EFqYkodMfpW6Qs05u68TxaSKMFckHLsULzDRZAw8lEa5y5pZwOVFQ2vsqjWc
-# KlVs6zpXVDP/xZW0V1ZIws714sn2P48yBNexCiPcQZRcj/t85V7c5xcTbMxxvWJq
-# o8YFRXdTieE7spiP4hf/B68hCE20+QS7FhIy1aFjR2cUu9A4jXD2IJJWd96YN527
-# 2F9wtHrjkO0JURC1bT7x4BmhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUCgrJPZOj
+# M3IPC462qXS3QRG6rlYwDQYJKoZIhvcNAQEBBQAEggIAAaDr1lhDtonE+XuoHv1k
+# ulYbPAP72vnzCYrbSeSe7K3JKHJaWDRuo44xLxEThEoOwV9aK+nkXEmbeWf5DhCN
+# qeMe+OaR3RYQnfp1WwuxakXTt+cwTG1VQwEFVaK0/vczLbARbAPPGNfLuDmPizSM
+# tq3io4Nj/9zHqzj8LzPsTghdORT3SQtoiNjwEx85x38dojue/b6byYV2OpNjve72
+# 8yhufU7cLDnKbc9ZzXOeUHXZyy3RIS3Vu08CMTt2DYfgslR1OX3FUQFwgbrU+AGJ
+# WGAz9l8R+nC/8k3uoM2XBVbpptZpEhmwYHunQ0RwV8vS17l9OsGY30p7EMoh99fR
+# 1mpmRFLlxanbl24sjF1yzPqpMsFlZFMw0bW3Cw5s/gZ8AYhD0J4q+UNd6l/jitVO
+# rJEUnSIxgYEbv0OfT7IEocIxAowGEc9ud9zHzJKCDJ7lhY4Yiug8NddSzc2N8oOY
+# b/7yfbpg6CFy3XdpS1y7YB30LQmHsZOf7SgeuFOwAE6T07oRS939/L9APZTy6s2q
+# iopwoYi9YeuN0CyQ1uZgdgLlhC7I8OoQqv5sMeApMIDhtgE2WYJaLm7+b6iaXTNc
+# FLRpRRSdteDIpa1Z2ClcctmlchbKsUiQvG5RswUjlW9FHyn4qYyIX+YehU6Ty4un
+# 0CgFjT/mRWbM3SVhI6SaSayhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE5MjIwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgrH+Oq+gJvrn8uBZwiG6XIlXKRlCoWe1+Px5R1hFm
-# AV4wDQYJKoZIhvcNAQEBBQAEggIAUcMawy9LjDJ0drfD+7ZQ6gAev/nwFolnbZZz
-# FS7y9mIUxdYv/YztH62zotp2u5IngadwyyRfVZO8PcrbNE2YIU5uSTdcYhWg7ju0
-# Wg9FiSx0wZUSqeOKBey3OjqLAjHWF+79NYDM75HYnMJWNKxtcGX0THoY1CO1qfnH
-# 12NNVW8Z4y3rJW7ahBICFgYHkpGhDnLzOy1g2jOfRw5HrOFL1Im4qh895fz4pyZj
-# gOTS7GK4cllofw1rIFTlvBY/JwiKTecMoxkGw64Nd3iFGvIbrD8SLfIFKoGFF65M
-# Yhg8tmJDJS6z2Fc+CJU731xuXsXvRXo3nJqR/bwZ6UIxHcaWkRipEV6n5pGWIdEJ
-# i4PcTE49o7eI3YTJk7JjcxbVScw7oWZNrOoz36WSXelHV8wK/keH8WTHk9q55b30
-# gOGLrAszZO5FJeylhhPBuLz4ll7l8RzSN0Ic93p7ErN0wDbh9DGnrduMrfqAnMft
-# Nnwkxj8CKSeMUWr40P3/K7qg5DRYFlY3/WH4aq1xhwyO1OBFhb7vcs/qmBrvEvP5
-# cCVwO5Hv35tocuIL+qGe8dzQc6v8PoVbOmD7fTbHPl3h1YzHvIs8eEigjlG0IvZ1
-# jRdDFhnvXkGctw3tqOgXEm/uUFF/1lv1zNaqlE/Nn6vFf9VWvD/zudqMzb7HjySt
-# TxsJ1+g=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTE5MjMwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg7PwMOyVWsLKcizzos/a+uylfV6bYkSrpnOxqIVBv
+# tD0wDQYJKoZIhvcNAQEBBQAEggIAE4eq+PNQtRNsEjAlFhSMgqRyI8ER+BQGkf2z
+# 9H0gJX+Zcfs5vpfgype9/AAd6H6B8FZAvfmPdQ1qpDmZxCSdJEos9BtWJZM/NyNL
+# 5b/2m9eAQambf5JPIgRPlQUJ48W5FVd4noArq8Ioemg9u1f17HFDeRxQ4UN7ZQaZ
+# ZNGhn4XTMbU0tRaW0YSqsSai3j0a9xCwpDirKD7FQmHl4THOsOnoyo8eo0HHGX4K
+# 0gsV4r6u9Vn2tM7IoxzP9mGlMuIkE5+ttfDS2pXpKjW3VJ+SiV9o7TepT3Erk+2A
+# JrqUVICp/c2W6FE07cainY3nxIyp/smBV4HvOXhpQ6pUrElsTwktxZ6JZF0Wc271
+# FBpFrl5EJSSV2/Q+I4qfInslQdCZqBfJgLC6WZ4lbEzF+SqauAVRFIrD4hOkPQAa
+# vsBRcD8pxRbOscLVMsbIKIWMQbZQNMH9jXThJlWeMvhLvyLB+UcgaXw0vAEYZAE0
+# XSEUH/EHBwX4gimw/qGgXWHxji13pBPsAFHR34SDI0QPD8Sqh3Gp9rB1bTIFRlgR
+# HaTc1CCutwvjLHmLc2ruJ2faOVlUEo81J1f9hbhClIKakzKeNQigP/3RIZQEtNQ8
+# 7sq/PCrxGA6aoo5hnk4Qli86sQZmhkE2HbQZCZGAkgHifgdtIQ+JB242q77ncwOK
+# ZFu9KaI=
 # SIG # End signature block
