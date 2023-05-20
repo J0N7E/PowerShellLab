@@ -85,23 +85,18 @@ Begin
     #############
 
     # Credential splats
-    $Lac = @{ Credential = $Settings.Lac }
-    $Dac = @{ Credential = $Settings.Dac }
-    $Ac0 = @{ Credential = $Settings.Ac0 }
-    $Ac1 = @{ Credential = $Settings.Ac1 }
-    $Ac2 = @{ Credential = $Settings.Ac2 }
-    $Jc  = @{ Credential = $Settings.Jc  }
+    $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
+
+        New-Variable -Name $_.Name -Value @{ Credential = $_.Value } -Force
+    }
 
     # VM splats
-    $ADFS   = @{ VMName = $Settings.VMs.ADFS.Name   }
-    $AS     = @{ VMName = $Settings.VMs.AS.Name     }
-    $RootCA = @{ VMName = $Settings.VMs.RootCA.Name }
-    $SubCA  = @{ VMName = $Settings.VMs.SubCA.Name  }
-    $DC     = @{ VMName = $Settings.VMs.DC.Name     }
-    $WAP    = @{ VMName = $Settings.VMs.WAP.Name    }
-    $WIN    = @{ VMName = $Settings.VMs.WIN.Name    }
+    $Settings.VMs.GetEnumerator() | ForEach-Object {
 
-    # States
+        New-Variable -Name $_.Name -Value @{ VMName = $_.Value.Name } -Force
+    }
+
+    # New VMs
     $Global:NewVMs = @{}
 
     # Queue
@@ -110,7 +105,7 @@ Begin
     # Queue splat
     $QueueSplat = @{ Queue = $Queue }
 
-    # Wait counter
+    # Wait time
     [Ref]$TotalTimeWaited = 0
 
     # Wait splat
@@ -644,21 +639,20 @@ Process
         $SessionDC = New-PSSession @DC @Lac
 
         # Remove old computer objects
-        $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+        $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel {
 
             # Get variables
             $VerboseSplat = $Using:VerboseSplat
 
-            #Invoke-Command @DC @Lac -ScriptBlock {
-            Invoke-Command -Session $Using:SessionDC -ScriptBlock {
+            Invoke-Command -Session $Using:SessionDC -ScriptBlock { $VM = $Args[0]
 
                 # Get variables
                 $VerboseSplat = $Using:VerboseSplat
 
-                Write-Verbose -Message "Removing $($Using:VM) from domain." @VerboseSplat
+                Write-Verbose -Message "Removing $VM from domain." @VerboseSplat
                 Get-ADComputer -Filter "Name -eq '$VM'" | Remove-ADObject -Recursive -Confirm:$false
 
-            }
+            } -ArgumentList $_
         }
 
         # Cleanup DC session
@@ -865,22 +859,17 @@ Process
     # Autoenroll
     #############
 
-    if ($SubCaResult.CertificateInstalled)
-    {
-        $Settings.VMs.Values | Where-Object { $_.Domain } | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
 
-            # Get variables
-            $VerboseSplat = $Using:VerboseSplat
+        # Get variables
+        $VerboseSplat = $Using:VerboseSplat
+        $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
-            Write-Verbose @VerboseSplat -Message (
+        Write-Verbose -Message "Certutil pulse $VM..." @VerboseSplat
 
-                Invoke-Command -VMName $VM.Name -Credential $VM.Credential -ScriptBlock {
+        Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
 
-                    Write-Output -InputObject "Certutil pulse $($Using:VM.Name)..."
-
-                    Certutil -pulse > $null
-                }
-            )
+            Certutil -pulse > $null
         }
     }
 
@@ -960,8 +949,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGZJO3+N6z4d2yfBTJmhrZprJ
-# vkOgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0H6AQMZLT/2JJ1o5eyZIgBqM
+# c4+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1092,34 +1081,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQULmEhcgVW
-# Zf1dIQJuIWM7yEL9oHAwDQYJKoZIhvcNAQEBBQAEggIAsae05qqQ9dbxzPgnmBAP
-# 1uJVZwk0KmbVe5dkA5QqpnOXpNE93k5tidhZMCBoIRJEMB4LoHMAtX5OWracToD2
-# hN6ei54FwiX4NNXwKah2Wj6YzDXhXm/e+IxS3dwvFZjRi2uOmHg8DdtDESH1pQ22
-# cFlU4yMxxyjroR5YE2t+spc2jfVjclnqzh2kUzccqLDn952Um3fql3T8DWWafoJE
-# 5tBw9iUgC7qsrsiyBsappYrdhpzRBhRrjmJTfTI6+wYauDxuEYfZT6jqHZY5KjwF
-# vPTJnOeSm47ymiLugrlW71K37umKOrxysvhVX/QUyFkbhCMH+QAl4H98ql5sI6e2
-# NL1hdu/B7ZsyZWDCx/JwI3OCT31GrsmutRTSTVZ9n2IiHrqBuSUv231j56Oj8xkj
-# nyAPtJnp7gYK63X0VlPVaGkkXjuVkUulc1EGB/LsgztBNE4/3Jzu9u0ilii/FwFo
-# qHSL6yxfmbVF1b6o7UcFI38F636lOlEKTQcIwYeXdDsoRwpJcMJPSbDK8cMCGdAZ
-# 0zGsDWYCi5+gxtOTFRm0n+Y0hlxhmTcnPzO7XVmpetpY6AUinztJCrbKfCbenGm7
-# mxZs6nmVwna4jHsXon77Q+I9EsgcH0WAphLsvwOIWuT1R5+Am/C4q+G1tN35kT6O
-# oiPns/gV6a9JqFW0UClxltqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFu9Eq/UO
+# pdmitL4o68tJE8+8BrUwDQYJKoZIhvcNAQEBBQAEggIAh3p4N1ZkPKuwLgwFqvVq
+# KL/DQVC+9mxsZDYd5PovtgVfKEDRQm33KyaRYHGjDUQ83ChKsASxw5f6gNH6Wbqz
+# RnIp19IbyaKW1WcAhlfpNq8SmDIK4qo1HI8FSceNI9otIvpWoiUUU2GIoWFrqhtE
+# 1VJWViE3riJOc/Wx7KCXlJzyt3kue3gAtBy+sMNikvfSLDsa3cJ1XgFnQ4DRMmop
+# MchdrjRI6SufgCfhmE8ro3MdDN43qlgqpUWMCG8iXHfBSdAbbVQPbrUEGiWWGN1/
+# bAto7Na9RI8I2cP/6YWBWE/AIcpNbrKs09NfcaamOnuzZmfRCFysTi5bjveINYXN
+# GvVdfLECa7kZyLVm9lPVDvSf8yLp0awcgaUgVyQo2SaMlVMkGfk69h0KsBaE5ZYZ
+# 7r0o/Sc7jg/QHqK64+WKLsjf6ioyhXNQEshEc3IgqPC4e+E76Qx58ia5NHXOdUjX
+# QBDVCuJGJDrRbFPlIq18SnDEi5JycENuVFaEhY+5F20LPdUPrcyVybjiuAkAhk4S
+# Ce8/13oULkHrGuAmiac/ZOroJnM2StMlgqPAGJ5kg5xbo7vSotgW8xdXgWXVHC+G
+# 3LpHMSiRx/48VvivP9JzDZk813kOp2h+WNaX/7DrAojH6rlV4NpUO8/Psf9h5XXF
+# pO3NCw5TnxXVP262IL7U4O6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMDAwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgTHbco+W6G76wzs8svBJNfFoVmmbf2AbVxaOM3fxX
-# wGgwDQYJKoZIhvcNAQEBBQAEggIAagOtEZryMyk3q4dhtxrnOgc5ivOd5UDbJaEM
-# uEFhgkZfFkHwGpS6GvJiTqo1JTiG5kpXuDt09wOxQUlccmpZyLxO6pUhDMyiGovR
-# FCEIxunRUkUD08QeBzClQ+jK0eUae4CvXcHXb0A3lo+FtWciZBgeHuthN5oN2tsr
-# iN9I5QaWfTGChwg7cF7LSPszkO8gpMvNvPuAkggp8+0YDtHwRGjCLo8RKJW6RVgV
-# tlCJOUOpFYQtWC4zeZEJ+v3RdSxYTIQKhPX37h/pPsLo1a58xm+254WDyMJoG+NT
-# LNO/zCX4eUXvH7l52cdvGa4cPwhAH5fPQUMaDiZMdX75EeTKp1yfRQRzNYWbNYs/
-# yR/wGJrlzdz2F/22BLui3zfEvv674IZrsgNXKEkHWGva5GZ8iyY+UO/7Rqe3KrEj
-# quFhzAr0K7FWtm7Y8aJwZfovOab2ZeCSC9quILokPzeTN/CxVa++Zl/Qkzw340kZ
-# u7lJ06tj3cN5+4pm4EzcHiWia6Q8wa+vqWP2haUx2gBjd53/SSXiGZKHp2fpv562
-# S78pqXsE8KvE8wfp5/1cnGQ2xfEWL4+TpCODatkL+62JX6s8FbNaO0IMR0yZ32Uw
-# wzV9iR9pFGX9f4YKC8dv1kWUUNzKlUQDGiGrZa3OL30/wiV1cp/zRm2927lcfROc
-# pr0lvDw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMTAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgv0k3ouwc9Fs+nTxhlJ+hxxsVIjqroGu0R8M9Oh/X
+# FWMwDQYJKoZIhvcNAQEBBQAEggIAiv7KyqrkB9OZsn8fpNVR2nhibBs+rO7SjDF9
+# nzL4VYmojGPxfBPAQqMcmczSokfqqpoeJM/u0pUfWRi9MT7pEzp2/tJf67YuM4Kx
+# avzXfjrOdJeGoHDk5gxZYeJ0AhGaD6XGWT8WSJcGLfb5E4wDlH4MtTYHhdnmovRL
+# P7iDM5YmR2Nm38vdr19iszoBsqgkP2aV6aV06FMPYFM27MQOr/qBBQiWo275/xby
+# s5ji/tb1Sx2Ceqqbx157Jg7hxYm6a/nxjlnp1HHUKL/ptTxVwvANs3pmVB+Yr3aG
+# 73nFKThGedPDa/zNhQOHS6lpR5jDSZovxNm4JOV5S/ax+PrwCUhFeUvgJh1vmtdw
+# zOR7ZPUE3w487rw3ZL6KAt66kINMB6t/9buF7wXevX11HD6u1UN7w9vM505iFUMU
+# +Dik7Rm3E/pHpuIwnWI35kIZOgqYUySA1b22Moklss9OREi75Fv47mkAYOG/hDeO
+# RRxd04WhDSm6k9SPJYMHmHjFPKFVrcdwMWvzSXP5nwLe55BE/QjWr/8KzD1/jEZw
+# 3TeoxGQzbLw1IVK+5rOqcyuRDfFN6Pg3E+XyIr6sPthKCeCpkTplc4rRq9k8a9Rz
+# W/kVxapJI2vwniS7E1yhXPgZRkMZGTGtEyWGUz5Y2F8qDUyNO1g8LPjyAiCk/4bq
+# JvDxfc0=
 # SIG # End signature block
