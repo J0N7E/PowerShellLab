@@ -411,6 +411,38 @@ Begin
     }
     $InvokeWend = ${function:Invoke-Wend}.ToString()
 
+    function Result-Out
+    {
+        [CmdletBinding()]
+        param
+        (
+            [Parameter(ValueFromPipeline, Mandatory=$true)]
+            [Hashtable]$Result
+        )
+
+        foreach ($Item in $Result.GetEnumerator())
+        {
+            switch($Item.Name)
+            {
+                'Verbose'
+                {
+                    $Item.Value | Write-Verbose -Verbose
+                }
+
+                'Warning'
+                {
+                    $Item.Value | Write-Warning
+                }
+
+                'Error'
+                {
+                    $Item.Value | Write-Error
+                }
+            }
+        }
+    }
+    $ResultOut = ${function:Result-Out}.ToString()
+
     ########
     # Paths
     ########
@@ -760,13 +792,14 @@ Process
             ${function:Wait-For} = $Using:WaitFor
             ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-            Write-Verbose -Message "Restarted $VM..." @VerboseSplat
+            Write-Verbose -Message "Rebooting $VM..." @VerboseSplat
 
             if (-not $Queue.ContainsKey($VM))
             {
                 $Queue.Add($VM, $true)
             }
 
+            # Wait for reboot
             Wait-For -VMName $VM -Credential $Credential @QueueSplat @HistorySplat @VerboseSplat > $null
 
             Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
@@ -949,8 +982,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0H6AQMZLT/2JJ1o5eyZIgBqM
-# c4+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0Tx/QI7cEq8PTYCugA6498MZ
+# 9JygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -1081,34 +1114,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUFu9Eq/UO
-# pdmitL4o68tJE8+8BrUwDQYJKoZIhvcNAQEBBQAEggIAh3p4N1ZkPKuwLgwFqvVq
-# KL/DQVC+9mxsZDYd5PovtgVfKEDRQm33KyaRYHGjDUQ83ChKsASxw5f6gNH6Wbqz
-# RnIp19IbyaKW1WcAhlfpNq8SmDIK4qo1HI8FSceNI9otIvpWoiUUU2GIoWFrqhtE
-# 1VJWViE3riJOc/Wx7KCXlJzyt3kue3gAtBy+sMNikvfSLDsa3cJ1XgFnQ4DRMmop
-# MchdrjRI6SufgCfhmE8ro3MdDN43qlgqpUWMCG8iXHfBSdAbbVQPbrUEGiWWGN1/
-# bAto7Na9RI8I2cP/6YWBWE/AIcpNbrKs09NfcaamOnuzZmfRCFysTi5bjveINYXN
-# GvVdfLECa7kZyLVm9lPVDvSf8yLp0awcgaUgVyQo2SaMlVMkGfk69h0KsBaE5ZYZ
-# 7r0o/Sc7jg/QHqK64+WKLsjf6ioyhXNQEshEc3IgqPC4e+E76Qx58ia5NHXOdUjX
-# QBDVCuJGJDrRbFPlIq18SnDEi5JycENuVFaEhY+5F20LPdUPrcyVybjiuAkAhk4S
-# Ce8/13oULkHrGuAmiac/ZOroJnM2StMlgqPAGJ5kg5xbo7vSotgW8xdXgWXVHC+G
-# 3LpHMSiRx/48VvivP9JzDZk813kOp2h+WNaX/7DrAojH6rlV4NpUO8/Psf9h5XXF
-# pO3NCw5TnxXVP262IL7U4O6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUsFEQXQbb
+# /xCes1l58UkhaTtXqJYwDQYJKoZIhvcNAQEBBQAEggIAP27CBYy4du6aw7zLDTJF
+# fHyx7b2xdvJGW16wf5odEpmWibySzHAkVATzveOTxlV3PY9E4IUoyxKHwUonrMPp
+# a7vrRVcs4c0YvRzGn77904TLyL99cZHepgrwKIIq0b8T9j4kYSBxWge0zbTU3yHE
+# 381fkndoq0RASa4YaCUWbgOBg4sp3pQfEeA74rRgFCK/VNnxY+fB5qS9aHPm2aMW
+# E0nM4hluQJLwAUoCFDrLLwS2wJtfNTpd8PfbJ7A01iJXLwNndG7W79CYLi/R5Shk
+# fAx01JFGvlxR/8SBBGT3f7VjtbQhpdbh1ZuhHH0iDTzmaF0kr/2ekVLEKVfMIET9
+# gWPbDyRoLsqwzHTjfUlNFVcNDowQzPeslUPa/WqKD6ngXhGsAj+gGL9yTEeVbMD8
+# VXCjK8tI45Ll8zT42YckB0f1XkSSSBIb+xhv1rxQgHLGiJA9DPHoECAtOc9qyD1t
+# cDhD7y3LpCLXEIPuGMQtO/QlmbUz00Cadixwlc1xIa9vBsgBda9SEVzEVLDq9q5q
+# fXYsGnHokJ6NO/rz0K0okQCEzhAVcbT7czyJ7cdsTJhpWfc7fQxrMbMKygjHZmbj
+# GtNyngsBPDA088nh/mQi5SV6UBU3RhVV9whRUA81X+kMCR1Iqk/WcB2Ydlpk/mz7
+# 5GhVFIni+qETWRPsWDdJh6ShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMTAwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgv0k3ouwc9Fs+nTxhlJ+hxxsVIjqroGu0R8M9Oh/X
-# FWMwDQYJKoZIhvcNAQEBBQAEggIAiv7KyqrkB9OZsn8fpNVR2nhibBs+rO7SjDF9
-# nzL4VYmojGPxfBPAQqMcmczSokfqqpoeJM/u0pUfWRi9MT7pEzp2/tJf67YuM4Kx
-# avzXfjrOdJeGoHDk5gxZYeJ0AhGaD6XGWT8WSJcGLfb5E4wDlH4MtTYHhdnmovRL
-# P7iDM5YmR2Nm38vdr19iszoBsqgkP2aV6aV06FMPYFM27MQOr/qBBQiWo275/xby
-# s5ji/tb1Sx2Ceqqbx157Jg7hxYm6a/nxjlnp1HHUKL/ptTxVwvANs3pmVB+Yr3aG
-# 73nFKThGedPDa/zNhQOHS6lpR5jDSZovxNm4JOV5S/ax+PrwCUhFeUvgJh1vmtdw
-# zOR7ZPUE3w487rw3ZL6KAt66kINMB6t/9buF7wXevX11HD6u1UN7w9vM505iFUMU
-# +Dik7Rm3E/pHpuIwnWI35kIZOgqYUySA1b22Moklss9OREi75Fv47mkAYOG/hDeO
-# RRxd04WhDSm6k9SPJYMHmHjFPKFVrcdwMWvzSXP5nwLe55BE/QjWr/8KzD1/jEZw
-# 3TeoxGQzbLw1IVK+5rOqcyuRDfFN6Pg3E+XyIr6sPthKCeCpkTplc4rRq9k8a9Rz
-# W/kVxapJI2vwniS7E1yhXPgZRkMZGTGtEyWGUz5Y2F8qDUyNO1g8LPjyAiCk/4bq
-# JvDxfc0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMTEwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgkBtJ0tAQZeJxo2/Uk3nVeBJtJMb1/I5I4CGzUMyP
+# ns0wDQYJKoZIhvcNAQEBBQAEggIAj3yCqkLL5CsfeL/WXfstVTMBhzuDiNSHAEW1
+# ExE+t1rsOoPrHkqpedxPXNhawxP7EtExETrzb4IZ4I/cIX5fmDv8nucCHxeyIzDa
+# GmOGRhS2OXiKFWu7lQgEmkQyDo2EclhM9L6C8HQ9qnRlK+iE/NJCKdMqGjSJ+7B6
+# DjHrp1e8oqbRLMATGIcfaivHraPebadjaoaWjbr7TCvQ8dMAUD0juuMYWcacm5+g
+# 8MKIaOkqhONQ7qGdBdvNc9mc16ISDkVWc6/OYcOAPZBWwjwPtdXX4eru0UxjkSsZ
+# pG928E48A9b27oMeNskRUJCcOR9/hwFnHHdt8XXS0wOGAaWF+gzhFUAJQ9iqJcSh
+# 0okHgrbeScyVBleXwDWYOFbM+eXfcEkx8W/Jxi/a7QzTNhcGyIgffN252CMfEYea
+# mwaaOvZMNnc2ivey1B6fr/LG2wLpHsVYoeGtEYBuMvkzlwm3FtTlo+vgGGysawn9
+# Z7Ssug4Igilg2wkSBd4HvAAsGMWeFMnULcA56e6wyP+GIm6yUpUey5jQjjkF6WU5
+# dTqAH9shJ/T2FKz8T+QVJXDYPsd48/DY8x4NbKeN99p9GEuYs9prIseqT94ZuewP
+# viW9tYvk9jcJu25H4dN36B4XMyI5pCfBkK6xTEFvFO6vqyPLTVTVTe/9/kuW+6Mr
+# zRm0Dbc=
 # SIG # End signature block
