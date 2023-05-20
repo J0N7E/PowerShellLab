@@ -95,6 +95,8 @@ Begin
     {
         # Initialize
         $Result = @{}
+        $Global:Output = @()
+
         $JoinSplat = @{}
         $StopRestart = $false
 
@@ -108,7 +110,7 @@ Begin
         {
             try
             {
-                Rename-Computer -NewName $NewName
+                Rename-Computer -NewName $NewName -WarningAction SilentlyContinue
                 $RegComputerName = $NewName
             }
             catch [Exception]
@@ -144,14 +146,14 @@ Begin
             if ($Win32Domain -eq $JoinDomain -and
                ($Win32PartOfDomain -and -not $SecureChannel))
             {
-                Write-Verbose @VerboseSplat -Message "Waiting to reboot `"$NewName`"."
+                $Output += @{ Verbose = "Waiting to reboot `"$NewName`"." }
             }
             else
             {
                 # Check if to leave another domain
                 if (($JoinDomain -ne $Win32Domain -and
                      'WORKGROUP' -ne $Win32Domain) -and
-                    (ShouldProcess @WhatIfSplat -Message "Removing `"$RegActiveComputerName`" from domain `"$Win32Domain`"." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Removing `"$RegActiveComputerName`" from domain `"$Win32Domain`"."))
                 {
                     Remove-Computer -WorkgroupName 'WORKGROUP' -Force
                     $SecureChannel = $false
@@ -171,7 +173,7 @@ Begin
                 }
 
                 if (($JoinDomain -ne $Win32Domain -or -not $SecureChannel) -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$NewName`" to domain `"$JoinDomain`"." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"$NewName`" to domain `"$JoinDomain`"."))
                 {
                     try
                     {
@@ -189,8 +191,8 @@ Begin
 
         # Check if to restart
         if ($Restart.IsPresent -and -not $StopRestart -and
-            ($Result.Count -gt 0 -or ($RegActiveComputerName -ne $RegComputerName)) -and
-            (ShouldProcess @WhatIfSplat -Message "Restarting `"$NewName`"." @VerboseSplat))
+           ($Result.Count -gt 0 -or ($RegActiveComputerName -ne $RegComputerName)) -and
+           (ShouldProcess @WhatIfSplat -Message "Restarting `"$NewName`"."))
         {
             Restart-Computer -Force
         }
@@ -201,6 +203,11 @@ Begin
         # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
         # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
         # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+
+        if ($Output.Count -gt 0)
+        {
+            Write-Output -InputObject $Output
+        }
 
         if ($Result.Count -gt 0)
         {
@@ -285,11 +292,10 @@ Process
     # ██╔══██╗██╔══╝  ╚════██║██║   ██║██║     ██║
     # ██║  ██║███████╗███████║╚██████╔╝███████╗██║
     # ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝╚═╝
-
+write-host "Result:"
     if ($Result)
     {
         $ResultParsed = @{}
-        $ResultParsed.Add('Output', @())
 
         foreach($Row in $Result)
         {
@@ -299,9 +305,9 @@ Process
                 {
                     switch ($Item.Key)
                     {
-                        'Verbose' { $ResultParsed.Item('Output') += @{ Verbose = $Item.Value} }
-                        'Warning' { $ResultParsed.Item('Output') += @{ Warning = $Item.Value} }
-                        'Error'   { $ResultParsed.Item('Output') += @{ Error   = $Item.Value} }
+                        'Verbose' { $Item.Value | Write-Verbose @VerboseSplat }
+                        'Warning' { $Item.Value | Write-Warning }
+                        'Error'   { $Item.Value | Write-Error }
 
                         default
                         {
@@ -328,8 +334,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUk4m4BJsZiU47xTfbYMTSjQbI
-# riugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrPST3Zle4R/tmGFqcUJM4da0
+# bDqgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -460,34 +466,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDs6cX1ov
-# 61aXtIfqq7JXxyUba1kwDQYJKoZIhvcNAQEBBQAEggIAFBAqFEU7Bbi9VUHhviw/
-# DbP81dQOaAhbiKekCBnAuznKqs7vIEdYJ+VNXHRJouLqQ1+/gNCz1Mx7h0kxhzhL
-# AyAif92JvRdIHJuvZypUbBde4s9y6TzZnsG2R6abkzm5+wtfksCY4DAB7YMua+88
-# J0BwDqybIn61SNL1gh3/tmQNBEwGXwznvU2odQ26tXSf4LBmjlifoqbPlK4F5jsB
-# XHZ1HHESZEAMbdw5hZMCxKR0hunRGKHkc+6iDe9rDK8RRYSGw0onQYaF2GasaHgm
-# vDoxb1CyKGpzwlqXAUmt+QVw4Td+jzDMyiHUhrjUbZ4x9E7lOz6sy5wbhXLxBJz+
-# 7Ny1oMJ/BQP2UiHjKOwCsgMmQu84t2zENQK+bHZKkDw+yLa45OY38sEV0oYZ0aY5
-# G+vQrVOOJ5AOi6y9tSITDGRG0b3tIYQ7tGbfQKjUyixe7CZ5jNPiCuzudeNKoen4
-# LzCpwMZBX/MWjM/rgZntX5JcyVqmO9BdOrfKAs5OpypLnJu74Edn1/w9ZnehcfiV
-# VEuZK8nVBughOBiXkPYpzySAhAiiFmepwawWEpjdOfnyXlCIjXsxjvBgFXEPvMU+
-# th7uKZ7muU0AtXyR1ak2DyxQFB6kSScyhrSCwfbsF1TlGPFCO0jnWXGl/jxJ2nYf
-# wWYeyAl9pH9PRB8cxm2J9gWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU4NabfTG1
+# Lu+qRIWAUqKUyITeU6EwDQYJKoZIhvcNAQEBBQAEggIAJcBzzOxCkHQz/IKR5gPY
+# rrOTERc605zs3riw8nClhlK1ncBsdlVNvAUWcTizjJi4z1mw47PPU7MaPMBkjUAQ
+# hblW1XBzyj7NBMOldK9U1XbwdJkeblTOXfaq0MLy3C5QUdQTXXR4VU67UTZp4bW7
+# J/qpQTMoJMnx7pB5M3mYiff5Tay0CYWIkowZrgeIDHXgwDX5LfgtSd//kW6r/lP9
+# egM9QED517F9fSqByKYIkyvoq8V+XCgQlKoj/34QmYBAusSoX40hOOclc8D7rJCn
+# /N2eSveqxF1UZWnMX9LeNS6NgJCsbsSfh1wv3Bbk09j8f7DwCZo/cQclQJd3ZM6L
+# nFj6OOu41U1C131qyEs45sqsq7Kee3/B/6rfOP+DXh08JTidlwoMgqyNsOzsWulj
+# DKTKbHgkH9wHBS5Ckbhjb9FsD8W92AM8G+c/8WVSfVVwLRJVxFJBZJAKI4SPPLwf
+# 225Fqyax5RxRj1TrL1LozvoCRz/FJf09+MJhmaQtR+cGnQa5Op6Wf/DrxwjzXk5+
+# vNbSPoT6AheTut1fvdFb2TgqpRrPXBhbj87ma9XlyVIsZzI/Jq+gKz/DIMbxfwNd
+# u8g/9kNyB9Br15jP9Lyshf2yWy5XM/NYVXBbrkJCvK/5sc417wyd+RNXRh7VG6vO
+# QD+tB4uK8/dqXAmgMjWpBiOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMTIwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgziY0/MY4X0KduXJPLhAJb0oEoQU4ShK7B5mYVSfN
-# Q6kwDQYJKoZIhvcNAQEBBQAEggIAQ7pPCpgYQAROT0YSe0h6E8tfXbTMrOd0QGza
-# sZ0JsWkC4hMj3qNoT101sVuojMxorWYRBvG9RaHHPg2WTg6mpwZCSyi7vY8CVrzK
-# QAMaaamcBsC+iAw6+SOECch47QeUJ42XCdIjoIo18OkQWCdJqqNmwgfg/rSbw+ld
-# xRI0UJLMLXLHBRT8gcrqsvxn1pBAIh5AT8mDgiHkKqc34OCL5Db4jU7KwOyPACb5
-# DawfH2cEf0MpxDZJWdsscs0GNA8y+f4TAtXYHafDCvX+pHhDbsfayNxmq/6PRayp
-# CHOMBgAQ0FYsmuE+eqHtEaRNaQVK7ELbAjgoPgSq0p7/ME4rcjOz1whtl0k/gwd/
-# nITGE+UrRbxUW1mkAtsSRlOWFVraNn6m9k1af/yp2SOG5hHALrEd8z1qpmKGCicz
-# P8il2pPoRF5DBuWXJy97jqZVtp2Gr6xhkwjmY2UJvizD3n+W6h8ih40pbUy+cCT7
-# PSwYBaDkmMUdom8+mRyxtOvcg6AnnCfWeNhf4AqCM2KrhqNpxhwuWokXvyTWxcAa
-# WKtu/q0y288mwLXdrNUKPrThO8QOT+gx7cvrlvccihrXTornA1a6EGhTcwC2NQvf
-# 8+agH/nyuqldijX9l21Cj+8kkxAEq5RIyF0gZkFppZwnzmTXQXYhg0JGthJzBAKF
-# lEm/beg=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMjIwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgV8GwwJCK7MOKMb5i20H2QurjbL6Lch8EQborYD8X
+# EicwDQYJKoZIhvcNAQEBBQAEggIAtFHaOATLlof/8KoCUsAs0ok3oPBYF9Syyq1G
+# pkMN5vMqSEdqrcw7aoXnyZS9jQzmYbllbkBMWqhlmZiJ6zl1qZweB8iB0V9tIT/7
+# yLrhxyIJE/QDYiub8m/f+gqDoXulb/qSdCNNGhNeoVTgjvyVrcdH6NdpGUOoObLw
+# IL4NBHUWunLO8O38+guZWmMjxVKDGm4vcnGGbBXIMRkD1iwTR/MiQiBmYz2mVsI7
+# hj22Gk5pYbBHXSBkygYI6BaZjMcUxAKP9f3UVmPTPOU5ieVyZ0rKGHx37CDAxiEO
+# wEGKoG2uXVAghM54mHXMyotaNuG0JGqzG25Sb8wpINQvJ1lEAph1AU/2QLyKiO7x
+# 437f3pMnoMAuxZbxi37yjCqA98oIaKM7mTzDLhINZuPLq1+wSkRl8qfA54yReb9i
+# lzqQC8EfrA8+Acw9OcOOeVOJ5HX9EzVByBqRFVyC4S/GOQEFimNBzSSZpbt4WMgl
+# y/4RzWuqmx9YwdCQettW7oVl8+/vEtkLLptQAw+q/jqgOWjTiU+iVJHIDutE83hx
+# 31oySTokQOUKKbhbOlOXvkxC/cMDFpR/FRMieu1/W8yC8LwHKUaS28JET0hxrUO3
+# KzcZCm8UsLshFwbboKQAfvDqkWawuqA9o+ziTlY/ZlnxRZ+KGhzgDcwolNZi+CVT
+# u6vx1Xo=
 # SIG # End signature block
