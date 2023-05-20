@@ -86,6 +86,10 @@ Begin
 
     $MainScriptBlock =
     {
+        # Initialize
+        $Output = @()
+        $WhatIfSplat.Add('ThreadSafe', $true)
+
         ##########################
         # Rename network adapters
         ##########################
@@ -109,7 +113,8 @@ Begin
         }
         catch
         {
-            Write-Warning "Adapter `"$AdapterName`" not found..."
+            $Output += @{ Warning = "Waiting to reboot `"$NewName`"." }
+            Write-Output -InputObject $Output
             return
         }
 
@@ -206,6 +211,18 @@ Begin
             # Set gateway
             New-NetRoute -InterfaceIndex $IfIndex -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -NextHop $DefaultGateway > $null
         }
+
+        # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
+        # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
+        # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
+        # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
+        # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
+        # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+
+        if ($Output.Count -gt 0)
+        {
+            Write-Output -InputObject $Output
+        }
     }
 }
 
@@ -271,11 +288,51 @@ Process
     try
     {
         # Run main
-        Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
+        $Result = Invoke-Command @InvokeSplat -ScriptBlock $MainScriptBlock -ErrorAction Stop
     }
     catch [Exception]
     {
         throw "$_ $( $_.ScriptStackTrace)"
+    }
+
+    # ██████╗ ███████╗███████╗██╗   ██╗██╗  ████████╗
+    # ██╔══██╗██╔════╝██╔════╝██║   ██║██║  ╚══██╔══╝
+    # ██████╔╝█████╗  ███████╗██║   ██║██║     ██║
+    # ██╔══██╗██╔══╝  ╚════██║██║   ██║██║     ██║
+    # ██║  ██║███████╗███████║╚██████╔╝███████╗██║
+    # ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚══════╝╚═╝
+
+    if ($Result)
+    {
+        $ResultParsed = @{}
+
+        foreach($Row in $Result)
+        {
+            if ($Row -is [Hashtable])
+            {
+                foreach($Item in $Row.GetEnumerator())
+                {
+                    switch ($Item.Key)
+                    {
+                        'Verbose' { $Item.Value | Write-Verbose @VerboseSplat }
+                        'Warning' { $Item.Value | Write-Warning }
+                        'Error'   { $Item.Value | Write-Error }
+
+                        default
+                        {
+                            $ResultParsed.Add($Item.Key, $Item.Value)
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Write-Warning -Message 'Unexpected result:'
+                Write-Host -Object $Row
+            }
+        }
+
+        Write-Output -InputObject $ResultParsed
     }
 }
 
@@ -286,8 +343,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/JDesAt8MUwX0otrUcvqImaX
-# jmCgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU36lN1FPR86Zb3QDY901nNBLY
+# 72+gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -418,34 +475,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUx4ALGzo1
-# XRZwGOAC7+bwyAg8a/wwDQYJKoZIhvcNAQEBBQAEggIANav9ep1I2ApbRCLaSqPu
-# /olWUfYdizJb+MkwsDggPEhcEL7fR2R0hUfnWiymJIwgymAhXePZRTzQ6fKwu4X6
-# W95WZ8kjPXwIJyJObW17PQxiXkUxQsCNlQaV4stzH+5h+K+GeAq7uh1g9kg80qeE
-# p/9l81GCtkmhaubBNe3VN2NR6awX7NVVycZeo12TqeGvyAZ9qoh1tKlqE9Cd3bpJ
-# spteGnzUN5cFC/WXPWlVnEOhuQ1Oufhu8wB9hw2A9YzzNKXDrAMmNK0Wa+DIrnFJ
-# IsSc3SaUJDKyHkn1+f/u1zXAq8gZ4sQJQo2DlOCMSM1dGf6zeb+IogyqWg+WE0zL
-# ck/2zxXpZ0/gqQNkddnmw6NFlL4LXBmyqZHCCTT7O0XNvWvsm7mj5VXEcJ+YjrqT
-# vhWJ6Aoi+K/SKdzemv2WMULvqMYt5mNSuy3dkP5NHN77TPVN0cfguW92IRQHRW28
-# uDPE7+qthL0jswcVqU+b+G9h8SbdtAalW40cUIcZHYTWih2p2Eh7P1dVP0j7y+Nc
-# hz1fOaRYvAgOQ89Ki9/EnT1uDJRkaGFK0MkCUK1GYg3oEhOZM/88UakUV7K2zt9A
-# qEz4Mf58DIuX+pXvfN7fnzYd6qeftzr+E/J0uIs/FdQB81pMgevZZ7tyu1BdS1wn
-# +PIwuCoHr0+xD+A/1huWnxihggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUkPDBDWO7
+# Fgfsy1CIIUBt00uBwN4wDQYJKoZIhvcNAQEBBQAEggIAv9U/B0/c/ZLsK/CyPL4Z
+# KGInzpIY0Q5IhFiJ2pPmKCadyLAbCWn+QejSDQmf2Gf1jxbmsYTJR11Z5ohGe+bT
+# 01QhZmukaTwsg9EQjITBL5za1JHt6pnO9yypo0tSQTiXCsXZGNgAGbbZuZr1RW+y
+# LStg/KgIbcUtYppel3TcLX+N3jsmrrZRKAFX4TvcEfy0fIaQXbX7flUmetY6MteW
+# EFtkEXxJmofuvDoBSlLkyEA4wMskIUMy0E3fzK9fwi/lfpgZ3dXXei7lalRvUV/H
+# obNB9tkTV27JgFUOkQjCN1tovlOrT4vEL1s7kK1gCAdcWBPVUBkaXax0gGPWDRRP
+# oHBXpIlGM3/1jEzB20ABmEIQYK9WvxqYe7VFSBxIfm4r/sT0Z9Rpszp1h25iDE3n
+# TFKGyZR276/7O4Rhwfb4VVhJD43dR12OUAjk8kONsSDClm33Olz2iKcAIoUgBJZH
+# 8pfuYAZfjJgrO3mCfod3QuMgQwVlMGpjbzz84+SkeQSut+9HoRjoulLq5pFXkHGY
+# XAH19KiaINnMJB6FIPJu4VnLyo9mdqetHuj0GCjjr7xsoW/xWTAJYNP8mxwjWk0M
+# QvBxHLVZ3maMKHAfKQtV3gv+VgXk355g4EXPeMBslS7InfvggTjABySNVyGSnrM9
+# J6J/GFA0ZHjIKcqCXbXVBK2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNDI4MTgwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgzH5b+g/ePhpiKHzCS41JRJhun6gsw3WPDrUa0111
-# ekMwDQYJKoZIhvcNAQEBBQAEggIALD2mXmSlnf5VDeX29JavwQ94MmkCUhdhXbfK
-# S5qaVfq6AXRhdAfmpdQk9qNCWihP/n1zvSkNQ6/L4QzrOXwKi9ODrEAF9eb650uN
-# zcTWqjdtf1No4mpCI+P70Ybc4bO4G8UxhsY5Cfl9W2yfXeQV+9bUoQe7lHjsWhrR
-# y73SDfaYL3qBhDopuAnty+HfU4A7w7u533vFu+DCTL/xZo4YLeEhv01Tp0+nN6w1
-# G9iUkO+M2RF085MwbF2t3wg68VbEpNre2Iflun12DVC2WeGT8YskscYlZARZyQ0P
-# dpBPFN6RnvgTlQJm8X5UGgQVL3vMZ1t6NpSgpMxOJBYumbw2zb7al7gqpsIihmp0
-# 0YLbj6zYCO9R8Io3LZZcPc/zSLwwJfg1C2vqoLaP1gf6QzfUNMp++q/V1JqjDKFl
-# hoMMBbw6xr190gs+1OsXcDwE5eA7U/7/eMtTI+tMz0RDwHK3h6hym3t4NPTQV87f
-# y6Xm7eQr1pMTG/xlgrL/CIT5CTlluaMZm5cMe+ZvUTGSK1ffeOt83bOjtLAqo8ky
-# Y/y2ys73d8mj7PRZcU7ep1GdRyjHQaaDo/7cJDXNK94C3Gocue2n9UPIDaPyXY7c
-# Vzh2Xkl/ks9//iKTzhqvOlXpNsmzupZ/j1bxD7n5KdQViI3xmEiISIDqIHLscQCA
-# mBbc+CA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMjMwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgN7Ux+HKI1ifGCWACjsUdxyiAgik1G5RvIhiB9/W+
+# UbYwDQYJKoZIhvcNAQEBBQAEggIAEG6z/NJhRuhotW/8FSby4YLSCNpn3vWLQfqk
+# 0l5l13AAO0W8T+4DIDQc2vdbUaSfpx00fzI3N5c0Yo+GZStgAMP2l4kSdJ4IuisM
+# TUMRo535/d44BFNuiu872JKtu4D8d9kbwiJyHNrCl27R9g2lLOwDFem65cRSffdf
+# JwXGIoDB9HhVCmOBA5Ony9lS4CHf8+iS7HUGEIQyJ0oQSkRaBdMXCEIp88cdDgbE
+# rsSjAYZ5dHwS5rbJgc2gae+s3oY907AF+Bmf/KWoW289h4xhUrntjnNqfSVbvcNz
+# iR6kAZUhP7L4ubW1TVQVO08RxYeLYD2lATAfl4rrf2QWf1Ix/NvERJ+Rc8ku6GNs
+# si+Mk+UYsjeHmNe8sf4AxrxbPWD8CHCGaBA0A1vPJZJI871rDuKsYGZ+qO7IrQa9
+# dQNGe2sQwpaWrK/r6yayIzYzzh4V68P2neSu4FAckI7MIU4HxzlVopQgfGb0GRlR
+# kt1KCro8rWvV5gkJAMaljf/YD8amrjVidCng0WbQ/PAQwbT5KZq9eS8A2slPe6UK
+# +Ax7GCBl13aGCHJm3G4X4b0838uVGqDjEGR4IKa2FtpHY0CjcmMkrBkPBRBlNnFq
+# ibBZ5H6f+W5YiXKuNXJO/ghRqw6D3fcwVMkkhyR1F0IyoDNSIOho5C0VoCQNov/Z
+# uzXvqg4=
 # SIG # End signature block
