@@ -14,7 +14,9 @@ function ShouldProcess
     param
     (
         [String]$Message,
-        [ValidateSet('Host', 'Verbose', 'Warning', 'Error')]
+        [Switch]$WriteWarning,
+        [Switch]$WriteError,
+        [Switch]$WriteHost,
         [String]$Type = 'Verbose',
         [Ref]$Output
     )
@@ -25,7 +27,7 @@ function ShouldProcess
         {
             if ($Output)
             {
-                $Output += @{ Host = "What If: `"$Message`"" }
+                $Output.Value += @{ Host = "What If: `"$Message`"" }
             }
             else
             {
@@ -37,26 +39,43 @@ function ShouldProcess
     }
     else
     {
+        if ($WriteWarning.IsPresent)
+        {
+            $Type = 'Warning'
+        }
+        elseif ($WriteError.IsPresent)
+        {
+            $Type = 'Error'
+        }
+        elseif ($WriteHost.IsPresent)
+        {
+            $Type = 'Host'
+        }
+        else
+        {
+            $Type = 'Verbose'
+        }
+
         if ($Message)
         {
             if ($Output)
             {
                 switch($Type)
                 {
-                    'Host'    { $Output += @{ Host    = $Message } }
-                    'Verbose' { $Output += @{ Verbose = $Message } }
-                    'Warning' { $Output += @{ Warning = $Message } }
-                    'Error'   { $Output += @{ Error   = $Message } }
+                    'Warning' { $Output.Value += @{ Warning = $Message } }
+                    'Error'   { $Output.Value += @{ Error   = $Message } }
+                    'Host'    { $Output.Value += @{ Host    = $Message } }
+                    'Verbose' { $Output.Value += @{ Verbose = $Message } }
                 }
             }
             else
             {
                 switch($Type)
                 {
-                    'Host'    { Write-Host    -Object  $Message }
-                    'Verbose' { Write-Verbose -Message $Message }
                     'Warning' { Write-Warning -Message $Message }
                     'Error'   { Write-Error   -Message $Message }
+                    'Host'    { Write-Host    -Object  $Message }
+                    'Verbose' { Write-Verbose -Message $Message }
                 }
             }
         }
@@ -68,8 +87,8 @@ function ShouldProcess
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpWuT8MMk8FnENsVwIzQIX08z
-# DBGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5XnJOD2cNUcigZd9TsEoXTmx
+# 2kSgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -200,34 +219,34 @@ function ShouldProcess
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU1Z7F+RTG
-# eoQZd/9g2UWm4wJ5npMwDQYJKoZIhvcNAQEBBQAEggIAInwznTk8ZjwYYZ8pnQRi
-# i5UaizmRswsCTHdxLp6ILShxxvNnuIYwLyYPKtvQo5IDEW3b6LR0QPAmKOvdMwqz
-# nMB5bbkZHSzwewpQBP984D2/WoZWOrFdoqbq6cjXCP+5h3QgsixiCvZ72biVI6De
-# mfsL255lkngmT8PpctulUt+tQY174WSyejMltuqR2hjaUU7+WyeLU22PjYTHVo80
-# kjhaMVTo9OAUxw5yPaZX44s+yoHMUzFl4DiMK1No7rnFhKCX67/Wpozy7jCwBUZr
-# /C9z5z+rBS8LxqXgg2uoTz6PBx2pP0WJfp4+oLMa6OKIvrrdNe6gBcIPygrzNfBJ
-# SQPZYj+jk2y6Eh29/HnCmR6Y/5sg+GZOu2NWW0wDOyeQR4pkjQdFYhuO+hsNV/SK
-# rOAtJaBtRNzzOl2QQs3gm/1vHttwnbiLCu18ezAUSRUE981xvEf1lqdwIz2DHQsk
-# wPMyjcNIRwIAPMy/PWrh+NwJuMBBPV6ABiR8pM62MwRbwXP+usP2u8WKwUy0Nm6R
-# b+au7K9R38ieBfO8IS/vbfV9JefEr5qd+QWOh0JKxrjog3/pRzbj9yp9ipiqEYyC
-# S3qVaf9yLpYB+zJ03dMUud8+sIEScnQJn4P1uwS9ZxMlkxim5CyG4pxwa9FuOl+p
-# O5Z/429sLk0BWNEhEFWRSSuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUVakFVBhF
+# uWEeAt43UfXmTacqoNEwDQYJKoZIhvcNAQEBBQAEggIAivos+6ziJnZar0dQ8wfi
+# FTXLS9mKehx4y4ojCLL8YlrUBcT3gQw85sOdgfFYU3AsqhdAMFIZWfCaUH6r67Rl
+# ee18uCvlHsQm5H6a/BuzPj+V8A6PiBckZWc9WRgbuwP3X4NN4z3ZNoAXdtyEOtjz
+# zp3f7W3l0a1rMojmNNa7Cz8B7sFF5xgJpjompNyuDww6jMa5zPEGHZO5PnheNqI9
+# Qt78SAZhouWWv7nb0aGEEhtTjK2NOHbVkBlKZa8CdES/dKFmJU/QVohf+xCczIOT
+# pgSlcY5+t15ypljdfG0BX9bsKD53E4o7lr+WIVEgejRFGsn5Hpt2eDmgIHbRb5O/
+# bBSGtia9gcPRE7fEOHCIQ8YJ76qTLm1TJX85osiwbwImq2fpeq+Iv/iS5Oq0sBhq
+# Hq3Sd+CAVK9ricrZD0H/JuCKBAKBGtRUjKF8Z4o3iKc1CiA7XemPvcmo9skOg3zN
+# +nCPDKV2EASqBuzmtw/g4ByUO0mGyZS52o2OK8oLfECTBLf4pc6gHbm69TLB0XlP
+# j/d+Z7ZeA1l+6ACfypteDDQ+4XG8nptzYoJ3MHxtVyBPEOCw75KFjU4WUPImLwhu
+# 7n+qzhkg83YORz/+31HrqnRPZoK/8r4LnYWZmp1N7zC5wnJID6bI7ZkuE712BKhE
+# 7SQfFrZLIF8/P0aovkyHsUGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTQwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgUdRqpvCL9PYyR3DQ2y2lij7Qu5VEXG43zl0CGcho
-# y7QwDQYJKoZIhvcNAQEBBQAEggIAqnyNZKXLyq7NaBUA0TZOAzGRKq+xxle05/Ok
-# AYPExA/dcjFjkcoOZdPcL/WFtme/fwS4qKgpLCb9oJWEHD/pJ/8ttg0sm5s0pHbk
-# bj7/lZ89YYP3s8Z8p9FS8PUWqem0JCz6x3WwZ2p7I8fDq8wTeYTJcTgVX/P7kdDF
-# VY6RHDvt5x4J9nqWbce8slFIZhVqw+0sBfsLtTpvJz8GGavYVbJNZwBoRrqYad6b
-# OFAtsS2iTrgIB/JbU1o0A6p6drVcxKKhS01v04Af7yA4OonzLzU/2uvZ/U9YvF1i
-# LmHwRAWvr4Au4gEod/p5mxgSi+2L/5E3bYubLyH00nIyUEhJEcKkEFTkj4+gtmx2
-# F5CwOOAHAZPhwo5nlvFRMbCZgXYu0a9yLkVTKO7KauJzhISctZY6D96X30+Ir9fQ
-# Sc+BWvlfrDTt/GLMF4qo9PxgksjiyM7EsJ/IKRjL3w+GhMDxVAddOHQuYzaNCSta
-# PxwAqwr0HqdLEG4qnuamZd5O2jvZElUg7q/jrhDQmluWfx+K/Hb5pSdIvqercJ8e
-# Wd32W44g28kqG6jxV/iQqh2VkFDBp3vk+tM15q5VrY9azTfaaeH6ptNu/gPgmsr0
-# Zvh12ROBoNXSvlXPggNMyiI/aw/Y8kDgaUDCDbQIjrhcCMXXSXzhsD7pjcofVT6l
-# HghwB8s=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTUwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgzW5JVci2PSJVPVajtfkSqCy64E15AXIIvN9Atljb
+# sQ0wDQYJKoZIhvcNAQEBBQAEggIAZ1eot+FvkoQ9ho3dCgy0cg/Vi0lFcg+PQomp
+# T7Rha7KQnJ6yvWx4zRNkxbHlBP/UuEGMpWfmZtDCj2XiB42LAWGNzzhtDmQMevCk
+# LoefJqNE80e/ADC7Xmc2NA9JfgBrD1ygLeZxYx2PHzWTu5Jmz8lPyWY0DfcSjKDy
+# DeMQ1WQSd1OY6V8OUGPM7+BmzFFPRwB+9jpJTqQD9atpOf6humfeNAmLdP6YqIwR
+# uatxbgxQ/3GgeBW4j5IiBW1v9u3E2IDQnY+g3b+YiY58ce0jE/FRv7bIW3RS12yj
+# OH5WRzsLWpBpKfw5zpeTaD0BHJc3EJeNJKZSTuJM+UaQpich0TxKzgY5SY4a8AiB
+# WotQTJ4awlTH5ifaSMjvOWnSByvLX+2qCe0Vjrjs0MoElIey8lFNciiB7lQV3zJR
+# zoOpd4uAWdJcnQFVNMFBI3gFO0Y3r9dE1hdkidLPD2o2WfYoUFW3TCBaGpdbQW32
+# sTaFCrEd5tYfWMq6ZW1M+GdS5+gACM2GVRqJ0p7gqc1S6hwtH/gyxQkeumr/8pzl
+# MT1BNkZWS333WMMKTnYpUAZmWe2TEtlgS7QcDBLWoXHcNG7UfpoXtHCT+uHgamc1
+# h6lgOlvuQS4dRTUPzh1WK6FjvKfMFnjfU/v9jTG/ZmsehDJ4PlaEXyzJqYy3Br7h
+# 0uM9g+s=
 # SIG # End signature block
