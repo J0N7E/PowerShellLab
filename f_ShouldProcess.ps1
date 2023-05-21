@@ -14,16 +14,18 @@ function ShouldProcess
     param
     (
         [String]$Message,
-        [Switch]$ThreadSafe
+        [ValidateSet('Host', 'Verbose', 'Warning', 'Error')]
+        [String]$Type = 'Verbose',
+        [Ref]$Output
     )
 
     if ($WhatIfPreference)
     {
         if ($Message)
         {
-            if ($ThreadSafe.IsPresent)
+            if ($Output)
             {
-                $Global:Output += @{ Host = "What If: `"$Message`"" }
+                $Output += @{ Host = "What If: `"$Message`"" }
             }
             else
             {
@@ -37,13 +39,25 @@ function ShouldProcess
     {
         if ($Message)
         {
-            if ($ThreadSafe.IsPresent)
+            if ($Output)
             {
-                $Global:Output += @{ Verbose = $Message }
+                switch($Type)
+                {
+                    'Host'    { $Output += @{ Host    = $Message } }
+                    'Verbose' { $Output += @{ Verbose = $Message } }
+                    'Warning' { $Output += @{ Warning = $Message } }
+                    'Error'   { $Output += @{ Error   = $Message } }
+                }
             }
             else
             {
-                Write-Verbose -Message $Message
+                switch($Type)
+                {
+                    'Host'    { Write-Host    -Object  $Message }
+                    'Verbose' { Write-Verbose -Message $Message }
+                    'Warning' { Write-Warning -Message $Message }
+                    'Error'   { Write-Error   -Message $Message }
+                }
             }
         }
 
@@ -54,8 +68,8 @@ function ShouldProcess
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9s9+WMm0uXwc6oPnT4OWRYT4
-# WpigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpWuT8MMk8FnENsVwIzQIX08z
+# DBGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -186,34 +200,34 @@ function ShouldProcess
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUXeyNU/uE
-# EGZeznCbuncWRyEwK+EwDQYJKoZIhvcNAQEBBQAEggIAy7nJE2OaebABsrLK6U2q
-# CiShazmKA9r7o3+iNn3BnoGI3Vjz7QO8FuFk9VYYJKwddG9Yik3bnmHTnqUmo/OZ
-# B/guGV4O/vbn4uAyeyP2/1Oj5wNUwJEuKO7XQ5LVkQAAxAYc8qWi9XF2c+/G5LoF
-# eJdWtaNZaOPgULyNo165KlRQ1z1TcPb2otSNp5mZnmKcZy4UlxbXypJ5J7ksAOO6
-# YaHwUWJAzLLH9ssDE4aQsVhpZVWxWGnseoZSVdbWF0ugc/cmpKKrx/+aecoCt3nN
-# 87dW1UuIZ8ZET5qpRki2Bqrsp5BHPzQWf1UwqRbvZrUl2sm/NxOobeWFFSb4IY+6
-# ypQQ7Wan6xN4wjsEZo0ygFslQSUrNAaOXSf/i7bLsKlRSM9AtQsEVEAmweOE+IZl
-# 58ZBmRwg86/4bR1RxwkbRfWMMPSkq6EaUTC+b1vQKZm/n1winYYbJoVfH0u3qFUM
-# J9NWLkdQwZzcwHd/tIWOV4il6ICjkl2Df4jNAltMr91/GXR4vdohAkf967spYqVj
-# ZjS5LFsvdSCPKFz7q/44Phqc/ucu+cGtOTUXnVSk7mAZ+AHwcsC+mnBdLYk164/z
-# jF/u2CCnBqOqeRnu1zB1cU8Lzb2wkkd5zOE3VKMTcSflfI+zA63ORPT1jiYm/xHS
-# 2qAvmSpgIHSee22msfxPuNOhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU1Z7F+RTG
+# eoQZd/9g2UWm4wJ5npMwDQYJKoZIhvcNAQEBBQAEggIAInwznTk8ZjwYYZ8pnQRi
+# i5UaizmRswsCTHdxLp6ILShxxvNnuIYwLyYPKtvQo5IDEW3b6LR0QPAmKOvdMwqz
+# nMB5bbkZHSzwewpQBP984D2/WoZWOrFdoqbq6cjXCP+5h3QgsixiCvZ72biVI6De
+# mfsL255lkngmT8PpctulUt+tQY174WSyejMltuqR2hjaUU7+WyeLU22PjYTHVo80
+# kjhaMVTo9OAUxw5yPaZX44s+yoHMUzFl4DiMK1No7rnFhKCX67/Wpozy7jCwBUZr
+# /C9z5z+rBS8LxqXgg2uoTz6PBx2pP0WJfp4+oLMa6OKIvrrdNe6gBcIPygrzNfBJ
+# SQPZYj+jk2y6Eh29/HnCmR6Y/5sg+GZOu2NWW0wDOyeQR4pkjQdFYhuO+hsNV/SK
+# rOAtJaBtRNzzOl2QQs3gm/1vHttwnbiLCu18ezAUSRUE981xvEf1lqdwIz2DHQsk
+# wPMyjcNIRwIAPMy/PWrh+NwJuMBBPV6ABiR8pM62MwRbwXP+usP2u8WKwUy0Nm6R
+# b+au7K9R38ieBfO8IS/vbfV9JefEr5qd+QWOh0JKxrjog3/pRzbj9yp9ipiqEYyC
+# S3qVaf9yLpYB+zJ03dMUud8+sIEScnQJn4P1uwS9ZxMlkxim5CyG4pxwa9FuOl+p
+# O5Z/429sLk0BWNEhEFWRSSuhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMjMwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQgk31eQKebtSipjlAzQ44mictSBuM4S0n3Av0UFZjt
-# EuswDQYJKoZIhvcNAQEBBQAEggIAvOX7LoA7ASZK+g/zBKtZnwxzOmbzfR/MDhEs
-# dlWLEy3fwAtfBJrrlsDlPLjEL1GnYLxjdTPkxhHoX3GcuwFKTSch0Ygz/eUkw46k
-# RRoljlhhIdmjZYA/j9EU5ord+OrMn/DZjzfMmcfSFG1mvR0dozwz7trsjQoh5PSF
-# iPYXRE+Z3oiAHc/xZqmiwkxU689/eF7wfvgtX9ezJsiEcoZrm5JO962Kw4ENuV34
-# QCivTwJSpAkCgX1QwyenXH5832uSuuggS4bFfigTFMr5n1CGte/5DQuaYyWMYT49
-# WAcyjubaZ2nvtiSd3BLG6spNmZfvNV1oXfUD2+NPi02ovWd4W7Ny9LUerYGHeqDa
-# kDcoMrMQL7zJyXedyKs+UklO1ARIal2wPjQvRfU+VYFmE68Y0qpk0bGkXOv3WAz0
-# wZWVKxeoMJG47rJoAkcbxWv7elkRIYPlq7vqwuFY4eHMgc1pw8BYioV9NVHMX/oU
-# hUP61hO6rdp3ht3JiP4+eOjT9K9VZEeZJlvOdBkzA+0XR1O297Oq2AiJwi44lay7
-# gVR9sHZDTDhhAKlL1rG4PNpGhaivPNx+ao9bqPxU8p/xYDan9uvluX1OVpCLXZWw
-# 0r17JfTc8M1h5WEoJpPCTCiATzu9B+Ta2syZlgaUwK1LYZhPkZpRQ7EP/kO4BXBP
-# lpbD4e8=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTQwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgUdRqpvCL9PYyR3DQ2y2lij7Qu5VEXG43zl0CGcho
+# y7QwDQYJKoZIhvcNAQEBBQAEggIAqnyNZKXLyq7NaBUA0TZOAzGRKq+xxle05/Ok
+# AYPExA/dcjFjkcoOZdPcL/WFtme/fwS4qKgpLCb9oJWEHD/pJ/8ttg0sm5s0pHbk
+# bj7/lZ89YYP3s8Z8p9FS8PUWqem0JCz6x3WwZ2p7I8fDq8wTeYTJcTgVX/P7kdDF
+# VY6RHDvt5x4J9nqWbce8slFIZhVqw+0sBfsLtTpvJz8GGavYVbJNZwBoRrqYad6b
+# OFAtsS2iTrgIB/JbU1o0A6p6drVcxKKhS01v04Af7yA4OonzLzU/2uvZ/U9YvF1i
+# LmHwRAWvr4Au4gEod/p5mxgSi+2L/5E3bYubLyH00nIyUEhJEcKkEFTkj4+gtmx2
+# F5CwOOAHAZPhwo5nlvFRMbCZgXYu0a9yLkVTKO7KauJzhISctZY6D96X30+Ir9fQ
+# Sc+BWvlfrDTt/GLMF4qo9PxgksjiyM7EsJ/IKRjL3w+GhMDxVAddOHQuYzaNCSta
+# PxwAqwr0HqdLEG4qnuamZd5O2jvZElUg7q/jrhDQmluWfx+K/Hb5pSdIvqercJ8e
+# Wd32W44g28kqG6jxV/iQqh2VkFDBp3vk+tM15q5VrY9azTfaaeH6ptNu/gPgmsr0
+# Zvh12ROBoNXSvlXPggNMyiI/aw/Y8kDgaUDCDbQIjrhcCMXXSXzhsD7pjcofVT6l
+# HghwB8s=
 # SIG # End signature block
