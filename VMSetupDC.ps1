@@ -227,10 +227,8 @@ Begin
     $MainScriptBlock =
     {
         # Initialize
-        [ref]$Output = @()
-        $WhatIfSplat.Add('Output', $Output)
+        $Result = @()
         $UpdatedObjects = @{}
-        $Result = @{}
 
         # Get base DN
         $BaseDN = Get-BaseDn -DomainName $DomainName
@@ -301,10 +299,10 @@ Begin
                                -Force > $null
 
             # Set result
-            $Result.Add('WaitingForReboot', $true)
+            $Result += @{ WaitingForReboot = $true }
 
             # Restart message
-            ShouldProcess @WhatIfSplat -Message "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup..." -Type Warning
+            ShouldProcess @WhatIfSplat -Message "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup..." -WriteWarning > $null
 
             # Restart
             Restart-Computer -Force
@@ -1012,7 +1010,7 @@ Begin
 
                         if (-not $Build)
                         {
-                            $Output += @{ Warning = "Did'nt find build for $($CurrentObj.Name), skiping move." }
+                            ShouldProcess @WhatIfSplat -Message "Did'nt find build for $($CurrentObj.Name), skiping move." -WriteWarning > $null
                             continue
                         }
 
@@ -1021,7 +1019,7 @@ Begin
                         {
                             if(-not $WinBuilds.Item($Build).Server)
                             {
-                                $Output += @{ Warning = "Missing winver server entry for build $Build, skiping move." }
+                                ShouldProcess @WhatIfSplat -Message "Missing winver server entry for build $Build, skiping move." -WriteWarning > $null
                                 continue
                             }
 
@@ -1033,7 +1031,7 @@ Begin
                         {
                             if(-not $WinBuilds.Item($Build).Workstation)
                             {
-                                $Output += @{ Warning = "Missing winver workstation entry for build $Build, skiping move." }
+                                ShouldProcess @WhatIfSplat -Message "Missing winver workstation entry for build $Build, skiping move." -WriteWarning > $null
                                 continue
                             }
 
@@ -2198,7 +2196,7 @@ Begin
                     }
                     else
                     {
-                        $Output += @{ Warning = "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" }
+                        ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" -WriteWarning > $null
                     }
                 }
             }
@@ -2342,7 +2340,7 @@ Begin
                 $AdfsDkmGuid = $AdfsDkmContainer.Name
             }
 
-            $Result.Add('AdfsDkmGuid', $AdfsDkmGuid)
+            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
 
             # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
             # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
@@ -2772,7 +2770,7 @@ Begin
 
                                 default
                                 {
-                                    $Output += @{ Warning = "Missing template property handler for `"$($Property.Name)`"." }
+                                    ShouldProcess @WhatIfSplat -Message "Missing template property handler for `"$($Property.Name)`"." -WriteWarning > $null
                                 }
                             }
                         }
@@ -3202,15 +3200,10 @@ Begin
         # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
         # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 
-        if ($Output.Value.Count -gt 0)
-        {
-            Write-Output -InputObject $Output.Value
-        }
-
         # Check size
         if ($UpdatedObjects.Count -gt 0)
         {
-            $Result.Add('ComputersAddedToGroup', $UpdatedObjects)
+            $Result += @{ ComputersAddedToGroup = $UpdatedObjects }
         }
 
         if ($Result.Count -gt 0)
@@ -3366,8 +3359,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkJksPiIKL9RIJS/GYE97u6iz
-# I7igghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXGZJcMz06bJTqepXM6pV3/tq
+# dDKgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3498,34 +3491,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU8dTZQW6V
-# BS9lERx3OA/X9ylloIIwDQYJKoZIhvcNAQEBBQAEggIAG8nwC1oYsxNUwcbhST6I
-# zvF4Ewl8GKn5HpvG05/u+GzeY7iAht599IyqOKXgc8lCndsnEobxA96m6XEYJ3NR
-# YnovZ8vf+8OoISwr1y5e9ZZGEqouq6N4In1UQmtOw6e8u4GfwG5aFS+ws2EB7/sv
-# x9hR+OucTcw1QC+D8m5gP2bDqgDuFIjRKZknxGZcAum8LAAYH5T6rLGe7GSuFO9M
-# x28TY18PFrq6nTeS8yQevkl79YDytGaSVkMfDo2Z0Ie0FsZOYD8Elu0m/FwFyfCm
-# 0V1mEKiRdAzwfq1DpYR47fIrPhFa5NpaB0d8E7ZrIvy91cfid/ccR0uKFLAYRg35
-# mP/HSA/sWhko68PM1LL6iLovOHIpj5N76+4v+Kqcewv+uN9LzuoknHlwXLfL+PzW
-# kJaKHRK+CAiRbErnX2qRcrv4JsbunPN+VtXLbvqXOU6YWAoqMgRU5v1LZL9jPUgj
-# afIzC1kDZZuO/bfYtqwqkK3WFFk/V4umUYbewPP7CR3GSdTq4dXJQWEs7UPqQI5X
-# LyN1jIAMj3Pwvqia0QYDTHrlewfgJID19KNDgKRS752dh74B3M8jHSQw+dj+5032
-# jYeCcN241IKBnGV3fQ6eMS/R1T1p3Mg4fZhEriKjUWuE5jWf7OPPAbVoInhxuZfY
-# pgNv468Q7/tNnRow4HEkQaehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMI+26Tnv
+# 1Y02Lk529BaOoYt3ndEwDQYJKoZIhvcNAQEBBQAEggIAS3T69eyN7OaDZJjneqnG
+# 87vTrSNO5Oeop7C/vT+PLWv2uLOoz5EbAAYSqRv2FvYpxs/lcyDWylEd9BWBSdUx
+# FgeckdsbU64vQVDRFjjYl3B8mh+7yq1raOeQOvb0d9V1VeilQc3+mPrtbhGbiw7t
+# mQRv5omi0vetEOjTcCiCOVsDST9dSPonMJ4FTahuBcM+bzP85MSh5VkFIa9GTt2t
+# ZQrFzpX8UH6Vpufsfx7cwAMLy879xV4NBfKb1guHawJ9ANlKIK9Y54Ayuq+67Nma
+# lE0FMqxrN94heJcUqG8cIkHG5Efo87C1r/gL+An5xOdfB92q6VP1yo+nJsnF6cDf
+# YErrU6H50C1D6fDlqumcc8tDqK5OHRnziZTjrDDNMn4GXd4ZcX3OKhDRPMfe6jPg
+# 9JQBvrN6tF6QtaSPzOdfQaEVWqgJCeWpKwhz8ULIt4CbdeoUh5LXXDkF8becqsrE
+# RLsk83RhkyKFaN1MZSVQXJzO38LKP9ow4qqqTyQvuZPDe7Pp5uyb3KaYv4FBwAmo
+# JNr4L5UN9AeI9Q74DnLHmYhOvdX8/BPN/3E6KQf6UCxGMCjm23sJdBnH+DPbyl66
+# a+krBnNXGfptNeGdvHKEijfR6/+d93wGXtMOudvQOavU0KknqYlWJvQq7dcABNjY
+# Hb/sgzYqDT46rp6ydOgkJwGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTUwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgc4bQYnzevqAsjRujI9b/ghmH5gsLLzjvOb3EAEar
-# o+gwDQYJKoZIhvcNAQEBBQAEggIAGdxnxRVeGsF9ryOiYS74fXC48+JgzzcdHThM
-# UPzebUjHA98N3WXl+nsW616KOSqHF7dqdJdzSRchnqH7bpGm1vymYxpgH2bOzmSu
-# Oa6XP/0HCv4T/tbtVUhCgbJkb7kqUMu3WWDWN9VueV1QN2KH3xmjBAWAB/AErYIL
-# s9uFddClPqzvi4eeUgAR71hV2R1q3kJdOixiJFRGqMh8IMo7YfHAHV64ETzXfI1s
-# hab+z/20w8hQ0Z89kysQMq5f5NE3NqTWCpEi1yM0eZKhbwh+oDMjSqg/ayh+H0P1
-# CwgpCWJ5FqTKjJ/JBIk+3er0Dgc3FEfOH3hITp/zpALe5yHX9DA5wMlgqMTYfA1M
-# qMF1eMO/mHCt5rn5BZ37nDvv00NjwI8ob3M8/QpELSFJXDuR/OrTl/KSVBGCnqYX
-# chUWQ0fC2VLYDlkQstBZcpcaxo/1x93+NOeKVfoKKb/79Ou0RuftHhKNsChRhzuB
-# Hq7WYZD+3OS+KJF0DGFnfp7oFzkRjVsSWD/+y8Hx+qSfhWX5dzrK1o5J9GC7gGnq
-# 0yuhfhls4H0qPkmjaWpM4EbsVTmp8gggT/BERozhhtsbq2sKsFXl0jVu2O7iZKQD
-# WO0aCERkxMB/8x6sZ/KMvTPcIk145Kv+FN7+E6Q+Iypbexu0FW20bN/T50zglMbB
-# niilV1c=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTYwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgQCFyGrcmcX1yo304c4tLBIt4D69KtI8KTGwpfM5N
+# bvQwDQYJKoZIhvcNAQEBBQAEggIACM01PyNP3mAYpznTzReUhBfZSkccCxcL6sQo
+# cCi3j42rzK7uj6VowYnPxdYtQOqM0gEhHlhgkAPfKNHiFQioDpFB0RgyUTktg+hz
+# Q1sMh7DCDoPxmKwAUke3KsTlAXNnrWLDVU2oAvvFrOar6NEETB3q4KhvGQUahHd3
+# V7hb8DYHj/oDFpa6X7p2CXYpTKvY+J794LJm11RU8TD7BlpNDRdhjR9AUXz/+rre
+# VcofLKbKfAFPQx6z8lFZjmXxb3ADoTvVK6EeE6c/2kPe7zTDln8S8XqiR/kSFpI1
+# 9xAsU0hiCucn+hN0RDnvJK71jQktFClEhqxvT3LJH6KKmAMW2MvO2aZTlmPUg4tM
+# 89wV6TOTHafGdWY6rBYdrhLThNet2G7MA4/HUuZYFJSN36J7sYRORgbpg4ISokYo
+# GUG9vo88tLHhudpftwNpBU8Jappl/mpMl0x0xHfGDWDrjueCeKZfeWTkISsaDuHj
+# G232PXUGCgVA7uOgcPX9/xFR6nqJYT+79QJ2OxNn8GAFD7Q/jnb0riI4qgAuZXhL
+# apbjKMnOgS4m++mJXYrCRPBHliwq3cmk/lgoa3y2QbgpRF9ByANOpDyI0sQLnV1w
+# 0brXxQJpS82Xys5FQQz+bg43yfORmIBdk4HqHAOSeoqobb+apj7H6kYDSszKHka3
+# 1vJeOmo=
 # SIG # End signature block

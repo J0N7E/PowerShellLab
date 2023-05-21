@@ -448,8 +448,7 @@ Begin
                         $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
-                    ShouldProcess -Message "Getting parent CA response file: $($file.Name)" -Type
-                    $Output = @{ Verbose = "Getting parent CA response file: $($file.Name)" }
+                    Write-Verbose -Message "Getting parent CA response file: $($file.Name)" @VerboseSplat
 
                     # Get file content
                     $ParentCAResponseFiles.Add($file, (Get-Content @GetContentSplat -Path $file.FullName))
@@ -472,7 +471,7 @@ Begin
                         $_ -match "Subject:\r\n.*CN=(.*)\r\n"
                     } | ForEach-Object { "$($Matches[1])" }))
                 {
-                    $Output = @{ Verbose = "Getting parent CA certificate: $($file.Name)" }
+                    Write-Verbose -Message "Getting parent CA certificate: $($file.Name)" @VerboseSplat
 
                     # Get file content
                     $ParentCAFiles.Add($file, (Get-Content @GetContentSplat -Path $file.FullName))
@@ -618,9 +617,7 @@ Begin
     $MainScriptBlock =
     {
         # Initialize
-        [ref]$Output = @()
-        $WhatIfSplat.Add('Output', $Output)
-        $Result = @{}
+        $Result = @()
 
         ##############
         # Check admin
@@ -1006,7 +1003,7 @@ Begin
                     }
                     else
                     {
-                        $Output = @{ Warning = "IssuancePolicies hastable in wrong format, skipping policy." }
+                        ShouldProcess @WhatIfSplat -Message "IssuancePolicies hashtable in wrong format, skipping policy." -WriteWarning > $null
                     }
                 }
 
@@ -1238,14 +1235,14 @@ Begin
 
             if ($AlwaysPrompt)
             {
-                Write-Verbose -Message "CAPolicy.inf:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "CAPolicy.inf:" @VerboseSplat
 
                 foreach($Line in $CAPolicy)
                 {
-                    Write-Verbose -Message "$Line" @VerboseSplat
+                    ShouldProcess @WhatIfSplat -Message "$Line" @VerboseSplat
                 }
 
-                Write-Verbose -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
 
                 foreach($Param in $ADCSCAParams.GetEnumerator())
                 {
@@ -1254,10 +1251,10 @@ Begin
                         $Param.Value = "`"$($Param.Value)`""
                     }
 
-                    Write-Verbose -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
+                    ShouldProcess @WhatIfSplat -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
                 }
 
-                Write-Verbose -Message "Post settings:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat
 
                 foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
                 {
@@ -1268,7 +1265,7 @@ Begin
                             $Setting.Value = "`"$($Setting.Value)`""
                         }
 
-                        Write-Verbose -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat
+                        ShouldProcess @WhatIfSplat -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat
                     }
                 }
 
@@ -1344,14 +1341,14 @@ Begin
                         # Matching key id
                         $ParentCAResponseFileMatch = "$env:TEMP\$($file.Key.Name)"
 
-                        Write-Verbose -Message "Matched CA Request Key Id Hash $CsrKeyIdHash in $ParentCAResponseFileMatch" @VerboseSplat
+                        ShouldProcess @WhatIfSplat -Message "Matched CA Request Key Id Hash $CsrKeyIdHash in $ParentCAResponseFileMatch" @VerboseSplat > $null
                     }
                     else
                     {
                         # Remove non-matching file
                         Remove-Item -Path "$env:TEMP\$($file.Key.Name)"
 
-                        Write-Warning -Message "Response file `"$($file.Key.Name)`" did not match CA Request Key Id Hash $CsrKeyIdHash."
+                        ShouldProcess @WhatIfSplat -Message "Response file `"$($file.Key.Name)`" did not match CA Request Key Id Hash $CsrKeyIdHash." -WriteWarning > $null
                     }
                 }
 
@@ -1362,7 +1359,7 @@ Begin
                     # Try installing certificate
                     TryCatch { certutil -f -q -installcert "`"$ParentCAResponseFileMatch`"" } -ErrorAction Stop > $null
 
-                    $Result.Add('CertificateInstalled', $true)
+                    $Result += @{ CertificateInstalled =  $true }
                     $Restart = $true
 
                     # Cleanup
@@ -1375,11 +1372,11 @@ Begin
                     # Get file
                     $CsrFile = Get-Item -Path $CsrfilePath
 
-                    Write-Warning -Message "Submit `"$($CsrFile.Name)`" and rerun this script to continue..."
+                    ShouldProcess @WhatIfSplat -Message "Submit `"$($CsrFile.Name)`" and rerun this script to continue..." -WriteWarning > $null
 
                     # Add file, content and set result
-                    $Result.Add('File', @{ Name = $CsrFile; File = (Get-Content @GetContentSplat -Path $CsrFile.FullName); })
-                    $Result.Add('WaitingForResponse', $true)
+                    $Result += @{ File = @{ Name = $CsrFile; File = (Get-Content @GetContentSplat -Path $CsrFile.FullName); }}
+                    $Result += @{ WaitingForResponse = $true }
 
                     # Output result
                     Write-Output -InputObject $Result
@@ -1405,7 +1402,7 @@ Begin
 
             if (-not $CACommonName)
             {
-                Write-Warning -Message "Can't get CACommonName."
+                ShouldProcess @WhatIfSplat -Message "Can't get CACommonName." -WriteWarning > $null
             }
         }
 
@@ -1415,7 +1412,7 @@ Begin
         # Check configuration
         if (-not $Configuration)
         {
-            Write-Warning -Message 'Configuration is missing under "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc"'
+            ShouldProcess @WhatIfSplat -Message 'Configuration is missing under "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc"' -WriteWarning > $null
         }
         else
         {
@@ -1497,7 +1494,7 @@ Begin
         # Check if running
         if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
         {
-            Write-Warning -Message "CA not running..."
+            ShouldProcess @WhatIfSplat -Message "CA not running..." -WriteWarning > $null
             $Restart = $true
         }
 
@@ -1506,14 +1503,14 @@ Begin
             Restart-CertSvc
             Start-Sleep -Seconds 3
 
-            if ($Result.Contains('CertificateInstalled'))
+            if ($Result.CertificateInstalled)
             {
-                Write-Warning -Message "Certificate installed, waiting a bit extra for CA..."
+                ShouldProcess @WhatIfSplat -Message "Certificate installed, waiting a bit extra for CA..." -WriteWarning > $null
                 Start-Sleep -Seconds 7
             }
             elseif ($PublishTemplates.IsPresent)
             {
-                Write-Warning -Message "About to load templates, waiting a bit extra for CA..."
+                ShouldProcess @WhatIfSplat -Message "About to load templates, waiting a bit extra for CA..." -WriteWarning > $null
                 Start-Sleep -Seconds 5
             }
         }
@@ -1529,36 +1526,6 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Enabling Object Access Certification Services Success and Failure auditing." @VerboseSplat))
             {
                 TryCatch { auditpol /set /subcategory:"Certification Services" /success:enable /failure:enable } > $null
-            }
-        }
-
-        #  ██████╗███████╗██████╗ ████████╗███████╗███╗   ██╗██████╗  ██████╗ ██╗     ██╗
-        # ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██╔════╝████╗  ██║██╔══██╗██╔═══██╗██║     ██║
-        # ██║     █████╗  ██████╔╝   ██║   █████╗  ██╔██╗ ██║██████╔╝██║   ██║██║     ██║
-        # ██║     ██╔══╝  ██╔══██╗   ██║   ██╔══╝  ██║╚██╗██║██╔══██╗██║   ██║██║     ██║
-        # ╚██████╗███████╗██║  ██║   ██║   ███████╗██║ ╚████║██║  ██║╚██████╔╝███████╗███████╗
-        #  ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
-
-        if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
-        {
-            # Itterate all files under certenroll
-            foreach($file in (Get-Item -Path "$env:SystemRoot\System32\CertSrv\CertEnroll\*" -ErrorAction SilentlyContinue))
-            {
-                switch($file.Extension)
-                {
-                    '.crt'
-                    {
-                        $FileName = $file.Name | Where-Object {
-                            $_ -match ".*($CACommonName.*\.crt)"
-                        } | ForEach-Object { "$($Matches[1])" }
-                    }
-                    '.crl'
-                    {
-                        $FileName = $file.Name
-                    }
-                }
-
-                Copy-DifferentItem -SourcePath $file.FullName -TargetPath "$CertEnrollDirectory\$FileName" @VerboseSplat
             }
         }
 
@@ -1605,6 +1572,60 @@ Begin
             TryCatch { certutil -crl } > $null
         }
 
+        #  ██████╗███████╗██████╗ ████████╗███████╗███╗   ██╗██████╗  ██████╗ ██╗     ██╗
+        # ██╔════╝██╔════╝██╔══██╗╚══██╔══╝██╔════╝████╗  ██║██╔══██╗██╔═══██╗██║     ██║
+        # ██║     █████╗  ██████╔╝   ██║   █████╗  ██╔██╗ ██║██████╔╝██║   ██║██║     ██║
+        # ██║     ██╔══╝  ██╔══██╗   ██║   ██╔══╝  ██║╚██╗██║██╔══██╗██║   ██║██║     ██║
+        # ╚██████╗███████╗██║  ██║   ██║   ███████╗██║ ╚████║██║  ██║╚██████╔╝███████╗███████╗
+        #  ╚═════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
+
+        if ($CertEnrollDirectory -ne "$env:SystemRoot\System32\CertSrv\CertEnroll")
+        {
+            # Itterate all files under certenroll
+            foreach($file in (Get-Item -Path "$env:SystemRoot\System32\CertSrv\CertEnroll\*" -ErrorAction SilentlyContinue))
+            {
+                switch($file.Extension)
+                {
+                    '.crt'
+                    {
+                        $FileName = $file.Name | Where-Object {
+                            $_ -match ".*($CACommonName.*\.crt)"
+                        } | ForEach-Object { "$($Matches[1])" }
+                    }
+                    '.crl'
+                    {
+                        $FileName = $file.Name
+                    }
+                }
+
+                Copy-DifferentItem -SourcePath $file.FullName -TargetPath "$CertEnrollDirectory\$FileName" @VerboseSplat
+            }
+        }
+
+        # Itterate CA files under certenroll
+        foreach($file in (Get-Item -Path "$CertEnrollDirectory\*$CACommonName*" -ErrorAction SilentlyContinue))
+        {
+            $Result += @{ File = @{ FileObj = $file; FileContent = (Get-Content @GetContentSplat -Path $file.FullName); }}
+        }
+
+        # Export
+        if ($ExportCertificate.IsPresent)
+        {
+            # Export CA certificate
+            Backup-CARoleService -KeyOnly -Path "$env:TEMP" -Password $CertFilePassword
+
+            ShouldProcess @WhatIfSplat -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$CACommonName.p12`"" -WriteWarning > $null
+
+            # Get p12
+            $CACertificateP12 = Get-Item -Path "$env:TEMP\$CACommonName.p12"
+
+            # Add p12
+            $Result += @{ File = @{ FileObj = $CACertificateP12; FileContent = (Get-Content @GetContentSplat -Path $CACertificateP12.FullName); }}
+
+            # Cleanup
+            Remove-Item -Path "$env:TEMP\$CACommonName.p12"
+        }
+
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
         # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
         # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
@@ -1612,31 +1633,10 @@ Begin
         # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
         # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
 
-        # Itterate CA files under certenroll
-        foreach($file in (Get-Item -Path "$CertEnrollDirectory\*$CACommonName*" -ErrorAction SilentlyContinue))
+        if ($Result.Count -gt 0)
         {
-            $Result.Add('File', @{ Name = $file; File = (Get-Content @GetContentSplat -Path $file.FullName); })
+            Write-Output -InputObject $Result
         }
-
-        if ($ExportCertificate.IsPresent)
-        {
-            # Export CA certificate
-            Backup-CARoleService -KeyOnly -Path "$env:TEMP" -Password $CertFilePassword
-
-            # Inform
-            Write-Warning -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$CACommonName.p12`""
-
-            # Get p12
-            $CACertificateP12 = Get-Item -Path "$env:TEMP\$CACommonName.p12"
-
-            # Add p12
-            $Result.Add('File', @{ Name = $CACertificateP12; File = (Get-Content @GetContentSplat -Path $CACertificateP12.FullName); })
-
-            # Cleanup
-            Remove-Item -Path "$env:TEMP\$CACommonName.p12"
-        }
-
-        Write-Output -InputObject $Result
     }
 }
 
@@ -1833,6 +1833,7 @@ Process
                 {
                     switch ($Item.Key)
                     {
+                        'Host'    { $Item.Value | Write-Host }
                         'Verbose' { $Item.Value | Write-Verbose @VerboseSplat }
                         'Warning' { $Item.Value | Write-Warning }
                         'Error'   { $Item.Value | Write-Error }
@@ -1840,22 +1841,22 @@ Process
                         'File'
                         {
                             # Save in temp
-                            Set-Content @SetContentSplat -Path "$env:TEMP\$($Item.Value.Name)" -Value $Item.Value
+                            Set-Content @SetContentSplat -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Value $Item.Value.Item('FileContent')
 
                             # Check if certificate or crl
-                            if ($Item.Value.Extension -eq '.crt' -or $Item.Value.Extension -eq '.crl')
+                            if ($Item.Value.Item('FileObj').Extension -eq '.crt' -or $Item.Value.Item('FileObj').Extension -eq '.crl')
                             {
                                 # Convert to pem
-                                TryCatch { certutil -f -encode "$env:TEMP\$($Item.Value.Name)" "$env:TEMP\$($Item.Value.Name)" } > $null
+                                TryCatch { certutil -f -encode "$env:TEMP\$($Item.Value.Item('FileObj').Name)" "$env:TEMP\$($Item.Value.Item('FileObj').Name)" } > $null
                             }
 
                             # Set original timestamps
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Name)" -Name CreationTime -Value $Item.Value.CreationTime
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Name)" -Name LastWriteTime -Value $Item.Value.LastWriteTime
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Name)" -Name LastAccessTime -Value $Item.Value.LastAccessTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name CreationTime -Value $Item.Value.Item('FileObj').CreationTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastWriteTime -Value $Item.Value.Item('FileObj').LastWriteTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastAccessTime -Value $Item.Value.Item('FileObj').LastAccessTime
 
                             # Move to script root if different
-                            Copy-DifferentItem -SourcePath "$env:TEMP\$($Item.Value.Name)" -RemoveSourceFile -TargetPath "$PSScriptRoot\$($Item.Value.Name)" @VerboseSplat
+                            Copy-DifferentItem -SourcePath "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -RemoveSourceFile -TargetPath "$PSScriptRoot\$($Item.Value.Item('FileObj').Name)" @VerboseSplat
                         }
 
                         default
@@ -1883,8 +1884,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQmGWu5aU1YKyFRIuKtTRjyjW
-# OmugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsLgegjsnCqYhki//PsRbpUMV
+# 94ugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2015,34 +2016,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUek6CrwpE
-# ERCmR7b4Ij1yaZl1UH0wDQYJKoZIhvcNAQEBBQAEggIAwGC2Cfz2v59aTWM4Gtid
-# pMwsGcv0A6oE2LkFok7Qjbrio2by5NVKAujEjmkTCSRuYaWLv/f6xV6cShqhheLt
-# hY9dyCSetrmtksfMg8OJ38E+SoKNoHmBvIXvdTljpjspokdFDOEus6CbzwB3hIpj
-# JGyIkygmOY77aeSCOgLSj2QdwRgSWiXeEnIDkB0ploYfRS61ChS+hySOHcKJf+L2
-# vOGdDmSCJB1ysKDIPZQOf0qIQk690wsMp2MCHcN0hFCincyT9g4plNH8ENtGlcCv
-# zY/QjDi2QABIML3qBwyCKxKX67IE4fueoVK8i/b+g7rlaA3t1pCVtoxy874iNlqt
-# 1Dk2+/sUyVtaD93rapmoI3/YRAg/cX02W92W3d3HdNk8Q4ugiw6k/OzF5X42gMVS
-# ZjV/HJdR4j9am9YnqF/gbvHd7jUQOeTAtmonvHo6OM1cuyHX5lFz2RIU2aOown17
-# 2SMNxGj0UHAT5w6StGUFYjttlqAGtJn/M+eMr/U216Y45idpT7n1KLPKaSEd1434
-# kw8alwN+zP+fJfqiXXlnpSHkSlue87nhUJL+EVRAq5/B+gaAPhEg+UlT9w2IakXT
-# fqkOexHNNNKSe3cADsZQjHO5yACfjJfPXROTlcfogtlyTDUENCwjHgf8XfopytVS
-# so8OTZiKxAkq5g+ZwJOaz4qhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0Mg9rCuk
+# 7Fh9pZ22wwTnjBml+qowDQYJKoZIhvcNAQEBBQAEggIAYw2DjmaEokoOEy664jNY
+# ANrXFfXHAMnNc7pPjZS5ofRfZ1uaBPhubfcVh7pqeYRG31TpevkQfKcMsqUadY88
+# hG4z961UHLvvSgXdjJcHiZRhvxBEbDR0Ijr2U4JSXeN0ejh1zojkH3IYT7mkHL1e
+# n3mEcQ/9Qoh6UJxMRdg2p0iNH+wNo9IODpTSsHQ5S80pTWPNfnDBAaRq/PNxztu7
+# ljM2/T2+WDRWVfZKChUCzWrAoHqhEO0Alo+KVH+9PgTlvfZZzrH2oxDYzSlHPSm4
+# qPuHitpUGoadbNa7hEJd0vrQm+lAE9jJSAFUkC0EVkTV92Ijts3om4J7LYgB5zzY
+# dQpCCV4DYF88R7+bu/YUQzLzSNjQa9+IdektQy5Km3nZWz1mXQR5JdBkcfWwNLAy
+# BzEFWpmUcsmfdWuOqius0yL7AIHp5t8frMNM5kz+E3WTbBo/S5YxmdYmOYeOjAsF
+# 4wbCOzJcK3IJ/q4I9Y9jZFFm4i5DkErJQSB6UTqiLJEjLGGK4uo/5wljkrkm3vuM
+# lYjITrFKYaKs8+bxserqPD6Tue1Dgtt3e9nOeREsP6H7yX9PHadZXGig6ix3tEaS
+# OW2EtB6/+RRRDWCoSF1aML9vxdRQS2macgSCQL7w0RVQm19C88NDi8wZ5ZhtnkVE
+# IF2Jmz9tt8n6lS1G4cQEnDyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgRWL2lWaaEWmOHR8OFnS6b5CUUw/ULuUHaLlWAXGZ
-# 5jYwDQYJKoZIhvcNAQEBBQAEggIARql5cRaZogxMqozkrUkNK/Sfc1naVEIzGdB3
-# mgu6RXEbR8C85B6hqwfmWKKF6CsSDE1mSInEZQUKTAKp1lVOUh+H3W8lfHSbiN6t
-# cerkHVgCHJXxPYXvYzhFwsWxFwWxWQC0r69WZddnuhoD3H4fFLB7+J88hueayjfL
-# M1/hu9r/GTEjzz8yiNqOnxm6S2wTzskIYphOnwpyd8Z/MBRteoNDIVzhGgTSAngq
-# uNeRMU/QNsk1kfHdAEWKmlkMySNzz7E5f2n5Wjd191B7Ic/Stw4fcdfZjt1J0u6d
-# KQ7vS3AIgyc/AZQeRbSvGaqzHaHpd6U4Wk4rfKMf0T/HI9HHpTLErGQQRRlNbDIQ
-# Aq3EGgY6tdkThYjBBxzzB0TmnCAUN+J3vF8zcGLFHKSdn+iHRtGUq3D9TNy8jZia
-# 24zyEI7JRcFzd2kNH3TF/YuXvg3fqWZyaBsjKQhFwPCxVdcwDUoBFB4VO3/COmdy
-# MQzfUhiYeksULsPcPzurGRx87o+GCvucvDP+yMz3/KLDnR+vJsmf15x3FDu9o8xM
-# vCG+Fo76Yf6Cv7Rd3fw7s/v16gC4B8gb4yf56k9JHfW0Ko8+5asYjSYqTGrcKwyr
-# pZu7YIa4vo7De1BDgXqavzqsm4fpVvT3aNOq/8SPC5G91KAb63cl/vzh1bbU30Tt
-# +AkeBKA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTYwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQg7Fy/AZahK82/yzT6XSpRmjbnFLWfK12S5HoLI+PL
+# LlUwDQYJKoZIhvcNAQEBBQAEggIAgV+0RE4cdlTe1Yw1IL5CoetIF4k1voWgS18S
+# +9ostSXLYWZ1mUZJb9kzqCK8dh54Mp9f4Gp/PcJ+Gk6sLmVzlpdf4wezXlkPl7nk
+# Be3aHJ4H1AWBZ4nS0iHCNoriiGxxdvwse+lK2V19lCteWZ9r++2F1zPUEGZnmpAI
+# cgVJxhdk7yV6YAJeBTQ1FVhLV2YRH8ZwUFDwTNAbRepVt/ZcuD0bwCPydQi/dty6
+# y0V0nvVfNLYOdVboC236g8yCY9ctMxPwHJ6UuKu6FVyhEf665jlxtwYjGEZoAiw3
+# igqXocsPtrWaITKZRhts63gWtKEuG7h72Tdbz4mx23H+HEmtzS7f3+JfKrDgvtX3
+# SZLdqWDAxxr9Zys6cS5tZm8NyeDlW+PshYYadr8Lm8cEcbMahPxt7xrcrl+v8/X7
+# tklQGvBDXSzVbOG3iyETN+V3u3u1Ft/Wu80vAX+mOJLwGVVFhgrruk8tFWmlycgC
+# dAWcLnH42Mexb4udld2uMDNMV22WmIs06Wmztf5pkIRxHy88eF5u97/xMqJMW3LZ
+# DmLnGHsoBurv1x4Y5QBNml0PE+xOclNQYj5IWIy+F0BvYgeQOYNTIbDVvdOtiER6
+# pirc0YeloWU3igrCrIrA1/XhljOX0hBkWPpc3zPZmbweiJwVDtZssT/k/1XCja6M
+# xC2Q+hU=
 # SIG # End signature block
