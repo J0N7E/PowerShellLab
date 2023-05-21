@@ -399,7 +399,6 @@ Begin
                     @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
                     @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
                     @{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
-                    @{ Name = 'curity';                  Type = 'A';      Data = "$DomainNetworkId.250" }
                 )
 
                 foreach($Rec in $DnsRecords)
@@ -526,40 +525,36 @@ Begin
 
                 $DhcpReservations =
                 @(
-                    @{ Name = "WAP";    IPAddress = "$DomainNetworkId.100"; }
-                    @{ Name = "ADFS";   IPAddress = "$DomainNetworkId.150"; }
-                    @{ Name = "AS";     IPAddress = "$DomainNetworkId.200"; }
-                    @{ Name = "curity"; IPAddress = "$DomainNetworkId.250"; }
+                    @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.100"; }
+                    @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.150"; }
+                    @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.200"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)
                 {
-                    # Set reservation name
-                    $ReservationName = "$($Server.Item($Reservation.Name)).$DomainName"
-
                     # Get clientId from dhcp active leases
-                    $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -eq $ReservationName -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
+                    $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -match $Reservation.Host -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
 
                     # Check if client id exist
                     if ($ClientId)
                     {
-                        $CurrentReservation = Get-DhcpServerv4Reservation -ScopeId $DHCPScope | Where-Object { $_.Name -eq $ReservationName -and $_.IPAddress -eq $Reservation.IPAddress }
+                        $CurrentReservation = Get-DhcpServerv4Reservation -ScopeId $DHCPScope | Where-Object { $_.Name -eq $Reservation.Name -and $_.IPAddress -eq $Reservation.IPAddress }
 
                         if ($CurrentReservation)
                         {
                             if ($CurrentReservation.ClientId -ne $ClientId -and
-                               (ShouldProcess @WhatIfSplat -Message "Updating DHCP reservation `"$($ReservationName)`" `"$($Reservation.IPAddress)`" to ($ClientID)." @VerboseSplat))
+                               (ShouldProcess @WhatIfSplat -Message "Updating DHCP reservation `"$($Reservation.Name)`" `"$($Reservation.IPAddress)`" to ($ClientID)." @VerboseSplat))
                             {
-                                Set-DhcpServerv4Reservation -Name $ReservationName -IPAddress $Reservation.IPAddress -ClientId $ClientID
+                                Set-DhcpServerv4Reservation -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
 
-                                $UpdatedObjects.Add($Server.Item($Reservation.Name), $true)
+                                $UpdatedObjects.Add($Reservation.Host, $true)
                             }
                         }
-                        elseif (ShouldProcess @WhatIfSplat -Message "Adding DHCP reservation `"$($ReservationName)`" `"$($Reservation.IPAddress)`" for ($ClientId)." @VerboseSplat)
+                        elseif (ShouldProcess @WhatIfSplat -Message "Adding DHCP reservation `"$($Reservation.Name)`" `"$($Reservation.IPAddress)`" for ($ClientId)." @VerboseSplat)
                         {
-                            Add-DhcpServerv4Reservation -ScopeId $DHCPScope -Name $ReservationName -IPAddress $Reservation.IPAddress -ClientId $ClientID
+                            Add-DhcpServerv4Reservation -ScopeId $DHCPScope -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
 
-                            $UpdatedObjects.Add($Server.Item($Reservation.Name), $true)
+                            $UpdatedObjects.Add($Reservation.Host, $true)
                         }
                     }
                 }
@@ -3316,8 +3311,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiToh8SDRIk+u+Nj8X4+omlIq
-# VJagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKzv0a2207muIbhL1gSr9H5+2
+# oy2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3448,34 +3443,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUfK0Zz2C4
-# n9HgMhXp5Thy5KN5qWgwDQYJKoZIhvcNAQEBBQAEggIAriq3xLv/fIc3BQTTFtBa
-# K0NixcQ/iXTvL4B1JxS810EEWj7LBdMfOEyF+gGLZGRkKi86JEuowvuugfEiiRTU
-# p6g5668Rq+wTysNv9nyI9mFwD/2qlzosw+jEnfT2vf6h5D8n2Wujbv7Rbwd0L7zE
-# THuUaw4ds88SyNoTeVe8DpritS5At94+DyrjOtea8G7eMNnjeE8G3ntNndoFj5BH
-# HzUkq2ZfQzRtFIdmiIkheuvtPHWRp+Ra7kAvRdTrb3BIshafLV55pxscgXimP5Cb
-# YZUlDfFs/DqTUJqZAXhZnwAok1Pped/4uXJGPe/BEhnqt/eAryi9z09aX/vP/QKf
-# 6ZTghtV1+bYfvyOQQk7A9/hjOG4dw2cguOi8vDME5QhG7Nwk7yIOvBY2YpaRTVAq
-# JPoIKxfObNrRhCdNpyB3VVlIraW6w40CIlhx0eeEKQ4CO0yzI2qb8frHSRY6C7e7
-# 8cTC2h8w9rIFy9nAMMwUaocuRBF2sYUqTtU9Wvn0IAiFyB8Gr3dCE36mEHepDHQy
-# nZ9hNIuR7gt8M/QLSHATEhLH7rtTKecDAHiaqgvvg43lUravsfloyXEGyA0WGIXT
-# 90EW+DCiu0GdBFaX535iUdwaVravn7KCLegdNKfIAe8y0mTN/X4ZncHIuhwfDM3Z
-# 85pRBKunFANeZc+NLgB+CByhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUa+MkV9EW
+# GakmamWvrW0Lii0PFsQwDQYJKoZIhvcNAQEBBQAEggIAEFU/V2oHiBqaFx21ddF2
+# xV/VuMUzi+QtgbU4EDWMUvVxVnO3bihC6u4VCNqafkqtHr+Owyy4N3V5bNL5pnpq
+# /Et5fKvnLem6XleVC60Bmt1zuQ7VdAdssuOn7ECgmPz7W+iiSoLXClqvd1fQBBS+
+# 331kaR21pEZCRQhBuz2XPJ7SL7EXCvSnACphownbLYht22xns9oSpcV+dZ0KX+C7
+# 0jGa1vEdh58O+869WizLpUEaEz7yv/Hxcs7WcaJX+x8uY7629uNGwcIuvs2rCpVF
+# h5mCfbcgEb1LrJu63alDBDzkixPV0EUx9mdxno0ksP42spBR0uiD7xisQwnLWPqr
+# rQFU+IBq4U/qDKUmN/ZB8dA2pbSiBpWJ5ZIKSAh61EF9m9x+vkl8bmkYLEzxpaxY
+# /F4Zjyyi4StuEbIRKD1XIhg0Xix8g7Ca/YlZVUMVquadlVU0GAv+ggAAXZ5VSbfv
+# 3q9hRCp0Xz4SctoHZPILRii3B80PO02Ze9dNbQCqfqvhnJFeGZl6D1MeKK7NuZgR
+# xWcstRqFK6s1xsjzGWutKkFmFtyAsRf0pcBp4rA8mqrKbRksUxcLvfD1to4H2Nsv
+# yd/JW0/ZRIWYsNB2ljxK2ykbyP4F/ZHeYp0P+9Qaum6bRLBfkzatBJHbZXTOOcM4
+# 6+F80AMmtU75t/rjGSR/gBWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMjEwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgLxgX9TzdWPtpAkPnWtn9Ao+neYkQalwBk3suvHtH
-# Ws8wDQYJKoZIhvcNAQEBBQAEggIALK24Qm3XmAyvGX9NF1lNEZNtPcwZqsCmhpO3
-# UFOqiVH6D1uFi9S7x+SgL/QGu/k/rY/9OxIZAugwk7GiveBAP5k1+/CpcjxQdTMZ
-# ltawp1A7N+S62ubQiz+/4ZzUGUdA+KzfJXvW3gr26VUqEfd4jIpwnAm3jGvF+yi4
-# IIee/b7scVEuserZb4BKTQrmOxYFULGAK+2RGzqCHKmRI9Oq6tSxSKKX5Hj9RL5v
-# c0FjrarjSADDggdG1E1WoBd5jUcxZM135NG4QkibCfbzc+b8v1lGEtrtENMpgSsT
-# 9ZHsBj7X/5P4oOg/ijHQE8EA/monRxEdfM4XUNeBXqsYrushvG7CdLzSqpjnjRK4
-# xJGWiMkM8kEvswS6O9YcjUTAU4/7qhuFB8jgtWCgK/HZRZ2Zm4JRtZPO6RV35il3
-# 2QMsnx4EWv4lO9N5Or8MxziFQpw4kG1a91SLGzKUTgWIlwBhNFI6cIaJjs6vbSO4
-# yoeDStqC4v9+zS3LjvEGkkjjQUabcSRLulxOGSSvulASnTOfDe9pnJOMaCITySgU
-# yzDfVbb/fDJCQX9HZF9hZXjnphrpeRbCjWWu6UvEH0K1UJ6ijIYfnMehLyAurv7N
-# FdEqD0iVAwKBev2oppV0v1N8Pz4x5jeGnaGDVDm4luHjMk/ThYITIEi0dAlexHEn
-# eb3qacw=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMjIwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQg3NCxA9x48lufPJw0WR31zm8wBBekPLJ+hQQ+8z5O
+# EJkwDQYJKoZIhvcNAQEBBQAEggIAl1qil5jROtbApM892EDciwkP7SLxOTFvvG+1
+# TxwfH0t5GtC4m1Gnw1UGfBMvBPOzUtFUyQ4GJ1waktf+uvU7FSBO2oIuQ7OlhNV6
+# k7C4nj+r2GKGPP7SsBUG3GvPOPjh/QI+7obvB/l/XmxknPVjq7WFDks2sQyaXJGe
+# C5UBwUvXkIzdgy486Fem3+AOOvQnHvhGI+yHTafZxiEFgq4aOn9z4omMgEBKB2rV
+# 3KTXTx3eXLheexk0CxaUwH1dz7wTZBrv9H31hN1xSjhsqTanizI1ZTroXLGb749B
+# f/q2EldMifHs4m838ghy8SPMmXj4xGrfJWDiM44R23H7Ye5L5Xy/zckeIRZd9Wgo
+# m9uV7I585B5Mc2+5X9ZAph0jxR9MS2lpy6B/8bx+3f41Sy95MIX9Gpo1+OGIvJxV
+# jNCBPI6r8CS5N/HLGSTzYNy3+5j9A7WDcprUzDKro7LLr8WQ7SqTJF+r1QlQzIoe
+# HUC6udn2+YHpDvNBfsOASBL01sgz0noYs8HD0GH4co3MYo2c1bgKylCBCbrCjaAI
+# zfaCikLCASaeJiPtw4VcfaUJPgc02in90K7HU70AM80Uqr8J7e1NjGpTWFpwT0Gk
+# w1bSm+xgNruHjPqq31T6Zqtb5BJ1LMGJ6kgfMxRJdhRay4m19qdXoKFz+ZyTUY8p
+# ZZxPols=
 # SIG # End signature block
