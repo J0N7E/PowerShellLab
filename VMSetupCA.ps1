@@ -1235,14 +1235,14 @@ Begin
 
             if ($AlwaysPrompt)
             {
-                ShouldProcess @WhatIfSplat -Message "CAPolicy.inf:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "CAPolicy.inf:" @VerboseSplat > $null
 
                 foreach($Line in $CAPolicy)
                 {
-                    ShouldProcess @WhatIfSplat -Message "$Line" @VerboseSplat
+                    ShouldProcess @WhatIfSplat -Message "$Line" @VerboseSplat > $null
                 }
 
-                ShouldProcess @WhatIfSplat -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat > $null
 
                 foreach($Param in $ADCSCAParams.GetEnumerator())
                 {
@@ -1251,10 +1251,10 @@ Begin
                         $Param.Value = "`"$($Param.Value)`""
                     }
 
-                    ShouldProcess @WhatIfSplat -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat
+                    ShouldProcess @WhatIfSplat -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat > $null
                 }
 
-                ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat
+                ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat > $null
 
                 foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
                 {
@@ -1265,7 +1265,7 @@ Begin
                             $Setting.Value = "`"$($Setting.Value)`""
                         }
 
-                        ShouldProcess @WhatIfSplat -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat
+                        ShouldProcess @WhatIfSplat -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat > $null
                     }
                 }
 
@@ -1330,7 +1330,9 @@ Begin
                 # Itterate all posible response files
                 foreach($file in $ParentCAResponseFiles.GetEnumerator())
                 {
-                    # Set file to temp
+                    Write-Host "ASDF"
+
+                    # Save file to temp
                     Set-Content @SetContentSplat -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
 
                     # Check key id hash
@@ -1375,7 +1377,7 @@ Begin
                     ShouldProcess @WhatIfSplat -Message "Submit `"$($CsrFile.Name)`" and rerun this script to continue..." -WriteWarning > $null
 
                     # Add file, content and set result
-                    $Result += @{ File = @{ Name = $CsrFile; File = (Get-Content @GetContentSplat -Path $CsrFile.FullName); }}
+                    $Result += @{ File = @{ FileObj = $CsrFile; FileContent = (Get-Content @GetContentSplat -Path $CsrFile.FullName); }}
                     $Result += @{ WaitingForResponse = $true }
 
                     # Output result
@@ -1884,8 +1886,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsLgegjsnCqYhki//PsRbpUMV
-# 94ugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFYKwIfd4LymRY2WHwraaIRTH
+# HHigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -2016,34 +2018,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU0Mg9rCuk
-# 7Fh9pZ22wwTnjBml+qowDQYJKoZIhvcNAQEBBQAEggIAYw2DjmaEokoOEy664jNY
-# ANrXFfXHAMnNc7pPjZS5ofRfZ1uaBPhubfcVh7pqeYRG31TpevkQfKcMsqUadY88
-# hG4z961UHLvvSgXdjJcHiZRhvxBEbDR0Ijr2U4JSXeN0ejh1zojkH3IYT7mkHL1e
-# n3mEcQ/9Qoh6UJxMRdg2p0iNH+wNo9IODpTSsHQ5S80pTWPNfnDBAaRq/PNxztu7
-# ljM2/T2+WDRWVfZKChUCzWrAoHqhEO0Alo+KVH+9PgTlvfZZzrH2oxDYzSlHPSm4
-# qPuHitpUGoadbNa7hEJd0vrQm+lAE9jJSAFUkC0EVkTV92Ijts3om4J7LYgB5zzY
-# dQpCCV4DYF88R7+bu/YUQzLzSNjQa9+IdektQy5Km3nZWz1mXQR5JdBkcfWwNLAy
-# BzEFWpmUcsmfdWuOqius0yL7AIHp5t8frMNM5kz+E3WTbBo/S5YxmdYmOYeOjAsF
-# 4wbCOzJcK3IJ/q4I9Y9jZFFm4i5DkErJQSB6UTqiLJEjLGGK4uo/5wljkrkm3vuM
-# lYjITrFKYaKs8+bxserqPD6Tue1Dgtt3e9nOeREsP6H7yX9PHadZXGig6ix3tEaS
-# OW2EtB6/+RRRDWCoSF1aML9vxdRQS2macgSCQL7w0RVQm19C88NDi8wZ5ZhtnkVE
-# IF2Jmz9tt8n6lS1G4cQEnDyhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNA+zzGKZ
+# x0iDyjge4uHT6hGC7bUwDQYJKoZIhvcNAQEBBQAEggIAd7eX4pCVx+Cn/OJaZebb
+# IRuBQnVle02rVKg0Vvl2CT5axg0qT0IWAnS5Feb6u7NiS+B4I8L0uZuz1twy7tVs
+# hJvWyfNeirkDVIY2oLSBkRIZ6t04xkiOP4I2Deg3xiz87FTu2TenG30M+NsUYdnf
+# q/MGx6lT+kr2B47yTlEg2LwbMRi4JQf9AR/fCalxWlJcuC5JlLMKXUO16m1i5krg
+# xfWxC3elp6rk2gmb2B1eHnQgRpTMqbis3B5HJ07cpKuhDo5BB5oDemcCspm+5wIH
+# BeQzJNxtjIY7T5X8s77wbk2Av1wYoPLjzJ4wChLUDOMn/2QHk8EwwYaYPEcLXh70
+# n76CkUkDNVEWvdp+HdqbhhWLXNnRxBWsXPF3zTRt63YPP040iOFVd1tcezyniRkL
+# 0+lpENkIxE6dxNG+Haq4vyYlUmslr2XEc3PHZp174+qBsDEMkOVcdvi0upeqK/g1
+# kbBazWmnFoblNclg6lFt44Ugk3eePb8rSJ5af5bmBz73GUy6K10h4BPLL/BQlvTe
+# 5Tmp7bzr5562qwwkmJSo2YuQMZPgdYtEdiNskCjEy2QsOVAhGgRMohucFu2cAikB
+# Nh8OjZhjmc8wAc9IJilAToNuQrMOX0/KxBsVlkVqUj6xpz3v7+4GvZJNRt3BgtYE
+# qavCgRcrWgUBE4kZGA4QEE6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTYwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQg7Fy/AZahK82/yzT6XSpRmjbnFLWfK12S5HoLI+PL
-# LlUwDQYJKoZIhvcNAQEBBQAEggIAgV+0RE4cdlTe1Yw1IL5CoetIF4k1voWgS18S
-# +9ostSXLYWZ1mUZJb9kzqCK8dh54Mp9f4Gp/PcJ+Gk6sLmVzlpdf4wezXlkPl7nk
-# Be3aHJ4H1AWBZ4nS0iHCNoriiGxxdvwse+lK2V19lCteWZ9r++2F1zPUEGZnmpAI
-# cgVJxhdk7yV6YAJeBTQ1FVhLV2YRH8ZwUFDwTNAbRepVt/ZcuD0bwCPydQi/dty6
-# y0V0nvVfNLYOdVboC236g8yCY9ctMxPwHJ6UuKu6FVyhEf665jlxtwYjGEZoAiw3
-# igqXocsPtrWaITKZRhts63gWtKEuG7h72Tdbz4mx23H+HEmtzS7f3+JfKrDgvtX3
-# SZLdqWDAxxr9Zys6cS5tZm8NyeDlW+PshYYadr8Lm8cEcbMahPxt7xrcrl+v8/X7
-# tklQGvBDXSzVbOG3iyETN+V3u3u1Ft/Wu80vAX+mOJLwGVVFhgrruk8tFWmlycgC
-# dAWcLnH42Mexb4udld2uMDNMV22WmIs06Wmztf5pkIRxHy88eF5u97/xMqJMW3LZ
-# DmLnGHsoBurv1x4Y5QBNml0PE+xOclNQYj5IWIy+F0BvYgeQOYNTIbDVvdOtiER6
-# pirc0YeloWU3igrCrIrA1/XhljOX0hBkWPpc3zPZmbweiJwVDtZssT/k/1XCja6M
-# xC2Q+hU=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgiYBfdXa4lZ/8jy34/89Jb06XeQvCxgRGGdMfUpKc
+# o3MwDQYJKoZIhvcNAQEBBQAEggIAhMvX9HIPpjQwVR5PxSwTKfS0SAw3LEVaiB4d
+# 9dNjY+v7EMDX+/kFLaCEg+lElGxG+5jAB8f3qsod8tYbEuYsR13brE0G+wOt+mlD
+# wt/e8mvWOG4xDjeKr6eJrYEB03ogqfXW9DNrIIIRDfeorXRp5qGKQIpQPBcKBhfi
+# eS36uYmJ+QNp6tTWSIt+zcjz41Uo7d382Mb+LB/pjVctXvYgCICw+k9VjtVjcdIe
+# uuZUTLHUBNshk+qvbYcQAb3yIGy+s4sqYs5WxLoj6oqfWFdsHtMFySG3QsatlNxz
+# HDmvwIZECAI2U6VRibNU6OJhFN4SHK66fF9tDbkWJjVyuf1QnvMVyvAnvknpvWxN
+# smOcHRVAUFOlTBip5BTBhDKI1vszcUrtrT0amgJD/KjY7qSSfyEDjmoVtWW9irt5
+# Zf+B5oALn+9gR6st50RxhadS72+yMdGM5SnRnw5wffhpgk2pMSa7QLrOSHiu557o
+# hTwAcvFAAj4K/Umq2PXNASNtNM+pO4qxkMNezkw05WxWZxXqmni4uNFPnT4l7+NG
+# vKOhffTEIIe8D0qfae6vTezL8OjcUt+Ddk3r9D3mvMDCwHra305dl0Y0fP7PxUAl
+# mb6pi1cu1iis+6stcSWm+NREp9GLFauKzgChrxeWFFSyv6Jpc+p91GHE9ooK5QPW
+# uGfGli0=
 # SIG # End signature block
