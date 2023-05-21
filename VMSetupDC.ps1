@@ -229,8 +229,8 @@ Begin
         # Initialize
         $Output = @()
         $WhatIfSplat.Add('ThreadSafe', $true)
-        $Result = @{}
         $UpdatedObjects = @{}
+        $Result = @{}
 
         # Get base DN
         $BaseDN = Get-BaseDn -DomainName $DomainName
@@ -303,11 +303,8 @@ Begin
             # Set result
             $Result.Add('WaitingForReboot', $true)
 
-            # Output result
-            Write-Output -InputObject $Result
-
             # Restart message
-            Write-Warning -Message "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup..."
+            $Output += @{ Warning = "Rebooting `"$ENV:ComputerName`", rerun this script to continue setup..." }
 
             # Restart
             Restart-Computer -Force
@@ -777,13 +774,13 @@ Begin
                     {
                         if ($Ou.Name -eq $RedirCmp)
                         {
-                            Write-Verbose -Message "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
+                            $Output += @{ Verbose = "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" }
                             redircmp "OU=$($Ou.Name),$($Ou.Path)" > $null
                         }
 
                         if ($Ou.Name -eq $RedirUsr)
                         {
-                            Write-Verbose -Message "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat
+                            $Output += @{ Verbose = "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" }
                             redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
                         }
                     }
@@ -1015,7 +1012,7 @@ Begin
 
                         if (-not $Build)
                         {
-                            Write-Warning -Message "Did'nt find build for $($CurrentObj.Name), skiping move."
+                            $Output += @{ Warning = "Did'nt find build for $($CurrentObj.Name), skiping move." }
                             continue
                         }
 
@@ -1024,7 +1021,7 @@ Begin
                         {
                             if(-not $WinBuilds.Item($Build).Server)
                             {
-                                Write-Warning -Message "Missing winver server entry for build $Build, skiping move."
+                                $Output += @{ Warning = "Missing winver server entry for build $Build, skiping move." }
                                 continue
                             }
 
@@ -1036,7 +1033,7 @@ Begin
                         {
                             if(-not $WinBuilds.Item($Build).Workstation)
                             {
-                                Write-Warning -Message "Missing winver workstation entry for build $Build, skiping move."
+                                $Output += @{ Warning = "Missing winver workstation entry for build $Build, skiping move." }
                                 continue
                             }
 
@@ -1891,7 +1888,7 @@ Begin
                     "$DomainPrefix - Security - Enable SMB Encryption+"
                     "$DomainPrefix - Security - Client Kerberos Armoring+"
                     "$DomainPrefix - Security - Require Client LDAP Signing+"
-                    "$DomainPrefix - Security - Restrict PowerShell & Enable Logging"
+                    "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
                     "$DomainPrefix - Security - Disable Net Session Enumeration+"
                     "$DomainPrefix - Security - Disable Telemetry+"
                     "$DomainPrefix - Security - Disable Netbios+"
@@ -2117,8 +2114,6 @@ Begin
             # Link GPOs
             ############
 
-            $RestrictMatchStr = 'Enable LAPS|Restrict User Rights Assignment'
-
             # Itterate targets
             foreach ($Target in $GPOLinks.Keys)
             {
@@ -2128,24 +2123,30 @@ Begin
                 # Itterate GPOs
                 foreach($GpoName in ($GPOLinks.Item($Target)))
                 {
-                    $LinkEnable = 'Yes'
-                    $LinkEnableBool = $true
+                    $LinkEnabled = 'Yes'
+                    $LinkEnabledBool = $true
                     $LinkEnforce = 'No'
                     $LinkEnforceBool = $false
 
-                    $IsRestrictingGpo = $GpoName -match $RestrictMatchStr
+                    $IsRestrictingGpo = $GpoName -match 'Enable LAPS|Restrict User Rights Assignment'
 
                     if ($IsRestrictingGpo)
                     {
-                        $LinkEnable = 'No'
-                        $LinkEnableBool = $false
+                        $LinkEnabled = 'No'
+                        $LinkEnabledBool = $false
                         $LinkEnforce = 'Yes'
                         $LinkEnforceBool = $true
+
+                        if ($RestrictDomain -eq $true)
+                        {
+                            $LinkEnabled = 'Yes'
+                            $LinkEnabledBool = $true
+                        }
                     }
                     elseif ($GpoName.EndsWith('-'))
                     {
-                        $LinkEnable = 'No'
-                        $LinkEnableBool = $false
+                        $LinkEnabled = 'No'
+                        $LinkEnabledBool = $false
                         $GpoName = $GpoName.TrimEnd('-')
                     }
                     elseif ($GpoName.EndsWith('+'))
@@ -2166,43 +2167,17 @@ Begin
                         if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
                             (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
                         {
-                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnable -Enforced $LinkEnforce -ErrorAction Stop > $null
+                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforce -ErrorAction Stop > $null
                         }
                         else
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
-                                $DoRestrictGpo = $IsRestrictingGpo -and $RestrictDomain -notlike $null
-
-                                if ($DoRestrictGpo)
+                                if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo) -or
+                                     ($Link.Enabled -ne $LinkEnabledBool -and $IsRestrictingGpo -and $RestrictDomain -notlike $null)) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnabled] -> `"$TargetShort`"" @VerboseSplat))
                                 {
-                                    switch ($RestrictDomain)
-                                    {
-                                        $true
-                                        {
-                                            $LinkEnable = 'Yes'
-                                            $LinkEnableBool = $true
-                                        }
-                                        $false
-                                        {
-                                            $LinkEnable = 'No'
-                                            $LinkEnableBool = $false
-                                        }
-                                    }
-                                }
-
-                                $ChangeLinkEnabled = $Link.Enabled -ne $LinkEnableBool
-
-                                if (($ChangeLinkEnabled -and $DoRestrictGpo -or
-                                     $ChangeLinkEnabled -and -not $IsRestrictingGpo) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnable] -> `"$TargetShort`"" @VerboseSplat))
-                                {
-                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnable > $null
-
-                                    if ($DoRestrictGpo -and -not $Result.ContainsKey('RestrictDomain'))
-                                    {
-                                        $Result.Add('RestrictDomain', $true)
-                                    }
+                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
                                 }
 
                                 if ($Link.NoOverride -ne $LinkEnforceBool -and
@@ -2223,7 +2198,7 @@ Begin
                     }
                     else
                     {
-                        Write-Warning -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`""
+                        $Output += @{ Warning = "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" }
                     }
                 }
             }
@@ -2797,7 +2772,7 @@ Begin
 
                                 default
                                 {
-                                    Write-Warning -Message "Missing handler for `"$($Property.Name)`"."
+                                    $Output += @{ Warning = "Missing template property handler for `"$($Property.Name)`"." }
                                 }
                             }
                         }
@@ -2930,7 +2905,7 @@ Begin
                     $Splat =
                     @{
                         Name = "$($Tier.Name) Silo"
-                        Enforce = $false
+                        Enforce = $true
                         ProtectedFromAccidentalDeletion = $false
                         UserAuthenticationPolicy = "$($Tier.Name) Policy"
                         ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
@@ -2986,6 +2961,7 @@ Begin
                                 $EnforceChanged = $true
                             }
 
+                            <#
                             # Auth silo enforced
                             if ($AuthSilo.Enforce -ne $true -and
                                 (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -2993,6 +2969,7 @@ Begin
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
                                 $EnforceChanged = $true
                             }
+                            #>
                         }
                         $false
                         {
@@ -3004,6 +2981,7 @@ Begin
                                 $EnforceChanged = $true
                             }
 
+                            <#
                             # Auth silo NOT enforced
                             if ($AuthSilo.Enforce -eq $true -and
                                 (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
@@ -3011,12 +2989,8 @@ Begin
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
                                 $EnforceChanged = $true
                             }
+                            #>
                         }
-                    }
-
-                    if ($EnforceChanged -and -not $Result.ContainsKey('RestrictDomain'))
-                    {
-                        $Result.Add('RestrictDomain', $true)
                     }
                 }
             }
@@ -3122,16 +3096,6 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
             {
                 Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
-            }
-
-            ###########
-            # Gpupdate
-            ###########
-
-            if ($Result.ContainsKey('RestrictDomain') -and
-                (ShouldProcess @WhatIfSplat -Message "Updating DC group policy..." @VerboseSplat))
-            {
-                gpupdate /force > $null
             }
 
             # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
@@ -3401,8 +3365,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUd4Nk7Gmbss18DNhzRi2uDp5L
-# fu2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtVyX4rAqVGRAiF0Ku9F6f+qm
+# XbagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3533,34 +3497,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU1hQtsTE2
-# +9egCxT3Nwler1W3LWAwDQYJKoZIhvcNAQEBBQAEggIAeZi1vAP+D5SNYvaME0m/
-# qNo0+CVlGnPFiz6dHC8GeM+C9KWw4b1ySszqBv0g7G5bHPzi0Jhf/TE+T9qLOES0
-# woJjB5XbJ8c7SAZv1HYqqa+YUNvWbjvsJJb/Lq3U6rdX0CgOj+3pTW5YViScJMCe
-# FrPU5jqStPKld0k/sb74HRq/zkvQPBT1ClYx2ORYoLOUuX+hDngHBtxnMTBgRymc
-# +sQ3pZ1CsEivFVA2VU+/rVysTEFWrJfFvgsJhKzqq5LHzeKnzZqacsT3b+d1BPka
-# THxbo+9MLslORnU0d7CZjBh8b2LkD1MGhQZRMePlbkemBE59JPcAxE0fybcko+8a
-# xlbTCfhEMEL8h1hzqMKNFM0NiqfubD1Gpx2uKhr9rjuqvRpbwbVuap7Dj40anbLr
-# WeUh5C3dXqKKJJCBPReLrSOq7beAdRlVJsyM892FrXxooJE1OY1ZHnIQXLCsf5oY
-# wb3flzDk3Y8CiWTLOfRJTceotRPQb73hbJLO8/v00vLcdXpwtmCUH3MjyQrC23/d
-# zCciHfBTeSP0Ew7l3oA+7zLQnwYHthAuLvo0/maNoh6yMw73dppTIVozJxNwJag/
-# X8NVZzxqvEXSF/vmRwNTVD0EURF9u7q93FcrruutN4vO8a8gP2LmeosSCwmILl/9
-# UDA3haDF1gL03cHmvvZnksGhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUIF9TV6kN
+# 3NIZ+OLBvb8TRoU+TFcwDQYJKoZIhvcNAQEBBQAEggIAuSPy0tUqp9tGBQXrhmwW
+# /oY/rtwrbdwzGttRJF+8aouZpPgBXblfXWmKqIr+kYycRLbwoCHQduc3Ci/lDEQA
+# T0TiOHWFcdgU6QH1MHkr4b8ouikOB8Bd4/MB4MFtEk1UBz8V0Jxgg47dWV4+BNJw
+# 25rFRxTlIAoBbQpAJPmPG3SE72nyngx12FHPY6zgQFqTW3tkBUqAVE6NEI8xdZdb
+# OHo2kfFdUPtuEU1qXvBvX7OXib7e3ytTiDBcjj/yJi5o9ylI66ouiF3cv4e1CXme
+# Fioe7NPq7BJy3zKv0fNJG3pHoAejcNgSBFT2D+xjAH8ko2bDEUpnOZYAV2q6Gzda
+# FBlbrYLR0Ha9GQHFU35zRSYZfu867o1ZSFfq1joVjzClU6q4fNjmR8VUzRrL9bgQ
+# LSaPMvQ4pNwiFOPxbq+ge9S0O5ABQ21w9s7+lZHmCS/OF0jQMhsCuNvVmqBq0Rb2
+# fWtjEdcP2MmXzuY/cvSfofDxP/gwJ8nzkEzsDVM5aN6vJC21kmGikU/Gmr6BDfxr
+# 8+0t66l5EVQqZrxPk7PUalmkr11FSpVTb1aGS5jOYLySzONRBJ07+/UPRTn5yrhp
+# LonUivySwexao2ruR4QQu3zFs2e4oWpgOkJj83kfD0vHxnq4W1+wZRiAtdzz6eBZ
+# fHWNRq11i7hJV6kpxgnouHahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIwMjMwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQguVkleHccRtqTfLuyL0SAR0FJZq6/hs/1lHYmJ/kB
-# mSAwDQYJKoZIhvcNAQEBBQAEggIAInDxt0Sh6imr1aw0no6Kq7JBHzChI3NGx1Bx
-# Ukn6BgoEbl4QZ2OjZEDC3DK+sUrRVn4CqIPP3YM7+Wga7H9wsm3EbM7lb+K58CqO
-# fUtvYcT/7WYkE0e6m6YMz2UOLV3S9usLgiPC6uCLCcPLsPgrzNRVBU64IlqxCRO7
-# fzqc1ePwFmt7NMCcW0nW2oH13kQkR/j9ImA/cZgPvtTRLM9lGnJ6GJpZgZWlgWMe
-# VnPfFuT2uEjpjRLTTe3Q7h9pp8RwuP+CVTVaWj/oZ173v6W3z5fNgDF+c35+P+0v
-# kwjAQijr0V30r/ls6Ua0ig2de1a6sebWB2ipbizFQgi9xTxLs11uPOzHLUnR+Xl+
-# /iD+a88Ye/IZ8dIXV9l9JFGv3+ZWOStF3trbpfLAek7v3L3PxMq64Vm9Mj+EfIAP
-# 75Kti9B7p2k8gCNddPt0LrgzczvJWE5RXuYKK0QQkS4ceBCMv1k4KTdz0OvLp25e
-# PMegqNvnX5jo2TjDefUh62DpmfphnKY7suKqOKW4v1P/lL5adZG2H2FlbPn9p0pm
-# JLenBfdNIADt8WUDL/r0uzfJ9KXfgZcT3A6HsgkiXdHgbb4VrTBFLXGIDvgBfemF
-# t3o8EM+6MTVFcPAxiB8LJob3ULfJuk1jhz2Gqaz+wfhtSX7wvX2aqIwCHnlyPdtD
-# e3iRiQA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMDAwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgZOpTfSXiIag/eoynaz1yMfIvBJ5YhqEMTgicN8Hd
+# uoUwDQYJKoZIhvcNAQEBBQAEggIANmB3VXZgG+NXyiGBubedBV2WE0Uinba+ggR3
+# Iq5bKOgh/VmlWKoMqtGEsPLquhfADDXtVzu8kLPFhpjUuKXu3I/3gQxLoqb++SEt
+# arQHCuHpRyAbaAWh1gLUvqyQqzNTz4Ne5VwpOdM0gAxl6CrZaH2uXd9zdmqXlOb2
+# /xMq+nJW8xQDR2RqOW1WyBNNSbZ9TqXh/Jqmzp8P2iwrrdqxiQqCEUsU39+LNqeW
+# ObK1+YTTlvvYg2pYbbDXwb4KN4/3VtreeP36mMxDa776WWidfBi/lSJikcKk84Gn
+# iMXmrCbj10Q8NVaL+TrxHsMvPN5JhSim99N6Z7aU/jwIM93cs7ypx0WUfC0hC9h+
+# +oHfnQOkYWL1uBJckL8ha3bGCp/2TMZzYCWt/fBHU7qx/DgfyPOQU90hU/KygeL4
+# 8i8qkQmM1WgtE9rtCzBEitQeZy70owdu1gv85OhP7J5xhrf9roU1bE9GxBwb3GmZ
+# XEJXog2P7AFIS3lUCrzjBxwA3oqzHxo8HdRwxWGoT+uc3/r73+ECA1++kecRcnBi
+# 0SQWvlNmVvqN1zRIbyRtkF/7ibxfWoJ9rxTZ1FSCNpRNOmTDcVzmzIWR054TQICS
+# QLiuh43psCjzJvE3KV7QFRIthq2BaDOfqS15NQ1MoCn8ViQDDBfSyq32d6UIVB+u
+# wYeiVQQ=
 # SIG # End signature block
