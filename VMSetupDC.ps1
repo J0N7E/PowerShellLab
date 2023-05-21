@@ -392,73 +392,34 @@ Begin
                 ##########
 
                 # Initialize
-                $Server = @{}
-
-                # Define server records to get
-                $ServerNames = @('ADFS', 'AS', 'WAP', 'curity')
-
-                foreach ($Name in $ServerNames)
-                {
-                    # Get dns record
-                    $ServerHostName = Get-DnsServerResourceRecord -ZoneName $DomainName -RRType A | Where-Object { $_.HostName -like "*$Name*" -and $_.Timestamp -notlike $null } | Select-Object -ExpandProperty HostName -First 1
-
-                    if ($ServerHostName)
-                    {
-                        $Server.Add($Name, $ServerHostName)
-                    }
-                }
-
-                # Initialize
-                $DnsRecords = @()
-
-                # Check if AS server exist
-                if ($Server.AS)
-                {
-                    $DnsRecords += @{ Name = 'pki';                     Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
-                }
-
-                # Check if ADFS server exist
-                if ($Server.ADFS)
-                {
-                    $DnsRecords += @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
-                    $DnsRecords += @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
-                }
-
-                # Check if WAP server exist
-                if ($Server.WAP)
-                {
-                    $DnsRecords += @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.100" }
-                }
-
-                # Check if UBU server exist
-                if ($Server.curity)
-                {
-                    $DnsRecords += @{ Name = 'curity';                  Type = 'CNAME';  Data = "$($Server.AS).$DomainName." }
-                }
+                $DnsRecords =
+                @(
+                    @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.100" }
+                    @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.150" }
+                    @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
+                    @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
+                    @{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
+                    @{ Name = 'curity';                  Type = 'A';      Data = "$DomainNetworkId.250" }
+                )
 
                 foreach($Rec in $DnsRecords)
                 {
-                    $ResourceRecord = Get-DnsServerResourceRecord -ZoneName $DomainName -Name $Rec.Name -RRType $Rec.Type -ErrorAction SilentlyContinue
-
                     switch($Rec.Type)
                     {
                         'A'
                         {
                             $RecordType = @{ A = $true; IPv4Address = $Rec.Data; }
-                            $RecordData = $ResourceRecord.RecordData.IPv4Address
                         }
                         'CNAME'
                         {
                             $RecordType = @{ CName = $true; HostNameAlias = $Rec.Data; }
-                            $RecordData = $ResourceRecord.RecordData.HostnameAlias
                         }
                     }
 
-                    if ($RecordData -ne $Rec.Data -and
+                    if (-not (Get-DnsServerResourceRecord -ZoneName $DomainName -Name $Rec.Name -RRType $Rec.Type -ErrorAction SilentlyContinue) -and
                         (ShouldProcess @WhatIfSplat -Message "Adding $($Rec.Type) `"$($Rec.Name)`" -> `"$($Rec.Data)`"." @VerboseSplat))
                     {
-                        Add-DnsServerResourceRecord -ZoneName $DomainName -Name $Rec.Name @RecordType
+                        Add-DnsServerResourceRecord -ZoneName $DomainName @RecordType -Name $Rec.Name
                     }
                 }
             }
@@ -3355,8 +3316,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA9VrWmudCBG+NsoNWicXbypG
-# S1ugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiToh8SDRIk+u+Nj8X4+omlIq
+# VJagghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3487,34 +3448,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUcmLrPN3r
-# InXLGtrdtNUlccjyG10wDQYJKoZIhvcNAQEBBQAEggIAK4NTqctZCg/W5vHxsHzC
-# afTztmT6A2trXztb8KXgGTzCHBsQPrl9FvqomENuYqqzrte8SJM5PVTlARCH9uYn
-# VVgG1E3+BH8/L87OcyjoGfsBcnUM4YmCk6rG3Dw5xn924AC63j0ta71gkRSsCLMx
-# T1N5xrgY25VpFr8W7xjv45rQdj6Awrbw0vGmp6OPgoZ5oH6HbqRiydaCyQ2k3mz6
-# o3N2fQIpcKJVS+YpcevbqWxiFUwLtYwn5Ytz//ZN+VvLAYicPSqhRKXdtjQLnx4e
-# OtOLPAvlNIEi+S+Vf1cEAuSiqgNUH4yvXfy6eh6ODUeKsMv1wfbxZ3AgZwzrOpeP
-# SePaTcCHJJaYQOFIbnmdQ2uXqPr0BTRDl+6cBScTOibS6aDqBRv+JRlpDv0kx2No
-# l+9RiI93y/ouOEC3tnswQrIJzrz6MGm3LXhYNFFo+THz2W1FKzd6ft2C/sQcXPBS
-# 1pjVzbP8rk+OmGbW14GIEZDNe63vXxs+/G77pTbK9h1yxLq8OSgr98lWTSHnVYV4
-# f5xGmrd9ujD1IUs3xecK2ja3sQ8/WM6e63UDcHoJUU/8F75NcLXBmmXBFk4GlJKq
-# J2asQqULda6KiJ0YGGU7QfRua1pWpxAdKLRumGimxHvqbJG9l3q7erGpm1O1mccX
-# acWZ3cqsMpFj1oZKDroYZ+ChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUfK0Zz2C4
+# n9HgMhXp5Thy5KN5qWgwDQYJKoZIhvcNAQEBBQAEggIAriq3xLv/fIc3BQTTFtBa
+# K0NixcQ/iXTvL4B1JxS810EEWj7LBdMfOEyF+gGLZGRkKi86JEuowvuugfEiiRTU
+# p6g5668Rq+wTysNv9nyI9mFwD/2qlzosw+jEnfT2vf6h5D8n2Wujbv7Rbwd0L7zE
+# THuUaw4ds88SyNoTeVe8DpritS5At94+DyrjOtea8G7eMNnjeE8G3ntNndoFj5BH
+# HzUkq2ZfQzRtFIdmiIkheuvtPHWRp+Ra7kAvRdTrb3BIshafLV55pxscgXimP5Cb
+# YZUlDfFs/DqTUJqZAXhZnwAok1Pped/4uXJGPe/BEhnqt/eAryi9z09aX/vP/QKf
+# 6ZTghtV1+bYfvyOQQk7A9/hjOG4dw2cguOi8vDME5QhG7Nwk7yIOvBY2YpaRTVAq
+# JPoIKxfObNrRhCdNpyB3VVlIraW6w40CIlhx0eeEKQ4CO0yzI2qb8frHSRY6C7e7
+# 8cTC2h8w9rIFy9nAMMwUaocuRBF2sYUqTtU9Wvn0IAiFyB8Gr3dCE36mEHepDHQy
+# nZ9hNIuR7gt8M/QLSHATEhLH7rtTKecDAHiaqgvvg43lUravsfloyXEGyA0WGIXT
+# 90EW+DCiu0GdBFaX535iUdwaVravn7KCLegdNKfIAe8y0mTN/X4ZncHIuhwfDM3Z
+# 85pRBKunFANeZc+NLgB+CByhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMTkwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQg1G9Swuv6UG2GnIjJypWEdHd4EbE00d0zT6lKhm6P
-# 6UkwDQYJKoZIhvcNAQEBBQAEggIAEtt15PaM4UsPlPkcQTwmnhxed3hr2+xB5Aka
-# L0WAeFH5rofkiyXhVpxoc2ykcWDKVvuEnDbV4lyHSlBKIF33b8nPFWTh03/tM/vc
-# aaOfQub/8my47fZkjFhvlGrJFya3ZFLo4Op/CQHs7efCZpJAlu5xlZVwogBKD+5a
-# 2kmsKBrifbuEYhfZd6tcO8hx7QN0GS8inGCO66TiIdKDRLJTrfJNt1S4/2oLrY3K
-# 22cL8APKUjRIOY0e0vBIA96U3YSU82N8Drn5wykwxuiOV/SkiJlFkH6I2Wn5M2kT
-# A0hozECLpWSqot9GVUK0xTHRnp3H9MnFPmz9uuCdmq/B80Cp0sGHXpV10421q0yu
-# c+tF+cusQacqOwyM2OFWRC7q1at7RKscbZ+zNrFj9wg8EmGGvT3dwLGOZ5FEeBvE
-# h9vK8xrdlEt8QJSoewN7x+/uda2yEmA61d8IDr60DFaLUTfU5jvftbS0IqtPIJt7
-# nBl+k4m3f9UOg/wL3YLs4C4Ydu1kQLcKHBv1MuJVrP3CeeLQy0bkQA6RSH3hdAOr
-# ENwWFkV+PK1Hug4OriMKZnvR0XMVaLpic4AoPt3i+B1gUeW6sAoCrvGucvTk61BW
-# fE32u1CXPUgTeWNwopqPl3JIYidvxCwj6k2nanDo3GQfRUBS77JOeks34DxVCkdz
-# VcP3H3k=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTIxMjEwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgLxgX9TzdWPtpAkPnWtn9Ao+neYkQalwBk3suvHtH
+# Ws8wDQYJKoZIhvcNAQEBBQAEggIALK24Qm3XmAyvGX9NF1lNEZNtPcwZqsCmhpO3
+# UFOqiVH6D1uFi9S7x+SgL/QGu/k/rY/9OxIZAugwk7GiveBAP5k1+/CpcjxQdTMZ
+# ltawp1A7N+S62ubQiz+/4ZzUGUdA+KzfJXvW3gr26VUqEfd4jIpwnAm3jGvF+yi4
+# IIee/b7scVEuserZb4BKTQrmOxYFULGAK+2RGzqCHKmRI9Oq6tSxSKKX5Hj9RL5v
+# c0FjrarjSADDggdG1E1WoBd5jUcxZM135NG4QkibCfbzc+b8v1lGEtrtENMpgSsT
+# 9ZHsBj7X/5P4oOg/ijHQE8EA/monRxEdfM4XUNeBXqsYrushvG7CdLzSqpjnjRK4
+# xJGWiMkM8kEvswS6O9YcjUTAU4/7qhuFB8jgtWCgK/HZRZ2Zm4JRtZPO6RV35il3
+# 2QMsnx4EWv4lO9N5Or8MxziFQpw4kG1a91SLGzKUTgWIlwBhNFI6cIaJjs6vbSO4
+# yoeDStqC4v9+zS3LjvEGkkjjQUabcSRLulxOGSSvulASnTOfDe9pnJOMaCITySgU
+# yzDfVbb/fDJCQX9HZF9hZXjnphrpeRbCjWWu6UvEH0K1UJ6ijIYfnMehLyAurv7N
+# FdEqD0iVAwKBev2oppV0v1N8Pz4x5jeGnaGDVDm4luHjMk/ThYITIEi0dAlexHEn
+# eb3qacw=
 # SIG # End signature block
