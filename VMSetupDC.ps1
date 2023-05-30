@@ -1894,6 +1894,7 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
+                    "$DomainPrefix - Firewall - Permit General Mgmt-"
                     "$DomainPrefix - Firewall - Block SMB In"
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
                 )
@@ -1920,10 +1921,9 @@ Begin
                 # Link tier gpos
                 $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Tier $Tier - IPSec - Restrict-"
+                    "$DomainPrefix - Tier $Tier - IPSec - Restrict"
                     "$DomainPrefix - Tier $Tier - Local Users and Groups+"
                     "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
-                    "$DomainPrefix - Firewall - Permit General Mgmt+"
                 )
 
                 # Link computer policy
@@ -3327,8 +3327,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXIT+zydD3CfaJDpK3QmCRnI1
-# e3KgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwPAwPfcw4DlNnTF9r9+OWNn8
+# Yh2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3459,34 +3459,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUEOKLrZUP
-# B/j+vk7Z0WFqmtj+8O8wDQYJKoZIhvcNAQEBBQAEggIAOzNRlLNTm6hv0SsQXV/r
-# CIEa3BfNEVy+ITIqzlEI1eRWt+0Kn6vXb7j6ISwCUuLL7/w28jq8dDJArhTIbR6T
-# opsRdkCT4BDr/CmT+FUKeFpxMoaQnX5jIfDh1rC44ZR9atChuaLiQVf6GJ04NIL1
-# AQNcJvRQLhVdZJy3oKJAJQ7EyIEN/Wbr5ZTI3/FP8xJSV+XjvHyB6DupAz3EGCin
-# SaXceAJFMDts2hiaKxEvPS10r6eIbMDlcuVFvPgV3p6CnWfkvb8NF+bY3XCZX/xA
-# pySQtuaWPc/EyR506ep0ypPBhbTEXVoZwNe2TWnAuWvSgQrw68N7KCU+jB41vC53
-# dUg+lAsZydVA3UnS0NvkFLXSL5z9Rryl2anAS2Q73H5wd00M26ymLybwPT/83SmO
-# niZuoziDAczAEI9HLHkywo7AhDwypDoTghE/24ADziHLdEG6UC2kmDTV3VimRaDZ
-# Vr5Yhi75NauYpCE2ZHe2WOin8fEwUeaXd51EfBBGvttamz/rB796sC+oHpvKQqcY
-# r0zmrBPyMrfSgMJr88c+XrWymm1Jbpf8KHjNRqPcGQ9b/fE60TeDWO2/qGPM8Pgl
-# BF9ZyiNkbvlNk0Z/Gwo/RUeXo7eTQKngqXtLwORzXQU5PfhshpFgyT37qPBCxWuG
-# Lolk0PSmjP7VBoxjBmDzfW6hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUmo5Op7n+
+# Ri8sBRT/9YDdB6xLK4QwDQYJKoZIhvcNAQEBBQAEggIAILGREip+sSDjorKgSd8S
+# z7SAmv9xYf/8hp67r18t4aco49X76IqqCGrLD1oUWUOy/fgfKfv692HmET3xQu9G
+# 9wkaM9F9gJlGSO1U8ptXPl8qCrc5uT28nmVCv1aTpIL4tDzRYmnRK/4mqn45QSY8
+# LCBNEoIWspuAGRuFsxmfizHoukX76RXl3A3LZiws6vlMto+cXQakIvEpD2RvNl6P
+# S0mhBpyfYtEFSn+8HaPGoKoLxaUi/MpkvsYF+D+Cdb1PXcn9E8Bm6W9JQRCuIyzG
+# TRNvuX93ndRFsawf1KHGb5Ux9ruA7R9ogH03ufDf+dSlp/d+YiJ03Zy6x69LrAjl
+# 6G1rWrN4H5O4isi/xBzkHbUZXcVNkXdKhYDM+61my8AP+14MtTN4ieH3wRW2zESv
+# Pzhci49XzxauIL1zdO2qbmF0r0LkxwzYfOLRDYL6iPe3meWVULjf6EeRhV+F1qgc
+# xRTp5ahRLeBCpulFNHt4zfFk/JS+KlS/mfV3XrLJADIi3cAWNFrIh3zV7jXUpLIk
+# A1oTL3BbPeZuhc6m1VO/ir5SZvcgfdyHCYf6js24HH3p9UeqBJ0i7nLyCYZRovZt
+# mVF8k3jyJDcZJuGAVW4VsyTA3gj/Xp8Rxhl/uuy3v2vt18iN+mdG2OgGoCerFv4m
+# qzv5ITbWvFdluvovme6suRWhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMwMTUwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQglSCLpz4MYwh+zrKzB1dY+Hgg5Jb+5r0QV+lYmIlX
-# D64wDQYJKoZIhvcNAQEBBQAEggIAQy8XSAP+GNvSSpUjPQbH4JzX6LW5bOfoA+By
-# kFcKi2PTPAYfchTSw0Y0Nwsd8Wkg46m/D06U0VGHd93hu/ol2qPkJigtxJB6oE+i
-# EoxEXoN3cyxB9Wgh5SvJ30h8zuZX5k2q6SqzZcnUkuZb2aLDVyvZZYTpOVAfe3cO
-# UcMYXEGIBzik+vpLt8rPx50MUGaK9RcF+Heo9946QA17tlge0BrQ+yMmHjIK/EpW
-# oWaWtvDRrLn5anb4fAfsGUouOuHLNdd5cjB5o2ZmGN6RfGgB+YDTNEbd9ILt1C4i
-# MBkmw+R8vQWEz7mQhMwh7baUIzwXIBu+GZm7JL3mqhYb2wz3rZYPHpkJVkMHx/Mb
-# W4FmGmzyjuupLIApEphP6Kkamxo1c3YKKki9LUP9rduO8R0aaQ99VZLnfBUuPK7M
-# FNnCV9sb8UI1CGsCOwd7jGlyf0r5OiwZg26qr7O5TjO/H9g339NjVrSH2GCR/Ka2
-# avY0CVabqfHZwEtaRu3vmlzwxPiXwasYUMFAEjW2dtPCfR4nl5Y7yobhg64alsjd
-# 6tNcLbpifLQnAmjJMV7qni+rmVqEU538OfUf/vIQ2thFNCvauVesFG3ikr7Zm1GL
-# Kcs7tcdkeTwucHm5PNjyjgzf4taWh8+57M/CmfFMP+3glu0bwxo3d5mof5HdPJA2
-# 9NDUoeE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMwMjMwMDAz
+# WjAvBgkqhkiG9w0BCQQxIgQgwKHa8QWQFqPHnn4+QCYxlQaeCoBMOPXyjdQn4wJB
+# Sc4wDQYJKoZIhvcNAQEBBQAEggIAK7jBJTFAZVQO08laIg2+joSa9ZhqEWFPogAk
+# DHUIE5k4b3qZc4/SFlu3AO0/g6w7WZzCrXo5OoJYwBBTXMRhYVwHdxB0mSlBxBrp
+# 751tbp5wr1f5zp2fgWC0P3TNCTeV/dTLYHiSNKBayrBONScp69h/VhvC9wevIDfA
+# 6usTRdXLwFw7PYKO4pRu6LkEIvDc2aG7wq4WbNJEm/TcltYYUfm6DxdK4Z4n8E56
+# vXXEwY3mc9FoHGekCPWCe8g9m55E24qJxYl4cwzBmefeFSIEGWupneCeLLVo5CV4
+# UZE4kqawE/v6bVQ5Aiw5J68SO4vQCkOO2Oe9vsZqsKC0GnxapEi0HPD1KR9SXj8n
+# 15kiAE4yGC6LW7VpFqwEwhtxyz1linDqR8eIUvFwuRrrhsvyZ028ANjG/Gwpg/Py
+# qEy7N1Z0lhO4zZUKZAj1NW0WeUEVTA/Wk9Ku6spDSS25vpuhUmKMZqUNK03WupLa
+# gmibvSRy/679RiGmtvf7Dy9ANIk8UMPwOrE9l+p+R3uCuzHGPCAEqwT5z++yNZdK
+# Ap6uogICUEXXqrdLkRPfZGTEyve4YQ401QgMat1oTqqWwH2I4/qEtuOHd++g+CRc
+# +Xwee8mjr2UMH2cxU7cJ8yI01EntzXErjGzGDm+npsebvaWZzR3yA9NFeBz4wi0b
+# 52bR9yM=
 # SIG # End signature block
