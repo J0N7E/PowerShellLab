@@ -398,6 +398,8 @@ Begin
                     @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.150" }
                     @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
                     @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
+                    @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.200" }
+                    @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.250" }
                     @{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
                 )
 
@@ -527,7 +529,9 @@ Begin
                 @(
                     @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.100"; }
                     @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.150"; }
-                    @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.200"; }
+                    @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.200"; }
+                    @{ Host = 'NPS01';   Name = "NPS01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
+
                 )
 
                 foreach($Reservation in $DhcpReservations)
@@ -698,6 +702,7 @@ Begin
                     $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                     $OrganizationalUnits += @{ Name = 'Application Servers';       Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                     $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                    $OrganizationalUnits += @{ Name = 'Remote Access Servers';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                     $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 }
             }
@@ -925,6 +930,11 @@ Begin
                 @{
                     Filter = "Name -like 'WAP*' -and ObjectCategory -eq 'Computer'"
                     TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
+                }
+
+                @{
+                    Filter = "Name -like 'RAS*' -and ObjectCategory -eq 'Computer'"
+                    TargetPath = "OU=Remote Access Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
                 }
 
                 #########
@@ -3317,8 +3327,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdq4G2iOHfKK7oc8+l7WZGXNk
-# rPmgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUv/Np1k6ZelszK00I5GXrUsBI
+# vw2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3449,34 +3459,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNJvkOVFc
-# +k1tmGiIBnc9GqMRH50wDQYJKoZIhvcNAQEBBQAEggIAg5irsqoPpCLHSlADHz58
-# J9VGhR01Zu1w7uA3Xl8UDHC7ZT83/T61yBzQ9AM4CO02KfyoArS4/LokdETtI25c
-# e/tle/Jep5sH6s11gOqwMw2SaVbxaq8B2iz5jlJLhRWaTK2zL+OH7270IXn8i+/k
-# dWHf0lv8eomhpLtqpKcbisc8poLle9/lio+VT9xQMhYquIxcJk6juupIm4RfDCXL
-# vQAtzD1NFCZEIw8RV+ZGCmaz5Gt8v3WRL9TC7Dy9j6D+z15mJcrvzNQUMYix5os1
-# 6WgGgQ1jivS9f+rqAzaHsv4nZoene3U9zTbetuf6nBHmdyF7nGxXC2GRApW+iRLb
-# dhHqs+nH46Ql2Lvm71Jb059PVY1FVSpT0ujahhH/rVUXsaHC4YnVzTCUvM12D1KG
-# LHFhYW/rPXFqtiU2OJNWQA4mRkVIdzk2ClOWsDRv6OvdGawzgpar71EIl0Z+dUVQ
-# gHKed4MODl26/uZ2wpf20jit95ZxXe7cIbItsbF4l5LxQTmLzXaKfS0YYQoTY7wt
-# 7PzTy1pj7Qj0jAiudYtd2QGmFmeDfUIfS+sr1n+JpgofN7Zd1T828vC8PVjzdVXy
-# kc7KieYM71Kts88N/uMzfllTOWWA0UPVd/yoPkk/tMQ4fiLUeMZ5vJyBF/AANaLT
-# dkGg9iOCJneNlimfe5Yi8u2hggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUDm6UqFrA
+# jHUX1CvFi8XjK4hkXJAwDQYJKoZIhvcNAQEBBQAEggIAHguBxrMCSOGroXo1mTeo
+# 39DAO4sKoQzSzxkODik13ELNl21ju/ra10tu63236AkO6tVeGTHbfedrI24CCF8w
+# 6BQoiDfy3nNWLvLjgF+htRhRzX5bizjurbJ6dfNC46+GtG8odLjUaRD5G5SCgD9y
+# Q6ayhXHUEMzKpx0v+dBrS+5w5n5AqGpoArbWkduhlVyQVwE8Lr4T/ad/TOhEkto3
+# J9a971mE8tpMY4tFEHssjvT/W3eWHxilxaDCKV1OvMJv2DPRIlOLCdn2/eULA3RF
+# YLZgpmoAT4fMt9TBA22qIfAVF+JfPB4NkZSgH3jvGBCS1yvrPtWmx7ffYVXJ7vxe
+# SfIow24J28vn3fFT8FJLz5rderueCAxa6rJc1MK0qSKjOz9BK1iwszLYgsJA7wq8
+# kTje4pfpjXwnRoXlpC6LuJgE/GWy34qc1OT1HbVL5Pfi0+q2M/qcg96fe5duYvEh
+# LJLGw/e2v/cn6NRNy4awJBTeGUFPmAh+g0auPnX/1DRLvKI4RwpGq7VE2U6Yng1F
+# u3vfQLE075enRL1QuryI/qdgBeqZc/UlGD8va0Z9SkHKjLyRksCk4KhSy0TYWKPR
+# 80aT+IqCcdeMgDFOfEvMZE88lMSdUE75xYT4eZzGhnaNbV0xD1CHvMz+kTv0OQja
+# tKBy+MGV3cRx+54n392fNxKhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTI5MTEwMDAx
-# WjAvBgkqhkiG9w0BCQQxIgQgvE36l/0s+TOGu9wa8z2Znxc027d6McKDVANyfbRO
-# r/UwDQYJKoZIhvcNAQEBBQAEggIAr1+OmgO6F7qXUEA51q66bcBetLknOaQntZ1k
-# bFSh+ildTzX702DZwAOb1POR7/1tpHZFPYsiydweU4wR/uWREo4rsFg09tn6pYuH
-# 3FdY1DyI/YJLPAzLSXjKbThm9gh6qGI4rnnWCirA1ItSVCevpI4MmDNDjUy64w+7
-# SWnSPyJ0aSL+HTXNC1GEEmjRagHyyYOmhmaTgj7DLxDgTNCpcCtDQOh/e8HjUCcL
-# bdBBpzyXFxSne74SRIUxt+3+r6VtpcaY5Vsk4hpX9xQG1oTnSmTiw0MhC/EEIE3h
-# sirSsxsq+hKZadMm3MQnumfZ8HWelLUqrUVSl1S8MHFXhFbcELkHC8AVaBdGrbIO
-# 33mtA42k/hYWzSt2oRAkdcTIUS5bNYDhElMvx58s9s1jcfFyT3HYicyz0gYTvFw2
-# lVoboY586ME6ZyoMvpPi6q/hmdZqg8y58JoeEKXatKrUP07GTRB8rTkVFgZbt5mR
-# WomIqc6C43KxAixYR9ULSb8tiqJ3bu03GbcZEZ60hhD+mpDXQV9CmtZXVfcAFt1v
-# K1hWilZGsECP5qFArakJrxA3QnYvmCsBjOAmzo8d0S/QoTDoRGE5fh1p4Ffwc1QS
-# G3wSNMV0Is/0iJ4/2qstaWWQNRBa51l4OiRycKNgAKR6gjlIwwGASKc9ISlcxPqI
-# CsTEKOk=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMwMDkwMDAy
+# WjAvBgkqhkiG9w0BCQQxIgQgmKWmXE1C4UEaXlmz+BXeFI4Pt2Vhz4iojd+6PA0N
+# fYcwDQYJKoZIhvcNAQEBBQAEggIAFMvQkZvNBHmhaAbOmIjAAgCtAKqy4LbtlSba
+# O0lgb3JZuvcjUCI+V3ojx0M6dpVTF6CmsHO089xoCuG+4+N/P7xVqCqgwx1ewt00
+# 1BZkhevFOh7B+4xkIQRnjBjNbxGTThLQk5sMj5g6rxSDJjjE/7WlWZ2Ozoays8a2
+# poZogbFXYE9pFyfm26eqbja7GOWvQmU1Pn8CPEL9ifqIyBO9vQNg8+JAwIWQ4Sbj
+# 0niFuiN3hkpQxFxGuK6V1SLxw1EIBxSc45vR5Ux0CGp90H0F2bD1ltQbthyO6ePV
+# KPdmiSCx7rN/Lx0tiZ6ATbGRBRpFZITx0GGBMaxoVJMK+1aUI1DCjZjunJb1lt0t
+# R7lw5c+WICspJKdXRTTIr4DtjIQz8DOJvrFAI0rfkOctUBrtxvkXZFU+/iiI0bO/
+# JOXem8PpTjjnA+nc6L62IiFI6CMx2VWnXkNIeqtwh8JvX0FzOTFeRCUhOLbtC1qP
+# W9Iij90TzR7CXd+fL5z23QJV53BN9NnYew8urHCZGkPPrpd6009ahjkemLYmbUvH
+# kZzBN1uW7m+U4f8jJMJ1ibi9fyfsV++QICvTDcgUQD2Rse1RUbIsZE+6MrzHlsD1
+# BxV/07eA3jmBtH8oLpM8ezrRqQSiEC/I3He89Z2gW9wLPJEJ0TXibFk9NgVBB9XD
+# qG2pSVQ=
 # SIG # End signature block
