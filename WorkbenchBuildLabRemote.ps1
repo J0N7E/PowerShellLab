@@ -359,8 +359,8 @@ Start-Process $PowerShell -ArgumentList `
     "-DomainName $($Settings.DomainName)"
 )
 
-<# Remove root CA
-
+<#
+    # Remove root CA
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCA.ps1 $RootCA $Lac -Verbose",
@@ -407,8 +407,8 @@ Start-Process $PowerShell -ArgumentList `
     "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
 )
 
-<# Remove root certificate from domain
-
+<#
+    # Remove root certificate from domain
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose)",
@@ -485,8 +485,8 @@ Start-Process $PowerShell -ArgumentList `
     "-CRLOverlapPeriod Days"
 )
 
-<# Remove sub CA
-
+<# 
+    # Remove sub CA
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCA.ps1 $SubCA $Ac0 -Verbose",
@@ -495,19 +495,17 @@ Start-Process $PowerShell -ArgumentList `
     )
 
     # Remove sub CA certificate from domain
-
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Lac -Verbose",
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose",
         "-CAServerName $($Settings.VMs.SubCA.Name)",
         "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
     )
 
     # Configure sub CA in AD
-
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Lac -Verbose",
+        "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Dac -Verbose",
         "-Force",
         "-RemoveOld",
         "-CAType EnterpriseSubordinateCA",
@@ -574,8 +572,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrWz2zo60G1mnZVI9lHGXSv15
-# 20ugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyEE6Jomu8FrDnAKE4Ct3OujB
+# 4g2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -706,34 +704,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNhfe5/Uf
-# YbJGLq0amCg/ikFLDNQwDQYJKoZIhvcNAQEBBQAEggIAjwrqtwN5PbFvi0rOh7gb
-# ebtnFZL64mffCRqXnMSO0xGY/5CPlirdSqSeV/C+bbFq2sE6IKoNFITgNBHiWkNE
-# npzSOReyAX2J+xgsMJsXGkXDCV3ERsTtWY2VD9MEhbL7VTyitazOMXIRGNOsLlcN
-# Yp2If+XEQMfBJC4gnJLnxzriIbnKqm3wfkTmbOE0uXfEilKWbRH43KozB7h8d2hD
-# NZIyvBS+UEGdiHwIbGJpKfPcqG7EIjPKUDrVuqP+0EafGLFhixVrOmwnWYBKydAV
-# Yz49xkbyFJtqRUYwnadIhOeXZkMXasJEfL6rELipcFnHH5zry3LAcTeMJsFuuUoL
-# jF8Ie+12UpMVrQGXAHdj3TWi1z/RBM55Vily6NM7FkBx5N4y6Ei3+f4mqNp9+zR6
-# qkfIfuxHMgUa9ta5KkwuKj6GrbvOpy4TEnF/OObycGqx0nRGOX69cV1mPUhIXIeC
-# uZZQtMd42UwHuaI6ZZEubJZ8q5y+8o+hN3SPsXc9sf1U8YnbVSu8qmHXSpdhKSvH
-# hO2ubkhXWT8ew8F20XJOyY+ExPvcMi8Q1dGNtiYDb5SDyOP5e4BfzNKEL7OC2T3f
-# muZaHqcWIQiqZEw3UB3EmUcaj6arjYnV8R+xVTFD5K6fzP3WnktoCYzjkAeUeGhj
-# r3okOcvWNr87aMLE1CBO3KChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUa2rpvs9c
+# cUtrQmHYCplDW0IySVAwDQYJKoZIhvcNAQEBBQAEggIAqZQ/KOkt6U72twCNv5CB
+# dOIIiv8BnVGP6Wp0JXpEswyqUk24Q2DZKY+POr+jNH+XjYlSWZ5TAcqDO5QG/BLq
+# LgPYVwmU61NnzIgSx8dT98TKHkE/Ir13tWyfK/gPTj7RBDeSygLNhlzD5mg88ihl
+# NnF8gnZoVj3e9OmdVLNi+zqn+k/5IQfb9GF9UrKaGDVl+aiFeALe6w8FeXYwKppv
+# R19WT2pOc2WwZmjD+CPY9/GF6EaXtbwhEo/WTHIVmAeJ50ds/2wEwCCEV89tNQPB
+# KP3Oob6RnZQCVqGWSMnYqFI4Z2hbSW8KCAeqE8dU140xZyxwN3MrQjt8E4Ajclbx
+# qB+dxA3ZE88sGy2rwJEDplAt+EukU7HmYEb7gxq6NJj0L15AttcwiQkfTKQW44Ov
+# OE9iZscvpBOU413ZzbS9dj1Km4chHzai6zVrm6LAs0/P2BJoBga0ifzfEvDwLFOM
+# jieS549ATg/ZukMxYaZTSnnEJsyqVGkIseCswpTiVMZYT8OjWy4orPTtEk9ZTJOh
+# m7lw5GF2FNaeur8C7cEQmhimdoCbq6M/nq3HXwJSTpp6uUk33G3CV15uYRS/LTWM
+# QJpu2NVTnLjyEJSAzuN6gKynR6J0Z0cAj0PJgizAo7Ns4CldG8BLv10eSrEgNtNQ
+# npXQjK+q3av2i++iz5iXLcShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTEwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQgepddDrcEFuYCkFyJxOxDkO2NFR0Usm2X1AnXgIy1
-# 4SIwDQYJKoZIhvcNAQEBBQAEggIAA7+UxwWuHftOqPCJNXgt04MA+otRcEIQt9QR
-# juB25gpgxeF/XuSy7mlx8Tqrl49RFbNJ05hxCBgMeQ9h2uUNtc+vnqqCzW8WXLCd
-# o9rITD8XUHSzfOmXulSpEtp26hCZy5uXVZF2b8LaDZx7MCDf1pkPmBWo1FSmlWUg
-# iuYLh8OxBI4YyfhbQWey6kLllmAXpgDkVNcyxpJ6G3nUcvsdVm/1lTs2gQLfEI5P
-# YT3wzi9NP/QuGAO6F6ahdaQNGRVIDqb6eo5THNUi5BXwLpgkvwGcTjPWEaUPAu6B
-# 5T8fUScJlzW/7wagVsLRvWdIn4kWNBgfLD8eTtDWlVu3lmiZYr7fC0XqsR94577d
-# gsnsEVd3lskvpDHncXp5MYdZVSEzRLE4mKDLIjNISz2WNqChpahKxsgMPTukQQBH
-# 1ihCLZ17LGAzQj1GBCcVVU0Hp1wjSoOprG4cL0q2UfzphVMCwqY1otDvKI87zq8H
-# nDzvLmxhe/+IW10ck8xLqaS02tRBX2xYO3CkJmklQ9lJSZwcHo2wtggPMzTzLASY
-# Y4GCWcm4ONj4JOY9lXx0KUFPRi06GmbIQQcyZKnYxv0MfNT66EQ12tFt+zQjOLeV
-# 2gWWPd7HYWJlXyTE2sOFSQ6nC41YaL+/MOEdQjPJS3BYVTOzjpyQJmrnBCJURkUz
-# qQ//i9A=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTIwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQge4DDPzMVKF0SphP2+4ZZIztZxeYluQrWnAmGtqiE
+# MJYwDQYJKoZIhvcNAQEBBQAEggIAYRzR8MVUFnqlVUKqNoH2bgsE2mtz6A5cucyQ
+# XRcXhZbINeoAGuPRswAiCXSq0rkLNqqg7oPs0YEkefoBiqzYRJ/NM3VmwvVPi0Ua
+# wsRRbPGVjuZNXFed8ppp3kbPtwlhf7xIsDeT3fpaLusAZ775/omETEB/SP+Fn5cR
+# ZArqs5b3b1zFA6y4z8WhH1uqlcML49VOvRVDT5YVHlzbDvFZAijWYOzjlt2oDuEk
+# CFPdY0oiUyefHdYoaDIzWmioRKzXii5LWDJTwMqzprKb5Vrp773gLupq5z9aR5uu
+# G1SLK4pdAiu6NQ2ZnK9hZh5Gx8UaaKDhoJQRnLkYAmyLTONGpqmHSLM7hJV6ohLS
+# +lI/EWC9Qov4xs8oSVKRBBcxAirIG4E98bbbflRRPMchiqiPsJz1/uM8kdcKVzZY
+# wdk/rZ3t94vT686PX4hRQ7v9B5STltWMH3MTmqhqJUrH71DK/LL4zXCmDqdG4dBs
+# b9IPYwEPrgEz4qUZqBFeVKe7SyZ2Pgo05uf36uB1TdLd+X8iRWbDwcyTid+7lNhJ
+# UlwYuVIzTvtpiIOYFl109Sqrg67gCjrIBVT/tWN6+vVuKD0GBhB1B20jJpP/y91y
+# CewS65vVAMMKDibE8iT6vklK58/4mXHRkDAr1dVD+GbGvQ1ba0NCd3gJg/CdvJRE
+# r1/rMUA=
 # SIG # End signature block
