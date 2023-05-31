@@ -1894,7 +1894,7 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - Firewall - Permit General Mgmt+"
+                    "$DomainPrefix - Firewall - Permit General Mgmt-"
                     "$DomainPrefix - Firewall - Block SMB In"
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
                 )
@@ -1921,7 +1921,7 @@ Begin
                 # Link tier gpos
                 $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Tier $Tier - IPSec - Restrict-"
+                    "$DomainPrefix - Tier $Tier - IPSec - Restrict+"
                     "$DomainPrefix - Tier $Tier - Local Users and Groups+"
                     "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
                 )
@@ -1946,7 +1946,7 @@ Begin
                     # Certificate Authorities
                     $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Certificate Authority-"
+                            "$DomainPrefix - IPSec - Certificate Authority+"
                             "$DomainPrefix - Certificate Authority+"
                         )
                     )
@@ -1954,7 +1954,7 @@ Begin
                     # Federation Services
                     $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Server-"
+                            "$DomainPrefix - IPSec - Web Server+"
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -1962,7 +1962,7 @@ Begin
                     # Network Policy Server
                     $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Network Policy Server-"
+                            "$DomainPrefix - IPSec - Network Policy Server+"
                             "$DomainPrefix - Network Policy Server+"
                         )
                     )
@@ -1970,8 +1970,8 @@ Begin
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Crl Distribution Point-"
-                            "$DomainPrefix - IPSec - Web Server-"
+                            "$DomainPrefix - IPSec - Crl Distribution Point+"
+                            "$DomainPrefix - IPSec - Web Server+"
                             "$DomainPrefix - Firewall - Permit SMB In+"
                             "$DomainPrefix - Web Server+"
                         )
@@ -1995,7 +1995,7 @@ Begin
                     # Remote Access Servers
                     $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Remote Access Server-"
+                            "$DomainPrefix - IPSec - Remote Access Server+"
                             "$DomainPrefix - Remote Access Server+"
                         )
                     )
@@ -2003,7 +2003,7 @@ Begin
                     # Web Application Proxy
                     $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Application Proxy-"
+                            "$DomainPrefix - IPSec - Web Application Proxy+"
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -2011,7 +2011,7 @@ Begin
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Server-"
+                            "$DomainPrefix - IPSec - Web Server+"
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -3343,8 +3343,8 @@ End
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSA7+XiQr9/ptWoMF2lldO2mG
-# nbGgghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbWLkq5mfXnkxOkq7GT9+7DnM
+# B8ygghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -3475,34 +3475,34 @@ End
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU9u1jGfV/
-# T2QUvnonCllQ/vgxM/gwDQYJKoZIhvcNAQEBBQAEggIAIO661SnnnojTMK427sNF
-# DXsC84ipY43Ew7SYj8gKEkcFDXDe/SbkeAxwxHuwoKpgGHZbUNW6dGTJTrFXhF3F
-# rqWUdwLk5fS8dQj/YsCw3ZHK8uY/FRSzDqbm+R9UuIMoLsBRPOKL1UwOmPGtrGUR
-# GX0ooDlxZkVwxKB9gD5FOiZuxuUFLUEYPoMcUvavSRXOiMjGS9KDWEM1eeKgAvmc
-# nVZ2V8SL/95vIoD6QxsRtf9XbipGgkL9gI5bESGHyWDrm32g2mA1SbI9ZeXl2JIr
-# hBAhYB/kutMgbdvYaICZzU1bs3w/vuTPYdlpblEq1ESYMvpgZJXM1IgyYPnKmqbb
-# 83IvRZFU1rsEoWSrQGN7GURpRVlyLgWNyQJxVi95kxzBdnbwLRxiwFsfMIGDJBI/
-# kKfEoNUhb5h/AIG/TKSKVrkuFu9ImBcaHHT2pwLVTrKweKknTKmwXD6qqLbsd+Y7
-# 3EumSGNl0kY9JOB5PVQqgmfogfuP8lvdHr59DYh69OaerUVmAZGimtwLrShi1O8F
-# jAvSh+lbkIDigLMHva04EYEjvH+Sgh759eruQjs92B2UFjH4owSqJXe0GCNXHNUt
-# S76RYRepXehxGQ5IYVI3pgCPJm+C+sW5iQp+3tnsHY3DtjGTzZCOjapMlEDW5fPg
-# IZUdpkAS94NmJ9ehZdYyzqqhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUhWpmLynJ
+# VPI4TRiGo/BdB3zvaowwDQYJKoZIhvcNAQEBBQAEggIANtMWhzb2cLIiAaTM+YQg
+# hZ9EgMExjzeDck8RxBJ53h6oHO++EqYpNodAwDxaoX4nqW0nGImfuVqosK4wVAoP
+# tdFcIj/5gYJj42liCCOjO6aC9NzF/jLs4eSOfuJ/Ix2vxArWGO19dUQoGunKCKt+
+# faKnfYTkvqwuzBkHOAc1FnLYa3SoS753NiDLzHPCpXWRZqgFPRGs74/5AeVhNC4S
+# Jh2GZYvs7M064R9nVEuO0j9aqORnoDVwX8nMZRWjpRAKsHf1IIhBM4oQAhEZa+OL
+# eYGhJxLkxItUK4Dwt+U8mg4mn05DJZxBNhiG5wW67pTYRI4t+DX4IHpXoY6WpTdT
+# yXWLz9I+73M1U0lSMG8TFb8OKWnhXbaL5kV57KBzIRAwHJUUamiZBePtqDG/49tn
+# j+qmYKC8/P80lAFh4Kd8M75cryukj4bkF7LX5MHWLsFw2WdMOuVf+08qdEMngr2+
+# 7z8BqxA43g2g/FbZJWGvQCnmGbqAL34d9sE5cx6+ql4ARwPsqLljdatuzhbSz8r8
+# oDR2Jt2AUUzjwZ/1r+7gvW0fUSPQJXulo3SgxqL4M2UFa+uJafhqnwCIJqVhGGWq
+# X2pzTOdj5gg0N8lhcm+YT9lvxDbQl2EjyBlBar8IFN6USXAuVCChhne+i6bFBkyp
+# kMa1PKVE4JygEZXBRRk0zpahggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTIwMDAz
-# WjAvBgkqhkiG9w0BCQQxIgQgO9v1aB8FRxY6JjyhYXmQHt2Gp1UiVpPsoxEBtcUc
-# lbAwDQYJKoZIhvcNAQEBBQAEggIAnG59n0e+kwrdpEN16Gghj1ms3jTSbIWN/R+W
-# gw2ve3PgYNCv569crSlNRbGNMxtUBE0f4l4IvEmrC+l/hxXDUasGl/36vpvTnX5Q
-# NGenGCbRwetWNB+j2R1R2gz+x0metYLi4/uwdd8duyKWhIu/z0MpBDRfzZF2BilY
-# IFwLLxrANBpOHovRyOSepA1YEajQhAURKjVzD+mTo8RXSZK/kg5UinVnVGKm0HZW
-# Fo3VxXmfWLdImAiZJDBUWwxhqmchS7VOrCd1XN7LprGkcVxHQld+bZI2ydisVtO+
-# Ap7dy+OWSCIdKkHqt8BJsNn0jw9gj6jwgbodkPQFrUDBJk4p+ugWwtWhdXz+gFAD
-# KtzvOVGKbyyMvlSy0yR/+Dw22tekRR8PUT92V1iwcZAuhqVCjjHp6/1XOu439tc2
-# i2sFxrSqUMz7ix6Lmf6wNXtRFjC6k2GVxjA7SZpNpRNEOlvgTLQ+1b0jPZRlCQ5w
-# rSEdVy8pAmB7Xa6xXk9LZY7kBRDzcu+uvzchuAWoqiwLVrwCgBrx0OpgLGhlDIbz
-# gPAS47cVNfIVl5p06wScVZPBCPwxikrMFo5s8kwrt1H5wdgX2hA99rs5M+JUm+xx
-# fE5nGGvg3DAJMm5688TiPMGvdgsB31le0ofA30Ds2HVZo5QuzuZBi0fTs3acu9Y8
-# j8raBFE=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTMwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQg5Jnv0mSlWikVShkbHERpmgCMLsjF7tUzyLxWT/tE
+# KIwwDQYJKoZIhvcNAQEBBQAEggIAuuTFGu5n+HlGflMUpeQWcPnuBpigQKp1UgVF
+# e0NvWeZZZC5eacG5lLcVO2LJXoF/DMIchCY8S1cALREo3MlmMzmSLRGXA6WgFETS
+# Vig/ic0YIqJf+EQNdjIpwBF+EEI4qk9Slak8t11eZWM219euQsXhkMWjoA5JL+0j
+# 2+LvpwFkTecuZ6G4WjWuS+Vvg1g0bamB+FQiSK2pcc6CipebQyUjn+U4uufMtbGO
+# /3phiw5UF3xdg2qB6tGX+SKQs5uidnyCx5jhr76EvtWn4XJ3cGzbkUBappkx0OjJ
+# 9Lm95Aki0PiXQZZihIMyyotPjS+2x21BqFZnnlI/fOjwVdUhZyqdgYxBcpaiYkX6
+# 6cq32RtkOqaw/7c3OoPr1Wgry5xddsqSjIXKWBPisOP/cvr5uFYrghQhkeoD/zUb
+# sBH68qDS8vZC2nSe/iOrUy3RtPo84+1gBsaa8P560q+3VQXNU3tTaT766//AD2H3
+# 0yK712s1heOFJ5yplyUpTo9R73+uRPFMJfs/KIMqQtFfxK1I34IQQ6sJBFJPex7K
+# HerPPLHCYjKx5BPYYPSgwOEa9faPklohbHw6PPH1x5b1dN8FtmuEeDLqOLvCAV5T
+# 0bYS7pzucFF18cOxscv7qQc13NychLmmsQXtndbbtVczcJLoDriT+7YwjWWTnJo3
+# BfbfKmY=
 # SIG # End signature block
