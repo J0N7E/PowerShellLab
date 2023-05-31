@@ -63,7 +63,6 @@ $Settings +=
     VMs               =
     [ordered]@{
         RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
-        RootCA2 = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('LabDmz');                 Credential = $Settings.Lac; }
         DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Dac; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
@@ -72,6 +71,8 @@ $Settings +=
         WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
+        CA03   = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
+        CA04   = @{ Name = 'CA04';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
     }
 }
 
@@ -245,7 +246,7 @@ function Setup-DC
     # Default argumentlist
     $Argumentlist =
     @(
-        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
+        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $DC $Dac -Verbose",
         "-DomainNetworkId $($Settings.DomainNetworkId)",
         "-DomainName $($Settings.DomainName)",
         "-DomainNetbiosName $($Settings.DomainNetBiosName)",
@@ -400,7 +401,7 @@ Start-Process $PowerShell -ArgumentList `
 # Publish root certificate to domain
 Start-Process $PowerShell -ArgumentList `
 @(
-    "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Lac -Verbose",
+    "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Dac -Verbose",
     "-CAType StandaloneRootCA",
     "-CAServerName $($Settings.VMs.RootCA.Name)",
     "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
@@ -410,7 +411,7 @@ Start-Process $PowerShell -ArgumentList `
 
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Lac -Verbose)",
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose)",
         "-CAServerName $($Settings.VMs.RootCA.Name)",
         "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
     )
@@ -548,7 +549,7 @@ Start-Process $PowerShell -ArgumentList `
     "-OCSPTemplate `"$($Settings.DomainPrefix)OCSPResponseSigning`""
 )
 
-# Ndes
+# NDES
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
@@ -573,8 +574,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu5tqUqcb/Vjmn08qM5yeZmmY
-# eXegghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrWz2zo60G1mnZVI9lHGXSv15
+# 20ugghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -705,34 +706,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUrZ4lvoFh
-# hpazLKomTKeGhO59XL8wDQYJKoZIhvcNAQEBBQAEggIACHAFBFwKJIX5cey8x2hh
-# sCyNIZg1eWJBZGy0jX9BJITb3EonTqtGA8TvOBoV+Ogx8rJLIZqOpVzMnYqApNed
-# l2OTKNYdEPQItwDmTPSG4E5kK67pbVzAvdUVEBXxk1JYQM4Nbh9EIH752TXV0FUG
-# bEg1IPI3eIKyMH23f8Sk/lP4U3VopHNE7pb6uPEwurAFq2mPDIuHeo5u3qS72jLp
-# 63ypfVafg0nm6xboaqH0oMXSE9EbVHTA7c6nJ2P7s3RxNr17LGHzi/CcZEL62DRU
-# Ra9GgsjYR7meASZ35wQu3iKXqEHeJTvvHL05o/ozoWWNLSHfR6/fuchPvnnczDUC
-# jo3Vs+w9X1uC27ToUf+sam8ehMBdEk6qR3PdHxgPahpKMhCOspUC8bKU044vJc6M
-# LmCb6MGhuVBZHxhVvQm5rlj5gd8VgfmV9v4CymxDKE9fJVB2dlKqlulPI/zzq4NI
-# 9iVX1GS5SpRG7hs78jj2vDKJDPhE313JzUS4YtVVAcASuAKZjZOH1vAhEw1XscqD
-# IphMja1xessBsvBYYr4Go3N6wVZ7z/tqhXWybZvnEQEpctXhpDmDBlDR7WRJCmYv
-# T7m6r1FX4+2stAKvUPT3ZszRZhlkimK/Q4w2UvgQ4t6EiTApIvvUzvvTKDaRsje9
-# 4KrF64NbYY1ws+P/HPvly6KhggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUNhfe5/Uf
+# YbJGLq0amCg/ikFLDNQwDQYJKoZIhvcNAQEBBQAEggIAjwrqtwN5PbFvi0rOh7gb
+# ebtnFZL64mffCRqXnMSO0xGY/5CPlirdSqSeV/C+bbFq2sE6IKoNFITgNBHiWkNE
+# npzSOReyAX2J+xgsMJsXGkXDCV3ERsTtWY2VD9MEhbL7VTyitazOMXIRGNOsLlcN
+# Yp2If+XEQMfBJC4gnJLnxzriIbnKqm3wfkTmbOE0uXfEilKWbRH43KozB7h8d2hD
+# NZIyvBS+UEGdiHwIbGJpKfPcqG7EIjPKUDrVuqP+0EafGLFhixVrOmwnWYBKydAV
+# Yz49xkbyFJtqRUYwnadIhOeXZkMXasJEfL6rELipcFnHH5zry3LAcTeMJsFuuUoL
+# jF8Ie+12UpMVrQGXAHdj3TWi1z/RBM55Vily6NM7FkBx5N4y6Ei3+f4mqNp9+zR6
+# qkfIfuxHMgUa9ta5KkwuKj6GrbvOpy4TEnF/OObycGqx0nRGOX69cV1mPUhIXIeC
+# uZZQtMd42UwHuaI6ZZEubJZ8q5y+8o+hN3SPsXc9sf1U8YnbVSu8qmHXSpdhKSvH
+# hO2ubkhXWT8ew8F20XJOyY+ExPvcMi8Q1dGNtiYDb5SDyOP5e4BfzNKEL7OC2T3f
+# muZaHqcWIQiqZEw3UB3EmUcaj6arjYnV8R+xVTFD5K6fzP3WnktoCYzjkAeUeGhj
+# r3okOcvWNr87aMLE1CBO3KChggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMwMTEwMDAy
-# WjAvBgkqhkiG9w0BCQQxIgQgpwnkE2t7tOszkLc27Ew/fYIWEg2tmiogz4OjFLdA
-# vfIwDQYJKoZIhvcNAQEBBQAEggIAQb8fWfdthKXjuNVjA1oRtk9YPlDALLcETajr
-# h8GYeqCZY8WRIM9RitlsDWHEADPM6lG/J5JSivXHbWxnrLOTnDrzE8S9/LVLEAXH
-# ZlbX9glE1QGiyJqAG7OtQRYrN8pRA6ukFfSYau3NgJ2k77L6khzGinOv4INjp+Qz
-# G5EDSfQVSBJGQ5qwgYCmMpXn10NxHCSs6EITKgS0400vVig2FSPAG2I6hpZEvTWz
-# FknNFbOJ+nwu4OJw5T0gwVPyoFHtSmMQ0ux7nsvhPjctx+SguarAEAJXBkCVwEPS
-# to2zyPW3LvMms05YwFMSsr+y4Luwlep8NMLtWVIEVGF1TMPB3bUfDFqr4lgiwPWm
-# l+vJI7ri02n3qVjI4E/941mGCzI+1wtpUcZXgoAkbF0Nw/4yUiJD1yKkDHXZAylI
-# /yVnrM+ndlHE4JN4CFb2Kx02R65/p+1/TotVQ7OLpxGJAEFv4+2YwlD2U4Pz6aGm
-# 1ZglIu0qBoBi0h2d4ljXZPLULydlAL0OAm7YIdLNzocr1DkfMKgBb8O58aaYdQIT
-# 12Ry2BK3n2p5F/Lium5UNjrPRYxkMwGI0jeXb2H3CxzhMEwjBzMxc/2pslKfWRKa
-# 5IQWYqoIJwYzIzXe2MksWhq0ZbeCc0ujeyODe1RHPDl/Fv6gknRlR+9MPuyKavVL
-# egdpAH0=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTEwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgepddDrcEFuYCkFyJxOxDkO2NFR0Usm2X1AnXgIy1
+# 4SIwDQYJKoZIhvcNAQEBBQAEggIAA7+UxwWuHftOqPCJNXgt04MA+otRcEIQt9QR
+# juB25gpgxeF/XuSy7mlx8Tqrl49RFbNJ05hxCBgMeQ9h2uUNtc+vnqqCzW8WXLCd
+# o9rITD8XUHSzfOmXulSpEtp26hCZy5uXVZF2b8LaDZx7MCDf1pkPmBWo1FSmlWUg
+# iuYLh8OxBI4YyfhbQWey6kLllmAXpgDkVNcyxpJ6G3nUcvsdVm/1lTs2gQLfEI5P
+# YT3wzi9NP/QuGAO6F6ahdaQNGRVIDqb6eo5THNUi5BXwLpgkvwGcTjPWEaUPAu6B
+# 5T8fUScJlzW/7wagVsLRvWdIn4kWNBgfLD8eTtDWlVu3lmiZYr7fC0XqsR94577d
+# gsnsEVd3lskvpDHncXp5MYdZVSEzRLE4mKDLIjNISz2WNqChpahKxsgMPTukQQBH
+# 1ihCLZ17LGAzQj1GBCcVVU0Hp1wjSoOprG4cL0q2UfzphVMCwqY1otDvKI87zq8H
+# nDzvLmxhe/+IW10ck8xLqaS02tRBX2xYO3CkJmklQ9lJSZwcHo2wtggPMzTzLASY
+# Y4GCWcm4ONj4JOY9lXx0KUFPRi06GmbIQQcyZKnYxv0MfNT66EQ12tFt+zQjOLeV
+# 2gWWPd7HYWJlXyTE2sOFSQ6nC41YaL+/MOEdQjPJS3BYVTOzjpyQJmrnBCJURkUz
+# qQ//i9A=
 # SIG # End signature block
