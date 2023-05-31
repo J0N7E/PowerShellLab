@@ -288,7 +288,7 @@ function Setup-DC
         Retry-Remove -Path "$LabPath\Gpo"
 
         # Copy gpo backups
-        Copy-Item -FromSession $Session -Path "C:\Users\Administrator\AppData\Local\Temp\GpoBackup" -Recurse -Destination "$LabPath\Gpo"
+        Copy-Item -FromSession $Session -Path "C:\Users\Admin\AppData\Local\Temp\GpoBackup" -Recurse -Destination "$LabPath\Gpo"
     }
 
     # Check if to backup templates
@@ -297,7 +297,7 @@ function Setup-DC
         Retry-Remove -Path "$LabPath\Templates"
 
         # Copy template backups
-        Copy-Item -FromSession $Session -Path "C:\Users\Administrator\AppData\Local\Temp\TemplatesBackup" -Recurse -Destination "$LabPath\Templates"
+        Copy-Item -FromSession $Session -Path "C:\Users\Admin\AppData\Local\Temp\TemplatesBackup" -Recurse -Destination "$LabPath\Templates"
     }
 
     # Remove session
@@ -572,8 +572,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekQYJKoZIhvcNAQcCoIIegjCCHn4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyEE6Jomu8FrDnAKE4Ct3OujB
-# 4g2gghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfQ+JAldJ4UeWFFgls1bemD7n
+# 4kigghgSMIIFBzCCAu+gAwIBAgIQJTSMe3EEUZZAAWO1zNUfWTANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMTA2MDcxMjUwMzZaFw0yMzA2MDcx
 # MzAwMzNaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEAzdFz3tD9N0VebymwxbB7s+YMLFKK9LlPcOyyFbAoRnYKVuF7Q6Zi
@@ -704,34 +704,34 @@ Start-Process $PowerShell -ArgumentList `
 # TE0AotjWAQ64i+7m4HJViSwnGWH2dwGMMYIF6TCCBeUCAQEwJDAQMQ4wDAYDVQQD
 # DAVKME43RQIQJTSMe3EEUZZAAWO1zNUfWTAJBgUrDgMCGgUAoHgwGAYKKwYBBAGC
 # NwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgor
-# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUa2rpvs9c
-# cUtrQmHYCplDW0IySVAwDQYJKoZIhvcNAQEBBQAEggIAqZQ/KOkt6U72twCNv5CB
-# dOIIiv8BnVGP6Wp0JXpEswyqUk24Q2DZKY+POr+jNH+XjYlSWZ5TAcqDO5QG/BLq
-# LgPYVwmU61NnzIgSx8dT98TKHkE/Ir13tWyfK/gPTj7RBDeSygLNhlzD5mg88ihl
-# NnF8gnZoVj3e9OmdVLNi+zqn+k/5IQfb9GF9UrKaGDVl+aiFeALe6w8FeXYwKppv
-# R19WT2pOc2WwZmjD+CPY9/GF6EaXtbwhEo/WTHIVmAeJ50ds/2wEwCCEV89tNQPB
-# KP3Oob6RnZQCVqGWSMnYqFI4Z2hbSW8KCAeqE8dU140xZyxwN3MrQjt8E4Ajclbx
-# qB+dxA3ZE88sGy2rwJEDplAt+EukU7HmYEb7gxq6NJj0L15AttcwiQkfTKQW44Ov
-# OE9iZscvpBOU413ZzbS9dj1Km4chHzai6zVrm6LAs0/P2BJoBga0ifzfEvDwLFOM
-# jieS549ATg/ZukMxYaZTSnnEJsyqVGkIseCswpTiVMZYT8OjWy4orPTtEk9ZTJOh
-# m7lw5GF2FNaeur8C7cEQmhimdoCbq6M/nq3HXwJSTpp6uUk33G3CV15uYRS/LTWM
-# QJpu2NVTnLjyEJSAzuN6gKynR6J0Z0cAj0PJgizAo7Ns4CldG8BLv10eSrEgNtNQ
-# npXQjK+q3av2i++iz5iXLcShggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
+# BgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUwHFD/6kD
+# XfizUb04IJ/UDqEJiSwwDQYJKoZIhvcNAQEBBQAEggIAQF8L15uJVLTvRQNdS7PZ
+# CJqfjLMSibJMUQyY7eXe1gE4KUVzXAYRm/tmNIGY/Xx0Hnqdl27iY0TRZlyGQnVn
+# O3A1ODmA8n2b54MxXcZM4KauJL4eiyuZMxOXsKEDQuGO9UWY9RWQbTmBKNybuQUw
+# QwqGvDz2Mchc88PNswsSPA0khj2UDAqz+ARdLuxV1JBURubQNmSi6c5PQNw2vOnE
+# b1DuyDH+ft8M/YxJiEaLaqq6uijy6COXFVw3aYwzpvtlLVB+JgQjwEQ3OPumzuUv
+# YYWTJloqb0hccBWLmJDa+NtnxWITXx64WML/yBYj6hUSk2Gvo7b5weIAuiHmsEnA
+# Yr2vTaWrxb0V28Uo65pkAGjIwQhm0VywZj9gZ0EK98du3xVwALKsMmdZaZMM/S8C
+# 1sC2ohD6dMN+Rnaot73CdUWJ3h56MMny/8qYvWvylS79y8etF+YEwnjldAcTHQr9
+# YbZbgYvhf5HdNoEq/6QLr3+Huvr3VsQnOTIFJhD68lwCllR1hPd4Bpx3r9LSWegU
+# v6V3w5NyVRf/x4YWtVfPHYEcL7jtycc1sMFSrFN8iQxWLoVGH8QX1A3oVlQskziY
+# nqlljnoYYo3CO0DPyX+P2latfozjv6aFfV90FGryuH5gx+3qBz1cUFbkyj3YhmSV
+# IrkZMk4PnLi734EDCk2H1XehggMgMIIDHAYJKoZIhvcNAQkGMYIDDTCCAwkCAQEw
 # dzBjMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xOzA5BgNV
 # BAMTMkRpZ2lDZXJ0IFRydXN0ZWQgRzQgUlNBNDA5NiBTSEEyNTYgVGltZVN0YW1w
 # aW5nIENBAhAMTWlyS5T6PCpKPSkHgD1aMA0GCWCGSAFlAwQCAQUAoGkwGAYJKoZI
-# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTIwMDA0
-# WjAvBgkqhkiG9w0BCQQxIgQge4DDPzMVKF0SphP2+4ZZIztZxeYluQrWnAmGtqiE
-# MJYwDQYJKoZIhvcNAQEBBQAEggIAYRzR8MVUFnqlVUKqNoH2bgsE2mtz6A5cucyQ
-# XRcXhZbINeoAGuPRswAiCXSq0rkLNqqg7oPs0YEkefoBiqzYRJ/NM3VmwvVPi0Ua
-# wsRRbPGVjuZNXFed8ppp3kbPtwlhf7xIsDeT3fpaLusAZ775/omETEB/SP+Fn5cR
-# ZArqs5b3b1zFA6y4z8WhH1uqlcML49VOvRVDT5YVHlzbDvFZAijWYOzjlt2oDuEk
-# CFPdY0oiUyefHdYoaDIzWmioRKzXii5LWDJTwMqzprKb5Vrp773gLupq5z9aR5uu
-# G1SLK4pdAiu6NQ2ZnK9hZh5Gx8UaaKDhoJQRnLkYAmyLTONGpqmHSLM7hJV6ohLS
-# +lI/EWC9Qov4xs8oSVKRBBcxAirIG4E98bbbflRRPMchiqiPsJz1/uM8kdcKVzZY
-# wdk/rZ3t94vT686PX4hRQ7v9B5STltWMH3MTmqhqJUrH71DK/LL4zXCmDqdG4dBs
-# b9IPYwEPrgEz4qUZqBFeVKe7SyZ2Pgo05uf36uB1TdLd+X8iRWbDwcyTid+7lNhJ
-# UlwYuVIzTvtpiIOYFl109Sqrg67gCjrIBVT/tWN6+vVuKD0GBhB1B20jJpP/y91y
-# CewS65vVAMMKDibE8iT6vklK58/4mXHRkDAr1dVD+GbGvQ1ba0NCd3gJg/CdvJRE
-# r1/rMUA=
+# hvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjMwNTMxMTQwMDA0
+# WjAvBgkqhkiG9w0BCQQxIgQgXeBGS2WCORLSbMFtta7LwR7S7BDnnMiQKwWx7Xf1
+# gjIwDQYJKoZIhvcNAQEBBQAEggIAMFxSUTI/WdbVlw0sGZ3PBHb9lx9+vUXkrXqP
+# qV/ZLv53B3cMixQPYjrjGPDGDPedvnihPOz/AMcCLdHfKOABig0ZMg20TyITxpSh
+# svcgACmxyK8GG+cooE8E8hV2arWr3CwgpAKRfKVgyaOJMrY01pgHfNf/ig5mEq+N
+# nk9Psc/DfNd1mnmoZwQZy6vEu5ewDYA17J7TLaH/220G8FTYo0NdAaGunHdaetCE
+# EACheZc810AkjPjR7i/B0lIx9qyvTHUuM/bzf6DcC/aC3owqaFY2LLRajE2z2cik
+# aSb7CuPPCxeSidGDZeW9mX6t7AQIDa2unuyfDnq3AL2PtHvGDxKlUcvIqVNIYXML
+# 6vEzg2ljTQ8d3w0BMKdqcZ4BVzHtXUEi4+FXcBJMHPqPfO0haZtiNMzQHTHCi4Ju
+# rIGb0P0/vrPEbWr+OpWv+Z+r5zouVUNAxsfiS1u26yQ/x3gjDzYOiYWh9/IeI+bW
+# 4Qo8QsMckN5p1MJg+rF5y3t8sCq61rAGEBrbQKcDv9TiG+w82uT2NKcGvyW8rPhd
+# cvh45HfnRIqhbjJscyuq0O4ifHgavO8uV2PdHWGhycw0oPGXWjJB2ahYD3DQXOqx
+# swH2XkIv37Mhf0bRwB15PpOXTVOQmuo56k/5ajQQ5RMPee1G5/v8Vjtkd/CZTf98
+# DHbsPUU=
 # SIG # End signature block
