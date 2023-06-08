@@ -801,7 +801,7 @@ Process
                                           -Force `
                                           -CAConfig "$($Settings.VMs.RootCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
                                           -ConfigureIIS `
-                                          -ShareAccess "Delegate CRL Publishers"
+                                          -ShareAccess "Cert Publishers"
     }
 
     #########
