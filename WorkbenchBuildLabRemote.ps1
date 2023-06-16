@@ -191,6 +191,9 @@ function Setup-DC
         [ValidateSet($true, $false, $null)]
         [Object]$RestrictDomain,
 
+        [ValidateSet($true, $false, $null)]
+        [Object]$EnableIPSec,
+
         [Switch]$BackupGpo,
         [Switch]$BackupTemplates,
         [Switch]$BackupReplace,
@@ -223,7 +226,7 @@ function Setup-DC
                 $ParamArray += "-TemplatePath `"$LabPath\Templates`""
             }
 
-            { $_ -in 'RestrictDomain' -and $Param.Value -notlike $null }
+            { $_ -in @('RestrictDomain', 'EnableIPSec') -and $Param.Value -notlike $null }
             {
                 $ParamArray += "-$($Param.Key) $($Param.Value)"
             }
@@ -282,7 +285,7 @@ function Setup-DC
         }
         while (-not $Removed)
     }
-    
+
     if ($BackupReplace.IsPresent -and $Session)
     {
         # Check if to backup gpos
@@ -485,7 +488,7 @@ Start-Process $PowerShell -ArgumentList `
     "-CRLOverlapPeriod Days"
 )
 
-<# 
+<#
     # Remove sub CA
     Start-Process $PowerShell -ArgumentList `
     @(

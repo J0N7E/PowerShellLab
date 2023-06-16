@@ -2144,8 +2144,8 @@ Begin
                         {
                             foreach ($Link in $GpoXml.GPO.LinksTo)
                             {
-                                if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo) -or
-                                     ($Link.Enabled -ne $LinkEnabledBool -and $IsRestrictingGpo -and $RestrictDomain -notlike $null)) -and
+                                if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                                     ($Link.Enabled -ne $LinkEnabledBool -and (($IsRestrictingGpo -and $RestrictDomain -notlike $null) -or ($IsIPSecGpo -and $EnableIPSec -notlike $null)))) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnabled] -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                     Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
