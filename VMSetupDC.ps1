@@ -67,6 +67,8 @@ Param
     # Switches
     [ValidateSet($true, $false, $null)]
     [Object]$RestrictDomain,
+    [ValidateSet($true, $false, $null)]
+    [Object]$EnableIPSec,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -1875,7 +1877,7 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - IPSec - Permit General Mgmt+"
+                    "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
                     "$DomainPrefix - Firewall - Permit General Mgmt-"
                     "$DomainPrefix - Firewall - Block SMB In"
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
@@ -1903,7 +1905,7 @@ Begin
                 # Link tier gpos
                 $ComputerPolicy +=
                 @(
-                    "$DomainPrefix - Tier $Tier - IPSec - Restrict+"
+                    "$DomainPrefix - Tier $Tier - IPSec - Restrict"  # IPSec
                     "$DomainPrefix - Tier $Tier - Local Users and Groups+"
                     "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
                 )
@@ -1928,7 +1930,7 @@ Begin
                     # Certificate Authorities
                     $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Certificate Authority+"
+                            "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
                             "$DomainPrefix - Certificate Authority+"
                         )
                     )
@@ -1936,7 +1938,7 @@ Begin
                     # Federation Services
                     $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Server+"
+                            "$DomainPrefix - IPSec - Web Server"  # IPSec
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -1944,7 +1946,7 @@ Begin
                     # Network Policy Server
                     $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Network Policy Server+"
+                            "$DomainPrefix - IPSec - Network Policy Server"  # IPSec
                             "$DomainPrefix - Network Policy Server+"
                         )
                     )
@@ -1952,8 +1954,8 @@ Begin
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Crl Distribution Point+"
-                            "$DomainPrefix - IPSec - Web Server+"
+                            "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
+                            "$DomainPrefix - IPSec - Web Server"  # IPSec
                             "$DomainPrefix - Firewall - Permit SMB In+"
                             "$DomainPrefix - Web Server+"
                         )
@@ -1977,7 +1979,7 @@ Begin
                     # Remote Access Servers
                     $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Remote Access Server+"
+                            "$DomainPrefix - IPSec - Remote Access Server"  # IPSec
                             "$DomainPrefix - Remote Access Server+"
                         )
                     )
@@ -1985,7 +1987,7 @@ Begin
                     # Web Application Proxy
                     $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Application Proxy+"
+                            "$DomainPrefix - IPSec - Web Application Proxy"  # IPSec
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -1993,7 +1995,7 @@ Begin
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Web Server+"
+                            "$DomainPrefix - IPSec - Web Server"  # IPSec
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -2097,15 +2099,16 @@ Begin
                     $LinkEnforceBool = $false
 
                     $IsRestrictingGpo = $GpoName -match 'Enable LAPS|Restrict User Rights Assignment'
+                    $IsIPSecGpo = $GpoName -match 'IPSec'
 
-                    if ($IsRestrictingGpo)
+                    if ($IsRestrictingGpo -or $IsIPSecGpo)
                     {
                         $LinkEnabled = 'No'
                         $LinkEnabledBool = $false
                         $LinkEnforce = 'Yes'
                         $LinkEnforceBool = $true
 
-                        if ($RestrictDomain -eq $true)
+                        if ($RestrictDomain -eq $true -or $EnableIPSec -eq $True)
                         {
                             $LinkEnabled = 'Yes'
                             $LinkEnabledBool = $true
@@ -3231,10 +3234,12 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
+            $RestrictDomain = $Using:RestrictDomain
+            $EnableIPSec = $Using:EnableIPSec
+
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
-            $RestrictDomain = $Using:RestrictDomain
         }
 
         # Set remote splat
