@@ -1859,7 +1859,7 @@ Begin
                 @(
                     "$DomainPrefix - Security - KDC Kerberos Armoring+"
                     "$DomainPrefix - Security - Disable Spooler+"
-                    "$DomainPrefix - Domain Controller - IPSec - Request+"
+                    "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
                     "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
                     "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
                     "$DomainPrefix - Domain Controller - Advanced Audit+"
