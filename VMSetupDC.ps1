@@ -1835,7 +1835,6 @@ Begin
                     "$DomainPrefix - Domain - Windows Update+"
                     "$DomainPrefix - Domain - Display Settings+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
-                    "$DomainPrefix - Domain - Site to Zone Assignment List+"
                     "$DomainPrefix - Security - Enable Virtualization Based Security+"
                     "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
                     "$DomainPrefix - Security - Enable SMB Encryption+"
@@ -1878,7 +1877,7 @@ Begin
                 "OU=$DomainName,$BaseDN" =
                 @(
                     "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
-                    "$DomainPrefix - Firewall - Permit General Mgmt-"
+                    "$DomainPrefix - Firewall - Permit General Mgmt+"
                     "$DomainPrefix - Firewall - Block SMB In"
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
                 )
