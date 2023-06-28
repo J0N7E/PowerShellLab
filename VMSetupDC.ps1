@@ -1261,6 +1261,20 @@ Begin
                 }
 
                 @{
+                    Name                = 'CertSrv'
+                    Scope               = 'Global'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
                     Name                = 'AzADSyncSrv'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
@@ -1878,7 +1892,7 @@ Begin
                 @(
                     "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
                     "$DomainPrefix - Firewall - Permit General Mgmt+"
-                    "$DomainPrefix - Firewall - Block SMB In"
+                    "$DomainPrefix - Firewall - Block SMB In-"
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
                 )
             }
