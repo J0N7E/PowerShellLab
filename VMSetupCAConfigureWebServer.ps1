@@ -906,6 +906,8 @@ Begin
         # IE: Initialize and script ActiveX controls not marked as safe for scripting
         # https://www.sysadmins.lv/retired-msft-blogs/alejacma/how-to-disable-this-web-site-is-attempting-to-perform-a-digital-certificate-operation-on-your-behalf-message.aspx
 
+        # Add msa to "Certificate Service DCOM Access" group
+
         #  ███╗   ██╗██████╗ ███████╗███████╗
         #  ████╗  ██║██╔══██╗██╔════╝██╔════╝
         #  ██╔██╗ ██║██║  ██║█████╗  ███████╗
