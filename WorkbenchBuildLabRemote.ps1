@@ -72,7 +72,7 @@ $Settings +=
         RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
         CA03   = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
-        CA04   = @{ Name = 'CA04';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
+        CA04   = @{ Name = 'CA04';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
     }
 }
 
@@ -413,7 +413,7 @@ Start-Process $PowerShell -ArgumentList `
     # Remove root certificate from domain
     Start-Process $PowerShell -ArgumentList `
     @(
-        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose)",
+        "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose",
         "-CAServerName $($Settings.VMs.RootCA.Name)",
         "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
     )
