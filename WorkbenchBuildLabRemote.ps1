@@ -71,7 +71,6 @@ $Settings +=
         WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
-        WIN12  = @{ Name = 'WIN12';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('LabDmz');            Credential = $Settings.Ac2; }
         CA03   = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
         CA04   = @{ Name = 'CA04';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
     }

@@ -402,7 +402,7 @@ Begin
                     @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
                     @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.200" }
                     @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.250" }
-                    @{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
+                    #@{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
                 )
 
                 foreach($Rec in $DnsRecords)
