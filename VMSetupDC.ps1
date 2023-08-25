@@ -584,11 +584,11 @@ Begin
                     @(
                         'MSFT Windows Server 2022 - Domain Security'
                         'MSFT Windows Server 2022 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer'
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
                     )
                     UserBaseline =
                     @(
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User'
+                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
                     )
                     ServerBaseline =
                     @(
@@ -607,11 +607,11 @@ Begin
                     @(
                         'MSFT Windows 11 - Domain Security'
                         'MSFT Windows 11 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 - Computer'
+                        'MSFT Internet Explorer 11 21H2 - Computer-'
                     )
                     UserBaseline =
                     @(
-                        'MSFT Internet Explorer 11 21H2 - User'
+                        'MSFT Internet Explorer 11 21H2 - User-'
                         'MSFT Windows 11 - User'
                     )
                     ComputerBaseline =

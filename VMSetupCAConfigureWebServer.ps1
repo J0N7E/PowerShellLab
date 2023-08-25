@@ -243,6 +243,7 @@ Begin
 
         $AllFeatures =
         @(
+            'Web-CGI'
             'Web-Asp-Net45'
         )
 
@@ -1108,6 +1109,7 @@ Begin
             # Service account permissions:
             # Allow log on locally
             # Log on as a service
+            # add iis apppool\<name> to all default permissions
 
             # Move ISAPA 4.0 64bit Handler mapping down
 

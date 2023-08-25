@@ -71,8 +71,7 @@ $Settings +=
         WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
-        CA03   = @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
-        CA04   = @{ Name = 'CA04';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
+        CA03   = @{ Name = 'CA03';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Lac; }
     }
 }
 
@@ -233,7 +232,7 @@ function Setup-DC
             { $_ -match 'BackupReplace' }
             {
                 # Open session
-                $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac -ErrorAction SilentlyContinue
+                $Session = New-PSSession $DC -Credential $Settings.Lac -ErrorAction SilentlyContinue
 
                 $NoExitStr = ''
                 $WaitSplat = @{ Wait = $true }
@@ -539,7 +538,7 @@ Start-Process $PowerShell -ArgumentList `
 # Step 2
 #########
 
-# Issuing cdp & ocsp
+# Issuing CDP & OCSP
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
