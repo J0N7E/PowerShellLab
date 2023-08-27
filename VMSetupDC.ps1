@@ -269,6 +269,69 @@ Begin
             Write-Output -InputObject ($DC.Trim('.') + $CN)
         }
 
+        # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
+        # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
+        # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
+        # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+        # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
+        #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+
+        $WinBuilds =
+        [ordered]@{
+           # Build
+            '20348' = # Windows Server 2022
+            @{
+                Version = '21H2'
+                Server = 'Windows Server 2022 21H2'
+                Baseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Security'
+                    'MSFT Windows Server 2022 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Controller'
+                )
+            }
+            '22000' = # Windows 11
+            @{
+                Version = '21H2'
+                Workstation = 'Windows 11 21H2'
+                Baseline =
+                @(
+                    'MSFT Windows 11 - Domain Security'
+                    'MSFT Windows 11 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 - User-'
+                    'MSFT Windows 11 - User'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 11 - Computer'
+                )
+            }
+            '22621' = # Windows 11
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 11 22H2'
+
+                # FIX
+                # Add baselines
+            }
+        }
+
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
         # ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║
         # ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║
@@ -563,69 +626,6 @@ Begin
                             $UpdatedObjects.Add($Reservation.Host, $true)
                         }
                     }
-                }
-            }
-
-            # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
-            # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
-            # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
-            # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-            # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
-            #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-
-            $WinBuilds =
-            [ordered]@{
-               # Build
-                '20348' = # Windows Server 2022
-                @{
-                    Version = '21H2'
-                    Server = 'Windows Server 2022 21H2'
-                    Baseline =
-                    @(
-                        'MSFT Windows Server 2022 - Domain Security'
-                        'MSFT Windows Server 2022 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
-                    )
-                    ServerBaseline =
-                    @(
-                        'MSFT Windows Server 2022 - Member Server'
-                    )
-                    DCBaseline =
-                    @(
-                        'MSFT Windows Server 2022 - Domain Controller'
-                    )
-                }
-                '22000' = # Windows 11
-                @{
-                    Version = '21H2'
-                    Workstation = 'Windows 11 21H2'
-                    Baseline =
-                    @(
-                        'MSFT Windows 11 - Domain Security'
-                        'MSFT Windows 11 - Defender Antivirus'
-                        'MSFT Internet Explorer 11 21H2 - Computer-'
-                    )
-                    UserBaseline =
-                    @(
-                        'MSFT Internet Explorer 11 21H2 - User-'
-                        'MSFT Windows 11 - User'
-                    )
-                    ComputerBaseline =
-                    @(
-                        'MSFT Windows 11 - Computer'
-                    )
-                }
-                '22621' = # Windows 11
-                @{
-                    Version = '22H2'
-                    Workstation = 'Windows 11 22H2'
-
-                    # FIX
-                    # Add baselines
                 }
             }
 
