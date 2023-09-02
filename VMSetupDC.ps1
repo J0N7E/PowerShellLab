@@ -132,7 +132,7 @@ Begin
 
             # DHCP
             DHCPScope = "$DomainNetworkId.0"
-            DHCPScopeStartRange = "$DomainNetworkId.154"
+            DHCPScopeStartRange = "$DomainNetworkId.50"
             DHCPScopeEndRange = "$DomainNetworkId.254"
             DHCPScopeSubnetMask = '255.255.255.0'
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
@@ -459,13 +459,11 @@ Begin
                 # Initialize
                 $DnsRecords =
                 @(
-                    @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.100" }
-                    @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.150" }
-                    @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.150" }
-                    @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.150" }
-                    @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.200" }
-                    @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.250" }
-                    #@{ Name = 'pki';                     Type = 'CNAME';  Data = "AS01.$DomainName." }
+                    @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
+                    @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.100" }
+                    @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.100" }
+                    @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.100" }
+                    @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.250" }
                 )
 
                 foreach($Rec in $DnsRecords)
@@ -592,11 +590,9 @@ Begin
 
                 $DhcpReservations =
                 @(
-                    @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.100"; }
-                    @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.150"; }
-                    @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.200"; }
-                    @{ Host = 'NPS01';   Name = "NPS01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
-
+                    @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.50"; }
+                    @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.100"; }
+                    @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
                 )
 
                 foreach($Reservation in $DhcpReservations)

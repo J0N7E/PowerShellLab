@@ -73,11 +73,9 @@ Begin
             RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
             DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Dac; }
             AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
-            SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab');            Credential = $Settings.Ac0; }
-            NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
+            SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
             ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab');            Credential = $Settings.Ac0; }
             WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
-            RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';   Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
             WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
         }
     }
@@ -932,12 +930,12 @@ Process
     {
         .\VMSetupNetwork.ps1 @WAP @Ac1 @VerboseSplat `
                              -AdapterName Lab `
-                             -IPAddress "$($Settings.DomainNetworkId).100" `
+                             -IPAddress "$($Settings.DomainNetworkId).250" `
                              -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
         .\VMSetupNetwork.ps1 @WAP @Ac1 @VerboseSplat `
                              -AdapterName LabDmz `
-                             -IPAddress "$($Settings.DmzNetworkId).100" `
+                             -IPAddress "$($Settings.DmzNetworkId).250" `
                              -DefaultGateway "$($Settings.DmzNetworkId).1"`
                              -DNSServerAddresses @("$($Settings.DmzNetworkId).1")
 
