@@ -229,7 +229,7 @@ function Setup-DC
             { $_ -match 'BackupReplace' }
             {
                 # Open session
-                $Session = New-PSSession $DC -Credential $Settings.Lac -ErrorAction SilentlyContinue
+                $Session = New-PSSession -VMName $Settings.VMs.DC.Name -Credential $Settings.Lac -ErrorAction SilentlyContinue
 
                 $NoExitStr = ''
                 $WaitSplat = @{ Wait = $true }
