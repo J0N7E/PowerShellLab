@@ -883,144 +883,144 @@ Begin
         # ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        if (-not $CAConfigured)
+        $CAPolicy =
+        @(
+            "[Version]",
+            "Signature=`"`$Windows NT$`"",
+            ""
+        )
+
+        if ($CAType -match 'Subordinate')
         {
-            $CAPolicy =
-            @(
-                "[Version]",
-                "Signature=`"`$Windows NT$`"",
-                ""
-            )
-
-            if ($CAType -match 'Subordinate')
-            {
-                $CAPolicy +=
-                @(
-                    "[BasicConstraintsExtension]",
-                    "PathLength=$PathLength",
-                    "Critical=Yes",
-                    ""
-                )
-            }
-
             $CAPolicy +=
             @(
-                "[Certsrv_Server]",
-                "AlternateSignatureAlgorithm=0",
-                "RenewalKeyLength=$KeyLength"
+                "[BasicConstraintsExtension]",
+                "PathLength=$PathLength",
+                "Critical=Yes",
+                ""
             )
+        }
 
-            if ($CAType -match 'Root')
+        $CAPolicy +=
+        @(
+            "[Certsrv_Server]",
+            "AlternateSignatureAlgorithm=0",
+            "RenewalKeyLength=$KeyLength"
+        )
+
+        if ($CAType -match 'Root')
+        {
+            $CAPolicy +=
+            @(
+                "RenewalValidityPeriodUnits=$RootValidityPeriodUnits",
+                "RenewalValidityPeriod=$RootValidityPeriodUnits"
+            )
+        }
+
+        if (-not $UseDefaultSettings.IsPresent)
+        {
+            $CAPolicy +=
+            @(
+                "CRLPeriodUnits=$CRLPeriodUnits",
+                "CRLPeriod=$CRLPeriod",
+                "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
+                "CRLDeltaPeriod=$CRLDeltaPeriod"
+            )
+        }
+
+        if ($CAType -match 'Enterprise')
+        {
+            $CAPolicy += "LoadDefaultTemplates=0"
+        }
+
+        if ($UsePolicyNameConstraints.IsPresent -and
+            $CAType -match 'Enterprise' -and
+            $DomainName -and
+            $BaseDn)
+        {
+            $CAPolicy +=
+            @(
+                "",
+                "[Strings]",
+                "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"",
+                "",
+                "[Extensions]",
+                "Critical = %szOID_NAME_CONSTRAINTS%",
+                "%szOID_NAME_CONSTRAINTS% = `"{text}`"",
+                "",
+                "_continue_ = `"SubTree=Include&`"",
+                "_continue_ = `"DNS = $DomainName&`"",
+                "_continue_ = `"UPN = @$DomainName&`"",
+                "_continue_ = `"Email = @$DomainName&`"",
+                "_continue_ = `"DirectoryName = $BaseDn&`""
+            )
+        }
+
+        ##################
+        # Issuance policy
+        ##################
+
+        if ($ParameterSetName -match 'Subordinate')
+        {
+            if (-not $IssuancePolicies)
             {
-                $CAPolicy +=
+                $IssuancePolicies =
                 @(
-                    "RenewalValidityPeriodUnits=$RootValidityPeriodUnits",
-                    "RenewalValidityPeriod=$RootValidityPeriodUnits"
+                    @{ Name = 'All issuance policy';  OID = '2.5.29.32.0';  }
                 )
             }
 
-            if (-not $UseDefaultSettings.IsPresent)
-            {
-                $CAPolicy +=
-                @(
-                    "CRLPeriodUnits=$CRLPeriodUnits",
-                    "CRLPeriod=$CRLPeriod",
-                    "CRLDeltaPeriodUnits=$CRLDeltaPeriodUnits",
-                    "CRLDeltaPeriod=$CRLDeltaPeriod"
-                )
-            }
+            $PolicyStatementExtension = 'Policies='
+            $PolicySection = @('')
 
-            if ($CAType -match 'Enterprise')
+            for ($i=1; $i -le $IssuancePolicies.Count; $i++)
             {
-                $CAPolicy += "LoadDefaultTemplates=0"
-            }
+                $Policy = $IssuancePolicies[$i-1]
 
-            if ($UsePolicyNameConstraints.IsPresent -and
-                $CAType -match 'Enterprise' -and
-                $DomainName -and
-                $BaseDn)
-            {
-                $CAPolicy +=
-                @(
-                    "",
-                    "[Strings]",
-                    "szOID_NAME_CONSTRAINTS = `"2.5.29.30`"",
-                    "",
-                    "[Extensions]",
-                    "Critical = %szOID_NAME_CONSTRAINTS%",
-                    "%szOID_NAME_CONSTRAINTS% = `"{text}`"",
-                    "",
-                    "_continue_ = `"SubTree=Include&`"",
-                    "_continue_ = `"DNS = $DomainName&`"",
-                    "_continue_ = `"UPN = @$DomainName&`"",
-                    "_continue_ = `"Email = @$DomainName&`"",
-                    "_continue_ = `"DirectoryName = $BaseDn&`""
-                )
-            }
-
-            ##################
-            # Issuance policy
-            ##################
-
-            if ($ParameterSetName -match 'Subordinate')
-            {
-                if (-not $IssuancePolicies)
+                if ($Policy.ContainsKey('Name') -and $Policy.ContainsKey('OID'))
                 {
-                    $IssuancePolicies =
-                    @(
-                        @{ Name = 'All issuance policy';  OID = '2.5.29.32.0';  }
-                    )
-                }
+                    $PolicyStatementExtension += "`"$($Policy.Name)`""
 
-                $PolicyStatementExtension = 'Policies='
-                $PolicySection = @('')
-
-                for ($i=1; $i -le $IssuancePolicies.Count; $i++)
-                {
-                    $Policy = $IssuancePolicies[$i-1]
-
-                    if ($Policy.ContainsKey('Name') -and $Policy.ContainsKey('OID'))
+                    if ($i -lt $IssuancePolicies.Count)
                     {
-                        $PolicyStatementExtension += "`"$($Policy.Name)`""
-
-                        if ($i -lt $IssuancePolicies.Count)
-                        {
-                              $PolicyStatementExtension += ', '
-                        }
-
-                        $PolicySection +=
-                        @(
-                            "[$($Policy.Name)]",
-                            "OID=$($Policy.OID)"
-                        )
-
-                        if ($Policy.URL)
-                        {
-                            $PolicySection += "URL=$($Policy.URL)"
-                        }
-
-                        $PolicySection += ""
+                          $PolicyStatementExtension += ', '
                     }
-                    else
-                    {
-                        ShouldProcess @WhatIfSplat -Message "IssuancePolicies hashtable in wrong format, skipping policy." -WriteWarning > $null
-                    }
-                }
 
-                if ($PolicySection.Count -gt 0)
-                {
-                    $CAPolicy +=
+                    $PolicySection +=
                     @(
-                        "",
-                        "[PolicyStatementExtension]",
-                        $PolicyStatementExtension,
-                        "Critical=No"
+                        "[$($Policy.Name)]",
+                        "OID=$($Policy.OID)"
                     )
 
-                    $CAPolicy += $PolicySection
+                    if ($Policy.URL)
+                    {
+                        $PolicySection += "URL=$($Policy.URL)"
+                    }
+
+                    $PolicySection += ""
+                }
+                else
+                {
+                    ShouldProcess @WhatIfSplat -Message "IssuancePolicies hashtable in wrong format, skipping policy." -WriteWarning > $null
                 }
             }
 
+            if ($PolicySection.Count -gt 0)
+            {
+                $CAPolicy +=
+                @(
+                    "",
+                    "[PolicyStatementExtension]",
+                    $PolicyStatementExtension,
+                    "Critical=No"
+                )
+
+                $CAPolicy += $PolicySection
+            }
+        }
+
+        if (-not $CAConfigured)
+        {
             #############
             # Set policy
             #############
@@ -1142,135 +1142,136 @@ Begin
         # ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗
         #  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝
 
-        if (-not $CAConfigured)
+        # Initialize
+        $ADCSCAParams =
+        @{
+            'CAType' = $CAType
+            'AllowAdministratorInteraction' = $true
+            'OverwriteExistingKey' = $true
+            'OverwriteExistingDatabase' = $true
+        }
+
+        # Ignore unicode
+        if ($IgnoreUnicode.IsPresent)
         {
-            # Initialize
-            $ADCSCAParams =
+            $ADCSCAParams.Add('IgnoreUnicode', $true)
+        }
+
+        if ($ParameterSetName -match 'CertFile')
+        {
+            # Get content
+            Set-Content @SetContentSplat -Path "$env:TEMP\CertFile.p12" -Value $CertFile
+
+            # Certfile parameters
+            $ADCSCAParams +=
             @{
-                'CAType' = $CAType
-                'AllowAdministratorInteraction' = $true
-                'OverwriteExistingKey' = $true
-                'OverwriteExistingDatabase' = $true
+                'CertFilePassword' = $CertFilePassword
+                'CertFile' = "$env:TEMP\CertFile.p12"
             }
-
-            # Ignore unicode
-            if ($IgnoreUnicode.IsPresent)
+        }
+        else
+        {
+            if ($ParameterSetName -match 'KeyContainerName')
             {
-                $ADCSCAParams.Add('IgnoreUnicode', $true)
-            }
-
-            if ($ParameterSetName -match 'CertFile')
-            {
-                # Get content
-                Set-Content @SetContentSplat -Path "$env:TEMP\CertFile.p12" -Value $CertFile
-
-                # Certfile parameters
-                $ADCSCAParams +=
-                @{
-                    'CertFilePassword' = $CertFilePassword
-                    'CertFile' = "$env:TEMP\CertFile.p12"
-                }
+                # KeyContainerName parameters
+                $ADCSCAParams.Add('KeyContainerName', $KeyContainerName)
             }
             else
             {
-                if ($ParameterSetName -match 'KeyContainerName')
-                {
-                    # KeyContainerName parameters
-                    $ADCSCAParams.Add('KeyContainerName', $KeyContainerName)
-                }
-                else
-                {
-                    # None keycontainer default parameters
-                    $ADCSCAParams +=
-                    @{
-                        'CACommonName' = $CACommonName
-                        'KeyLength' = $KeyLength
-                    }
-                }
-
-                # Default parameters
+                # None keycontainer default parameters
                 $ADCSCAParams +=
                 @{
-                    'CryptoProviderName' = $CryptoProviderName
-                    'HashAlgorithmName' = $HashAlgorithmName
-                }
-
-                if ($CADistinguishedNameSuffix)
-                {
-                    $ADCSCAParams.Add('CADistinguishedNameSuffix', $CADistinguishedNameSuffix)
-                }
-
-                if ($ParameterSetName -match 'Root')
-                {
-                    $ADCSCAParams +=
-                    @{
-                        'ValidityPeriod' = $RootValidityPeriod
-                        'ValidityPeriodUnits' = $RootValidityPeriodUnits
-                    }
-                }
-                elseif ($ParameterSetName -match 'NewKey.*Subordinate')
-                {
-                    $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName-Request.csr")
-                }
-
-                if ($ParameterSetName -match 'Enterprise' -and $PartOfDomain)
-                {
-                    $ADCSCAParams.Add('OverwriteExistingCAinDS', $true)
+                    'CACommonName' = $CACommonName
+                    'KeyLength' = $KeyLength
                 }
             }
 
-            if ($DatabaseDirectory)
-            {
-                $ADCSCAParams.Add('DatabaseDirectory', $DatabaseDirectory)
+            # Default parameters
+            $ADCSCAParams +=
+            @{
+                'CryptoProviderName' = $CryptoProviderName
+                'HashAlgorithmName' = $HashAlgorithmName
             }
 
-            if ($LogDirectory)
+            if ($CADistinguishedNameSuffix)
             {
-                $ADCSCAParams.Add('LogDirectory', $LogDirectory)
+                $ADCSCAParams.Add('CADistinguishedNameSuffix', $CADistinguishedNameSuffix)
             }
 
-            #########
-            # Verify
-            #########
-
-            if ($AlwaysPrompt)
+            if ($ParameterSetName -match 'Root')
             {
-                ShouldProcess @WhatIfSplat -Message "CAPolicy.inf:" @VerboseSplat > $null
+                $ADCSCAParams +=
+                @{
+                    'ValidityPeriod' = $RootValidityPeriod
+                    'ValidityPeriodUnits' = $RootValidityPeriodUnits
+                }
+            }
+            elseif ($ParameterSetName -match 'NewKey.*Subordinate')
+            {
+                $ADCSCAParams.Add('OutputCertRequestFile', "$CertEnrollDirectory\$CACommonName-Request.csr")
+            }
 
-                foreach($Line in $CAPolicy)
+            if ($ParameterSetName -match 'Enterprise' -and $PartOfDomain)
+            {
+                $ADCSCAParams.Add('OverwriteExistingCAinDS', $true)
+            }
+        }
+
+        if ($DatabaseDirectory)
+        {
+            $ADCSCAParams.Add('DatabaseDirectory', $DatabaseDirectory)
+        }
+
+        if ($LogDirectory)
+        {
+            $ADCSCAParams.Add('LogDirectory', $LogDirectory)
+        }
+
+        #########
+        # Verify
+        #########
+
+        if ($AlwaysPrompt)
+        {
+            ShouldProcess @WhatIfSplat -Message "CAPolicy.inf:" @VerboseSplat > $null
+
+            foreach($Line in $CAPolicy)
+            {
+                ShouldProcess @WhatIfSplat -Message "$Line" @VerboseSplat > $null
+            }
+
+            ShouldProcess @WhatIfSplat -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat > $null
+
+            foreach($Param in $ADCSCAParams.GetEnumerator())
+            {
+                if ($Param.Value -match " ")
                 {
-                    ShouldProcess @WhatIfSplat -Message "$Line" @VerboseSplat > $null
+                    $Param.Value = "`"$($Param.Value)`""
                 }
 
-                ShouldProcess @WhatIfSplat -Message "Install-AdcsCertificationAuthority Parameters:" @VerboseSplat > $null
+                ShouldProcess @WhatIfSplat -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat > $null
+            }
 
-                foreach($Param in $ADCSCAParams.GetEnumerator())
+            ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat > $null
+
+            foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
+            {
+                if ($Setting.Value)
                 {
-                    if ($Param.Value -match " ")
+                    if ($Setting.Value -match " ")
                     {
-                        $Param.Value = "`"$($Param.Value)`""
+                        $Setting.Value = "`"$($Setting.Value)`""
                     }
 
-                    ShouldProcess @WhatIfSplat -Message "-$($Param.Key) $($Param.Value)" @VerboseSplat > $null
+                    ShouldProcess @WhatIfSplat -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat > $null
                 }
-
-                ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat > $null
-
-                foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
-                {
-                    if ($Setting.Value)
-                    {
-                        if ($Setting.Value -match " ")
-                        {
-                            $Setting.Value = "`"$($Setting.Value)`""
-                        }
-
-                        ShouldProcess @WhatIfSplat -Message "$($Setting.Name) = $($Setting.Value)" @VerboseSplat > $null
-                    }
-                }
-
-                Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
             }
+        }
+
+        if (-not $CAConfigured)
+        {
+
+            Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
 
             ##########
             # Install
