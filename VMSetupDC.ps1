@@ -757,6 +757,7 @@ Begin
                 # Domain administrator
                 @{
                     Name = 'Admin'
+                    Description = 'Account for administering domain controllers/domain'
                     Password = 'P455w0rd'
                     NeverExpires = $true
                     AccountNotDelegated = $true
@@ -809,21 +810,21 @@ Begin
                     Name = 'Alice'
                     Password = 'P455w0rd'
                     NeverExpires = $false
-                    AccountNotDelegated = $true
+                    AccountNotDelegated = $false
                     MemberOf = @()
                 }
                 @{
                     Name = 'Bob'
                     Password = 'P455w0rd'
                     NeverExpires = $false
-                    AccountNotDelegated = $true
+                    AccountNotDelegated = $false
                     MemberOf = @()
                 }
                 @{
                     Name = 'Eve'
                     Password = 'P455w0rd'
                     NeverExpires = $false
-                    AccountNotDelegated = $true
+                    AccountNotDelegated = $false
                     MemberOf = @()
                 }
             )
@@ -834,7 +835,12 @@ Begin
                 if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
                    (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
                 {
-                    New-ADUser -Name $User.Name -DisplayName $User.Name -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $User.NeverExpires -AccountNotDelegated $User.AccountNotDelegated -Enabled $true
+                    if ($User.Description)
+                    {
+                        $DescriptionSplat = @{ Description = $User.Description }
+                    }
+
+                    New-ADUser -Name $User.Name -DisplayName $User.Name @DescriptionSplat -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -EmailAddress "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $User.NeverExpires -AccountNotDelegated $User.AccountNotDelegated -Enabled $true
 
                     if ($User.MemberOf)
                     {
@@ -842,8 +848,6 @@ Begin
                     }
                 }
             }
-
-            # FIX Set sensitive and cannot be delegated
 
             # ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
             # ████╗ ████║██╔═══██╗██║   ██║██╔════╝
