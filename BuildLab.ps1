@@ -90,6 +90,11 @@ Begin
     @{
         DomainNetworkId   = '192.168.0'
         DmzNetworkId      = '10.1.1'
+        Switches          =
+        @(
+            @{ Name = 'LabDmz';  Type = 'Internal' }
+            @{ Name = 'Lab';     Type = 'Private'  }
+        )
         VMs               =
         [ordered]@{
             RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
@@ -216,17 +221,15 @@ Begin
                     if ($MeasureVM -and $MeasureVM.AggregatedAverageLatency -ne 0)
                     {
                         $Threshold = $MeasureVM.AggregatedAverageLatency * 50
-                        $Timeout   = $MeasureVM.AggregatedAverageLatency * 5
                     }
                     else
                     {
                         $Threshold = $DefaultThreshold
-                        $Timeout   = $DefaultThreshold/10
                     }
 
                     # Wait for VM
-                    Wait-VM -VMName $VMName -For Heartbeat -Timeout $Timeout
-                    Wait-VM -VMName $VMName -For MemoryOperations -Timeout $Timeout
+                    Wait-VM -VMName $VMName -For Heartbeat -Timeout ($Threshold/10)
+                    Wait-VM -VMName $VMName -For MemoryOperations -Timeout ($Threshold/10)
 
                     # Check if ready
                     try
@@ -382,6 +385,17 @@ Begin
     #############
     # Initialize
     #############
+
+    # Switches
+    foreach ($Switch in $Settings.Switches)
+    {
+        if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
+        {
+            Write-Verbose -Message "Adding $($Switch.Type) switch $($Switch.Name)..."
+            New-VMSwitch -Name $Switch.Name -SwitchType $Switch.Type > $null
+            Get-NetAdapter -Name "vEthernet ($($Switch.Name))" -ErrorAction SilentlyContinue | Rename-NetAdapter -NewName $Switch.Name
+        }
+    }
 
     # Credential splats
     $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
@@ -954,8 +968,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7W5mB+UVoINTo1Mryed047Ea
-# lsKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoAE6dm1XXj3r7mVnCDGK4VwH
+# ssGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1086,34 +1100,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSj0uAp
-# 0sOHWqxHMOLaE/XR90CnWzANBgkqhkiG9w0BAQEFAASCAgCx1FwVM9UhcKQIuPTE
-# KREaZP4muZtUNu+vt2KcG3bOGkuRRu5kpmcnkjPEiRH43+oGrxLg8uSJmrWQf3y/
-# DY2tvJ5SPd/sfN/1nrGl8K/H8LVQnChZeAjDsT3JA8trPAenYtFQbEMV930kieKC
-# Ugsoq9nINBemiMKQKNEyaj0TB4btKHHqYQJrbrGto2jlcm4diZTCBe5jGJYQhGuc
-# vj2XzzM/uMlfPX2i5r/Ch+rE/UNFqUQpdQfacI2C5GtkIgTU8sZguNlBMhz2oxq2
-# Zb0vmA3gn3cl4wmUYYfs6OXQ37obpucEJ8ULsOWVP53s9v9wePxlAQRlLDbDQ0Dd
-# mVlbWd6zEzsHvjsKj2jE3A+LPxFm3Cg3ltfZ/bNfJ2WafTGWCo1BdKqCCUaXb2l+
-# aTn9MDOysJeqehKJfGZ4E17XFHDTXrU811m/LR3ndoux/5DigbB4TiTkPdjPOEkf
-# qSGxY3eM0vTLnmTVtu93JzJEdhjpIGHb/flznjozH64CTuNyAAavJoZ1bcnkNrd2
-# HtjlfgDVW9jjD9NdeStCNQYm9S/3yB4JvA60WRSadp51aVYuO22VXr+hNjtMfxKJ
-# Ic4Zx2+SU95fMHefVOlpFYEZ1aXnAnPSC2M7vvFN+mOsYqcCBUmizrXvsonDJYMa
-# 6Kc2la1aZs4jQgbmND2RCFqHb6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT8ciOx
+# tMl32tS+CrK7+79ZXnO+pzANBgkqhkiG9w0BAQEFAASCAgDRbyvzY9xjPVOoBZpU
+# IxnNdaPYiUsJ9WX81nLtmwR/zWW4leFQ6gYgLQ+0VPMNahmrlcy1v8GlUe2Gtbui
+# gerI6E/kd+bHpfWTQcmkGZAGBs8+kxfhVfg0mxTf5qsFqknOUsMB3QoMryFFcbhb
+# 5d6ZuhQGsp3BpmaSkGbe9VvGD3GBiCjvKS4CtNjgmuvYI6tXJUoVOONJmY8HG/gT
+# 61pyyUHg19VMbJqtFLAJmhGKfqdr/Oryx+zUZmxiwS8+4k9XmVUBD0gwJwese2AR
+# ZAVIhcQ4FaVJ4zkg499aPMNsfGsz4/RlJ+Fr/HpO9JA13tSAaHnxziYk7yO7pBYP
+# CiDcKLII8+ntXdezyuRusG1oEZKT9P6mTz/qe8Gjh7qnErBB0Pzcr+CuJ7VwIDQF
+# grF/Pu0gPnVU+zzJc7QSFgA80eWYg9FpWjXcaiRZNBa48C8q7e2o1kg7sEYVdmbE
+# n84v6pCHyu1uKHW3AdAO0KQwMmh+7KHwXbFzQNqDNapQ5fdcLVNFtdqDiW0tHDp6
+# H5bEDQQOSX3lrbkCPqpNzJrIx16pUBcNlHm7Metf2rbzWpjYMS0f5Sd6ouTEx7ow
+# OMkBh8HTrFhuZYtanU9vxTir7JaZNnRiUwS5M3gIM545CPFa7fbdxWJJ5CR7Fong
+# 5ix6DrIoC0GpZWRizwSD1RP1KKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCArAr+KLpw6KVmC/Ravy0J2BUALBSgcmecCLezh
-# D69ZLjANBgkqhkiG9w0BAQEFAASCAgCINV3rerb3LLZ04GftSjHmWuDfYbyG7wrq
-# hIkUyOkPCFx5e9PJyauVzhe1mdVvsAqfmo7c859ZgVN0Z4oGKFsAIA0sXgZVuoc+
-# 7t4eupnvOQl51iqA8tiU/yDEHOdfrlz5lcBu1Yxu1bOzUE74h7P9R20iuRsJ9vm1
-# vdEoMwQUA0krW4+zmhMEgl2svIgpGpR7tXO7V2FwS2BOAhhceSdOwjwNiuBdanXj
-# CdBwcm/ZffTrOQVXRuU29DPGK928sfft7ClgkcprqhYakLhTDguZuMjPtPdGfsu2
-# yasiyNhVm7rAbmqxUo0eKwZb18XmLaXK+aez+m+z/mWLACMm+wxrihg8lMr2DKgD
-# 0C56G/YrNHDlDE/j/KJxwCuyQVVRB6T6igiwxR1DYQp8/FRmmijjenZm1xhef06e
-# 4ArjWpAI5WQKLlzX4sJLNz0OviyN9YLhq5yQCjE9VPj0W0lc1+ZIUmfhH2R8pKYA
-# +y9XzzzPhh4NRDlrg2ZB7+ZdzXrE+A4ONWanU/5i0FPJSDRJ3hF+GQ8ILnQMjF9s
-# ED+HL0Ak4HrTeNyE6YiH70Lt4EMuY7WbCRqFM0yDdAL+W0H80mcgQIewtZo2z1VK
-# 3i/I1DcgOyoKWYUz+8Gxl71HD+yKtPt4jXHN3EkWls9gp2IRbJH8y3XjYn3XypdH
-# tD+h1oTw6A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDU5
+# NTVaMC8GCSqGSIb3DQEJBDEiBCASYe4IaVbfMLIQ9K1lKMGZQ6B5Cp1a6NsRf6OO
+# IrnouDANBgkqhkiG9w0BAQEFAASCAgAmlZgJ+Nx47qLf58ZtDrkGgSIev4YpWOJK
+# s2gNSRVdaApU3avfYX8RCdRXwOp+OMBgpmdtetm64IZfjTBTaKSr3EcfzpCHL1tr
+# +uiszeb1Cg/lTdhdwtJFjbWAFNtnicpSMp7keLmWtH5nMO2GgDauTP4w3lYbTonT
+# sj3H8ML9Qyh9JYgHhL8yRNCqs4Xj6L6lHccCRNpP7x56TcNWlWytnwpTxsLO5/XY
+# +KBsMKxnSEji9f05FzbxN4WbbyCemxf/VBqNzJEZbn0DgMVQ/VMKxKKw+UUJRFLd
+# n6bBsdigz91dEyT7IlQbvu++iDlJ8sHkkj28/IbXFN0YqW389D4/AZCGC4ipJfrB
+# T94a8Jy482QAwYYTyYzsPDS68sJShVkUiurAVGVi2K8jkf+GiRUgOv9nl/81kPaS
+# 1yYbv1+jIY8bEEUYVt/G2RSXpDZBMvdolAEnFliDAMPXL8kJFLLfkIohbD0S2dD+
+# ZiYW5r0Pq6GIVRNvEtkktMHgNxbqYlwjLAUhftuNBciWbC+/ObLRyt5xb1DP8E3B
+# VY5FYmeiqG1tcmCgiRjnUdGZ4rbH0OJyBlrrkYn3fyFqNz385/2SxXERLKMKKGCU
+# aWoSAUM2FS9AxLPWkAVuIPteoQamoTjLWxAFJnpiS9GXgj3STy297lIiEatksTM6
+# TgbwPa4brw==
 # SIG # End signature block

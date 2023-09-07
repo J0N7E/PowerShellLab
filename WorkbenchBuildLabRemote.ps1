@@ -50,7 +50,7 @@ $Settings =
 # Password
 $Settings += @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
 
-# Get credentials
+# Credentials
 $Settings +=
 @{
     Lac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
@@ -65,6 +65,11 @@ $Settings +=
 @{
     DomainNetworkId   = '192.168.0'
     DmzNetworkId      = '10.1.1'
+    Switches          =
+    @(
+        @{ Name = 'LabDmz';  Type = 'Internal' }
+        @{ Name = 'Lab';     Type = 'Private'  }
+    )
     VMs               =
     [ordered]@{
         RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';   Switch = @();                 Credential = $Settings.Lac; }
@@ -299,6 +304,16 @@ function Setup-DC
 # Initialize
 #############
 
+# Switches
+foreach ($Switch in $Settings.Switches)
+{
+    if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
+    {
+        New-VMSwitch -Name $Switch.Name -SwitchType $Switch.Type > $null
+        Get-NetAdapter -Name "vEthernet ($($Switch.Name))" -ErrorAction SilentlyContinue | Rename-NetAdapter -NewName $Switch.Name
+    }
+}
+
 # Credential splats
 $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
 
@@ -319,7 +334,6 @@ else
 {
     $PowerShell = 'powershell'
 }
-
 
 return
 
@@ -585,8 +599,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSpvbbL+pzVDYqM6ykeDdjKYn
-# mPigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVqYsSmh9CqOrEhuF6Cwb7Zck
+# BwigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -717,34 +731,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRQ8qzL
-# XfEQuIVo83tFlmfxd2EBxzANBgkqhkiG9w0BAQEFAASCAgDDj/1wLhDTfrHhQ40P
-# wurJ98Opu+Uf8OhivBPr7WUI+WR/h3j25NJfpUsWKAL+tmpJo3ufQcEwb259dh/d
-# 78Hk//Akki4DpdKw5gqgGXYIy6cs7Ng+Sf5kE9X4/NDcruoHrzEapjKURQuqoC+D
-# QbNs0gikLYqTNcxchw+tRlz/LMB68A7LVZCQQ2N6RTetn1g9meVZt6A0CbYh0MKB
-# XeJ6rWXxEBs3RqwVfLhbZ66T9Zd/UGIee3qWsSkfOJ9k1PwHtXVdrUwvgF8h2mPJ
-# K+qq4N4F9ZrpLkGsFAYl3zXA2B+KviNfNc5SWqn6y6mvhRREKJJOv1i9lYijo+Zg
-# kLelP8Z0TcAM4XMZ16dyS4XeooEOzHEDASnR0J/rizr58V03w79bVSvTW3NbEaGi
-# EP2LmWHnoAcunMTsa/D1dNEF8I3ycbSbTQEnBkwW4XnWKoPqAJ2n8NfqZrIhWhVq
-# gbAxRR4WSpgT1+oDKVJlQ+Jv7hEgif+R18TDhn7SczhzQGGZetENRv16dVBe4jE9
-# fPgqN1xFRE/3cIe5+vUAoyuOJUgrOzpt+bs3MfQ4hdheGuuXldToF/nkArmQCvGb
-# K0MFlMXGA9I/C8YUscepHoLH7l9bJJ2t90NAcpoEUaYkV7uS6FnN49Zmp4F0DSbl
-# n8foqq+hOCDiIQ7+mUaRMV8es6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSH17LH
+# CcEKgIak3gnQua2X9tngHzANBgkqhkiG9w0BAQEFAASCAgCr8F2/1/cM9rf9QfzX
+# Rqi/viuwV9lHqcIjvxXQ2aZEw+tOxyZojXrTenq+nuxXI/H412T8zDJfu1uoFd0s
+# v5Xw4rJvAkVYbPmPSIAyGQ/maduYrkbm68Wyu4CjOkK+sxJf184v6osmwn0AcfUU
+# kQMoVu1YHnuw3kHicxbPzmDgbThprdHlUnsOGu6IG0cglXBLqB/Yd3U5D026mMwB
+# 2lxHBn3i0Wvj9mgal9ERoK/SSLb67QZCCBLJp6YBny6jkFPrdLzean3fpbASbbRD
+# m77Ay/oTh6aXJnOuRjfznVsgQVMp/NZLvTNqAslFxLsWxWEGCfpWIaKMTet8mfiU
+# 8VUSLs94iKKW1FaKERwK78F63UCwroOoYfn2PYjNDj9zSKBVTzxawcxHyhqEPwye
+# /MXSUXENI9k7H7WPSTLlYapEl7kxYYY9xd/Faqpbys8BBCPq/NT627n6nIiBdzcA
+# J5zhvnOv3GJ9lkoyQDMum4SHxUwXNjGQ+dSohJD5F9K6c31FDu5bJQmfitRb4JN5
+# 2jWm+YdNnYgbBACu0qczs+FQKrWLN+xTdOnz9tEMHaOgnPQqoDP4jyAXs9sEKCBc
+# 8evcNwtaL1611Np1tzEoiHSsYFEmNAUwNkZYlgovcR61jyNzvXwiN1XmQcyAI9q/
+# QZCPLMBvoawYX4rZy52E2PjtKaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDAw
-# MTNaMC8GCSqGSIb3DQEJBDEiBCBQS57Of4OlWlrpxDykAN49QziS3ho+n4qCjCim
-# 1IOwfTANBgkqhkiG9w0BAQEFAASCAgCCxLwzHumo7J2r4TfQNcCZkhlJvOtcnlGc
-# xJrWG8QURWh50TfwyIxqMesbI4fg+1bqREUD7ul4wd6JJddON+tVmTV9jclJRPmZ
-# w2tjMkABpqyrGuX4xbA2kIFnHmXQyZhS2KeI+crnwMIZWdsPx9uXjzauf7T+Kcpi
-# dv2n6h2em02MJifa7njFbWfdR7mzoWH1gfYTiwsLGwG9pGAaBLIVfWVglJD8JalK
-# IakR242OIwsKj09G1IC8Jh6Q0idprGkTlK7EGvhiPSZM8hVEtDZi/v9MHssk7+mg
-# 2ZjblcWLN4y/HEoxoOHVgsW5VP2FgPJ4dphiY2iAnnwjYU6kfqSeR3JniG/M32lw
-# xNkQmdoTtojpaChKb0IDuI8dA3CL8+i4gzaCnOu6PSo+KPNV/w4Cfq9Vom/QMgio
-# 7SJTs4sM0niJ/t/yR5yO9vFTzB/P5kBuo2IW5AGB6vt3Z94n4pi5fVj5CYDcaR6r
-# n0HslmlIVKlCMq6mdq2xfqYp7ZujSLvJEwT9hyjJlJ5iANb340thWq1Ve8Wn/yED
-# mnTk1OZQfVzXZehd+Tsa7UGGsc8BI3piGpcQIkIyABsXKXWrzSdLiLNCR1HxICob
-# riBjVc8z9Zwc7K0RUStZVWLEdGvt7duiJIFAQjVK2uE1OFSfyfbFDuELgeeXhLdi
-# d2V7UmuDzQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDU5
+# NTZaMC8GCSqGSIb3DQEJBDEiBCB7DXNYGbqBGyZQM5WvHm2RXuriFJcfMGVjET9q
+# J1+f2zANBgkqhkiG9w0BAQEFAASCAgAvgUc98kYAidc6bUsY/Jg+vgYW5Vxbv9Md
+# YIVipfnxFznVimCNGO2khQfy0Zk8hBQBKGcA1R7RTIKi/9cchIrc+rDxf+enrFr+
+# yZR+QGUayrXP+ZYb9u11IjSHi0VeGj4hgZLufhK/zDtiitJb0NpNPwT1QREH3SJr
+# fCUs376tE9ZmsvF2Nb8K91G+E2vR9+/wyAog6lxEJ76r5rFYosVrIXhY06V8u5De
+# O0EJXun4RkUPjbedEYUj5vPbA6p+H+XSQy1kN8Ju3Uzohaz2DCg7xcotY2Zb3jwZ
+# rrZxFGD4BmTmt3+Gz0DJPENQnUq6P9nKs9T8KUkYuhUAV0MF+ZguyIgHjrsLMz8R
+# N0ftS9wu1gbXVRVE3UNNPLoKNwK6u1H8zqaFS0L1QjwjyPpuuYiQgxYwMHT3zyCU
+# k30YMlhYAg65uotc3j1WmvUDc7N/7xzpldrr49GTbZeNgh6JbmVqbv0Yx/1Oycpw
+# 3kp+dUeeYl37A+DWE7SNmFUtcx/JDBZf5kolYi+v4xax1MismVuF+v8+qPxkPbbI
+# TmL/LjOlAZnx/OxQiy7GQTndam6DtxIkDRN/+i+kUVGE+wl3dn28pJu8mM7/Ziyh
+# w8zV98jfZR/6Bb/j4omdkrdVAWv46qx+1/7o1ESrfAkD4ZdTX5jsb2o+Nf1gtOPh
+# Dzoj3Q+C+g==
 # SIG # End signature block

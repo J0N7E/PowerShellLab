@@ -156,21 +156,6 @@ Process
     {
         foreach($Adapter in $VMAdapters)
         {
-            # Check if switch exist
-            if (-not (Get-VMSwitch -Name $Adapter -ErrorAction SilentlyContinue))
-            {
-                $SwitchType = 'Private'
-
-                if ($Adapter -match 'Dmz')
-                {
-                    $SwitchType = 'Internal'
-                }
-
-                Write-Verbose -Message "Adding $SwitchType switch $Adapter..." @VerboseSplat
-                New-VMSwitch -SwitchType $SwitchType -Name $Adapter > $null
-                Get-NetAdapter -Name "vEthernet ($Adapter)" -ErrorAction SilentlyContinue | Rename-NetAdapter -NewName $Adapter
-            }
-
             # Check if adapter exist
             if (-not (Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}))
             {
@@ -235,8 +220,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpKhU4Wnn10aMQxhq2JVU0d+l
-# VHagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQ7URTb4iUDVZW4bWRdq8Dn41
+# BeSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -367,34 +352,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTXZF3v
-# CYJXLYV46onmwm7oKUN2fTANBgkqhkiG9w0BAQEFAASCAgCBLofE799neUlQfvzx
-# y984mT0H6+IWKKO3arAK/RpkJt22M49SQ/cDx3Pc5HhSOuzm3NxCddzUtjKxxgQH
-# XcESMaOe69B8O+F16rsh6H/hC7Pz6QDZyVJL6n0vWv7y5nuOCXaGSndhBP6aKaEH
-# pJI3OCiIoBUA44h7qJ29I73uan3gUFFAwubRDToXbAX1Tj3wF3twDkf98rs9z5hM
-# 8eA2Y3SqBDjZVXXfCq8GX+wfaA4myUOjCbTqydAiwKUtXwApcxcsmCpTKDUCiSoO
-# gjJBKGJXyI8UTT131hu5TT3KsX29Q2RSDsob7CuJo7fTOj28GtSue6gvJAZpIk0x
-# 4fywTE0GZiFp9lHpfU7JS9F58JgRutnwjRWffyv/5BnvQMHmXO9jfnBMKWFToE5e
-# W9bHH3Nj7dG5hLFsfKchtIwIoQd2BaZS5XyssaIxDrmiY2+3p7+h/7cmtggI8zUk
-# /aSmsoTHPcR66rwjBqx8EH0ZVUpJuUpGk2oasZHLfNB+kn3ADdpPXsnPsb5BYceJ
-# aXSd7xneBRcML+Yl6EpwauG2bWGJrtkFcLdT02nh6Szmcqt0lY0df0g0huLAnJeY
-# Fu24kluaxF0I2PB1/sPpClO5jL6PmrrrMXtdlNGnpfUcTYujw08zQqMjkBB6KgXj
-# G7QFGozF2RhqsWS/k/UqGUAQYaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRyU4r5
+# KzzepQhTx39g7coUbu2usDANBgkqhkiG9w0BAQEFAASCAgCEONotXvTO2SPrjfwP
+# 5m/l6K1tritRGduwuW/OR2CyIUvWHLU1+GkuJ1LH4Aw6TANGGzsS4HlBf0pKQeol
+# xxbyvweplxVg5GeicYpwVIb9pysQyhQ9UZ3FMjY9n0KjAC27qAI9qZW5pcDILQpD
+# y7G25BPnm+VEXU2uaX2uuGs0QwibA5fLkD8hJ1702u7qMh3ldeNdCh5qXkLfuLqf
+# sxvLfM3u9Qbu2AIlvXvSibR7/kq5ThCkr+7o8SjPmmSAeor5erri/WiqG9yAjAG2
+# OMPgoNYRunGd9uQkuFlCso3FexYvubkAEzFc9vDdp1fRaessYTWjjTHYiu6gr4Od
+# yHzdJUiF72LoyHE6nGx6WS6Ofp3xaH/5Jy6BNzdaWHzLxnzpyFecfrXAg0fd3G7a
+# x8eRCETfOptJcyI/eJ+f1xW5z2jBOQfo2/LCEk4Sqml05XH6JEFJY0/nV+0kqyYz
+# AdTH3XD+31OMrwSKku4EyXoDLUMLDffDKTi8ziCo70z1unoT9cswIdudV9JnUa6J
+# aSAFvq+HU8AaLEMPT64EAX+ci5jxQ9TAkFx2OQMipZP1zFwahk9ycEFp03bmbb7M
+# jVZr/pK0bPitCs5KFu8nx1ZZHZNzpi+XPrt67vRziH0YveoLdZ6zW1fSVv5MF2C2
+# L0uK/kFSyY8gG0INtCpCw9WZzqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDAw
-# MDlaMC8GCSqGSIb3DQEJBDEiBCAE+Pvq9JGG7CCpkCsmGFhMIAN2xbYzelVBmrrG
-# 8A5ofTANBgkqhkiG9w0BAQEFAASCAgCixOAxNjHzwBlHTh0lL6T9E7cJpnmBLH0C
-# O3RGnpLTGqJ0malkDUzwkoUF2ZSKE5WRsXFkMD7qB1jGKAzzM4LXxUYOm3bNKA2i
-# 2cvmGNrvzuRle7ZL12cWX5I7Hp6cCj6uo/O8EKg94RW7+tTfGvnU4cNJo6Xm+FeX
-# WP9WXjIBHmWiBImrllOwH9xbCGgnN3t6dCUaASWbXkp8h2/GGJqfmstGKLoPZJVX
-# leZaOaEKFNUWiHGm/j5DBBySiS1mv7CwHHbbje/52Yf2fi1qGRiAP7dkBpqGDXGM
-# HF3Dsrci6Cs4+d3fRDCvnkRVqPYmaEvt42mHxy5SRdD8udeh2MZ81NmUr4AqKOFZ
-# jSEf0Eg6xO4L9qPZgH9+SLXdnCl/nVNXNuDMZjek2FACOvYV8YJ/2Jd7nYrSRPpc
-# qKBN+FSel0e5fq00NzApUFACCdTKa7GFUUzw8I3blXQopyK8PzxeIXfASFuDiq6m
-# 6QEAbQzF7DybLDJplzc2Cm1eaoHh58mP7TvxW5mUtCUaqgt+c+AF2MNn/8Y2Am2j
-# rsnGAlg4+k2ebNPt76VcjByEbygtiycgy2u48rkANkdjprShplTj3ziE9hZEcJrA
-# LdfB96xy8BEDvxU23csrZEuJpvOmwcYnuXTIa3QeuHiZ9xRTvA5GfK2/ANPYh4Hj
-# 3vEZJMCM4w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDcyMDU5
+# NTVaMC8GCSqGSIb3DQEJBDEiBCC2GB7vF34f++jmavuyW7lHONh+r1s+koJkEtjp
+# phM0STANBgkqhkiG9w0BAQEFAASCAgAUIT+7FASyMqN0DU4OyTmRAmntY2xx6p3C
+# IIzEHhtf2ysIGwNAzmTzi0W7dM1BRCK3mdlQsGZqC78wECwlT4E0VmH8YTBmK2vB
+# Z7NBL4ykEXWwSoOGZ4USrSK9qx1d+MCIPl0AxEnAtH1nSmm6dcAm082UuatexYmC
+# KwKUrgUcnSb2kCmZtDkkP0HH8zXn5OGH504//kX12gXLrGes72u4LDB+mOy429PZ
+# UamGJpfEYkuB1Mevt1mV8nUcTvNkSv0SBF+dhdtQ72GGq0G9R4KMX5b6BAruu1nJ
+# l9scEHUK+zadvdbdXz5X86G01RCk1hONepKo9sEkN5b8L4+N3fAkAPE3X22W6kAI
+# o5a9PUmays9tXQdeA03NppexnaZc3Iq88DhuTfqs1PbfM8Rd35JCRUcm0LxW00bU
+# +hNuUgQFzBMNuTdlEX++i7Fm6IpSe9JzvNC3TSJhsZA+/NhWb043TW/ZznBEe+W+
+# c6U8Mx3FFxjayZoP6sT5SnoEntM0E2yJLPg8u0Z+5eB4vKhK/2zgUIbw5g4HeP3R
+# CRQbKUUI0aB+jS57OXupoNbLK7QcNxg91e2jMIOq2hGNoP7nHHfrZcRA0EpohMwd
+# VCFWZDpjHqR0ppAdeectmkaoHqUACsGkD4T/3c0hYf3gRvbclTPAtkDLo8zMsF/G
+# 2qr+ZBgweg==
 # SIG # End signature block
