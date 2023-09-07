@@ -424,7 +424,8 @@ Begin
     {
         $Paths = @(
            "$env:Documents\WindowsPowerShell\PowerShellLab",
-           (Get-Location)
+           "$env:USERPROFILE\Documents\WindowsPowerShell\PowerShellLab",
+           (Get-Location).Path
         )
 
         foreach ($Path in $Paths)
@@ -435,11 +436,6 @@ Begin
                 break
             }
         }
-    }
-
-    if(-not $LabPath)
-    {
-        throw "LabPath `"$LabPath`" not found."
     }
 
     ##########

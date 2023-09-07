@@ -1,14 +1,24 @@
 
 $HvDrive = "$env:SystemDrive\HvLab"
 $OsdPath = "$env:SystemDrive\OSDBuilder"
-$LabPath = "$env:Documents\WindowsPowerShell\PowerShellLab"
 
-if (-not (Test-Path -Path $LabPath))
+if (-not $LabPath)
 {
-    $LabPath = "$env:USERPROFILE\Documents\WindowsPowerShell\PowerShellLab"
-}
+    $Paths = @(
+       "$env:Documents\WindowsPowerShell\PowerShellLab",
+       "$env:USERPROFILE\Documents\WindowsPowerShell\PowerShellLab",
+       (Get-Location).Path
+    )
 
-Set-Location -Path $LabPath
+    foreach ($Path in $Paths)
+    {
+        if (Test-Path -Path $Path)
+        {
+            $LabPath = Set-Location -Path $Path -ErrorAction SilentlyContinue -PassThru | Select-Object -ExpandProperty Path
+            break
+        }
+    }
+}
 
 if ((Invoke-Command -ScriptBlock{ pwsh -version } 2>&1))
 {
@@ -70,22 +80,6 @@ $Settings +=
         WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                      Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = 'Windows 11*';                     Switch = @('Lab');            Credential = $Settings.Ac2; }
     }
-}
-
-#############
-# Initialize
-#############
-
-# Credential splats
-$Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
-
-    New-Variable -Name $_.Name -Value "-Credential $(Serialize $_.Value)" -Force
-}
-
-# VM splats
-$Settings.VMs.GetEnumerator() | ForEach-Object {
-
-    New-Variable -Name $_.Name -Value "-VMName $($_.Value.Name)" -Force
 }
 
 ############
@@ -304,6 +298,22 @@ function Setup-DC
         # Remove session
         $Session | Remove-PSSession
     }
+}
+
+#############
+# Initialize
+#############
+
+# Credential splats
+$Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
+
+    New-Variable -Name $_.Name -Value "-Credential $(Serialize $_.Value)" -Force
+}
+
+# VM splats
+$Settings.VMs.GetEnumerator() | ForEach-Object {
+
+    New-Variable -Name $_.Name -Value "-VMName $($_.Value.Name)" -Force
 }
 
 return

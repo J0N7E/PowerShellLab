@@ -339,6 +339,9 @@ Begin
         # ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗
         # ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 
+        # FIX Pswd length 10+
+        # Fix Protect OU Domain Controllers
+
         # Check if DHCP windows feature is installed
         if (((Get-WindowsFeature -Name DHCP).InstallState -notmatch 'Install') -and
             (ShouldProcess @WhatIfSplat -Message "Installing DHCP Windows feature." @VerboseSplat))
