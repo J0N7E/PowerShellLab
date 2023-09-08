@@ -388,45 +388,29 @@ Begin
     # Initialize
     #############
 
-    # Switches
-    foreach ($Switch in $Settings.Switches)
-    {
-        if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
-        {
-            Write-Verbose -Message "Adding $($Switch.Type) switch $($Switch.Name)..."
-            New-VMSwitch -Name $Switch.Name -SwitchType $Switch.Type > $null
-            Get-NetAdapter -Name "vEthernet ($($Switch.Name))" -ErrorAction SilentlyContinue | Rename-NetAdapter -NewName $Switch.Name
-        }
-    }
+    $Global:NewVMs = @{}
+    $Global:Queue  = @{}
+    [Ref]$TotalTimeWaited = 0
 
-    # Credential splats
+    #########
+    # Splats
+    #########
+
+    # Credentials
     $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
 
         New-Variable -Name $_.Name -Value @{ Credential = $_.Value } -Force
     }
 
-    # VM splats
+    # Virtual machines
     $Settings.VMs.GetEnumerator() | ForEach-Object {
 
         New-Variable -Name $_.Name -Value @{ VMName = $_.Value.Name } -Force
     }
 
-    # New VMs
-    $Global:NewVMs = @{}
-
-    # Queue
-    $Global:Queue = @{}
-
-    # Queue splat
-    $QueueSplat = @{ Queue = $Queue }
-
-    # Wait time
-    [Ref]$TotalTimeWaited = 0
-
-    # Wait splat
+    $QueueSplat   = @{ Queue = $Queue }
     $HistorySplat = @{ History = $TotalTimeWaited }
 
-    # Restrict domain
     $RestrictDomainSplat = @{}
 
     switch ($RestrictDomain)
@@ -452,8 +436,6 @@ Begin
         $VerboseSplat.Add('Verbose', $true)
     }
 
-    $ProgressPreference = "SilentlyContinue"
-
     ##########
     # Counter
     ##########
@@ -472,26 +454,33 @@ Process
         throw "Must be administrator to build lab."
     }
 
+    #################
+    # Setup switches
+    #################
+
+    foreach ($Switch in $Settings.Switches)
+    {
+        if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
+        {
+            Write-Verbose -Message "Adding $($Switch.Type) switch $($Switch.Name)..."
+            New-VMSwitch -Name $Switch.Name -SwitchType $Switch.Type > $null
+            Get-NetAdapter -Name "vEthernet ($($Switch.Name))" -ErrorAction SilentlyContinue | Rename-NetAdapter -NewName $Switch.Name
+        }
+    }
+
     ##############
     # Install VMs
     ##############
 
-    $ThrottleSplat = @{ ThrottleLimit = $Settings.VMs.Count }
-
-    if ($ThrottleLimit)
-    {
-        $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
-    }
-
-    $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    $Settings.VMs.Values | ForEach-Object @VerboseSplat -ThrottleLimit $Settings.VMs.Count -Parallel { $VM = $_
 
         # Get variables
         $OsdPath = $Using:OsdPath
         $HvDrive = $Using:HvDrive
+        $VerboseSplat = $Using:VerboseSplat
+        $Settings  = $Using:Settings
         $NewVMs  = $Using:NewVMs
         $Queue = $Using:Queue
-        $Settings  = $Using:Settings
-        $VerboseSplat = $Using:VerboseSplat
 
         # Get latest os media
         $OSMedia = Get-Item -Path "$OsdPath\OSMedia\$($VM.OSVersion)" -ErrorAction SilentlyContinue | Select-Object -Last 1
@@ -601,22 +590,15 @@ Process
     # Set DNS Server & Rename
     ##########################
 
-    $ThrottleSplat = @{ ThrottleLimit = $NewVMs.Keys.Count }
-
-    if ($ThrottleLimit)
-    {
-        $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
-    }
-
-    Write-Host "Set DNS & Rename Start -->"
-
-    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    $NewVMs.Keys | ForEach-Object @VerboseSplat -ThrottleLimit $NewVMs.Keys.Count -Parallel { $VM = $_
 
         # Get variables
+        $Lac          = $Using:Lac
         $VerboseSplat = $Using:VerboseSplat
         $HistorySplat = $Using:HistorySplat
+        $Queue        = $Using:Queue
+        $QueueSplat   = $Using:QueueSplat
         $Settings     = $Using:Settings
-        $Lac          = $Using:Lac
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
@@ -632,6 +614,8 @@ Process
             .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
         }
     }
+
+    exit
 
     Write-Host "<--Set DNS & Rename Stop"
 
@@ -707,7 +691,7 @@ Process
         <#
         # Remove old computer objects
         # ThrottleSplat set above
-        $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+        $NewVMs.Keys | ForEach-Object @VerboseSplat -ThrottleLimit $NewVMs.Keys.Count -Parallel { $VM = $_
 
             # Get variables
             $VerboseSplat = $Using:VerboseSplat
@@ -1048,8 +1032,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUojv5M/JGfwwQVLl1ZXJDBZ+4
-# 9HSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvrLqa3hTP0PCoMS2QzkFwprQ
+# S4SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1180,34 +1164,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSdtq8W
-# sxitj8KVkyJsA3JOpf42OjANBgkqhkiG9w0BAQEFAASCAgACPqrBFTbIwix/Sak6
-# ezm4DF1YEfJdvoM09Xp+xYaQNFlKVbo3p41f76+njB81x32WR24CqvXVPx1whktH
-# LjOcezTq7Yjf1OzqnP/mz7pTppmCjMaHDmBKuSIUlaeSpFkCVziiE3BFNrC9giFv
-# FWfWZF0aKvef7uPUG5A3wlZR62oRdHbomA67F2Q4VyXmynueyEgMIMPzo62EBe+e
-# xjr13If2zpe/QHlb2BRpGy33IIn0r5ok5IUmGJmE2sijeR5epPjRl6tlsy8M5+Sd
-# 5Yz9QqDG/b9Y2tIeW3/Lxntnr5CisW1/8waJwWBV3OCZ7uRggp0x2LQMp2/HTBDN
-# FyVywQxJHmEMpMGeR8bUj2swhP9bKEBTD+53NhvU/ktKQP2iqHNkm5TiDzQS1UnB
-# jR3h83onvCnoa1g5dUZ6pdp0MSOEn5C9eegPKba8+AczO9SIqfe7oWL0+MeGEiqE
-# STtW6DqwW9AppDqu0bFPGHQ6kUfDdTtZfw1q7oM9MZjT0HLE70mxG7LXFwI8Ea8t
-# IT3Z3ozuQWQxNxI8h99u3vmC8QpKY5jumi+/Ff39fXDb8SFe9abgGQqWIiaKipa2
-# 1GMOn18Uf+z1TyF1UpASKS1+O/0EnViGekoVC914S8TK7S/fnbGoZ42Kt3YeJS4w
-# pySDRWL4cuUSgJsPtIdP5rMtk6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQI5Vt6
+# z+iHBraBuPilYVndQmT07zANBgkqhkiG9w0BAQEFAASCAgBPqxaLl9D2gATUino6
+# 8EiHmOXb77tG55UrL4YacqHyHjty08QliNF3IUi/VOHpaqM3SVH0A+v+3kbN1F4b
+# WUnkak0R2F45U8UP+YfmoG4qXclQVdvA6B36XVgf+A5DVAWntT2hCeWwD9DAQ9Wr
+# jTqY4NNyYFCMLm7yftYuynxyvnVZZgcHX2au2EcVvjbEOany778d+bctCgXLcUSH
+# /cxRoTUCENgah3I64mgQjKEdeYvzbJdSao41/7OTAh1ohjBUpA0IZS8jkVjZE6vx
+# l4TsfKR2CKjl71QvJbiqkaRaqX1zsfAcGnCljkl0w/uS81Z7nLf8cXwrM/iyH2uR
+# aCfggcZG62YHpddBpOzx22ALM3Y+w8cH2xFScedaraa02G7GTNkvU9ah9dGAL2Ho
+# q0bnuRc8HF+3V9HeFP7shWMZA9qem+DoxgfNtNHo5OWXH6uYDN75cwS/xuT+6B41
+# GgtLc8JJxuSQ1DAgjY0X4yW7HAfOvX/uKkJn6whemKU7t3EkpvfVPhyDWfy6cd4h
+# B4pw9DKcLfD4o36KiE+FgvXmg/sB32u/nfNV8L7iVhRWNpFeYM0Ksp+7opJPhXAl
+# 61fB6eZUI5p+/bYjfblVWmGWy9oua0yA0j/j8q4Vq6KgV9rKkNLZxpHv8QrtxEBC
+# TAV6NsQsrTKuYu7nb6FxiymK6qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxNzU5
-# NTNaMC8GCSqGSIb3DQEJBDEiBCAxkVhVQTonn/NVuz8e780JwkeYQHVLhybJOAwz
-# A9wZSzANBgkqhkiG9w0BAQEFAASCAgCCODAXfc6/FtO++3BIdDm6I1yqbsprN++f
-# wHIDRkAjF2al37nIAFhDXM0Y4b3k5v/8Osa1aQSNzVQBySUc6KD77i+4oBIJZTlI
-# JcJhBagUU96pCw0NUqk4iuq8ykknwdbGlS6xuf06sSkHu/Lpolx3roJXuf6hsGA2
-# AGkF6YlcQ3Q+k863Q5nllLRquX3zyobpbTSNJh2Y3iICMglmPsv7nvX23gPkpc7E
-# evX/mAaw/ZGqqOvXK+UPlD6Kgc9WMQB/b0Gr2qPJPbzl3fgSNzF7f7Z1lC6t3LxS
-# CzEqYbci7oQNYpUkrE+LjlS80GH4L+HKlQkIbtUN1bHLYUHSkOpgRtMceFkHM+m+
-# lSbFEJxoWvoFxowjf/tNhDMVFz6IfCXNfGQCI7L71CGbmduG07Z9YQZ9qbG1Tvok
-# TVi9BnOE9/5aMu470vt3oHnN6NRpWiFRRxje2IRIUKG4DPyAuixcQdwvfTNdTeE5
-# Qtb6h7EXhSc5L5k6kgHN89pLodFnv7P8dBJtuzGQcWCPFiEU7juZq07M6cSLxtRU
-# 2qeHW7lWcL1HPS5j/oUt3tkxPRHdwHPaxbPikFWocOZFl8pZ3uT7C13f6M3BBn2G
-# ykscq5GDrWumaXejWJQmHzwazN4cLqKeFuHrXpIiwN/hrtlfw633LEF6x+DLRXRL
-# jxk+kK/rNw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxODU5
+# NTNaMC8GCSqGSIb3DQEJBDEiBCB11bqxuG8YzJ/MQyrhDITgxnDWLga9QYr1v8uf
+# 0wuvujANBgkqhkiG9w0BAQEFAASCAgAs3lcu5wq9faginB5dPWlwGeOH43MCVZNT
+# wD43XaBno1y4IXvU6mnPmgxsvs3+0mg2m0oCmYc+hR0J5bJf/U3E3oyYOszGKFsM
+# GntNmiIKPoyVtrwMhWjFKxN0U9Q94Q9YJC2/zoLESkNTgEXYBP0YlaOCukO/QePI
+# X7ytfDcYBnvUzVUx/UtOy9HumYorjhg29e/Pytfnlse0nP1nCtcKMtGIeNduKdiX
+# vjnzY/IxGJFo1rjVmXV43mUUPOHZQ5ZfN/hw87t5kUnuiJwq06z2dIbAsoU5f42F
+# 2p4Lg6qxvMN+zTiYvfJUIImjPWv8Ec3AB6fxtWVRVoj4x797uPC+42XFU/Mg7GG0
+# 6sqLhYOdqacqvYyNk2KOhQeEFRlGYy0ADLxGUL43SeM3n5GQ9NeNRBaI372/+Ijd
+# X8LW0FfsC8Dd52wRbGw9H40zoVXJGacPWD7QSm+OP22+Xq4guvh8GP39muuQHeYx
+# ssMqBCxeWe39t4X+EvYKFGZ9V3ua9i5zFOpXX6QPbiy8nfavZ4/GNxLv8WYmNpXg
+# qgkUH6dAkQC2qNAiveUaU/qoHkW8JJmY/cYOWqoRJDOZelLs4CwI6HAKEaZWJJLV
+# tnf0OwxxamaGOLI8imIOi3UEYki6izIuV9F4g85xIUP1I1efOFt1qUK1hF31e74n
+# 9Yx+P6v9mQ==
 # SIG # End signature block
