@@ -20,12 +20,10 @@ Param
     # PowerShell lab path
     [String]$LabPath,
 
-    # ThrottleLimit for parallel foreach
-    [Int]$ThrottleLimit,
+    [Int]$ThrottleLimit = 10,
 
     [ValidateSet($true, $false, $null)]
-    [Object]$RestrictDomain,
-    [Switch]$FederationServices
+    [Object]$RestrictDomain
 )
 
 Begin
@@ -179,7 +177,7 @@ Begin
             [Switch]$Force,
 
             [Hashtable]$Queue = @{},
-            [Ref]$History
+            [Ref]$TimeWaited
         )
 
         begin
@@ -292,10 +290,10 @@ Begin
                 # Remove VM from queue
                 $Queue.Remove($VMName)
 
-                # Set history
-                if ($History)
+                # Set time waited
+                if ($TimeWaited)
                 {
-                    $History.Value += $TotalDuration.ElapsedMilliseconds
+                    $TimeWaited.Value += $TotalDuration.ElapsedMilliseconds
                 }
 
                 Write-Verbose -Message "$VMName ready, met threshold at $Threshold ms. Waited total $($TotalDuration.ElapsedMilliseconds) ms." @VerboseSplat
@@ -390,7 +388,7 @@ Begin
 
     $Global:NewVMs = @{}
     $Global:Queue  = @{}
-    [Ref]$TotalTimeWaited = 0
+    [Ref]$TimeWaited = 0
 
     #########
     # Splats
@@ -408,16 +406,18 @@ Begin
         New-Variable -Name $_.Name -Value @{ VMName = $_.Value.Name } -Force
     }
 
-    $QueueSplat   = @{ Queue = $Queue }
-    $HistorySplat = @{ History = $TotalTimeWaited }
-
-    $RestrictDomainSplat = @{}
-
+    # Restrict domain
     switch ($RestrictDomain)
     {
+        $null  { $RestrictDomainSplat = @{} }
         $true  { $RestrictDomainSplat = @{ RestrictDomain = $true  } }
         $false { $RestrictDomainSplat = @{ RestrictDomain = $false } }
     }
+
+    $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
+    $QueueSplat = @{ Queue = $Queue }
+    $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
+
 
     #####################
     # Verbose Preference
@@ -526,7 +526,7 @@ Process
     ##########
 
     # Rename
-    if (Wait-For @RootCA @Lac @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @RootCA @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         $RootCAResult = .\VMRename.ps1 @RootCA @Lac @VerboseSplat -Restart
     }
@@ -536,7 +536,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @DC @Lac @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         # Rename
         $DCResult = .\VMRename.ps1 @DC @Lac @VerboseSplat -Restart
@@ -547,7 +547,7 @@ Process
             Start-Sleep -Seconds 3
 
             # Make sure DC is up
-            Wait-For @DC @Lac @VerboseSplat @HistorySplat -Force > $null
+            Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat -Force > $null
 
             # Setup network
             .\VMSetupNetwork.ps1 @DC @Lac @VerboseSplat `
@@ -576,7 +576,7 @@ Process
     # Wait
     if ($RootCAResult.Renamed)
     {
-        Wait-For @RootCA @Lac @VerboseSplat @HistorySplat -Force > $null
+        Wait-For @RootCA @Lac @VerboseSplat @TimeWaitedSplat -Force > $null
 
         .\VMSetupCA.ps1 @RootCA @Lac @VerboseSplat `
                         -Force `
@@ -586,38 +586,40 @@ Process
                         -DomainName $Settings.DomainName > $null
     }
 
-    ##########################
-    # Set DNS Server & Rename
-    ##########################
+    ###################
+    # Setup network
+    # Rename -> Reboot
+    ###################
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat -ThrottleLimit $NewVMs.Keys.Count -Parallel { $VM = $_
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
-        $Lac          = $Using:Lac
-        $VerboseSplat = $Using:VerboseSplat
-        $HistorySplat = $Using:HistorySplat
-        $Queue        = $Using:Queue
-        $QueueSplat   = $Using:QueueSplat
-        $Settings     = $Using:Settings
+        $Lac             = $Using:Lac
+        $VerboseSplat    = $Using:VerboseSplat
+        $TimeWaitedSplat = $Using:TimeWaitedSplat
+        $Queue           = $Using:Queue
+        $QueueSplat      = $Using:QueueSplat
+        $Settings        = $Using:Settings
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
         ${function:Invoke-Wend} = $Using:InvokeWend
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @HistorySplat @QueueSplat)
+        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
         {
             .\VMSetupNetwork.ps1 -VMName $VM @Lac @VerboseSplat `
                                  -AdapterName Lab `
                                  -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
 
-            .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
+            $Result = .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
+
+            if ($Result.Renamed)
+            {
+               $Queue.Add($Result.Renamed, $true)
+            }
         }
     }
-
-    exit
-
-    Write-Host "<--Set DNS & Rename Stop"
 
     #########
     # DC
@@ -690,13 +692,12 @@ Process
 
         <#
         # Remove old computer objects
-        # ThrottleSplat set above
-        $NewVMs.Keys | ForEach-Object @VerboseSplat -ThrottleLimit $NewVMs.Keys.Count -Parallel { $VM = $_
+        $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
             # Get variables
+            $DC           = $Using:DC
+            $Lac          = $Using:Lac
             $VerboseSplat = $Using:VerboseSplat
-            $DC = $Using:DC
-            $Lac = $Using:Lac
 
             $Result = Invoke-Command @DC @Lac -ScriptBlock { $VM = $Args[0]
 
@@ -724,28 +725,26 @@ Process
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)"
     }
 
-    ##############
-    # Join domain
-    ##############
+    ########################
+    # Join domain -> Reboot
+    ########################
 
-    Write-Host "Join Domain Start -->"
-
-    # ThrottleSplat set above
     $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
-        $VerboseSplat = $Using:VerboseSplat
-        $HistorySplat = $Using:HistorySplat
-        $Settings     = $Using:Settings
-        $Lac          = $Using:Lac
-        $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
+        $Lac             = $Using:Lac
+        $VerboseSplat    = $Using:VerboseSplat
+        $TimeWaitedSplat = $Using:TimeWaitedSplat
+        $Queue           = $Using:Queue
+        $QueueSplat      = $Using:QueueSplat
+        $Settings        = $Using:Settings
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
         ${function:Invoke-Wend} = $Using:InvokeWend
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @HistorySplat -Force)
+        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
         {
             $JoinDomainSplat =
             @{
@@ -777,16 +776,18 @@ Process
                     Read-Host -Prompt "Press <enter> to continue"
                 }
             }
+
+            if ($Result.Joined)
+            {
+               $Queue.Add($Result.Joined, $true)
+            }
         }
     }
 
-    Write-Host "<-- Join Domain Stop"
-
-    ###############
+    ###################
     # DC
-    # Configure AD
-    # objects
-    ###############
+    # Updating objects
+    ###################
 
     if (Check-Heartbeat -VMName $Settings.VMs.DC.Name)
     {
@@ -806,56 +807,23 @@ Process
     }
 
     #############
-    # Reboot
-    # & gpupdate
+    # Gpupdate
+    # Renew IP
     #############
 
-    Write-Host "Gpupdate Start -->"
-
-    # ThrottleSplat set above
     $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
+        # Get variables
+        $VerboseSplat    = $Using:VerboseSplat
+        $Credential      = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
-        Write-Verbose -Message "Updating group policy on $VM..." @VerboseSplat
+        Write-Verbose -Message "Updating group policy & IP-address on $VM..." @VerboseSplat
         Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
 
             gpupdate /force > $null
+            ipconfig /renew > $null
         }
-
-        <#
-        if (Restart-VM -VMName $VM -Force -ErrorAction SilentlyContinue -PassThru)
-        {
-            # Get variables
-            $VerboseSplat = $Using:VerboseSplat
-            $HistorySplat = $Using:HistorySplat
-            $Queue        = $Using:Queue
-            $QueueSplat   = $Using:QueueSplat
-            $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
-
-            # Get functions
-            ${function:Wait-For} = $Using:WaitFor
-            ${function:Check-Heartbeat} = $Using:CheckHeartbeat
-
-            Write-Verbose -Message "Rebooted $VM..." @VerboseSplat
-
-            if (-not $Queue.ContainsKey($VM))
-            {
-                $Queue.Add($VM, $true)
-            }
-
-            # Wait for reboot
-            Wait-For -VMName $VM -Credential $Credential @VerboseSplat @HistorySplat @QueueSplat > $null
-
-            Write-Verbose -Message "Updating group policy on $VM..." @VerboseSplat
-            Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
-
-                gpupdate /force > $null
-            }
-        }
-        #>
     }
-
-    Write-Host "<-- Gpupdate Stop"
 
     #########
     # AS
@@ -863,7 +831,7 @@ Process
     #########
 
     # Root cdp
-    if (Wait-For @AS @Ac0 @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
@@ -876,7 +844,7 @@ Process
     # Sub CA
     #########
 
-    if (Wait-For @SubCA @Ac0 @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @SubCA @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         $SubCaResult = Invoke-Wend -TryBlock {
 
@@ -927,7 +895,7 @@ Process
     #########
 
     # Issuing cdp & ocsp
-    if (Wait-For @AS @Ac0 @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
@@ -940,14 +908,11 @@ Process
     # Autoenroll
     #############
 
-    Write-Host "Autoenroll Start -->"
-
-    # ThrottleSplat set above
     $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
-        $VerboseSplat = $Using:VerboseSplat
-        $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
+        $VerboseSplat    = $Using:VerboseSplat
+        $Credential      = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
         Write-Verbose -Message "Certutil pulse $VM..." @VerboseSplat
         Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
@@ -956,13 +921,11 @@ Process
         }
     }
 
-    Write-Host "<-- Autoenroll Stop"
-
     #######
     # ADFS
     #######
 
-    if (Wait-For @ADFS @Ac0 @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @ADFS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         if ($DcConfigResult.AdfsDkmGuid)
         {
@@ -1000,7 +963,7 @@ Process
     # WAP
     ######
 
-    if (Wait-For @WAP @Ac1 @VerboseSplat @HistorySplat @QueueSplat)
+    if (Wait-For @WAP @Ac1 @VerboseSplat @TimeWaitedSplat @QueueSplat)
     {
         .\VMSetupNetwork.ps1 @WAP @Ac1 @VerboseSplat `
                              -AdapterName Lab `
@@ -1023,7 +986,7 @@ Process
 End
 {
     Write-Host "Totaltime: $($TotalTime.ElapsedMilliseconds/1000/60) min."
-    Write-Host "Time waited: $($TotalTimeWaited.Value/1000/60) min."
+    Write-Host "Time waited: $($TimeWaited.Value/1000/60) min."
 
     $TotalTime.Stop()
     $TotalTime = $null
@@ -1032,8 +995,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvrLqa3hTP0PCoMS2QzkFwprQ
-# S4SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgm+x0qtElRdVur6d1qMu1YkY
+# pwagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1164,34 +1127,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQI5Vt6
-# z+iHBraBuPilYVndQmT07zANBgkqhkiG9w0BAQEFAASCAgBPqxaLl9D2gATUino6
-# 8EiHmOXb77tG55UrL4YacqHyHjty08QliNF3IUi/VOHpaqM3SVH0A+v+3kbN1F4b
-# WUnkak0R2F45U8UP+YfmoG4qXclQVdvA6B36XVgf+A5DVAWntT2hCeWwD9DAQ9Wr
-# jTqY4NNyYFCMLm7yftYuynxyvnVZZgcHX2au2EcVvjbEOany778d+bctCgXLcUSH
-# /cxRoTUCENgah3I64mgQjKEdeYvzbJdSao41/7OTAh1ohjBUpA0IZS8jkVjZE6vx
-# l4TsfKR2CKjl71QvJbiqkaRaqX1zsfAcGnCljkl0w/uS81Z7nLf8cXwrM/iyH2uR
-# aCfggcZG62YHpddBpOzx22ALM3Y+w8cH2xFScedaraa02G7GTNkvU9ah9dGAL2Ho
-# q0bnuRc8HF+3V9HeFP7shWMZA9qem+DoxgfNtNHo5OWXH6uYDN75cwS/xuT+6B41
-# GgtLc8JJxuSQ1DAgjY0X4yW7HAfOvX/uKkJn6whemKU7t3EkpvfVPhyDWfy6cd4h
-# B4pw9DKcLfD4o36KiE+FgvXmg/sB32u/nfNV8L7iVhRWNpFeYM0Ksp+7opJPhXAl
-# 61fB6eZUI5p+/bYjfblVWmGWy9oua0yA0j/j8q4Vq6KgV9rKkNLZxpHv8QrtxEBC
-# TAV6NsQsrTKuYu7nb6FxiymK6qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQBW+sp
+# bUiTuQ6fuOsugA9N6K7h1zANBgkqhkiG9w0BAQEFAASCAgCiL/4vmIeu3CqfltXK
+# yViXO3wQUfDCGbZXeUEBQHDXpMkKldKbrUzDU6iVeC6mR2OenUeV79uzjPjppbc1
+# LBf+aT14T8oZFWHsf4Md00cWOaPuOtd/NUu7isfG1gb/ODuNbdVV+pnpRvNvCQ7n
+# lcowYGnwF2FQrQ2Uhy10C0aAPrQKkWfaojEEFtdDHt4b7E1/jX/b1qf9BLYJzLVH
+# +uwzzkIssijH6UuD5+mU9p/KMR8o37ASsaD96ZiL7rNnCLYswQ8tkWQcOZpACakj
+# w4JdBlLwg4YPyZctx4HI0dxjxrCWKD5ZJzo97DOad6Ews9BJ/kNVHWc/grpphGCV
+# HpiyJfro44ywcFK+9zTMANizd/1M75ZCFesD3jPwtMadpW/zdm236itdSBaU22t1
+# 8UMBQWqaJ9LHD1wznLfR13FtbbAkdOm1RIrwB5kVJQrOC9BGynM8ZouIUE0kfRwT
+# Ejrx3I4+6pQJQzU8RvEsYaNKduRoEuYidhjXD+kaiI+i/gJ29KtFkgxCPY6DoRDl
+# OX2JaQqHf2lz1x/tg9dQL5JlnDKnD+Lza4Ru+jhYfbRTy/ARtfBJLu+owNbpGCSW
+# 9o3icq7kgV8/2vm092F4ekpApeL1YTXEDg6j9Mg4ZkwIoTU+mYRua4rNQ6nCjuJI
+# 3w/p6MJJSi48cQ532pcUN85+rqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxODU5
-# NTNaMC8GCSqGSIb3DQEJBDEiBCB11bqxuG8YzJ/MQyrhDITgxnDWLga9QYr1v8uf
-# 0wuvujANBgkqhkiG9w0BAQEFAASCAgAs3lcu5wq9faginB5dPWlwGeOH43MCVZNT
-# wD43XaBno1y4IXvU6mnPmgxsvs3+0mg2m0oCmYc+hR0J5bJf/U3E3oyYOszGKFsM
-# GntNmiIKPoyVtrwMhWjFKxN0U9Q94Q9YJC2/zoLESkNTgEXYBP0YlaOCukO/QePI
-# X7ytfDcYBnvUzVUx/UtOy9HumYorjhg29e/Pytfnlse0nP1nCtcKMtGIeNduKdiX
-# vjnzY/IxGJFo1rjVmXV43mUUPOHZQ5ZfN/hw87t5kUnuiJwq06z2dIbAsoU5f42F
-# 2p4Lg6qxvMN+zTiYvfJUIImjPWv8Ec3AB6fxtWVRVoj4x797uPC+42XFU/Mg7GG0
-# 6sqLhYOdqacqvYyNk2KOhQeEFRlGYy0ADLxGUL43SeM3n5GQ9NeNRBaI372/+Ijd
-# X8LW0FfsC8Dd52wRbGw9H40zoVXJGacPWD7QSm+OP22+Xq4guvh8GP39muuQHeYx
-# ssMqBCxeWe39t4X+EvYKFGZ9V3ua9i5zFOpXX6QPbiy8nfavZ4/GNxLv8WYmNpXg
-# qgkUH6dAkQC2qNAiveUaU/qoHkW8JJmY/cYOWqoRJDOZelLs4CwI6HAKEaZWJJLV
-# tnf0OwxxamaGOLI8imIOi3UEYki6izIuV9F4g85xIUP1I1efOFt1qUK1hF31e74n
-# 9Yx+P6v9mQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxOTU5
+# NTRaMC8GCSqGSIb3DQEJBDEiBCBqoZYbe8QNEStJg2WizG68WFwNt3yfdO0OQyNd
+# IrzRkDANBgkqhkiG9w0BAQEFAASCAgBpYr8cX5kLmnxDrI2Ly/rChb6JQqH8pxGM
+# 0FMdYs1GkLtRhn8ZDsxWWjDews7HGtZM3P71IglR1EDYDj6DIFfcly542uS4KbZt
+# 7/zGnFlL6+sLWesiKEnGfWjgGSyRqKwlFv31CF9one1mfp52VvlyGfT2jl8+5pGj
+# SEYFmH6jXT8F8S+RqAw8JizMnBho/kZN+B+QsPbzrDBx9YvioLjFbHElx9qAq4lr
+# 7QeyJYPwZQr/h8KB2+9x1Ad/szAOWDwLWl2OkeSyBBiPN01SZ2ZwQJWpx1DK4vN2
+# W3MnULK9hCj8p0dgIl9ev6rIHryXD2po1dN5GSu4u6GVA985lXNif+3RA/3u2xUK
+# suIyTtmYQwJmVf+81ZVd2DjLP+VJCh3JKFdMMKiGtEtYh6DhOV/NGaUPLzBud+1f
+# 4lIfH5CgeL1kylpe+4dpipDr4fzcQtC0uv7B+bkudzDPAi5ZyQ4ZbLfpENjSoaWQ
+# Fd7IWDs+46+D3FfhVWzvWGu+0q+pZM3DK+T1BgnXX55NGgc53MrQ/mr0Y0TJI8cp
+# MZjXy9rQfr7XFK6upTNXRx3f9ZMoi3FuWzJ1CnBU1YANd5TGPhDEd8bUKSOZO4Rq
+# e2oSXvFeeml1oJoduN7twJ6Gs3kDyzcwXySXLhUodAGsvC6Ui++HNJ2pz1GYAro9
+# CFORraHr9A==
 # SIG # End signature block
