@@ -20,6 +20,9 @@ Param
     # PowerShell lab path
     [String]$LabPath,
 
+    # ThrottleLimit for parallel foreach
+    [Int]$ThrottleLimit,
+
     [ValidateSet($true, $false, $null)]
     [Object]$RestrictDomain,
     [Switch]$FederationServices
@@ -473,7 +476,18 @@ Process
     # Install VMs
     ##############
 
-    $Settings.VMs.Values | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    $ThrottleSplat = $null
+
+    if ($ThrottleLimit)
+    {
+        $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
+    }
+    else
+    {
+        $ThrottleSplat = @{ ThrottleLimit = $Settings.VMs.Count }
+    }
+
+    $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $OsdPath = $Using:OsdPath
@@ -591,7 +605,20 @@ Process
     # Set DNS Server & Rename
     ##########################
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    $ThrottleSplat = $null
+
+    if ($ThrottleLimit)
+    {
+        $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
+    }
+    else
+    {
+        $ThrottleSplat = @{ ThrottleLimit = $NewVMs.Keys.Count }
+    }
+
+    Write-Host "Set DNS & Rename Start -->"
+
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $VerboseSplat = $Using:VerboseSplat
@@ -612,10 +639,12 @@ Process
 
             $Result = Invoke-Wend -TryBlock {
 
-                .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat
+                .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
             }
         }
     }
+
+    Write-Host "<--Set DNS & Rename Stop"
 
     #########
     # DC
@@ -688,7 +717,8 @@ Process
 
         <#
         # Remove old computer objects
-        $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+        # ThrottleSplat set above
+        $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
             # Get variables
             $VerboseSplat = $Using:VerboseSplat
@@ -725,21 +755,30 @@ Process
     # Join domain
     ##############
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    # ThrottleSplat set above
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $VerboseSplat = $Using:VerboseSplat
         $HistorySplat = $Using:HistorySplat
         $Settings     = $Using:Settings
         $Lac          = $Using:Lac
+        $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
         ${function:Invoke-Wend} = $Using:InvokeWend
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @HistorySplat @QueueSplat)
+        if (Wait-For -VMName $VM @Lac @VerboseSplat @HistorySplat -Force)
         {
+            Write-Verbose -Message "Renew $VM IP-address..." @VerboseSplat
+
+            Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
+
+                ipconfig /renew > $null
+            }
+
             $JoinDomainSplat =
             @{
                 JoinDomain = $Settings.DomainName
@@ -750,7 +789,7 @@ Process
 
             $Result = Invoke-Wend -TryBlock {
 
-                .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat
+                .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat -Restart
 
             } -CatchBlock {
 
@@ -758,7 +797,7 @@ Process
 
                 if ($_ -match $MsgStr)
                 {
-                    if (-not $LastOutput -or $LastOutput.AddMinutes(1) -lt (Get-Date))
+                    if (-not $LastOutput -or $LastOutput.AddMinutes(2) -lt (Get-Date))
                     {
                         Write-Warning -Message "$MsgStr Retrying $VM..."
                         $LastOutput = Get-Date
@@ -796,12 +835,22 @@ Process
         $Settings.VMs.Values | Where-Object { $_.Domain -and -not $NewVMs.ContainsKey($_.Name) } | ForEach-Object { $NewVMs.Add($_.Name, $true) }
     }
 
-    #########
+    #############
     # Reboot
-    #########
+    # & gpupdate
+    #############
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    # ThrottleSplat set above
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
+
+        Write-Verbose -Message "Updating group policy on $VM..." @VerboseSplat
+        Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
+
+            gpupdate /force > $null
+        }
+
+        <#
         if (Restart-VM -VMName $VM -Force -ErrorAction SilentlyContinue -PassThru)
         {
             # Get variables
@@ -825,11 +874,13 @@ Process
             # Wait for reboot
             Wait-For -VMName $VM -Credential $Credential @VerboseSplat @HistorySplat @QueueSplat > $null
 
+            Write-Verbose -Message "Updating group policy on $VM..." @VerboseSplat
             Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
 
                 gpupdate /force > $null
             }
         }
+        #>
     }
 
     #########
@@ -915,17 +966,17 @@ Process
     # Autoenroll
     #############
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat -Parallel { $VM = $_
+    # ThrottleSplat set above
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $VerboseSplat = $Using:VerboseSplat
         $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
 
         Write-Verbose -Message "Certutil pulse $VM..." @VerboseSplat
-
         Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
 
-            Certutil -pulse > $null
+            certutil -pulse > $null
         }
     }
 
@@ -1003,8 +1054,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0iyT/a2Frv548ugXRYgix03U
-# sBegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULIQ9gqQRloTzs+zEoNwBwFvP
+# LyKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1135,34 +1186,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQIjzKB
-# FN5ToX9neUdu2UNuEmNABjANBgkqhkiG9w0BAQEFAASCAgDDDFNX4ZBwjoQH+Utg
-# gry/DARaqTcmRybV3GLgGOcufGAv4CYk0TvBlr10HrI1F0cmwc/JtITDGJ1/R/DS
-# oM5QCc+jehmAbz9/J8LvkaP3j1o5Fsxp1MRCeRL97IUQiqb1EqUAEkA5D8XyDZ6B
-# H3YBKZV4q68N/TnpYVXX0eHzMt0yOBRxZUSMZ+p92LsJ5ZDl4KVLxSaGJuZFH9yZ
-# OKBw1Cy4ofMjdnP4JcLKM6w3TcUywd/ZnngpZ6mtCmP7N9ysbjVtX7jH+aLQyM/I
-# +trPIPXTAykA92zvETGCja7WYKlEv4BfnnU1KFw+3Gir7sWLS2mjJQAkfjvKk27d
-# J4uB9vDTBUkZCgtOFFHmWu9pTS//jpRrcYzVR3ZyiLNMNbNtIMbPH3+rgYuNs2Kt
-# G2N4Kd1hEYnIHNQiKB4VBqoHlpGx1oQmE88Uyrh3gEWBW9b8quWCYG4Ub9TI6f0E
-# WebSu7SLvbW1JYSchNkKngHSdb+GMt38+DMRRtuo0zc0UtgOOtRfEKwO1foYHKaN
-# WA+3VJBntStf1rFSZbOoZyNoKolHOEfj3Mbh2pjKQ6TIzxb8LCz4jr+RLYkL0Uff
-# /+6HQUrmHBbXGLh+dExLlzfCFBk82fK59W2h6OCQy4jZZgfxCgmNnKHOTdSTX7rh
-# pNv9dDAZXoEvfj4JtXJS5MmZl6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQExCvH
+# USsLRyeJmFk+91EkaM3/ZTANBgkqhkiG9w0BAQEFAASCAgDPJRBXNnPDVl3Ewd1O
+# Mgwq36HY6e+Wryb0apO0ltMui6TSnlA8vhUzvuHFF3PTmUfxrI4LbtGp6vIwb0Ej
+# 4luca07l+wuUOhFlRZ43oJT6pKOnJu90gKIQTwP/i9VK24an+BYnaakLoNXjXsS7
+# ch0/4phBFdQhurlNUhNiGfht9mxKqjNURDUnKGUyV8DZEPo3WAPoOc4awwRxzthy
+# UevTiX9SYmH4Nk2px5C6FvCT64PeN13fXFCY1d8wFstOPgl73rnnAg/JUpLWepf6
+# N/GlPThpCcBERSyZoNud2n7j+NJoQgPW47zf/SivARzo2epjI3ULa511TeSnmHrn
+# 7T8VhYIHAYfhDEb6qgYxBTWNATUcEWDp/YxsNCAhcR9rAvsXHyPB2HW2YIuvG8Fo
+# nFxic6y23rb4lziaup9ldr/odtj7twCD5gz4kwEjIeSR5AraYnTzLad/pH70VuMK
+# 27UfYJBHTVzcZhgI0/YWmofGK9Z3heRTEw1YlxDsWEaXLRgqrrtwLmecfc3hKT1i
+# MKEZe1wuWg8QdsbzkyumJdFHBQxEWkTUU9yHxTknWQFIz9+knVx/YmsQQcfE0+8A
+# 0OAehAod00feXEEqEd4zMrkOhsMsCNPBK1k8vvfxxEd8wIDu0NBl5jjV9O9yvSbS
+# DAGsgTyDALU/LFO1Y379DbUlVKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgwNjU5
-# NTVaMC8GCSqGSIb3DQEJBDEiBCBIkIt+eo4zbKyhTJVl2tfPtTpIpsfGTqg4lLxM
-# jzYQTzANBgkqhkiG9w0BAQEFAASCAgA0F7k+PSdJ2YCngLv5os+4gLsVIX1oIAng
-# 1vGK/GewkDrhZXopNurTeHrX7Frh/zM+BpSKz61np/PqKV5kEGMWNbayKuqtaG5v
-# M4PzPDgTRJtzxhaMfCac3qHUM6CHkEpzPfi0UAhEBSlMDw0wGslkJeM6GDS+ks3z
-# 7eOedpwU1d3o7RAjtTw83So3xUCplJcwNu0NL1TWoJdprgSkWYJN2boTbN2OASiB
-# EDgxl0oWWGdcoWZ9fGv8DMBuEzPGhK1n0FiAhw+SnMG8BE1mp4t88aJVYv5NOs+2
-# 1nU9NUx0XTXOvIuWgggZXDBS71TKITPOqIF3U0zPjvogcslYteQe19jpP36hNag9
-# O2wDnwY14LbK03v0Ulci/c/eJzFbP1tcPHQp9xczFcIqHHa8MJ9IUQ58Ha67YqmK
-# lRQCWyDzvHEnb9Rx/kM29PgMhobDH5lBWgM/EGJ9cisd5JGh7tvbmjq9Uzdjg3eG
-# JK63X6UieNd9J7iQTS/MH9+CpJX+O/bUPkPO3X8kuLyH09MoRNcPhMr3RtvFAt1o
-# trGkRGS32acHAXMmZ1QKMqYXQ9QWDReviZaHt8J2zvK4dpWvtgsp85NXNveAJjY0
-# ZcNh6nrQwf2OQzuN/xw5Vq4xVrvl25WOq7J1fT6FxLzRot+Lu/mPE+tn4uWkS5Wy
-# vLxg9SqdeA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxNTU5
+# NTVaMC8GCSqGSIb3DQEJBDEiBCA23hxspy44Qhm5E7r5NnlGqHK3tBxCaG00LKoo
+# pOrrFTANBgkqhkiG9w0BAQEFAASCAgBWzP7xYrlUWURwVuEIY2Y4NPS0HtsF0yLj
+# zH7n5bTGgQ7L1zD5LHdPNNKdgq1RHzr0c6eNAzcJxCl0FGxUJjzfJ+l8g3UoIPr+
+# pr+WedDNqCXa6bY7l1sYn4Vy9e7CTFjiz5/jjdRNiiis0UR/dcqu0m3HFp891eBU
+# qTf6nZOHW4uRLRnFL9FVmxF5PtMWA1aKVOingXnf4O8hAONVZFvkxMb/Pw4Txii/
+# OLkb1curu6v7U+B5U9fkMjP+EFEjg4VoMp4pCoUh4phtaNcEo/PTHzGkRk0jrFHN
+# iqegStbkC8gWk1o0btSeL7bpsfQtipMmpU8uUVrfYISrW8TBLtWRhv+jQ+evzCwJ
+# tc1Srs6Gbnh2kzbPmD6qc6XL816FQZZAG0Gqt0hzqnbi+g/1wqwnyqvs06NBYe5B
+# in3eKHzvOebR7owXK75SfpWfJ1rB/gUrTV2popkfiavOlIWtzkuY8fpmV3DYuoPF
+# Oj1jvxc1XF0bdQI0gh7oPYnKSzuWJiWTC7W2kdFA0rLc1SYcurBeslN5M4ecM4Pi
+# 42cQVipG4/Kd3vZlwIVlTyIu2g8r9T5URcG3FCPG5pKdqW7T2kpivW6102rb/8BH
+# Zd6/IUqOVXh81k8OmKgELq0cn0o4NQx0b2udND7jxzUPDsBZZYZZy6gC+B6oJCEA
+# qzKpHqYC5w==
 # SIG # End signature block
