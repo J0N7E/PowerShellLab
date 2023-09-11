@@ -2356,6 +2356,8 @@ Begin
 
             $CreateChildComputer =
             @(
+                <#
+                FIX
                 @{
                     ActiveDirectoryRights = 'ReadProperty';
                     InheritanceType       = 'Descendents';
@@ -2364,6 +2366,7 @@ Begin
                     AccessControlType     = 'Allow';
                     IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
                 }
+                #>
 
                 @{
                     ActiveDirectoryRights = 'CreateChild';
@@ -2607,11 +2610,11 @@ Begin
             # Remove Join Domain access
             ############################
 
-            <#
             foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
             {
                 $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
 
+                <#
                 foreach ($AccessRule in $ComputerAcl.Access)
                 {
                     if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
@@ -2620,10 +2623,10 @@ Begin
                         $ComputerAcl.RemoveAccessRule($AccessRule) > $null
                     }
                 }
+                #>
 
                 Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
             }
-            #>
 
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
             # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -3053,6 +3056,13 @@ Begin
             # Misc
             #######
 
+            # Protect Domain Controllers OU from accidental deletion
+            if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
+                (ShouldProcess @WhatIfSplat -Message "Protecting Domain Controllers OU from accidental deletion." @VerboseSplat))
+            {
+                Set-ADObject "OU=Domain Controllers,$BaseDN" -ProtectedFromAccidentalDeletion $true
+            }
+
             # Default site subnet
             if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
                 (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
@@ -3346,8 +3356,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy8dyZTy8JjQY+9Y9CdDqe6Nf
-# CO+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmp+8ojZzIdg+MKaxs4iCyzj2
+# /ZagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3478,34 +3488,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQtvYgs
-# x1PFsutMMC386AR2FAcUkjANBgkqhkiG9w0BAQEFAASCAgCw4QVZtstzOecI/1EK
-# R7WxLJx4wZDyx0CHzeZ7zNxPN0IacLPzmSPz5YPKeZnQJfOOpkZyRxacBOXvT6Zp
-# Ec+6MAlhJ9TvxkZ0MuPbVeEeh2jOzWekKwJFc/NLS5HwieMHcTQXfZ3pPx+/f6tN
-# +bfIaBsaiNsjqh3AKATrLyEgMv3ApMr9BrIrgIU4/V8raJbp+ZAXcVp2KwDzoT/q
-# b/QDhGqO0L46Qw1jSiOc0af8NsXy8ajksPgs/9a1+Jb/nOh9xLUK4dykg3FOusxx
-# /oPAhJoDUtRPivV5YJ6jDzIWbCGrK7rE2YjRDkn9KNUfiaKp/rMcrz4yWf9iMzod
-# sW0oBC8htzrq0sAwoS/S/oulpnITjRF1oaUo033/wqcmUTUgvyT7nZ52Qsp/j2E+
-# ldZigqvv+NunK5x52eBtEKAPsG78kk0EkpmYMWwWs6udorTUfNexlVH+O5ROdJid
-# oapqUj/ndUTsFMn8baJZXT7bteF8ixK0t8igau9gOSv2dJtxE8yYWWs4umQO2PZD
-# p1+yfIqlj8MXMDf2jjUZ8TFeypibNSArFgweNmr4/WMTfqezoQVbQEGAFSjK2JkG
-# lh034b4YI6UKjot2faxgHJW9szDqg/4bcuCzNedKcYWM0fyK2Oc432nD7b0SO/iC
-# IerzwuLLX++8kRzY90NNDV6CR6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQYSLXw
+# 3wOZh44PJ94PjLKhbhrVaTANBgkqhkiG9w0BAQEFAASCAgBn+qXmQdWLEX/wzgct
+# GcndnYzXRXYmCdx3aldNOzGHRyJZdxVOBWNuiSE/loILjEDEihLMQtKh4Qa9nae5
+# 00Nuwhx9TFDck3VOua3/tIWMXkOp3bYxGorDeiCOgswHq+dqt2op7ls1rCN/Xy0U
+# 4irq+J0gS1sshcRgrF9fQXgGXooJFWDJ3H2oBxFG/0zAg6iSCNujAv0vNGz+C+zt
+# R+MbVCNsklvPbmhlWTkwFPvh/id8YlOzkWQ8AuEV3ZNegcrRKurQ1HHvgNPPXdLk
+# 9/YaogFsdBQvefyqaJ0KhAb/zajQ9WwQZ4uqMuWvFP3FbC4E20HoYzEpiFVLDtdi
+# fVSeTY0vHOWDthz/v/RHazzynX+CPULKeFcZILt1sW+/USrwdhFlNA7YprMjv/67
+# hbBk5Y1s2i97V1oUIv2wOrS+/WbnVvNwmncDrWBKa1MvaNhcOU6yt1PG6xg+6R/K
+# i99V+dQ7x120EUW+AQtffXXaZCgnxAtlfBeQP6TZWlmXKUmYw6o+JOboW48rwH9C
+# sJcyz/uPhV9f4rOxpkdtW7a/e/PcRHydQaw2xy2c5BzSYjQH/Ab1KZv1qM+gD5+E
+# JT7Et21f3UbWnyG/lLvz84etXoCOabhFe0ChZJ/TP7tYq/URD+AFZGEfJiILjY3L
+# 3buMa/sGBmyt9aImi53SyHhSTqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTEyMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBju4bWXmLD5SyweTLo594M2Q9p2EZ4eAr2kO6U
-# yqXtWDANBgkqhkiG9w0BAQEFAASCAgAPS/kBf/ZzP2j991P7KwFD4OFb7/GsC4u6
-# ZKJrBhOFHsHFNks8rd5httIfPJ930uWaZb0TqTUhE5L+rbaVCDd4Fus4gWI4mUdu
-# tmrsEibLz3N4JLdqW1RUJNfGyETWOyL9Z6ShT+Qn1J5PhX+/HNIIHQ0U0XX4UBcS
-# ubye+2Mnc1Nf4a/qri7hqgvEjSuk6ENR7wPtvAVKq9Yig9is167bKtQviZxM3m3P
-# QXVc2TyyST6MubT4w1WqeZnZsNGmgQ7+yJRtCsZriWfpZgHgXt5zau5VYLuwqI99
-# HY46xkdevXZg8KF6GnJBivzEIrmMJRli5WtZnjWoHcoZCZ83+oMhdjxC5bzm5+hm
-# /nQWlMQwTrfTr9ZR0Pi/6WK78EcSH5Z5Ph+OgzAvebXQRx3YekQjFH/FTcm/bfJd
-# xqWC+1IiVAsTcVNtTI480hm9JQ35L5luyyFkFM/Y9KSZAYbkdhtshlBZjawXKf66
-# nz0czkn1jm8I1juLh7wrWQbpPuCspCBAFWxs01ntXnN7GpJ9r6ImkTzMWg1qTyUw
-# YBdRsGnXb0t2B2cMBdJsqPC2bh5ITtos1cF5T3WrYGBc6qx9LdIoPei25TThFon6
-# O6DbwVFqihIYCEEIvcWyWiqNym9bjetOR7BJYvy/Z59BX6YwYLg/MiBW5dJucYAZ
-# VOr61LrK2Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTEyMTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCD7rUmNp9TzKk/vH5Rgoq5K2DpUGHSBt32lPf8S
+# e/Fe6TANBgkqhkiG9w0BAQEFAASCAgBLhJVYpCbOp0YRpZHnuGr9Ht1ACHYQDtSC
+# oFKKQ9zXseEvHa469oO5Wh2W8KT80u0ZgspyQS8ZACPtVwWSxWJTsAs1d4pCCe3z
+# TDT+v9NjJoc3NgKdutXrWSgTrVJEZZ0Daf8OyZOl/VJK3QglivlpO+piRG6A0XHe
+# 29TTIwf/o8rJY1jAvXSMXkkR4uQz2+0bHDGawhxUIf0GkI5z8xvC3g3V3ETOD0lE
+# 7ta7aiTU686RYsivCbW47v2bWjgSVU0pc9RbhG5Ra/9gN7DbZ244ZlUktUH4X2lK
+# jiRiYftPdWYKrpYqaArJgezFNccTEgByRGNX9GBwZqkvAMGXUWXrk/owaK8fKZR8
+# piHpuYtz5GoSFM7znLkP5vN8opZ+8U0I175X9AGTa1ZKQCleVM/AsloGQK9iMJk4
+# cKTZaAd8RVbLCVxHePgr9CiaqbIGMejIuZwSBxP1vzhuR8qrvPdopgIXU1+lVJFR
+# 3BhSFDgbpRZGcB17X8+8cddS/qNdRyMrASz2kb1DsdXz+ZPVV+Gyl6DOyrMi/gnd
+# AieBSzSSV+A8vRmUyN5SgHB50KLJjGecyjNU8aYJPfMQG4aicLgqNq4klba/IKpK
+# 46mK17eBB4BSqryPKUR/l0kxX21pVNa+rK5B+uU42QO3hc7s/VyYC8pyMYPNNJJs
+# 6bGoG802hQ==
 # SIG # End signature block
