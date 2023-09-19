@@ -1650,7 +1650,7 @@ Begin
                         if (-not $Msa -and
                             (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
                         {
-                            $Msa = New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)"
+                            $Msa = New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)" -KerberosEncryptionType AES128, AES256
                         }
 
                         if($Msa -and $ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
@@ -3389,8 +3389,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFL3svFsXKh3uroUg7/w+sLE6
-# aragghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXdEl6J4obG++oUj0AB9BObuG
+# c2ygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3521,34 +3521,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBREuhTq
-# eCEWjLZ/vsIr95FiWM8+eTANBgkqhkiG9w0BAQEFAASCAgAiYVGtXUPHUVLbzN55
-# qEnpXiFk3ssaEVI6dgE6u/jhniHICMrPa2l3lBTp542qp8aX4SiSkN4Q9QXcSCUO
-# j0tl0c81IYGjCypx7vocLhdxBK0VwZr1ccbxSbu+2kp/uGLIFPVGPFELyjDsS+LA
-# cmYIn+1QHGVw2RDF65JfEZyFF4IAcOiRA+GE32KhiFpVhvYvxelV3eauuTZyQ6Tk
-# 9gUmCHmWxQzrlke39rEdhMos+5AKdBh0XZFd9vaj/sd2rpbwgJFSQerLt8EMp092
-# IRvWqFOyA65ljkLBwKWEtIL0KExZcQBWH9vEfmtcrTSJ4Nk8QEGqbrav8z+xcsSt
-# HQ8dhU1lSae/TVvXu2ViOtCT7K/darY2tLSBN546qYLF227Ju3jAElkoo/MXoh6M
-# 6ZNDg7BLHb1yRGqy9RyRzXEUQagoC5mgONVlh6wVNvXJM9Qe6yH3IIAPgVSiC/IK
-# yDs2oNsGteU8GCzni3lYy1IP/hnezbVvwQVANmsI272xjYH14eC+Tor1lPIUgXSd
-# JaFRJ+mjS1HRzIgRYP+akSDblNY6XORv8MuvvZjM0QI2dJSqnSHSpC5+V2XRkW4O
-# RXVjqngPUqXNHt/P4bMEteexpSE4hKkdkymvg0Hzz+0kKHppxf+6ll7BSPbKftaR
-# AD009Oq+B3LJKeydB3tp5JFzo6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRxHbpq
+# V2ruFtFW+kjeYn/Xh65ulzANBgkqhkiG9w0BAQEFAASCAgCVwCYof6+VgZSNE32J
+# 18N6Mm0z1io3Jc6FlkGlyCIebOqStREakulW3GbwR27HUZ6LEa42RCfM6Iu5jv6b
+# sVoHqHtUEvne0N/h4yZg6JO7/HyuCF5AN6Vie+XlXa6XnlCpj5TMCIisyQKqoWEb
+# +kJoD9eBfylX7AvFCqMgKh9tUX5ZHS/1I0nKjalut+MSlwL2yHA0EdDzLikI+BJn
+# 81OCUpkVw4JLsMAcO/XZ0Qcx5FiyG8RpFeAn4d2eYx5sqRATxIJDZAywiCc8SkBr
+# BwqFWf99kBixo+Br3z1nHzU7/bjG63XXinnoaFi49N1pnfB9Z7EKN2RmYsiV+dDw
+# DQjfy/DZdkvjE9gi6ZMyJjGWXWYn1Xg2VPsJ+c1LfvVWXe8EcrK9rLDJ3/0SJyD5
+# RkWeYcTzRG08Jx32WbpFI6SiZMu4LQlPaJqff4eieSbFOzb1NtUYEMLaX0IPSD/e
+# dVoHXaq1wMDCEqhw/Kz8ix5FDVoUxF7HHQ0nmQvAbIJaSeJy/TwgJgZYfWKAqs1C
+# /GDifhlqSvtHqpUDGNQiiNavY0qFJIoSH8rV3qa+5MKDY5JeuopgZzQKEMMpIcDo
+# LMJNYBJZ6LD9bLD1asQZatMQKaQmksxY+JM/i6OdXAcLHjQWiu7Ta+y8Wqi3DESt
+# 93gy8w7APMJe5WhCHZfUHemkj6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTMyMjAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCF962hfo8qUT0S2B37vO5c4u+h90ijp/2LanCv
-# jEDZBDANBgkqhkiG9w0BAQEFAASCAgBz9b5d/R+rss/daC0NuxvNxyt2g91led39
-# YFnJOJ/o5wgce6TSBH4ENbKqSL8kN0fIKsTKTNDXaYJkzKYSiiLfJQDErYBT1aOt
-# VT3YlDAJYUIjSUTFsuLd1zjO8ET/A5X3AWGCBf7GBXG7fqxlCJXFeE4esphHRLYg
-# wC1M28L8IiQDBafnXn20pI7249rheI7E3dXanyM+2Ko2s0NK33mGBi/pWBz/6URh
-# gqFnLTPn/0tsCbYpbIEzvLHgiXQEoU4VFi/uZsmuhUNiSRp5g6gFwmOxzfBbLnN4
-# tBP9KUNtDzGL0uxNeZ8tU9y3Ip+SJGZl1NGciumX6hPe6mdyzFApua9RifjAKrVb
-# 7maZLUj0gkQnRyhXa8/NeYLTnDZ4SiIM/4+HUN3J+i3O22uAwwDl9VXQeWCY5b4+
-# wfS+Xz7NCYMYyVbTeB2v+MSQR2yt9FSVmiIeZNd3rBnQA/MQXpdVDLe/3QugeGiD
-# yqGKDAgZWixVpVVHSIB8+1EHfd+FbCKOFbS0m7v+CnLnsQGKQw/g/zSVvK2w9y5n
-# qzo/rqbtaZ0pWMQ6K576SoS9sljHaxoPuceMSUOOSvTPqplNiwjgsWWbBl4UtcQa
-# uMqLLW34IPU845TWYekfOMm3qFiYWIytVDOsenufj9vJF+wZe+jXqSshf4OZbq0N
-# Qso5v2bPVQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTkxNjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAmijIkKW2PZGAeDc3Wqb5TnCO7QbojcuyyL3/C
+# 8DVv3DANBgkqhkiG9w0BAQEFAASCAgAWj7hqUQrHKMV8Toop+UddeTCXWFklxuWS
+# YPmZ/yXKYaQ2L5isIKPwWqSDJhVgSn6VrBOFdt+Su6Vt+AN3EgGosJcnHI3menLp
+# YxWGAffR/kEdEHgnLj4RPXOLMpnx8Sashf8ckFtq5nOzRmYKA6KO8IyDTiLzOrib
+# A6JBbpA3gj2wiLsh28o0ft9bt8eR4SEdL1gyZmx7dKXGNc6uBaDxSNrANzFps61t
+# wtyTEzvBaIH9UQeOdRhq6gbPiFmOaBtuNb5NMyP/Edf6cxnf8B0KBJgFEXdKQyQy
+# 9i97aLXEJkNNRJSBcJSkqQ7aMoD+cCoBQNndO7iA/YUEGaLuaT9PpRv81VHneL+O
+# Wv+bDo51MrfLJmlGtGafaf6vebdt5KdWI49xnEwVIrgXQacCuxKFSLcqC1LAJeXg
+# lKJo/OIUpUGlEjfLXWMTDs1j4JxqK3hz+M7hhzHR+KabY7CM0xIzEza3QaFGeiB1
+# q1PwDlR/4ct47wHabrrGl2C1UwwXabBcatDdaaqdojG6yzHRITrL2HXSt3xIvJaw
+# +ax+dazD5C/7wTRYBgSqtTiV/P8oO3xgEkXl2+DIZGMSrDw6gj4hjdtHIa4zvz5b
+# w3Rk8edMDr/u3Qcjmb/1kNcqJ2uX1Runz2V0xVrg3ksil0vIb0aeapxCyAqjDC+v
+# Jeq2EWmtwg==
 # SIG # End signature block
