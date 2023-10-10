@@ -70,6 +70,7 @@ Param
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
 
+    [Switch]$SetupADFS,
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
     [Switch]$RemoveAuthenticatedUsersFromUserGpos
@@ -125,9 +126,9 @@ Begin
         @{
             # DNS
             DNSReverseLookupZone = (($DomainNetworkId -split '\.')[-1..-3] -join '.') + '.in-addr.arpa'
-            DNSRefreshInterval = '7.00:00:00'
-            DNSNoRefreshInterval = '7.00:00:00'
-            DNSScavengingInterval = '0.01:00:00'
+            DNSRefreshInterval = '4.00:00:00'
+            DNSNoRefreshInterval = '4.00:00:00'
+            DNSScavengingInterval = '2.00:00:00'
             DNSScavengingState = $true
 
             # DHCP
@@ -137,7 +138,7 @@ Begin
             DHCPScopeSubnetMask = '255.255.255.0'
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
             DHCPScopeDNSServer = @("$DomainNetworkId.10")
-            DHCPScopeLeaseDuration = '14.00:00:00'
+            DHCPScopeLeaseDuration = '8.00:00:00'
         }
     }
 
@@ -237,6 +238,16 @@ Begin
 
         # Set friendly netbios name
         $DomainPrefix = $DomainNetbiosName.Substring(0, 1).ToUpper() + $DomainNetbiosName.Substring(1)
+
+        # Convert switch to bool
+        if ($SetupADFS.IsPresent)
+        {
+            $SetupADFS = $true
+        }
+        else
+        {
+            $SetupADFS = $false
+        }
 
         ############
         # Fucntions
@@ -762,7 +773,7 @@ Begin
                     Name = 'Admin'
                     Description = 'Account for administering domain controllers/domain'
                     Password = 'P455w0rd'
-                    NeverExpires = $true
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @('Domain Admins', 'Protected Users')
                 }
@@ -771,21 +782,21 @@ Begin
                 @{
                     Name = 'Tier0Admin'
                     Password = 'P455w0rd'
-                    NeverExpires = $true
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Tier1Admin'
                     Password = 'P455w0rd'
-                    NeverExpires = $true
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
                 @{
                     Name = 'Tier2Admin'
                     Password = 'P455w0rd'
-                    NeverExpires = $true
+                    NeverExpires = $false
                     AccountNotDelegated = $true
                     MemberOf = @()
                 }
@@ -840,6 +851,8 @@ Begin
                 if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
                    (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
                 {
+                    $DescriptionSplat = @{}
+
                     if ($User.Description)
                     {
                         $DescriptionSplat = @{ Description = $User.Description }
@@ -1028,6 +1041,38 @@ Begin
                 }
             }
 
+            # ███████╗███████╗████████╗██╗   ██╗██████╗      █████╗ ██████╗ ███████╗███████╗
+            # ██╔════╝██╔════╝╚══██╔══╝██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔════╝██╔════╝
+            # ███████╗█████╗     ██║   ██║   ██║██████╔╝    ███████║██║  ██║█████╗  ███████╗
+            # ╚════██║██╔══╝     ██║   ██║   ██║██╔═══╝     ██╔══██║██║  ██║██╔══╝  ╚════██║
+            # ███████║███████╗   ██║   ╚██████╔╝██║         ██║  ██║██████╔╝██║     ███████║
+            # ╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝         ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
+
+            # Check adfs container
+            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
+            {
+                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
+            }
+
+            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
+            $AdfsDkmGuid = [Guid]::NewGuid().Guid
+
+            # Check dkm container
+            if (-not $AdfsDkmContainer -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
+            {
+                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
+                $SetupADFS = $true
+            }
+            else
+            {
+                $AdfsDkmGuid = $AdfsDkmContainer.Name
+            }
+
+            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
+
+
             #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
             # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
@@ -1054,11 +1099,14 @@ Begin
             $DomainGroups = @()
 
             # Name              : Name & display name
+            # Description       : ...
+            # Scope             : Global / DomainLocal
             # Path              : OU location
-            # Filter            : Filter to get members
-            # SearchBase        : Where to look for members
-            # SearchScope       : Base/OneLevel/Subtree to look for members
             # MemberOf          : Member of these groups
+            # Members           : Hashtable containing:
+                # Filter        : Filter to get members
+                # SearchBase    : Where to look for members
+                # SearchScope   : Depth Base/OneLevel/Subtree to look for members
 
             #########
             # Tier 0
@@ -1073,6 +1121,7 @@ Begin
                     Name                = "Tier $Tier - Admins"
                     Scope               = 'Global'
                     Path                = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    MemberOf            = @('Protected Users')
                     Members             =
                     @(
                         @{
@@ -1081,7 +1130,6 @@ Begin
                             SearchScope = 'OneLevel'
                         }
                     )
-                    MemberOf          = @('Protected Users')
                 }
             }
 
@@ -1234,6 +1282,7 @@ Begin
             @(
                 @{
                     Name                = 'Adfs'
+                    Description         = 'Members can retrieve the managed password for MsaAdfs'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1243,16 +1292,12 @@ Begin
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
-                        @{
-                            Filter      = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
                     )
                 }
 
                 @{
                     Name                = 'Ndes'
+                    Description         = 'Members can retrieve the managed password for MsaNdes'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1267,6 +1312,7 @@ Begin
 
                 @{
                     Name                = 'CertSrv'
+                    Description         = 'Members can retrieve the managed password for MsaCertSrv'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1281,6 +1327,7 @@ Begin
 
                 @{
                     Name                = 'AzADSyncSrv'
+                    Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
                     Scope               = 'Global'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1407,8 +1454,28 @@ Begin
             # Adfs
             #######
 
+            $AdfsDkmMembers =
+            @(
+                @{
+                    Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                    SearchScope = 'OneLevel'
+                }
+            )
+
+            if ($SetupADFS)
+            {
+                $AdfsDkmMembers +=
+                @{
+                    Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
+                    SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    SearchScope = 'OneLevel'
+                }
+            }
+
             $DomainGroups +=
             @(
+                <#
                 @{
                     Name                = 'Delegate Adfs Container Generic Read'
                     Scope               = 'DomainLocal'
@@ -1422,25 +1489,32 @@ Begin
                         }
                     )
                 }
+                #>
 
                 @{
                     Name                = 'Delegate Adfs Dkm Container Permissions'
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             = $AdfsDkmMembers
+                }
+
+                # Add MsaAdfs service account to "Windows Authorization Access Group" (since Authenticated Users is removed from "Pre-Windows 2000 Compatible Access")
+                # https://social.technet.microsoft.com/wiki/contents/articles/38310.adfs-troubleshooting-users-not-able-to-login-from-external-network-silent-login-failure.aspx
+
+                @{
+                    Name                = 'Windows Authorization Access Group'
+                    Scope               = 'DomainLocal'
+                    Path                = "CN=Builtin,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                        @{
-                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
                 }
+
             )
 
             #########
@@ -1620,28 +1694,41 @@ Begin
                 # Check if group managed service account
                 $IsGmsa = ($Group.Path -match 'Group Managed Service Accounts')
 
+                # Set group name
                 if ($IsGmsa)
                 {
-                    $GroupName = "Gmsa $($Group.Name)"
+                    $ADGroup_Name = "Gmsa $($Group.Name)"
                 }
                 else
                 {
-                    $GroupName = $Group.Name
+                    $ADGroup_Name = "$($Group.Name)"
+                }
+
+                $ADGroup_Description_Splat = @{}
+
+                if ($Group.Description)
+                {
+                    $ADGroup_Description_Splat += @{ Description = $Group.Description }
                 }
 
                 # Get group
-                $ADGroup = Get-ADGroup -Filter "Name -eq '$GroupName'" -Properties Member
+                $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Member
 
                 # Check if group exist
                 if (-not $ADGroup -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating `"$GroupName`" group." @VerboseSplat))
+                    (ShouldProcess @WhatIfSplat -Message "Creating `"$ADGroup_Name`" group." @VerboseSplat))
                 {
-                    $ADGroup = New-ADGroup -Name $GroupName -DisplayName $GroupName -Path $Group.Path -GroupScope $Group.Scope -GroupCategory Security -PassThru
+                    $ADGroup = New-ADGroup -Name $ADGroup_Name `
+                                           -DisplayName $ADGroup_Name `
+                                           -Path $Group.Path `
+                                           -GroupScope $Group.Scope `
+                                           -GroupCategory Security `
+                                           -PassThru @ADGroup_Description_Splat
                 }
 
                 if ($ADGroup)
                 {
-                    # Gmsa
+                    # Group managed service account
                     if ($IsGmsa)
                     {
                         $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
@@ -1650,13 +1737,37 @@ Begin
                         if (-not $Msa -and
                             (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
                         {
-                            $Msa = New-ADServiceAccount -Name "Msa$($Group.Name)" -SamAccountName "Msa$($Group.Name)" -DNSHostName "Msa$($Group.Name).$DomainName" -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)" -KerberosEncryptionType AES128, AES256
+                            # Encryption types
+                            # https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/decrypting-the-selection-of-supported-kerberos-encryption-types/ba-p/1628797
+
+                            New-ADServiceAccount -Name "Msa$($Group.Name)" `
+                                                 -SamAccountName "Msa$($Group.Name)" `
+                                                 -DNSHostName "Msa$($Group.Name).$DomainName" `
+                                                 -KerberosEncryptionType AES128, AES256 `
+                                                 -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)"
+
+                            Start-Sleep -Seconds 1
+
+                            $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
                         }
 
-                        if($Msa -and $ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
-                           (ShouldProcess @WhatIfSplat -Message "Allow `"$GroupName`" to retrieve `"Msa$($Group.Name)`" password. " @VerboseSplat))
+                        if ($Msa)
                         {
-                            Set-ADServiceAccount -Identity $Msa.DistinguishedName -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
+                            # Initialize
+                            $PrincipalsAllowedToRetrieveManagedPassword = @()
+
+                            # Retrive password
+                            if($ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
+                               (ShouldProcess @WhatIfSplat -Message "Allow `"$ADGroup_Name`" to retrieve `"Msa$($Group.Name)`" password." @VerboseSplat))
+                            {
+                                # Populate and strip old sids
+                                if ($Msa.PrincipalsAllowedToRetrieveManagedPassword)
+                                {
+                                    $PrincipalsAllowedToRetrieveManagedPassword += $Msa.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*'})
+                                }
+
+                                Set-ADServiceAccount -Identity $Msa.Name -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
+                            }
                         }
                     }
 
@@ -1679,44 +1790,99 @@ Begin
                         }
                     }
 
-                    # Check if group should have members
-                    if ($Group.Members)
+                    foreach ($Member in $Group.Members)
                     {
-                        foreach ($Members in $Group.Members)
+                        # Check if filter exist
+                        if ($Member.Filter)
                         {
-                            # Check if filter exist
-                            if ($Members.Filter)
+                            $GetObjectSplat = @{ 'Filter' = $Member.Filter }
+
+                            if ($Member.SearchScope)
                             {
-                                $GetObjectSplat = @{ 'Filter' = $Members.Filter }
+                                $GetObjectSplat.Add('SearchScope', $Member.SearchScope)
+                            }
 
-                                if ($Members.SearchScope)
-                                {
-                                    $GetObjectSplat.Add('SearchScope', $Members.SearchScope)
-                                }
+                            if ($Member.SearchBase)
+                            {
+                                $GetObjectSplat.Add('SearchBase', $Member.SearchBase)
+                            }
 
-                                if ($Members.SearchBase)
+                            # Get members
+                            foreach($NewMember in (Get-ADObject @GetObjectSplat))
+                            {
+                                # Check if member is part of group
+                                if ((-not $ADGroup.Member.Where({ $_ -match $NewMember.Name })) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
                                 {
-                                    $GetObjectSplat.Add('SearchBase', $Members.SearchBase)
-                                }
+                                    # Add new member
+                                    Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$ADGroup_Name")
 
-                                # Get members
-                                foreach($NewMember in (Get-ADObject @GetObjectSplat))
-                                {
-                                    # Check if member is part of group
-                                    if ((-not $ADGroup.Member.Where({ $_ -match $NewMember.Name })) -and
-                                        (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$($ADGroup.Name)`"." @VerboseSplat))
+                                    # Remember computer objects added to group
+                                    if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
                                     {
-                                        # Add new member
-                                        Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$($ADGroup.Name)")
-
-                                        # Remember computer objects added to group
-                                        if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
-                                        {
-                                            $UpdatedObjects.Add($NewMember.Name, $true)
-                                        }
+                                        $UpdatedObjects.Add($NewMember.Name, $true)
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            #  █████╗ ██████╗ ███████╗███████╗    ███╗   ███╗███████╗ █████╗
+            # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ████╗ ████║██╔════╝██╔══██╗
+            # ███████║██║  ██║█████╗  ███████╗    ██╔████╔██║███████╗███████║
+            # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║╚██╔╝██║╚════██║██╔══██║
+            # ██║  ██║██████╔╝██║     ███████║    ██║ ╚═╝ ██║███████║██║  ██║
+            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
+
+            $Principals =
+            @(
+                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
+            )
+
+            if ($SetupADFS)
+            {
+                $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+            }
+
+            foreach($Principal in $Principals)
+            {
+                if ($Principal)
+                {
+                    # Initialize
+                    $PrincipalsAllowedToRetrieveManagedPassword = @()
+                    $PrincipalsAllowedToDelegateToAccount = @()
+
+                    # Get service account
+                    $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
+
+                    if ($MsaAdfs)
+                    {
+                        # Retrieve password
+                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
+                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                        {
+                            # Populate and strip old sids
+                            if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
+                            {
+                                $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
+                            }
+
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
+                        }
+
+                        # Delegate
+                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
+                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                        {
+                            # Populate and strip old sids
+                            if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
+                            {
+                                $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
+                            }
+
+                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                         }
                     }
                 }
@@ -2216,10 +2382,6 @@ Begin
             # Permissions
             ##############
 
-            ########
-            # Users
-            ########
-
             foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
             {
                 $Build = ($WinBuilds.GetEnumerator() | Where-Object { $GpoName -in $_.Value.UserBaseline }).Key
@@ -2266,92 +2428,6 @@ Begin
                     }
                 }
             }
-
-            #  █████╗ ██████╗ ███████╗███████╗
-            # ██╔══██╗██╔══██╗██╔════╝██╔════╝
-            # ███████║██║  ██║█████╗  ███████╗
-            # ██╔══██║██║  ██║██╔══╝  ╚════██║
-            # ██║  ██║██████╔╝██║     ███████║
-            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
-
-            $Principals =
-            @(
-                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree),
-                (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
-            )
-
-            # Setup service account
-            foreach($Principal in $Principals)
-            {
-                if ($Principal)
-                {
-                    # Initialize
-                    $PrincipalsAllowedToDelegateToAccount = @()
-                    $PrincipalsAllowedToRetrieveManagedPassword = @()
-
-                    # Get
-                    $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
-
-                    if ($MsaAdfs)
-                    {
-                        # Populate and strip old sids
-                        if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
-                        {
-                            $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({$_ -notmatch 'S-\d-\d-\d{2}-\d{10}-\d{9}-\d{10}-\d{4}'})
-                        }
-
-                        if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
-                        {
-                            $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-\d{10}-\d{9}-\d{10}-\d{4}'})
-                        }
-
-                        # Retrive password
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
-                        {
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
-                        }
-
-                        # Delegate
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
-                        {
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
-                        }
-                    }
-                }
-            }
-
-            # Check spn
-            if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
-                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
-            {
-                setspn -a host/adfs.$DomainName MsaAdfs > $null
-            }
-
-
-            # Check adfs container
-            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
-            {
-                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
-            }
-
-            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
-            $AdfsDkmGuid = [Guid]::NewGuid().Guid
-
-            # Check dkm container
-            if (-not $AdfsDkmContainer -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
-            {
-                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
-            }
-            else
-            {
-                $AdfsDkmGuid = $AdfsDkmContainer.Name
-            }
-
-            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
 
             # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
             # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
@@ -2465,9 +2541,11 @@ Begin
             Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
             #>
 
+            <#
             ##############################
             # Adfs Container Generic Read
             ##############################
+
 
             $AdfsContainerGenericRead =
             @(
@@ -2482,6 +2560,7 @@ Begin
             )
 
             Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
+            #>
 
             #################################
             # Adfs Dkm Container Permissions
@@ -2628,7 +2707,8 @@ Begin
             Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
             Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
 
-            ############################
+            #####################################################
+            # Set Domain Admins as Owner on all Computer objects
             # Remove Join Domain access
             ############################
 
@@ -3045,15 +3125,19 @@ Begin
             # ██║     ╚██████╔╝███████║   ██║
             # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
 
-            ###########
-            # Accounts
-            ###########
+            ###############
+            # Empty Groups
+            ###############
 
             $EmptyGroups =
             @(
-                'Pre-Windows 2000 Compatible Access'
-                'Schema Admins',
-                'Enterprise Admins'
+                'Account Operators',
+                'Backup Operators',
+                'Print Operators',
+                'Server Operators',
+                'Pre-Windows 2000 Compatible Access',
+                'Enterprise Admins',
+                'Schema Admins'
             )
 
             # Remove members
@@ -3085,9 +3169,34 @@ Begin
                 $Administrator | Set-ADUser -AccountNotDelegated $true
             }
 
+            ######
+            # SPN
+            ######
+
+            # MsaAdfs
+            if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
+            {
+                setspn -a host/adfs.$DomainName MsaAdfs > $null
+            }
+
             #######
             # Misc
             #######
+
+            # Join domain quota
+            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
+                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+            {
+                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
+            }
+
+            # DsHeuristics
+            if ((Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Properties dsHeuristics).dsHeuristics -ne '00000000010000000002000000011' -and
+                (ShouldProcess @WhatIfSplat -Message "Settings dsHeuristics to `"00000000010000000002000000011`"" @VerboseSplat))
+            {
+                Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Replace @{ 'dsHeuristics' = '00000000010000000002000000011' }
+            }
 
             # Protect Domain Controllers OU from accidental deletion
             if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
@@ -3101,13 +3210,6 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
             {
                 New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
-            }
-
-            # Join domain quota
-            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
-                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
-            {
-                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
             }
 
             # Register schema mmc
@@ -3296,6 +3398,7 @@ Process
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
 
+            $SetupADFS = $Using:SetupADFS
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
@@ -3389,8 +3492,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXdEl6J4obG++oUj0AB9BObuG
-# c2ygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvfQG7qJSiMXShh2a2XH55cqZ
+# c22gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3521,34 +3624,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRxHbpq
-# V2ruFtFW+kjeYn/Xh65ulzANBgkqhkiG9w0BAQEFAASCAgCVwCYof6+VgZSNE32J
-# 18N6Mm0z1io3Jc6FlkGlyCIebOqStREakulW3GbwR27HUZ6LEa42RCfM6Iu5jv6b
-# sVoHqHtUEvne0N/h4yZg6JO7/HyuCF5AN6Vie+XlXa6XnlCpj5TMCIisyQKqoWEb
-# +kJoD9eBfylX7AvFCqMgKh9tUX5ZHS/1I0nKjalut+MSlwL2yHA0EdDzLikI+BJn
-# 81OCUpkVw4JLsMAcO/XZ0Qcx5FiyG8RpFeAn4d2eYx5sqRATxIJDZAywiCc8SkBr
-# BwqFWf99kBixo+Br3z1nHzU7/bjG63XXinnoaFi49N1pnfB9Z7EKN2RmYsiV+dDw
-# DQjfy/DZdkvjE9gi6ZMyJjGWXWYn1Xg2VPsJ+c1LfvVWXe8EcrK9rLDJ3/0SJyD5
-# RkWeYcTzRG08Jx32WbpFI6SiZMu4LQlPaJqff4eieSbFOzb1NtUYEMLaX0IPSD/e
-# dVoHXaq1wMDCEqhw/Kz8ix5FDVoUxF7HHQ0nmQvAbIJaSeJy/TwgJgZYfWKAqs1C
-# /GDifhlqSvtHqpUDGNQiiNavY0qFJIoSH8rV3qa+5MKDY5JeuopgZzQKEMMpIcDo
-# LMJNYBJZ6LD9bLD1asQZatMQKaQmksxY+JM/i6OdXAcLHjQWiu7Ta+y8Wqi3DESt
-# 93gy8w7APMJe5WhCHZfUHemkj6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSoYVSc
+# YE/q6XVZAAnTqaVM6TzrdTANBgkqhkiG9w0BAQEFAASCAgBWoMjecN4x+yEjlqUY
+# ceP49FFP4+uvdwub8KEQiRHl+oMhIc4iE+QkBatkU11ondCVPcCpnxUxWiymOKCn
+# 80GSLkaAlUq46dMtULhzYRlWxHwF2ayFzMTdVzOl5OT5y7lcXW/mXVIOubiUc7X4
+# RUNgLOrt7amOehLhj+z8AJYCWnRbC59wLVR/C1igocN7j8Kzno4D552SXxcEiT/u
+# uI66pyVdgOkTaU8R1nH4js9eLTfq5OoJujEHcFIntS1TgcS4TVdntPUbPJSBU6E5
+# U4a8E082xt3duGgXBdBGlCG59sr/OEf2ndfcg3fq0aheA0rEPIjif7n9DlGgDqe+
+# G6OpEQ7dbOXtMce6/s58I0Bs6/igM10kMeh1BGEt2vwnSYvEt5xeHZmDZ3Hq86zS
+# S/GUcEflD2tjPeexUC2bdE4R5tyUgRrmAEiU0a8Jp88ZwUq177lMVtJtKRmypw6r
+# wy4UkuQJDuATv/hQphs9NoS90Vsx2WW0RXFCjAme1hBaF5KAntXemzctF9WNSUrw
+# YRelZzkDzOhL5Ah8TfZOCtsSr62GwKH7lqk+fvN/XmTGPJgsKZiyOkaWlgJoC4sz
+# DG05Lmx6PEB6d5zQpL3ku9P988KfckQDSYvM5TP4lmfJ3GZby/nos1flwM4Kcxl2
+# BZHmz8Ya32rjIpkmSvDQNgvjCaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTkxNjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCAmijIkKW2PZGAeDc3Wqb5TnCO7QbojcuyyL3/C
-# 8DVv3DANBgkqhkiG9w0BAQEFAASCAgAWj7hqUQrHKMV8Toop+UddeTCXWFklxuWS
-# YPmZ/yXKYaQ2L5isIKPwWqSDJhVgSn6VrBOFdt+Su6Vt+AN3EgGosJcnHI3menLp
-# YxWGAffR/kEdEHgnLj4RPXOLMpnx8Sashf8ckFtq5nOzRmYKA6KO8IyDTiLzOrib
-# A6JBbpA3gj2wiLsh28o0ft9bt8eR4SEdL1gyZmx7dKXGNc6uBaDxSNrANzFps61t
-# wtyTEzvBaIH9UQeOdRhq6gbPiFmOaBtuNb5NMyP/Edf6cxnf8B0KBJgFEXdKQyQy
-# 9i97aLXEJkNNRJSBcJSkqQ7aMoD+cCoBQNndO7iA/YUEGaLuaT9PpRv81VHneL+O
-# Wv+bDo51MrfLJmlGtGafaf6vebdt5KdWI49xnEwVIrgXQacCuxKFSLcqC1LAJeXg
-# lKJo/OIUpUGlEjfLXWMTDs1j4JxqK3hz+M7hhzHR+KabY7CM0xIzEza3QaFGeiB1
-# q1PwDlR/4ct47wHabrrGl2C1UwwXabBcatDdaaqdojG6yzHRITrL2HXSt3xIvJaw
-# +ax+dazD5C/7wTRYBgSqtTiV/P8oO3xgEkXl2+DIZGMSrDw6gj4hjdtHIa4zvz5b
-# w3Rk8edMDr/u3Qcjmb/1kNcqJ2uX1Runz2V0xVrg3ksil0vIb0aeapxCyAqjDC+v
-# Jeq2EWmtwg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTAwOTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAi4GPoqYIAGDZk5bmS1bSApoMZGxV27N2x8i6g
+# O1g0GjANBgkqhkiG9w0BAQEFAASCAgA71OhJ6vuJDg/gWCvYGjp2p/zerv9Whe1/
+# TvIGkQvRMH/2cCde0EyupL7oGc9UIo4r23aoZTQxqPqvSq5P2MJAJ+LYhhsq8CV+
+# 8SDY6mjhY5ijGXneJL8PE9KhV+bZR9YboR8SHz5Rj9U9hWVpC5LEuaZkX/Fv0jI1
+# qTe6BXw053TG6Ambu2FS9RhRiQ0oLqXHnm7YBRLJP1nY+51slyy9Vm2/k6BsZDPz
+# woHeWfntPthLDmthGgVO1He/Znj3JPrNdJX37uQbb40JOzsZLf62oY0i9yC/6oB+
+# S2YNkcmX9ESCItW0cjCpRJlgNB9TgiFUwr2+KdYrQTTPVdWAPGInwAzwuE4pO4iJ
+# LZQ5mTcamf+A0mIITpvjo2U0G/0bEqgto/3TAz0nABN3l4mUb/CXP99TnqDVQwa7
+# 5I3JiPd1SAW1e8lgAYh8Is412ptqr9O9/5h8KZT6CQqMHojGrgeeYIkEkVM1qEgk
+# iEdc4Eih4T1+hz6quvbmrjVMptsNHdmOa4L3iW2Jpx8sm61VMwAY+/ZaAys8mIcF
+# t6iPah4CoGN8QoGK8n7ic8qcKXjhVBa9/tUSAMjdGXiy3K7tL2Uh+cVIruTKE+BB
+# NwdW/wkETQo4oqSCyeWYTDyuMLFwqZDuaE510B2/CDIYPQ+aoYZxlo+7h4pkLAoC
+# BKDDoaErEQ==
 # SIG # End signature block

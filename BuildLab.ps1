@@ -97,13 +97,13 @@ Begin
         )
         VMs               =
         [ordered]@{
-            RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';     Switch = @();                 Credential = $Settings.Lac; }
-            DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Dac; }
-            AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
-            SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
-            ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
-            WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*x64 21H2*';                        Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
-            WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64 22H2*';  Switch = @('Lab');            Credential = $Settings.Ac2; }
+            RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @();                 Credential = $Settings.Lac; }
+            DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Dac; }
+            SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Standard x64 21H2*';            Switch = @('Lab');            Credential = $Settings.Ac0; }
+            AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
+            ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
+            WAP    = @{ Name = 'WAP01';   Domain = $true;   OSVersion = '*Standard x64 21H2*';            Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac1; }
+            WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');            Credential = $Settings.Ac2; }
         }
     }
 
@@ -202,8 +202,14 @@ Begin
 
         process
         {
-            # Wait if forced or vm in queue
-            if ($Force.IsPresent -or $Queue.ContainsKey($VMName))
+            # Fail if not running
+            if ((Get-VM -Name $VMName -ErrorAction SilentlyContinue).State -ne 'Running')
+            {
+                # Return
+                Write-Output -InputObject $false
+            }
+            # Wait if vm in queue or forced
+            elseif ($Queue.ContainsKey($VMName) -or $Force.IsPresent)
             {
                 # Enable resource metering
                 Enable-VMResourceMetering -VMName $VMName
@@ -303,12 +309,6 @@ Begin
 
                 # Return
                 Write-Output -InputObject $true
-            }
-            # Fail if no heartbeat
-            elseif (-not (Check-Heartbeat -VMName $VMName))
-            {
-                # Return
-                Write-Output -InputObject $false
             }
             # If not in queue, continue
             else
@@ -489,6 +489,9 @@ Process
         $NewVMs  = $Using:NewVMs
         $Queue = $Using:Queue
 
+        # Get functions
+        ${function:Check-Heartbeat} = $Using:CheckHeartbeat
+
         # Get latest os media
         $OSMedia = Get-Item -Path "$OsdPath\OSMedia\$($VM.OSVersion)" -ErrorAction SilentlyContinue | Select-Object -Last 1
 
@@ -524,6 +527,11 @@ Process
             if ($Result.StartedVM)
             {
                $Queue.Add($Result.StartedVM, $true)
+            }
+
+            if ($VM.Name -ne $Settings.VMs.DC.Name -and -not $Queue.ContainsKey($VM.Name) -and (Check-Heartbeat -VMName $VM.Name))
+            {
+                $Queue.Add($VM.Name, $true)
             }
         }
     }
@@ -581,14 +589,14 @@ Process
 
             # Make sure CA is up
             Wait-For @RootCA @Lac @VerboseSplat @TimeWaitedSplat -Force > $null
-
-            .\VMSetupCA.ps1 @RootCA @Lac @VerboseSplat `
-                            -Force `
-                            -StandaloneRootCA `
-                            -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
-                            -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
-                            -DomainName $Settings.DomainName > $null
         }
+
+        .\VMSetupCA.ps1 @RootCA @Lac @VerboseSplat `
+                        -Force `
+                        -StandaloneRootCA `
+                        -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
+                        -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
+                        -DomainName $Settings.DomainName > $null
     }
 
     ###################
@@ -615,13 +623,13 @@ Process
             .\VMSetupNetwork.ps1 -VMName $VM @Lac @VerboseSplat `
                                  -AdapterName Lab `
                                  -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
-
+            <#
             $Result = .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
 
             if ($Result.Renamed)
             {
                $Queue.Add($Result.Renamed, $true)
-            }
+            }#>
         }
     }
 
@@ -694,7 +702,6 @@ Process
                             -TemplatePath "$LabPath\Templates" > $null
         }
 
-        <#
         # Remove old computer objects
         $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
@@ -717,10 +724,9 @@ Process
 
             if ($Result)
             {
-                Write-Verbose -Message "Removing $VM from domain." @VerboseSplat
+                Write-Verbose -Message "Removed $VM from domain." @VerboseSplat
             }
         }
-        #>
 
         # Publish root certificate to domain
         .\VMSetupCAConfigureAD.ps1 @DC @Lac @VerboseSplat `
@@ -791,6 +797,9 @@ Process
             if ($Result.Joined)
             {
                $Queue.Add($Result.Joined, $true)
+
+                # Wait for reboot
+                Start-Sleep -Seconds 3
             }
         }
     }
@@ -804,8 +813,17 @@ Process
     {
         Write-Verbose -Message "Updating AD objects..." @VerboseSplat
 
+        $SetupADFSSplat = @{}
+
+        if ($Settings.VMs.ADFS.Name -in $NewVMs.Keys)
+        {
+            Write-Verbose -Message "Setting ADFS permissions for installation." @VerboseSplat
+
+            $SetupADFSSplat += @{ SetupADFS = $true }
+        }
+
         # Run DC setup to configure new ad objects
-        $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat `
+        $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupADFSSplat `
                                           -DomainNetworkId $Settings.DomainNetworkId `
                                           -DomainName $Settings.DomainName `
                                           -DomainNetbiosName $Settings.DomainNetBiosName `
@@ -814,25 +832,34 @@ Process
 
     if ($DcConfigResult.RestrictDomain)
     {
-        $Settings.VMs.Values | Where-Object { $_.Domain -and -not $NewVMs.ContainsKey($_.Name) } | ForEach-Object { $NewVMs.Add($_.Name, $true) }
+        $Settings.VMs.Values | Where-Object { $_.Domain -and -not $DcConfigResult.ComputersAddedToGroup.ContainsKey($_.Name) } | ForEach-Object { $DcConfigResult.ComputersAddedToGroup.Add($_.Name, $true) }
     }
 
     #########
     # Reboot
     #########
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    if ($DcConfigResult.ComputersAddedToGroup)
+    {
+        $DcConfigResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-        # Get variables
-        $VerboseSplat    = $Using:VerboseSplat
-        $Queue           = $Using:Queue
+            # Get variables
+            $VerboseSplat    = $Using:VerboseSplat
+            $Queue           = $Using:Queue
 
-        Write-Verbose -Message "Restarting $VM..." @VerboseSplat
-        Restart-VM -VMName $VM -Force
+            # Get functions
+            ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-        if (-not $Queue.ContainsKey($VM))
-        {
-            $Queue.Add($VM, $true)
+            if (Check-Heartbeat -VMName $VM)
+            {
+                Write-Verbose -Message "Restarting $VM..." @VerboseSplat
+                Restart-VM -VMName $VM -Force
+
+                if (-not $Queue.ContainsKey($VM))
+                {
+                    $Queue.Add($VM, $true)
+                }
+            }
         }
     }
 
@@ -864,7 +891,7 @@ Process
                             -EnterpriseSubordinateCA `
                             -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)" `
                             -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
-                            -CRLPublishAdditionalPaths @("\\$($Settings.VMs.AS.Name)\wwwroot$") `
+                            -PublishAdditionalPaths @("\\$($Settings.VMs.AS.Name)\wwwroot$") `
                             -PublishTemplates `
                             -CRLPeriodUnits 180 `
                             -CRLPeriod Days `
@@ -1009,8 +1036,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNdNCkvrLOC85T+GKFDbklsjl
-# s2qgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtynJxAEH/e4RO3VWEUOUm6JT
+# 2HygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1141,34 +1168,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTj0MqV
-# gVmQWVW4Bo07qKghPmoqiTANBgkqhkiG9w0BAQEFAASCAgAXivq+Tqy2w3XUiVYm
-# d/sk7E3flEFQBhM/oYB7693Uh5nELY2NFEx2l+aUDcQ6vKPYJaIx3t7NACdL/0ED
-# 7eHE51rQeA1jcBKvFmypJkPxzbFbs2LH9wh4BjKzaMkRpIYIbrDnaLljvMVURF+w
-# fc5w1NbN9Girs7jdASRjIuJnxOKdpSBpeHzwLNuGYWRYfrq7xcdmZwocKEw77PSr
-# bDyi8OQ/q8gpkH0dgcpV2okZ92UdxDudslQxsHn9qyOnp+x7UDiF5Ny/CcKn6TXR
-# D1LXANBm5PxYVDRaOrRUFIStH0kwgKE4fx67mg8+LwCWzh8pu0PbcWHrCKI2bqh+
-# CB9CMS2QQXZcRF2v0X/ncGHMsYKTm3aZIlMN5+92Wb2olMK3R5n9OM40HbsUh15S
-# 1XqN9uHHnotkMpnuqc/huwaHjDSmnPL1pjRSRx7B5mKqcD3vUMklZeOs9dCZ4qXd
-# XcT5cq8/14GCivKjFGMWqCqsVoIMk3eCxCpahGA1NccP98H0hhNjrZwIASolnE2/
-# cDdVZo1BxchovVEH8r2Sbbq+9O038w+inh6hnrNFWVGmIXxLB84Kx1t3nlxLczH1
-# onLhBkTRgJZ8715fzoAj271BPkdrE2IDEtzGCg1bbI41vZTNmqgjP4AwdvPPXvmw
-# WZJeVTl+F1NTMSC7lZyJXS6Fp6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTYOLRb
+# RPukDgQTt9rzVKcg9fod2DANBgkqhkiG9w0BAQEFAASCAgCV6sETmqPgE9RVi5Oe
+# gDBWM5Ofry7GlcF90HCHIILHwTtDXvu4gS8R6kJqzylOHaHdIGEvMEQ5JV760Ad+
+# ntPu7rkxQ2f/hSlJM/TXebQDlPDylqyoFQg0xcvcBkvfgCogO0Md46yXskdwahps
+# 9hUT1rAodLBRD0YDFS6/VNpJLyULus0QwP8M3BwjgMdSjismBxdjb78aikWD5TWb
+# tAmcNo5vA8FqfnaQ7mO0rRqGZ8pUFT4zkMUcxp2DZtUqoaEyqsTSCMc3H8XyU8PX
+# PzbWvn6T2tFuThFoHTpAkxe0hMwm3lRNW/lWQoGhgOWL0qaKochVRB4k3zKO5tiM
+# 7BxyF5SKChRcKkpXypPGMAlVr7pv8eNWxmvdCnISTLIlkoLC5bz5jOux14tgDRIt
+# B9lAcJLIQ9DPfFDvaOwBstqwS61QPtAizr4N16oZj2m/QvkTfrtZ3jEiRUK9ugCn
+# SNu9iZDmJFRFvz26ePPqmEVBA7CYo/KmJ805OOv+ghYMqel0BA+rORJS11B4gJWp
+# 2IDk1PVerAdTy9/AkDoTcS7ki1noFGTL0n1HmdGSQWuMaaLkrXvieFG9Nm7uDSP3
+# 12Gy6idXOHhqrqvVDpKx2ATCmxMnRT/PVUSQ+ri6kBqvbaiVqyU1eY4tu8EHGgvD
+# wvXs3sWslUNWfL4Nl7sl4HL/d6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MTkxOTAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCCO2cTrBFCuUO3H5G6ERTqq/hK46Yax1nHMSRE8
-# RH8O/zANBgkqhkiG9w0BAQEFAASCAgAq+fjYgI6Zm5D73yay+6z3TeSlLCpCa2r6
-# v6HN+oUxcbhqxwOBNgK7XcX+Wwzua7SY9qc/pZ6sBPlJcp068RG3j6nDt/D/j9JL
-# KQKz1ISYvH8w5p8wzazbgM7Psl/nlZVj3iBD4BmfCPVYGAsmMoG9OAFkHJJ6tNhA
-# baegnQqYTEe57oPwkuK7vdSMhn8vAmPP+5ZqOLIj+s8Ktf65jbC/fF58SHz0UPZx
-# E6qbroapBke7pdkoZUy3s4BKiEwPUfSKlhk7+Qw+ibFCZpodve3KKx+4UdGSQqrl
-# icQjtLJud6RfVWstBeF2Jlomx2kue3oFM9lephkY9hkraOpbf00Wz/P/9NmWbj/a
-# cKoZx3TXwqDUz4TopIY3JV+69vnZSqjnZONeF/62BEmkNw+dFhWcqQqmqTZoOGPo
-# EwxmEvue0/d2cmzSy0/PtAEgjAdpz7rsS5bec11jlgbNKs15MzT1lvX+EfBKZNQn
-# /KNMXxyZrKW+CSy5F7sc8ufvFe7cpeQieCKS8OX6XZqs+h69+xozbw3BqrmVKWtq
-# 6vIw+J5cJ7EmDbBZ8mwUyOfBnLz1Wsm3R+G77xmZAJCjeTZ1nXr0pWVd0ZWt62ao
-# uknSj7euWNd6FFZlNNiN9mai0+rYbEyeUYhiDcfNSDxSTF0rSt62YwbxEeS7Ni35
-# ZMlpjBZK3A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMDkxMzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBPlkWeE+qoLzfkKxfs4J60lP9X2IkW7jZsQA1S
+# 6z8KhzANBgkqhkiG9w0BAQEFAASCAgAvUl2clP09DD0TcK+0PH1QdPWXuil8oIaI
+# YZa8kl89lPu9n5KdI4fmNieUUVzUXq8pLktd8qMQYteQdYLpmxnYwgr99ieWEZFU
+# 1bNHcs6RCFid9LSsmddCAHr9bKNKvDv8sOfWU2epKyNnfBeOYyWanL0kyLl0Hn5b
+# XKJ0tJlkNoTXAf1tIEYtJH815//PQBIZiHILqKr5rufTefgiB7sOqyPjAsITdGVa
+# zqen6I5BaYk8ZrUAIwGhmW96Gvf3j+85MAhkpa0h0Qk+eDCOZHiOEMaUmnGk56EZ
+# cB3EBfStb6yTP/0R4E9JS1rOE4lz72kU+lgP/IvGmgl+7EMMG2KAn2ywPCEHVET5
+# me+xj6s2+WEraGlCpJPVPPUsDV5RmKv4QVXvqLlE0w80C0X2RfRKdfmsvTPanEu+
+# SOdxJzlyytVpKz4K+F7YTtJM9en4rvHQMFDYgGEVsa/ZdpckJA9rVEnAz3lGVkGN
+# dAvc2V6H5x/J3PihERqEUwaRvtpxBj/iC0uPyyYTaJN9dSl6JqqtySsxCVXZYNmz
+# h9uaLIU6KE1mVRuSb9fct4PJX9QSWASTMj7wH6hvbqYKRSfFdzRRT5RYbTfkbmUb
+# t8nS/J1BHSDQjhftQYFktcD056PWYw9Wa+J+AcEA2uKoZY+RZ4V7blazwlx19orA
+# Pyn54bSnhQ==
 # SIG # End signature block
