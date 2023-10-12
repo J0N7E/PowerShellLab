@@ -69,8 +69,9 @@ Param
     [Object]$RestrictDomain,
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
+    [ValidateSet($true, $false, $null)]
+    [Object]$SetupADFS,
 
-    [Switch]$SetupADFS,
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
     [Switch]$RemoveAuthenticatedUsersFromUserGpos
@@ -238,16 +239,6 @@ Begin
 
         # Set friendly netbios name
         $DomainPrefix = $DomainNetbiosName.Substring(0, 1).ToUpper() + $DomainNetbiosName.Substring(1)
-
-        # Convert switch to bool
-        if ($SetupADFS.IsPresent)
-        {
-            $SetupADFS = $true
-        }
-        else
-        {
-            $SetupADFS = $false
-        }
 
         ############
         # Fucntions
@@ -1041,38 +1032,6 @@ Begin
                 }
             }
 
-            # ███████╗███████╗████████╗██╗   ██╗██████╗      █████╗ ██████╗ ███████╗███████╗
-            # ██╔════╝██╔════╝╚══██╔══╝██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔════╝██╔════╝
-            # ███████╗█████╗     ██║   ██║   ██║██████╔╝    ███████║██║  ██║█████╗  ███████╗
-            # ╚════██║██╔══╝     ██║   ██║   ██║██╔═══╝     ██╔══██║██║  ██║██╔══╝  ╚════██║
-            # ███████║███████╗   ██║   ╚██████╔╝██║         ██║  ██║██████╔╝██║     ███████║
-            # ╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝         ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝
-
-            # Check adfs container
-            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
-            {
-                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
-            }
-
-            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
-            $AdfsDkmGuid = [Guid]::NewGuid().Guid
-
-            # Check dkm container
-            if (-not $AdfsDkmContainer -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
-            {
-                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
-                $SetupADFS = $true
-            }
-            else
-            {
-                $AdfsDkmGuid = $AdfsDkmContainer.Name
-            }
-
-            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
-
-
             #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
             # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
@@ -1454,25 +1413,6 @@ Begin
             # Adfs
             #######
 
-            $AdfsDkmMembers =
-            @(
-                @{
-                    Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                    SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                    SearchScope = 'OneLevel'
-                }
-            )
-
-            if ($SetupADFS)
-            {
-                $AdfsDkmMembers +=
-                @{
-                    Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                    SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    SearchScope = 'OneLevel'
-                }
-            }
-
             $DomainGroups +=
             @(
                 <#
@@ -1495,7 +1435,14 @@ Begin
                     Name                = 'Delegate Adfs Dkm Container Permissions'
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             = $AdfsDkmMembers
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
                 }
 
                 # Add MsaAdfs service account to "Windows Authorization Access Group" (since Authenticated Users is removed from "Pre-Windows 2000 Compatible Access")
@@ -1829,6 +1776,62 @@ Begin
                 }
             }
 
+            #  █████╗ ██████╗ ███████╗███████╗    ██████╗ ██╗  ██╗███╗   ███╗
+            # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██║ ██╔╝████╗ ████║
+            # ███████║██║  ██║█████╗  ███████╗    ██║  ██║█████╔╝ ██╔████╔██║
+            # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║  ██║██╔═██╗ ██║╚██╔╝██║
+            # ██║  ██║██████╔╝██║     ███████║    ██████╔╝██║  ██╗██║ ╚═╝ ██║
+            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝
+
+            # Check adfs container
+            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
+            {
+                # Create adfs container
+                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
+            }
+
+            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
+            $AdfsDkmGuid = [Guid]::NewGuid().Guid
+
+            # Check dkm container
+            if (-not $AdfsDkmContainer -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
+            {
+                # Create dkm container
+                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
+                $SetupADFS = $true
+            }
+            else
+            {
+                $AdfsDkmGuid = $AdfsDkmContainer.Name
+            }
+
+            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
+
+
+            # Get dkm group
+            $AdfsDkmGroup = Get-ADGroup -Identity 'Delegate Adfs Dkm Container Permissions' -Properites Member
+
+            if ($AdfsdkmGroup)
+            {
+                $AdfsDkmGroup_AdminsIsMember = $AdfsDkmGroup.Member.Where({ $_ -match 'Tier 0 - Admins' })
+
+                if ((-not $AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $true) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding `"Tier 0 - Admins`" to `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
+                {
+                    # Add to group
+                    Add-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf @('Delegate Adfs Dkm Container Permissions')
+                }
+
+                if (($AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $false) -and
+                    (ShouldProcess @WhatIfSplat -Message "Removing `"Tier 0 - Admins`" from `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
+                {
+                    # Remove from group
+                    Remove-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf 'Delegate Adfs Dkm Container Permissions' -Confirm:$false
+                }
+            }
+
             #  █████╗ ██████╗ ███████╗███████╗    ███╗   ███╗███████╗ █████╗
             # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ████╗ ████║██╔════╝██╔══██╗
             # ███████║██║  ██║█████╗  ███████╗    ██╔████╔██║███████╗███████║
@@ -1841,7 +1844,7 @@ Begin
                 (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
             )
 
-            if ($SetupADFS)
+            if ($SetupADFS -eq $true)
             {
                 $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
             }
@@ -3050,8 +3053,6 @@ Begin
 
                 if ($RestrictDomain -notlike $null)
                 {
-                    $EnforceChanged = $false
-
                     switch ($RestrictDomain)
                     {
                         $true
@@ -3061,7 +3062,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
-                                $EnforceChanged = $true
                             }
 
                             # Auth silo enforced
@@ -3069,9 +3069,9 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
-                                $EnforceChanged = $true
                             }
                         }
+
                         $false
                         {
                             # Auth policy NOT enforced
@@ -3079,7 +3079,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
-                                $EnforceChanged = $true
                             }
 
                             # Auth silo NOT enforced
@@ -3087,7 +3086,6 @@ Begin
                                 (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
                             {
                                 Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
-                                $EnforceChanged = $true
                             }
                         }
                     }
@@ -3397,8 +3395,8 @@ Process
             # Switches
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
-
             $SetupADFS = $Using:SetupADFS
+
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
@@ -3492,8 +3490,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvfQG7qJSiMXShh2a2XH55cqZ
-# c22gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgSEQXvekiR4v7/bP+Cl32zTE
+# KNOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3624,34 +3622,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSoYVSc
-# YE/q6XVZAAnTqaVM6TzrdTANBgkqhkiG9w0BAQEFAASCAgBWoMjecN4x+yEjlqUY
-# ceP49FFP4+uvdwub8KEQiRHl+oMhIc4iE+QkBatkU11ondCVPcCpnxUxWiymOKCn
-# 80GSLkaAlUq46dMtULhzYRlWxHwF2ayFzMTdVzOl5OT5y7lcXW/mXVIOubiUc7X4
-# RUNgLOrt7amOehLhj+z8AJYCWnRbC59wLVR/C1igocN7j8Kzno4D552SXxcEiT/u
-# uI66pyVdgOkTaU8R1nH4js9eLTfq5OoJujEHcFIntS1TgcS4TVdntPUbPJSBU6E5
-# U4a8E082xt3duGgXBdBGlCG59sr/OEf2ndfcg3fq0aheA0rEPIjif7n9DlGgDqe+
-# G6OpEQ7dbOXtMce6/s58I0Bs6/igM10kMeh1BGEt2vwnSYvEt5xeHZmDZ3Hq86zS
-# S/GUcEflD2tjPeexUC2bdE4R5tyUgRrmAEiU0a8Jp88ZwUq177lMVtJtKRmypw6r
-# wy4UkuQJDuATv/hQphs9NoS90Vsx2WW0RXFCjAme1hBaF5KAntXemzctF9WNSUrw
-# YRelZzkDzOhL5Ah8TfZOCtsSr62GwKH7lqk+fvN/XmTGPJgsKZiyOkaWlgJoC4sz
-# DG05Lmx6PEB6d5zQpL3ku9P988KfckQDSYvM5TP4lmfJ3GZby/nos1flwM4Kcxl2
-# BZHmz8Ya32rjIpkmSvDQNgvjCaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQeLRyu
+# cgvMtgJie4L60drkvJ2jkTANBgkqhkiG9w0BAQEFAASCAgC9HmtsUI5JIrh910sY
+# aMeeG9uGDmbGpTe2ZXuMJRzf+2ZOweKMHWmyC5N5FBBbbAprLZC+VqPrOvbhb34y
+# jqSEbYu8i5UwDRiS/rNeXxPn0b82b6bnHbmqHEnv4gpgcnljk1ZCvN/D4O4KhU2o
+# e+qjH4C/AIkl/01deH/PHML0cpsP3E2mOMrHKiLPAmFGRZt34IegRuxTTq4wssSM
+# uVHzRLZzadMwsGUwbhRnyyWjBsUk/LnDx4za9bLPxWcttMfXXNNx2TXD9Lm34GLp
+# jdOas1rothlwlDhfEt1AEiI9Wx4ujoluI1GksRNZpUIrlTwqhSd+qSOxfqFEN5+b
+# gMIJpUHLiWvYQgyGuKvnVXzQsUVmgZkAotFp/IUkJKAhLcwwWi/aY3VVfVqZhlBn
+# xTh8uRCdCdNL9k4IEfkWEOHC5V1fUpxN1QTNOFtp0+XQtguPG2FCjK8llPR+D2pP
+# VsdSpejh2uhnO/lHh2Axxsyqx0jc2wnprdzfDzK6OZnDeYSi84k0PUYF3Icau74+
+# jiTTPOTeChWnChucYjIP/Tz7bLOP0jMIJZ6q8BB/ShgI+BngTGp9YoNLq5s//TGs
+# cVm+iNQnpOh+IE87xDYOPyLcDo2/WBwaLi/UA5aGH7SOxgOMr7fnFQJ15TELNrKI
+# zSdnoNklgq63XmZSjOLcKDEQ3aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTAwOTAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCAi4GPoqYIAGDZk5bmS1bSApoMZGxV27N2x8i6g
-# O1g0GjANBgkqhkiG9w0BAQEFAASCAgA71OhJ6vuJDg/gWCvYGjp2p/zerv9Whe1/
-# TvIGkQvRMH/2cCde0EyupL7oGc9UIo4r23aoZTQxqPqvSq5P2MJAJ+LYhhsq8CV+
-# 8SDY6mjhY5ijGXneJL8PE9KhV+bZR9YboR8SHz5Rj9U9hWVpC5LEuaZkX/Fv0jI1
-# qTe6BXw053TG6Ambu2FS9RhRiQ0oLqXHnm7YBRLJP1nY+51slyy9Vm2/k6BsZDPz
-# woHeWfntPthLDmthGgVO1He/Znj3JPrNdJX37uQbb40JOzsZLf62oY0i9yC/6oB+
-# S2YNkcmX9ESCItW0cjCpRJlgNB9TgiFUwr2+KdYrQTTPVdWAPGInwAzwuE4pO4iJ
-# LZQ5mTcamf+A0mIITpvjo2U0G/0bEqgto/3TAz0nABN3l4mUb/CXP99TnqDVQwa7
-# 5I3JiPd1SAW1e8lgAYh8Is412ptqr9O9/5h8KZT6CQqMHojGrgeeYIkEkVM1qEgk
-# iEdc4Eih4T1+hz6quvbmrjVMptsNHdmOa4L3iW2Jpx8sm61VMwAY+/ZaAys8mIcF
-# t6iPah4CoGN8QoGK8n7ic8qcKXjhVBa9/tUSAMjdGXiy3K7tL2Uh+cVIruTKE+BB
-# NwdW/wkETQo4oqSCyeWYTDyuMLFwqZDuaE510B2/CDIYPQ+aoYZxlo+7h4pkLAoC
-# BKDDoaErEQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIxMTAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCDfXVghoqBrI4k6Bws6MaolQDNMs3gxSVZEpeQh
+# VDR+wzANBgkqhkiG9w0BAQEFAASCAgB/lbtOkj0JKz1KH+WvAnZbZWYtIe+AqVus
+# SrQFFgngo8OpavFhu69H6+P0X3yKgE827L18qMaOLwbeBXykvAhtPUsbHpDKrxtu
+# j4Neko1k7kytwBn9jvoWbIi/r+wCgfdHVdBLaTLheUYcdvI8tDyb9NsqKY8NQ8D1
+# AHnP4l32o07gxXr0OKNC64jQrwNoDb/Qx03FthgcQhAP00312qnXnwfKdvlwJrTC
+# UCW5RP2hqEDyCgt32JQvrY/2+UjXnyT5cAm/CuUwjZUPJ+zPWxLcMX0uQDFjx+9K
+# mVA8zjlpqihErfbD87DJXNz6EFPMVJrOLtncSTpO8LoJ6/qwo4ajGORRbwYY0gnS
+# xxbCauo8FMqICo7zeZkoqmGRJiHKeck7v8NMI9+/ZbQdewFO0AW2jrFxEVjlRfb/
+# 4qvQMEamEoBfEmS3aLJaPxmOoTgWWUhbEWOEkFE3042sfVeM99LVmw3qEo4fE632
+# a+L0Nj+oiibE1EMMtWmDzHbgP9+Z9J+TF6lixfcuadE/LnxAkQ5F8T4bPSRoO0JS
+# Slt2XeFm+tjV9z4YO0mPhgdDdPRrbhRuDm/8JgRyqDJBqFIyGKB0jXQgx6zZWLed
+# KeTFcaUdHqsOf8urZ1IQxiZNb7J+SR/vwRhFGWZDoLRwSroLfG9Z3TaBnE8l1IDu
+# KULSEvy9uQ==
 # SIG # End signature block
