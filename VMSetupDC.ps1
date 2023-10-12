@@ -1900,20 +1900,333 @@ Begin
                 if ($MsaAdfs)
                 {
                     # Check PrincipalsAllowedToRetrieveManagedPassword
-                    if ($AdminPrincipal.DistinguishedName -in $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
-                        (ShouldProcess @WhatIfSplat -Message "Deny `"$($AdminPrincipal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                    if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match 'tier0admin' }) -and
+                        (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
                     {
                         # Remove
-                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -ne $AdminPrincipal.Name } )
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -notmatch 'tier0admin' } )
                     }
 
                     # Check PrincipalsAllowedToDelegateToAccount
-                    if ($AdminPrincipal.DistinguishedName -in $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
-                        (ShouldProcess @WhatIfSplat -Message "Deny `"$($AdminPrincipal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                    if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({ $_ -match 'tier0admin' }) -and
+                        (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
                     {
                         # Remove
-                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($Msa.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -ne $AdminPrincipal.Name } )
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -notmatch 'tier0admin' } )
                     }
+                }
+            }
+
+
+            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
+            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
+            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
+            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
+            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
+            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+            # Check if AD drive is mapped
+            if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
+            {
+                Import-Module -Name ActiveDirectory
+            }
+
+            $AccessRight = @{}
+            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
+
+            $SchemaID = @{}
+            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
+
+            ########################
+            # Create Child Computer
+            ########################
+
+            $CreateChildComputer =
+            @(
+                <#
+                FIX
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
+                    InheritedObjectType   = $SchemaID['Computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
+                }
+                #>
+
+                @{
+                    ActiveDirectoryRights = 'CreateChild';
+                    InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['Computer'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['Computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+
+            ################################
+            # Install Certificate Authority
+            ################################
+
+            $InstallCertificateAuthority =
+            @(
+                @{
+                    ActiveDirectoryRights = 'GenericAll';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
+
+            $AddToGroup =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'All';
+                    ObjectType            = $SchemaID['member'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+                }
+            )
+
+            # Set R/W on member object
+            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
+            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+            ####################
+            # Deny Block SMB In
+            ####################
+
+            <#
+            $DenySmbBlock =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Apply Group Policy'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Deny';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Gpo Deny Firewall Block SMB In";
+                }
+            )
+
+            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
+            #>
+
+            <#
+            ##############################
+            # Adfs Container Generic Read
+            ##############################
+
+
+            $AdfsContainerGenericRead =
+            @(
+                @{
+                    ActiveDirectoryRights = 'GenericRead';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
+                }
+            )
+
+            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
+            #>
+
+            #################################
+            # Adfs Dkm Container Permissions
+            #################################
+
+            $AdfsDkmContainerPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+
+            ################################
+            # AdSync Basic Read Permissions
+            ################################
+
+            $AdSyncBasicReadPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['contact'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['device'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['computer'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+
+            ########################################
+            # AdSync Password Hash Sync Permissions
+            ########################################
+
+            $AdSyncPasswordHashSyncPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'None';
+                    ObjectType            = $AccessRight['Replicating Directory Changes'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+
+            ###########################################
+            # AdSync MsDs Consistency Guid Permissions
+            ###########################################
+
+            $AdSyncMsDsConsistencyGuidPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritedObjectType   = $SchemaID['user'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                }
+
+                @{
+                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                    InheritanceType       = 'Descendents';
+                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                    InheritedObjectType   = $SchemaID['group'];
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+
+            #####################################################
+            # Set Domain Admins as Owner on all Computer objects
+            # Remove Join Domain access
+            ############################
+
+            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
+            {
+                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
+                $ComputerAclChanged = $false
+
+                if ($ComputerAcl.Owner -notmatch 'Domain Admins' -and
+                    (ShouldProcess @WhatIfSplat -Message "Setting `"$DomainNetbiosName\Domain Admins`" as owner for $($Computer.Name)." @VerboseSplat))
+
+                {
+                    $ComputerAcl.SetOwner([System.Security.Principal.NTAccount] "$DomainNetbiosName\Domain Admins")
+                    $ComputerAclChanged = $true
+                }
+
+                foreach ($AccessRule in $ComputerAcl.Access)
+                {
+                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
+                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
+                    {
+                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
+                        $ComputerAclChanged = $true
+                    }
+                }
+
+                if ($ComputerAclChanged = $true)
+                {
+                    Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
                 }
             }
 
@@ -2459,317 +2772,6 @@ Begin
                 }
             }
 
-            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
-            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
-            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
-            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
-            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
-            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-            # Check if AD drive is mapped
-            if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
-            {
-                Import-Module -Name ActiveDirectory
-            }
-
-            $AccessRight = @{}
-            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
-
-            $SchemaID = @{}
-            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
-
-            ########################
-            # Create Child Computer
-            ########################
-
-            $CreateChildComputer =
-            @(
-                <#
-                FIX
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-                #>
-
-                @{
-                    ActiveDirectoryRights = 'CreateChild';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['Computer'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
-
-            ################################
-            # Install Certificate Authority
-            ################################
-
-            $InstallCertificateAuthority =
-            @(
-                @{
-                    ActiveDirectoryRights = 'GenericAll';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
-
-            $AddToGroup =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['member'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            # Set R/W on member object
-            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
-            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
-
-            ####################
-            # Deny Block SMB In
-            ####################
-
-            <#
-            $DenySmbBlock =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Apply Group Policy'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Deny';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Gpo Deny Firewall Block SMB In";
-                }
-            )
-
-            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
-            #>
-
-            <#
-            ##############################
-            # Adfs Container Generic Read
-            ##############################
-
-
-            $AdfsContainerGenericRead =
-            @(
-                @{
-                    ActiveDirectoryRights = 'GenericRead';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Container Generic Read";
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -AceList $AdfsContainerGenericRead -Owner "$DomainNetbiosName\Delegate Adfs Container Generic Read"
-            #>
-
-            #################################
-            # Adfs Dkm Container Permissions
-            #################################
-
-            $AdfsDkmContainerPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
-
-            ################################
-            # AdSync Basic Read Permissions
-            ################################
-
-            $AdSyncBasicReadPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['contact'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['device'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
-
-            ########################################
-            # AdSync Password Hash Sync Permissions
-            ########################################
-
-            $AdSyncPasswordHashSyncPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
-
-            ###########################################
-            # AdSync MsDs Consistency Guid Permissions
-            ###########################################
-
-            $AdSyncMsDsConsistencyGuidPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-
-            #####################################################
-            # Set Domain Admins as Owner on all Computer objects
-            # Remove Join Domain access
-            ############################
-
-            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
-            {
-                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
-                $ComputerAclChanged = $false
-
-                if ($ComputerAcl.Owner -notmatch 'Domain Admins' -and
-                    (ShouldProcess @WhatIfSplat -Message "Setting `"$DomainNetbiosName\Domain Admins`" as owner for $($Computer.Name)." @VerboseSplat))
-
-                {
-                    $ComputerAcl.SetOwner([System.Security.Principal.NTAccount] "$DomainNetbiosName\Domain Admins")
-                    $ComputerAclChanged = $true
-                }
-
-                foreach ($AccessRule in $ComputerAcl.Access)
-                {
-                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
-                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
-                    {
-                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
-                        $ComputerAclChanged = $true
-                    }
-                }
-
-                if ($ComputerAclChanged = $true)
-                {
-                    Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
-                }
-            }
 
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
             # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -3514,8 +3516,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgpO9gxA3rR7UXQiS3WqOpxeA
-# kTygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAxHrHWFv+d8QdqOVuLY8pNGl
+# 4imgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3646,34 +3648,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1YEAx
-# wBU2tOVZcPgHZ0PJElL3LTANBgkqhkiG9w0BAQEFAASCAgDKLvQEHR72apurCqS1
-# 852kJpXaaKpf2oB0rcymP3PKeQ+kiEP7o3wqRGqyPV/dpHQ5qObTEbSqq++ENm3O
-# T7Rk+CQsSwYk1/LZkaeAAg6bJPT4q/QC6hSsb+Ohq1fSDJ3TI2Q5x/F5+hnk4xJ4
-# B8I+xFDXeuTV5ZMzBifFVyopGtFnWXtUAG7eaTp42IWdJK4Qhcb/05FdFpdvRAsb
-# VlwdpNNWQGvmU12s2CteLOdsOWtXPyEE0c6owxnj4aSKa4anxZvHvRaKYSNO0tuj
-# modN7EYsx2yQCr0ChTK7MXzYWk2W1oLuYOSbQGTGlEaOlsDjFZ45YxNgdxLDJbHv
-# Wj+fSJHl6v5q02TA9nVdLei0moQoosAvkG1MUPAPZYQZ3ss0yMh1MRKXX5iQN46Q
-# R1rErZpW5pzPG63nAcNRvjtB95W3X9z5t7PHkBY4lWs1K5AzrEheyyTgbUurLjsl
-# +KwDSYYHCtcc3/dORNWJFxbSM7eNzOg6Fzg8E/gNHeqZlKyrGhePMfgLNhRKh6l7
-# YFh51YKbcsx5yZpAREh7K/FHIFVgH6Ev09fkE9yzG9sLBXtpN0eMqI/1dDoHeGgM
-# 0TXmJUT+dw/oyXHH8oOZdb/MVR9CQwG/JfJlf2G7t4qzBRgzqr0JK1WnqTp0X1RV
-# mEVdhrOyFALJ4Gvvtwp1+7Wig6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQrkzZa
+# KlvBoxRu6MEavzDQ8UUxLjANBgkqhkiG9w0BAQEFAASCAgC6xQhBubcHqtwK6/ni
+# EdXJXW2m2foXwTVmlCw6hcz21Rx//7uxLlJdY32PvFnYaPYqe/yx+vb0UO5FBNPc
+# 60BWR+87tJmcYnU5BYRozkCg1JeKxENMHGcnEwuwIBqIgnjN7R/SjQ8yY5eBwUQI
+# nF/wiKUyYEqAa1q8ugAwrP9U442YoFezreyXgnm7iy+iAP8QXSb9U3SMNaNDDz6E
+# m/vVbINu24TD3q2Co8d1qSRaMAUyLFoFf148WbL4MrtH76u8vjZI/arxPnlUT0kn
+# HQsr3r9I4e28jQwYFzLtDaPYHPG4e4H2NaWUg5mX5luXhT8uIx7sN/ZtkSQIowcc
+# OEFE8vQFEnM77rYAUNBORj7xk2Ken/UtOfs6ZQThCXuGH+nooxptpEAZKrJJtYIF
+# 4KaR64A+9TmBng9x031fK3FhItu6h6VMsj4RXGjFZ2oDdtT8OAU4ZbjX9edPL2kE
+# o6DMB5pplQHMwLZQP2pjm3aq+omAW5/snIQdtekGWYpLJVpRDKQnkAxiJbhioIWs
+# eNmJ7HBYPisjyz9Vhl/Z+3L9os4HIsUOGqUi3WpvyvCUoxWW0kacMak2FncdUkXx
+# UUYe0wTwQKYrZIro1G8hLmrbZ7bQ1mjG839y0/3VNciqIpp0pea5QqbXshZtOkcw
+# Zh/mZGyUO6uY8GfcTWJ2lsk3I6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIxMjAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCCMghQjSbQ7E+xY5Xmpo2U3fS7y5GlWr+1K3XZ1
-# pvUwFTANBgkqhkiG9w0BAQEFAASCAgAJiFJo5IylUJdLiiYQQtmG/67LRvPAXZ+m
-# YC8YB1z86nsIY2/smJMAp8NIom2RcHW696Ysk9LgxVDl2d1WpHVMB1j15BEcnNAc
-# sHcABJIhe4eLZmezeKHKpTQmNLXp4xQ4BYFpczDttWoXtNu21b/D1lsEcW4AbxpW
-# 4P4WnPFAiERlqFXGTKdjgTUZGL4kPKKanvJsKrSp4vkWjgOUSYsMDKp1gUp6u92A
-# NLGBoA5b0PJP/56nFFFEoOCYnj5tMqSCN4LBZQy65T1fZfGoRex7TUo5I1E4Us1S
-# P/sONzpHk4Nos+XCICDf1GfjCK/6tBecJkYxVgk3EMh2m/FnmtSSoFMw2PZYwADj
-# f2rshdpt71hcj02Kei3mWwSTxnxDfmVn2dFzYsgKxNC/zckgS0xxcYEz/7UVugXR
-# SyBxK1DJ9rbbkyHmy/9kFn7zUBctAS13gEOwGfuI2SPBm5C6vB/o0Xg5tVpsF4YS
-# fF341cg9owg87F6Hh1Q+MEOFOD7d6+neE7awVBKgwuZ5VrxVC2M8dEOQu+j1D6rM
-# JADQt0QNzul+P+XAwJ5ln96v2vF87Ts8mV99P4JkcS+8ILwdAui9zhBNJAmTwrgw
-# ZU3ZsoRrJappbnBT2nqFkhgHzd+vQVmPJ9l1GTPaqrmfbdirSvdPdaX4der0YnYu
-# 0nxrFaZqug==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIxMzAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCAb6NJu4WE1M44w67d5cCm9jJsV180CpOvHg1a0
+# b6eedTANBgkqhkiG9w0BAQEFAASCAgCXu2zVoajl/FOD6aS6mf6v1YcgxtLNdsFr
+# Yc9K7TdK5jQBtJ2HtRqGwJ+HTPztIRiHGchKHiKufA/IJon2Taxq3pjGlXQJ5gbh
+# IyL1sxLkwL+KKakSAFgTrf07MHloyeayzBixV8M1I84cWfi2gBfpp2VvldKN8Xrr
+# zrxRfSDwUfmssGsGOTZHI/0PsckidRiqZLK6rFE9HjCIGiKf/NZWz3iQwcFuGAXd
+# 8GtjYpUF/zsY+C2D2BjQ1cmGn+FDEdI/RZW0TlUWnBoyXGKSCCkS7AKUf4P8tNO7
+# Ymkjuq1MYDKu82fIqENZ/2ulNJ7yicjEGZcUd7hYa+PTaN7Kh5gALYXEkYLNZ4cH
+# ZzFAXo1FGySTibIXeF3DqrFvKAWTOS2vLo3HnvgbK5BOeDMwEckHxJDYYOPylsxg
+# jybcrNm30r0kGUL0bkpKAKOENntACOAQD+/tq2VGraRFlO1K94WIPlLD+LwYcP+0
+# ZtlJiq0+A9SduHCOx/HMYUae2f9hBnFRUuePWuYCkpmlAcK3GemCLJclajHr1fxC
+# BI41bKud3A/fl2oteuoRUl9YhtUJL4cehouZK3ahpL2NjzM6Q+idgJ3MAuvHgnLp
+# 2vY0tSKU5eVOeI6gfoz6YG9r1xzo4N2VYfSB8CwziTtyPFY89NSB/E5siYyzY5tM
+# Vh/PqQD/oQ==
 # SIG # End signature block
