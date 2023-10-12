@@ -1659,7 +1659,7 @@ Begin
                 }
 
                 # Get group
-                $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Member
+                $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Members
 
                 # Check if group exist
                 if (-not $ADGroup -and
@@ -1725,10 +1725,10 @@ Begin
                         foreach($OtherName in $Group.MemberOf)
                         {
                             # Get other group
-                            $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Member
+                            $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Members
 
                             # Check if member of other group
-                            if (($OtherGroup -and -not $OtherGroup.Member.Where({ $_ -match $ADGroup.Name })) -and
+                            if (($OtherGroup -and -not $OtherGroup.Members.Where({ $_ -match $ADGroup.Name })) -and
                                 (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$OtherName`"." @VerboseSplat))
                             {
                                 # Add group to other group
@@ -1758,7 +1758,7 @@ Begin
                             foreach($NewMember in (Get-ADObject @GetObjectSplat))
                             {
                                 # Check if member is part of group
-                                if ((-not $ADGroup.Member.Where({ $_ -match $NewMember.Name })) -and
+                                if ((-not $ADGroup.Members.Where({ $_ -match $NewMember.Name })) -and
                                     (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
                                 {
                                     # Add new member
@@ -1809,13 +1809,12 @@ Begin
 
             $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
 
-
             # Get dkm group
-            $AdfsDkmGroup = Get-ADGroup -Identity 'Delegate Adfs Dkm Container Permissions' -Properites Member
+            $AdfsDkmGroup = Get-ADGroup -Identity 'Delegate Adfs Dkm Container Permissions' -Properties Members
 
             if ($AdfsdkmGroup)
             {
-                $AdfsDkmGroup_AdminsIsMember = $AdfsDkmGroup.Member.Where({ $_ -match 'Tier 0 - Admins' })
+                $AdfsDkmGroup_AdminsIsMember = $AdfsDkmGroup.Members.Where({ $_ -match 'Tier 0 - Admins' })
 
                 if ((-not $AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $true) -and
                     (ShouldProcess @WhatIfSplat -Message "Adding `"Tier 0 - Admins`" to `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
@@ -1844,7 +1843,7 @@ Begin
                 (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
             )
 
-            if ($SetupADFS -eq $true)
+            if ($SetupAdfs -eq $true)
             {
                 $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
             }
@@ -1862,7 +1861,7 @@ Begin
 
                     if ($MsaAdfs)
                     {
-                        # Retrieve password
+                        # Check PrincipalsAllowedToRetrieveManagedPassword
                         if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
                             (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
                         {
@@ -1872,10 +1871,11 @@ Begin
                                 $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
                             }
 
+                            # Add
                             Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
                         }
 
-                        # Delegate
+                        # Check PrincipalsAllowedToDelegateToAccount
                         if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
                             (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
                         {
@@ -1885,11 +1885,38 @@ Begin
                                 $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
                             }
 
+                            # Add
                             Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                         }
                     }
                 }
             }
+
+            if ($SetupAdfs -eq $false)
+            {
+                # Get service account
+                $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
+
+                if ($MsaAdfs)
+                {
+                    # Check PrincipalsAllowedToRetrieveManagedPassword
+                    if ($AdminPrincipal.DistinguishedName -in $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
+                        (ShouldProcess @WhatIfSplat -Message "Deny `"$($AdminPrincipal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                    {
+                        # Remove
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($Msa.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -ne $AdminPrincipal.Name } )
+                    }
+
+                    # Check PrincipalsAllowedToDelegateToAccount
+                    if ($AdminPrincipal.DistinguishedName -in $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
+                        (ShouldProcess @WhatIfSplat -Message "Deny `"$($AdminPrincipal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                    {
+                        # Remove
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($Msa.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -ne $AdminPrincipal.Name } )
+                    }
+                }
+            }
+
 
             #  ██████╗ ██████╗  ██████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗
@@ -3051,42 +3078,39 @@ Begin
                 # Restrict/Unrestrict
                 ######################
 
-                if ($RestrictDomain -notlike $null)
+                switch ($RestrictDomain)
                 {
-                    switch ($RestrictDomain)
+                    $true
                     {
-                        $true
+                        # Auth policy enforced
+                        if ($AuthPolicy.Enforce -ne $true -and
+                            (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
                         {
-                            # Auth policy enforced
-                            if ($AuthPolicy.Enforce -ne $true -and
-                                (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
-                            {
-                                Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
-                            }
-
-                            # Auth silo enforced
-                            if ($AuthSilo.Enforce -ne $true -and
-                                (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
-                            {
-                                Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
-                            }
+                            Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
                         }
 
-                        $false
+                        # Auth silo enforced
+                        if ($AuthSilo.Enforce -ne $true -and
+                            (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
                         {
-                            # Auth policy NOT enforced
-                            if ($AuthPolicy.Enforce -eq $true -and
-                                (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
-                            {
-                                Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
-                            }
+                            Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
+                        }
+                    }
 
-                            # Auth silo NOT enforced
-                            if ($AuthSilo.Enforce -eq $true -and
-                                (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
-                            {
-                                Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
-                            }
+                    $false
+                    {
+                        # Auth policy NOT enforced
+                        if ($AuthPolicy.Enforce -eq $true -and
+                            (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
+                        {
+                            Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
+                        }
+
+                        # Auth silo NOT enforced
+                        if ($AuthSilo.Enforce -eq $true -and
+                            (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
+                        {
+                            Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
                         }
                     }
                 }
@@ -3490,8 +3514,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgSEQXvekiR4v7/bP+Cl32zTE
-# KNOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgpO9gxA3rR7UXQiS3WqOpxeA
+# kTygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3622,34 +3646,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQeLRyu
-# cgvMtgJie4L60drkvJ2jkTANBgkqhkiG9w0BAQEFAASCAgC9HmtsUI5JIrh910sY
-# aMeeG9uGDmbGpTe2ZXuMJRzf+2ZOweKMHWmyC5N5FBBbbAprLZC+VqPrOvbhb34y
-# jqSEbYu8i5UwDRiS/rNeXxPn0b82b6bnHbmqHEnv4gpgcnljk1ZCvN/D4O4KhU2o
-# e+qjH4C/AIkl/01deH/PHML0cpsP3E2mOMrHKiLPAmFGRZt34IegRuxTTq4wssSM
-# uVHzRLZzadMwsGUwbhRnyyWjBsUk/LnDx4za9bLPxWcttMfXXNNx2TXD9Lm34GLp
-# jdOas1rothlwlDhfEt1AEiI9Wx4ujoluI1GksRNZpUIrlTwqhSd+qSOxfqFEN5+b
-# gMIJpUHLiWvYQgyGuKvnVXzQsUVmgZkAotFp/IUkJKAhLcwwWi/aY3VVfVqZhlBn
-# xTh8uRCdCdNL9k4IEfkWEOHC5V1fUpxN1QTNOFtp0+XQtguPG2FCjK8llPR+D2pP
-# VsdSpejh2uhnO/lHh2Axxsyqx0jc2wnprdzfDzK6OZnDeYSi84k0PUYF3Icau74+
-# jiTTPOTeChWnChucYjIP/Tz7bLOP0jMIJZ6q8BB/ShgI+BngTGp9YoNLq5s//TGs
-# cVm+iNQnpOh+IE87xDYOPyLcDo2/WBwaLi/UA5aGH7SOxgOMr7fnFQJ15TELNrKI
-# zSdnoNklgq63XmZSjOLcKDEQ3aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1YEAx
+# wBU2tOVZcPgHZ0PJElL3LTANBgkqhkiG9w0BAQEFAASCAgDKLvQEHR72apurCqS1
+# 852kJpXaaKpf2oB0rcymP3PKeQ+kiEP7o3wqRGqyPV/dpHQ5qObTEbSqq++ENm3O
+# T7Rk+CQsSwYk1/LZkaeAAg6bJPT4q/QC6hSsb+Ohq1fSDJ3TI2Q5x/F5+hnk4xJ4
+# B8I+xFDXeuTV5ZMzBifFVyopGtFnWXtUAG7eaTp42IWdJK4Qhcb/05FdFpdvRAsb
+# VlwdpNNWQGvmU12s2CteLOdsOWtXPyEE0c6owxnj4aSKa4anxZvHvRaKYSNO0tuj
+# modN7EYsx2yQCr0ChTK7MXzYWk2W1oLuYOSbQGTGlEaOlsDjFZ45YxNgdxLDJbHv
+# Wj+fSJHl6v5q02TA9nVdLei0moQoosAvkG1MUPAPZYQZ3ss0yMh1MRKXX5iQN46Q
+# R1rErZpW5pzPG63nAcNRvjtB95W3X9z5t7PHkBY4lWs1K5AzrEheyyTgbUurLjsl
+# +KwDSYYHCtcc3/dORNWJFxbSM7eNzOg6Fzg8E/gNHeqZlKyrGhePMfgLNhRKh6l7
+# YFh51YKbcsx5yZpAREh7K/FHIFVgH6Ev09fkE9yzG9sLBXtpN0eMqI/1dDoHeGgM
+# 0TXmJUT+dw/oyXHH8oOZdb/MVR9CQwG/JfJlf2G7t4qzBRgzqr0JK1WnqTp0X1RV
+# mEVdhrOyFALJ4Gvvtwp1+7Wig6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIxMTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCDfXVghoqBrI4k6Bws6MaolQDNMs3gxSVZEpeQh
-# VDR+wzANBgkqhkiG9w0BAQEFAASCAgB/lbtOkj0JKz1KH+WvAnZbZWYtIe+AqVus
-# SrQFFgngo8OpavFhu69H6+P0X3yKgE827L18qMaOLwbeBXykvAhtPUsbHpDKrxtu
-# j4Neko1k7kytwBn9jvoWbIi/r+wCgfdHVdBLaTLheUYcdvI8tDyb9NsqKY8NQ8D1
-# AHnP4l32o07gxXr0OKNC64jQrwNoDb/Qx03FthgcQhAP00312qnXnwfKdvlwJrTC
-# UCW5RP2hqEDyCgt32JQvrY/2+UjXnyT5cAm/CuUwjZUPJ+zPWxLcMX0uQDFjx+9K
-# mVA8zjlpqihErfbD87DJXNz6EFPMVJrOLtncSTpO8LoJ6/qwo4ajGORRbwYY0gnS
-# xxbCauo8FMqICo7zeZkoqmGRJiHKeck7v8NMI9+/ZbQdewFO0AW2jrFxEVjlRfb/
-# 4qvQMEamEoBfEmS3aLJaPxmOoTgWWUhbEWOEkFE3042sfVeM99LVmw3qEo4fE632
-# a+L0Nj+oiibE1EMMtWmDzHbgP9+Z9J+TF6lixfcuadE/LnxAkQ5F8T4bPSRoO0JS
-# Slt2XeFm+tjV9z4YO0mPhgdDdPRrbhRuDm/8JgRyqDJBqFIyGKB0jXQgx6zZWLed
-# KeTFcaUdHqsOf8urZ1IQxiZNb7J+SR/vwRhFGWZDoLRwSroLfG9Z3TaBnE8l1IDu
-# KULSEvy9uQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIxMjAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCCMghQjSbQ7E+xY5Xmpo2U3fS7y5GlWr+1K3XZ1
+# pvUwFTANBgkqhkiG9w0BAQEFAASCAgAJiFJo5IylUJdLiiYQQtmG/67LRvPAXZ+m
+# YC8YB1z86nsIY2/smJMAp8NIom2RcHW696Ysk9LgxVDl2d1WpHVMB1j15BEcnNAc
+# sHcABJIhe4eLZmezeKHKpTQmNLXp4xQ4BYFpczDttWoXtNu21b/D1lsEcW4AbxpW
+# 4P4WnPFAiERlqFXGTKdjgTUZGL4kPKKanvJsKrSp4vkWjgOUSYsMDKp1gUp6u92A
+# NLGBoA5b0PJP/56nFFFEoOCYnj5tMqSCN4LBZQy65T1fZfGoRex7TUo5I1E4Us1S
+# P/sONzpHk4Nos+XCICDf1GfjCK/6tBecJkYxVgk3EMh2m/FnmtSSoFMw2PZYwADj
+# f2rshdpt71hcj02Kei3mWwSTxnxDfmVn2dFzYsgKxNC/zckgS0xxcYEz/7UVugXR
+# SyBxK1DJ9rbbkyHmy/9kFn7zUBctAS13gEOwGfuI2SPBm5C6vB/o0Xg5tVpsF4YS
+# fF341cg9owg87F6Hh1Q+MEOFOD7d6+neE7awVBKgwuZ5VrxVC2M8dEOQu+j1D6rM
+# JADQt0QNzul+P+XAwJ5ln96v2vF87Ts8mV99P4JkcS+8ILwdAui9zhBNJAmTwrgw
+# ZU3ZsoRrJappbnBT2nqFkhgHzd+vQVmPJ9l1GTPaqrmfbdirSvdPdaX4der0YnYu
+# 0nxrFaZqug==
 # SIG # End signature block
