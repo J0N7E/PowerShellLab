@@ -234,7 +234,7 @@ Begin
         $Result = @()
         $UpdatedObjects = @{}
 
-        # Get base DN
+        # Get domain distinguished name
         $BaseDN = Get-BaseDn -DomainName $DomainName
 
         # Set friendly netbios name
@@ -1242,7 +1242,7 @@ Begin
                 @{
                     Name                = 'Adfs'
                     Description         = 'Members can retrieve the managed password for MsaAdfs'
-                    Scope               = 'Global'
+                    Scope               = 'DomainLocal'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
@@ -1257,7 +1257,7 @@ Begin
                 @{
                     Name                = 'Ndes'
                     Description         = 'Members can retrieve the managed password for MsaNdes'
-                    Scope               = 'Global'
+                    Scope               = 'DomainLocal'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
@@ -1272,7 +1272,7 @@ Begin
                 @{
                     Name                = 'CertSrv'
                     Description         = 'Members can retrieve the managed password for MsaCertSrv'
-                    Scope               = 'Global'
+                    Scope               = 'DomainLocal'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
@@ -1287,7 +1287,7 @@ Begin
                 @{
                     Name                = 'AzADSyncSrv'
                     Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
-                    Scope               = 'Global'
+                    Scope               = 'DomainLocal'
                     Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
@@ -1845,7 +1845,8 @@ Begin
 
             if ($SetupAdfs -eq $true)
             {
-                $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+                #$Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+                $Principals += (Get-ADGroup -Filter "Name -eq 'Tier 0 - Admins'" -SearchBase "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
             }
 
             foreach($Principal in $Principals)
@@ -3495,8 +3496,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/bY2evfO9BqEl13p2KbtL/eS
-# 0s6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIVJJQ0tVASn1t5xHJ2qr7quH
+# BpegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3627,34 +3628,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQZy2WO
-# PqL1Dte6CnjX6XlZlbdnnzANBgkqhkiG9w0BAQEFAASCAgALm3FQOjaRnvVMwXL4
-# aUVr5OkwtkiW+5vurX46T+EaXIkg3Cx17hRQtNgK/cKC1NoA2cSBIY18wKyDfyIu
-# jYHqhlRj4N5tILAj8XxXaHGoUA8e3agCuYaQRGLi8uccStTwV7MpGQpJyCdLImuc
-# WsLSSFKcZGE/LUB1oB/mXUbY5gJyoSbCghtRT+Q0SJL99nOCbHRsLxjvD+yhvGH9
-# hysbkf+YlwVR0odZ8TfXgkiM1VPfiJwskGIVuqteSRPxVHy8sb+YhIpQBkLTeri4
-# jqZQIQYfVOaa8mmbD1FhOkuEtS1+zvXHQ9568JqGuiCckJeMAPNhJvqkM3PXewWj
-# DeGo16UWBzKvT4XYmgDnV1707fCKkxnNe+G580GSsZLv2ommmc88X4S0zopJO3F7
-# 95qasD7/+51FnU5z4zwmJ6nma3+rrYEuOltHYdzImQsB9bRF9XlxXrdHquFqFolx
-# h7ZaVsdvgIdlVUcLSl0ES+HhF0HQl9xpgsujfGlK44Lr6yfi9bjVC2827QqjQ3uj
-# DyAYvlEvM5wP3qRElCAdBhboSqHqCo3qnDudnP0Eg0BS2OCAbTWQSXUl0i9izA7k
-# Jb6URELQLep3EW3q0r84FrLYFJc6opApArbp8u0E6JIUqdA1aGeUFPixv/aqFvdY
-# 6NmgaGsstqxzAoZN2DA0SDwTHKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ63VIr
+# pvd+GWPyyF15BrsTKE9UajANBgkqhkiG9w0BAQEFAASCAgBfmnnUeUmMeKDvliZI
+# 7yiviQAhsIab/K4oyElQt/fWRxpoekcNivgaM3m+VUwWFcFfFrGTIQlbyupn5Wj9
+# rvTUfDuyDSmX8IGe4SX3Rr3CFkHNRYjhjQVIDkl8K36jHQE2dxh3tWfgMAYjZIGx
+# GsJJA+vopF8uVq2HILFoaY2UDx2Wg6TNkKFVDQN2FrngOoSA4TZcD6OEKaSCioVd
+# P+MbIlpD8aAzVV31vwidt8q5DZ33usgoeqNx5i6GF/3w+VsHNaBRj9FDn77YAbKM
+# Q9krQXrHmu2zM0xgKPqivxRBgOs+yQz4w/94nJCmlfQbFR8BcnUVZhHqPKMP/pt+
+# A7e/Ae+rGr0KGmZl1uEeXjHu0+WaUusRFYJ0lgPx2W2SfA6HjaxvOC+vUWs4UBz9
+# uN3YUCbU1y4KIDAi6+EQ3T+oSTvCKwNekHxTa+Sx+Tm3librA3+ti5eYDGpnwdB3
+# Idx/KhtnGy/Ih4PqhV/oT+aJuScnsL9ihGD0FDWCr8nxv8kVepWwjt8xS3KkDoHE
+# iVCCILAeHciQsJkl37+y1qi/pmewz8fP7abtionma0UG+YmJEIgK8zufVCsvJQuF
+# p8zZMFriy7FFquJFPVKprvguCqCZce4ChDpYKxe9zUz00GhMtkIEgQy43Oqf6a/t
+# 0tEH7QzmMCjfJuMj/Ewx2hpg0KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIyMDAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCDr80uP5ulAAg3ddvwAzD95pkq2JPGxLiw9GC6M
-# MC22fDANBgkqhkiG9w0BAQEFAASCAgAcXOZb5iM7nHthXIdtg5WStHjesC+NL2v0
-# MpYC86IF4o+WCF7JEB6+g2Cd12TyXrkFgSTxEQagHM8b3Gw7YplkCsELUhWTRboj
-# AreN86dGyAMGhOdj1LGwTttGsS6aCpvlBCHImD3C88jQyF8m3ujDaeKkb8JKx4En
-# Mk3FL9fc/STL76lXLPeoArGfDOsIiIjxOFrjZusEjsOa1BoKRvyl00nGnrAmYJdr
-# YfRAQ+hMiBheupkF/6oEDr09bcZnCjh3gBKtDSXkNf0hwfrPMO0xtFzAUP1vno9U
-# vDDMAr4OaDngugL+WrRFaneyXvdtNxt9Zwwo35mYQdxzH3JS0g7YisjZPkdzfiKO
-# X0TVT8DWO0JGMwYlu9Y8DEcjRQ0qBWTXSpNLHqDGhIW19oPMQJS/wHAt+9QddKSt
-# bN7DtEoHmBZ7IIMtZyv9n6oXqw3YLmDyW1U9OvnuKSYfBmrRKt+/g8rf6JyYHh0x
-# LBzjSjgx+ebOTW8wrSrH/DqXiiI3Zk58nJBBq+DlBBMKA1d0TjSGZSSK3UXYLZh5
-# VwgAQivdG4tZGuiYE311GOUPpfcnt54PTTUgi8iKMvyf5MTVim4g6BBZy3gi2XbL
-# TnkF4uvIyRFAp35WbIOty9bJYrbBUpQYBrQ628V44WWWRMSQnLo/ZwB8pXawKyql
-# waqRzNd+Nw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIyMTAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCAUE3oiNYvpKWFglHpCQCEg+/S0opBcNZTO6LxI
+# kRWQwzANBgkqhkiG9w0BAQEFAASCAgAWXn4v+8TMUkwSQXVx3q1sYJ+n8g0t2+mX
+# uXkKR4jfVTTtKpSpFKBPv5NQQsFkUYTiCVwDxLWDinMdYl8n2WIClmL6L0mQyFeo
+# tLAvYlaHvswuCYT+V53X8NJXuz2H5T77LHcV+9AYSKYToC70KlWeDKqoSgK/r4Lo
+# ZO7bYwLlt7f4j3MjH7mfd/9Mp/pXosYbGIsSHRpE22z8hruu+9H++387fDzdkbXH
+# bwudDuT5CWRMFYdEZYuVfhNKMk+rp56yi+gqrwWYhHnZ4B+5ugUurRQXrrHTIVqb
+# 74ZKPRZcwZPPHYdqvV2+Q152T9S3Okt18xke1Tp1FnEGOosy2XoAf8FDF/ypzcI0
+# IHU1079wBHv5cHZbf3nEpj3/60Sie8g4Q/XURjR6gvoVPljueR37WXtBjiVWeo0C
+# nsWWNbyac5+0XOTT8PrJib4IE3kLrn4cRSMntS3a+2MY0CvxK+j/1GOX+/hyfInZ
+# jMIqorFugmiHtTR3MuGVsJainMYIR6eqRi+sL/5Y/JsjnyPbKPKKFslR26rrHWLL
+# X/NWVxPl49rPyN9+5xHY+eO7MoirD3xPMasNGqxx2inf4R90wiem5TdpkqBODo1W
+# //cxij0+Y5Vf+s/jzNxrj3duT4Ho7M/oUjZ0Ww/mCGF+iQnbwo3V/N3Fb8gE7Ij5
+# yoNlxkzP+w==
 # SIG # End signature block
