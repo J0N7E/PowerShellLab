@@ -116,7 +116,8 @@ function Setup-VMs
         [switch]$Wait,
         [switch]$NoExit,
         [switch]$Create,
-        [switch]$Network
+        [switch]$Network,
+        [switch]$JoinDomain
     )
 
     # Check parameters
@@ -159,7 +160,7 @@ function Setup-VMs
                     $VMAdapters = " -VMAdapters $(Serialize $VM.Value.Switch)"
                 }
 
-                Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
+                Start-Process $PowerShell @WaitSplat -ArgumentList `
                 @(
                     "$NoExitStr-File $LabPath\LabNewVM.ps1 -Verbose$VMAdapters",
                     "-LabFolder `"$HvDrive`"",
@@ -169,17 +170,27 @@ function Setup-VMs
                 )
             }
         }
-        elseif ($Network.IsPresent)
+        elseif ($VM.Value.Name -ne $Settings.VMs.DC.Name -and (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
         {
-            if ($VM.Value.Name -ne $Settings.VMs.DC.Name -and (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+            if ($Network.IsPresent)
             {
-                Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
+                Start-Process $PowerShell @WaitSplat -ArgumentList `
                 @(
                     "$NoExitStr-File $LabPath\VMSetupNetwork.ps1 $Lac -Verbose",
                     "-VMName $($VM.Value.Name)",
                     "-AdapterName Lab",
                     "-DNSServerAddresses $(Serialize @(`"$($Settings.DomainNetworkId).10`"))"
                 )
+            }
+            elseif ($JoinDomain.IsPresent)
+            {
+                Start-Process $PowerShell @WaitSplat -ArgumentList `
+                @(
+                    "$NoExitStr-File $LabPath\VMRename.ps1 $Lac -Verbose",
+                    "-VMName $($VM.Value.Name)",
+                    "-JoinDomain $($Settings.DomainName) -Restart",
+                    "-DomainCredential $(Serialize $Settings.Jc)"
+                )                
             }
         }
     }
@@ -466,46 +477,14 @@ Start-Process $PowerShell -ArgumentList `
     )
 #>
 
-########################
-# Renew lease
-# Join domain -> Reboot
-########################
+##############
+# Join domain 
+##############
 
 Setup-VMs -JoinDomain
 
-
-
-
-
-
-############
-# Sub CA/AS
-############
-
-# Domain join and rename Sub CA
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRename.ps1 $SubCA $Lac -Verbose",
-    "-JoinDomain $($Settings.DomainName)",
-    "-DomainCredential $(Serialize $Settings.Jc)"
-)
-
-# Domain join and rename AS
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRename.ps1 $AS $Lac -Verbose",
-    "-JoinDomain $($Settings.DomainName)",
-    "-DomainCredential $(Serialize $Settings.Jc)"
-)
-
-# Rerun DC setup step 1 to configure Sub CA in AD
+# Rerun DC setup step 1 to configure AD
 Setup-DC
-
-# Restart Sub CA
-Invoke-Command -VMName $Settings.VMs.SubCA.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
-
-# Restart AS
-Invoke-Command -VMName $Settings.VMs.AS.Name -Credential $Settings.Lac -ScriptBlock { Restart-Computer -Force }
 
 #########
 # AS
@@ -624,19 +603,6 @@ Start-Process $PowerShell -ArgumentList `
 
 
 ######
-# WIN
-######
-
-# Domain join and rename workstation
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRename.ps1 $Win $Lac -Verbose",
-    "-JoinDomain $($Settings.DomainName)",
-    "-DomainCredential $(Serialize $Settings.Jc)",
-    "-Restart"
-)
-
-######
 # WAP
 ######
 
@@ -675,8 +641,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfCcb0bUD5v1TpbAHMwxq+0W8
-# xGigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9pDzDhtUvASKIx3tKDLColxn
+# z7qgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -807,34 +773,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRgk8HV
-# Gk+YbeUFk6dD8HVeDfP02DANBgkqhkiG9w0BAQEFAASCAgAxw4dlLjXLJfklMqmF
-# dofMy7z4/si8bL4k+LiLL4+yLIWD8qSrcU2H2NVVq2QUnEVabz6ROHabeiMwdtJV
-# Boo9+ZHNUrRDEVfkdT2Aw1pH8GeCQvOomDtsetaE1PEFGlhh/YCAYhpBuTfwSCFy
-# JpeHQFGPkkdVOupd7rjj2crPbBdEAarwP3KZVz7ziGjmiQ34ggqhCNthAHDMYnKW
-# 9Xkye/H4PNKrqx9dCFUpSSS4oWzk34KmDwuU+eOvYmIFMljJ3bDD2unAjtK6Q6pP
-# XjQpdphGYyLyeX55qwUOrcXo8XPiTiQpqbyCW2iWg00veTGoJLym0qjjGO8rMm1c
-# PeNhWkjvVnfsN4Ul8EC47u4W+3tSlnpq/3y2z7QZedIFSXgag4tsE91Jju2VbKrP
-# UyuuneoD1tkINW/WhKLTdRsmurs7ICjRHWLMIP7sgntBdCpD4tSUM67ZKtCW3Rhw
-# kUVgAsIk1xZ8t0E2CJaHCa3rnWSLouvrv5vRup6tTnK03NpMQMBxDfwEXAKHMPt7
-# I7TTM7p/XWLyNB2YEikyIUx1HqCULj/RhokjhVSuH3NKYw0WsePFyinDtURr1VV1
-# bHw77QCd4UF//Kg144IFY5NJhinhgslPX5eti70KvdITnNenRqk4Wl5tNNx5Olc6
-# 4ZLI1fydUeR9grIEE2bRCsYFn6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ3iEUv
+# uK1Ms8ey2dyu5fQdpvyTbjANBgkqhkiG9w0BAQEFAASCAgBYYOJFg0wbITd4IRdJ
+# vrLjumU637lHpcDvroN1ncvADkWPIOifeCQeo+1FgJsl4vgoCjd97fedcXWzzNfL
+# +y/OFNH3SFT0CT73VbKFPXjE/lRtoUNcSKXnj44JT0a4Zjn7yUvseHqddz0Lc853
+# cR96xvnGFFuaNuR52OeX9yjVkiMT2b0KIESjIR1ydL57dqp9km1pgkckXJF5acxx
+# pSOiKzU9Ptq7vjI2FU7Zz4bUiZnfhJtFpAA4LQQlaQCWpxcuLptQr9/kTnYxfn5f
+# 2SCb1tkPLfVrfoCDH8JKYsahd4p5KuYlWTIZACnLf18uglksY2N8P4J/ujbjMEAq
+# r5/KiGJZeYYfIEBBec9lWZ7DOGcATFtrb3HJ7OVv5N9z9iLa1FxN1ac+euDNXSeh
+# wIxWpz/s+1pxacHouluugWUKpS3xUVg6uGGs7ssgJKHC1M5Hqe4c0fDSLX2qYpYr
+# kNFfek+fevg58AIeF4o87USss8Rrv/L0ArS3ILrR215n9tSSKAcxC/oGpohoQcVs
+# AoHetPafAd7AwHUue7ufwahpN49ermN5C9R8EhGp0M1sIX5Iinm+d0tG/o72vcbG
+# ts8OxPyPB214ynaoHpH2ss2xmNw4sexTy3CQtowsUKx2LDrLDHacfElvgUQnbOID
+# b8rxfg//ZwumR14baLTkG6yEO6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjcxMDAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCBCamEa/JLREc3L4Gftrz0y5zjaTPE6xBBVb7PT
-# Xn5eATANBgkqhkiG9w0BAQEFAASCAgAeV1uOKkRQNkolSt3vl5f8v8vf124bGhgJ
-# bO38/vLaVFggRc9RSkGSEl/Wg1ras4CfM4xjIoD45IXklGOz3+xXWtS/sEwoXzW2
-# 85ag+OJsELrkb7mxUMtql78mTn6mcA8aDANHzyY7TtklvX2G7DSxs97NASB7HjtN
-# 0rHCC+D+hlmZSdNKAosGzPqq/euwk6mQck/zo1MRfzWaCXuYnhv+MeE3DXbKH7Ic
-# BaRz2opj8xGDS6jxzZty955S24fID4uPArrVKolHKCRJj2DBflplNtjz1+/8VMrF
-# qQ6ZESraY6CEQwlIkSP4qbUVh+NF3GSRmcgNF+iKK1DpqSHCYWN6HaA0gcJG+zmN
-# aIX87R9vl2W9nL+7mq+2M5C6vwUwniDDfpCsz4ybvnIwtsoEnVrZK9vID5Ewz2gP
-# UvBscDO+YrepZGtVIH3LpHGGVIE1WYjRMfev2VzqSFR/cZ04CVwYG/oQhAtYlSpU
-# u+dFvTtixNa6MBc0W35VoKNg6TRee514oA/1m8h7oeFxLzpjgPgxvZnSWaVyj/t1
-# ZVuSaIzxcBIsTuOBBfe44fhWeWYiIsnzsC7mj7KZO0mFbI6v9EAWiwnuJHtXzvbT
-# C9be4At6/vORIpwz1Sx4bkAqM100UbeDsGFVGkNei4cq/hF+DztvJPEBTAFS3tw9
-# c8sHYqJn2Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjcxNTAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCCCfp1Pa7BOqTiJl8EfpYGtKxDsR9V6vQWqRBwf
+# Tuat7zANBgkqhkiG9w0BAQEFAASCAgBnaSK5gGTd8YmdA5xOpFCp50XDwJbJ8Zkf
+# rTKhD+CVHzAvG8TOpv5JkjLnAmaDmwnQ07jtJcyIAlbKgdjT0Wo+EjBhm5BsajUB
+# 8rBDcGmyjavul114w6VMw2k91E4L0xgXibxhmrjFRrsiWEaR7dGniwHpoODTJID5
+# fhCo3O5MTZy1oOq4sj2NehtauS7nQMO4t0ntzGtuCVQAiViGigJsQdvTti3VH59N
+# 1sueO0BwXmWGlhdd/J5jREFOlscU5aZM39ln292U6u6uElXcHgpiOWD7zwqfplfm
+# g/7ZemIxTRnauK1u5/mBxZ/IPRzFsnnxFj7zzLrYJpMOx86MTElxjvAtm1I9SvWi
+# pi0F3A4IXb4BDvGDjMRNi/8rbT3WmjVHH7g0acv0S3ItxP8WFyBBOkr3yZBOowBX
+# tGMuKc4EXTPS2SQyW6PFv814mD/iXSYNZEbIuZgdBfL6E1wz/SjTLgH3wrYnvv4R
+# FZDxPbMJlvG6SreWCZRbqrirCFz6wyBoFaGTo4Gjb+fyjf19LY7prpACWz2r+Szp
+# vi2JgAfvFrGaI1hChPSeldiPE7akuzxP7NLGBkXsl/rU86uURbJ9TtTZnmGM1FWj
+# 05Kwd5XiWBg+Jl85/IlfDZtfLxDXugfrSQJzRCtFf1p9py0CBmlEhrtGqN2LYLEQ
+# UsO4nF5r3w==
 # SIG # End signature block
