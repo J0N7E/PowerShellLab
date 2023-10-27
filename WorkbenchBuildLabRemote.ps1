@@ -109,12 +109,14 @@ function Deserialize
     [Management.Automation.PSSerializer]::Deserialize([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($InputObject)))
 }
 
-function Create-VMs
+function Setup-VMs
 {
     param
     (
         [switch]$Wait,
-        [switch]$NoExit
+        [switch]$NoExit,
+        [switch]$Create,
+        [switch]$Network
     )
 
     # Check parameters
@@ -138,31 +140,47 @@ function Create-VMs
 
     foreach ($VM in $Settings.VMs.GetEnumerator())
     {
-        # Get latest os media
-        $OSMedia = Get-Item -Path "$OsdPath\OSMedia\$($VM.Value.OSVersion)" -ErrorAction SilentlyContinue | Select-Object -Last 1
-
-        # Get latest vhdx
-        $OSVhdx = Get-Item -Path "$OsdPath\OSMedia\$($OSMedia.Name)\VHD\OSDBuilder.vhdx" -ErrorAction SilentlyContinue | Select-Object -Last 1
-
-        if (-not $OSVhdx)
+        if ($Create.IsPresent)
         {
-            Write-Warning -Message "No VHDX found for `"$($VM.Value.Name)`""
-        }
-        else
-        {
-            if ($VM.Value.Switch.Length -gt 0)
+            # Get latest os media
+            $OSMedia = Get-Item -Path "$OsdPath\OSMedia\$($VM.Value.OSVersion)" -ErrorAction SilentlyContinue | Select-Object -Last 1
+
+            # Get latest vhdx
+            $OSVhdx = Get-Item -Path "$OsdPath\OSMedia\$($OSMedia.Name)\VHD\OSDBuilder.vhdx" -ErrorAction SilentlyContinue | Select-Object -Last 1
+
+            if (-not $OSVhdx)
             {
-                $VMAdapters = " -VMAdapters $(Serialize $VM.Value.Switch)"
+                Write-Warning -Message "No VHDX found for `"$($VM.Value.Name)`""
             }
+            else
+            {
+                if ($VM.Value.Switch.Length -gt 0)
+                {
+                    $VMAdapters = " -VMAdapters $(Serialize $VM.Value.Switch)"
+                }
 
-            Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
-            @(
-                "$NoExitStr-File $LabPath\LabNewVM.ps1 -Verbose$VMAdapters",
-                "-LabFolder `"$HvDrive`"",
-                "-VMName $($VM.Value.Name)",
-                "-Vhdx `"$OSVhdx`"",
-                "-Start"
-            )
+                Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
+                @(
+                    "$NoExitStr-File $LabPath\LabNewVM.ps1 -Verbose$VMAdapters",
+                    "-LabFolder `"$HvDrive`"",
+                    "-VMName $($VM.Value.Name)",
+                    "-Vhdx `"$OSVhdx`"",
+                    "-Start"
+                )
+            }
+        }
+        elseif ($Network.IsPresent)
+        {
+            if ($VM.Value.Name -ne $Settings.VMs.DC.Name -and (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
+            {
+                Start-Process @WaitSplat -FilePath $PowerShell -ArgumentList `
+                @(
+                    "$NoExitStr-File $LabPath\VMSetupNetwork.ps1 $Lac -Verbose",
+                    "-VMName $($VM.Value.Name)",
+                    "-AdapterName Lab",
+                    "-DNSServerAddresses $(Serialize @(`"$($Settings.DomainNetworkId).10`"))"
+                )
+            }
         }
     }
 }
@@ -339,28 +357,18 @@ else
 
 return
 
-##########
-# Root CA
-##########
-
-# Rename Root CA
-Start-Process $PowerShell -ArgumentList `
-@(
-    "-NoExit -File $LabPath\VMRename.ps1 $RootCA $Lac -Verbose -Restart"
-)
-
 #########
 # DC
 # Step 1
 #########
 
-# Rename DC
+# Rename
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMRename.ps1 $DC $Lac -Verbose -Restart"
 )
 
-# Setup network DC
+# Setup network
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
@@ -376,6 +384,12 @@ Setup-DC
 ##########
 # Root CA
 ##########
+
+# Rename
+Start-Process $PowerShell -ArgumentList `
+@(
+    "-NoExit -File $LabPath\VMRename.ps1 $RootCA $Lac -Verbose -Restart"
+)
 
 Start-Process $PowerShell -ArgumentList `
 @(
@@ -397,6 +411,12 @@ Start-Process $PowerShell -ArgumentList `
     )
 #>
 
+################
+# Setup network
+################
+
+Setup-VMs -Network
+
 #########
 # DC
 # Step 2
@@ -404,7 +424,7 @@ Start-Process $PowerShell -ArgumentList `
 
 # Wait for DC to complete step 1 setup before continuing...
 
-# Setup DC network Step 2
+# Setup network
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
@@ -445,6 +465,18 @@ Start-Process $PowerShell -ArgumentList `
         "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
     )
 #>
+
+########################
+# Renew lease
+# Join domain -> Reboot
+########################
+
+Setup-VMs -JoinDomain
+
+
+
+
+
 
 ############
 # Sub CA/AS
@@ -585,6 +617,12 @@ Start-Process $PowerShell -ArgumentList `
     "-ConfigureNDES"
  )
 
+#######
+# ADFS
+#######
+
+
+
 ######
 # WIN
 ######
@@ -637,8 +675,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWMWvcS58p66u2m+bkJJwoJd0
-# tfygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfCcb0bUD5v1TpbAHMwxq+0W8
+# xGigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -769,34 +807,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRF8DKq
-# SWEQaI01hk+KUqazwflJPTANBgkqhkiG9w0BAQEFAASCAgAKf5YCE/H6bPyS0+Hz
-# ExMa9Lc7ile3Pgn0p/swbSKkciRf9gONvFYKsk2zMSeipIjhXnlAfwcmeJRu/nqI
-# W1IlloZlTajw+IsTBLvkAuPe3IUB5bL6lRiKGiygdrjBM3HmfgN7Q2gqeYAsYX9n
-# 9ofsaMGaIuP1hCombSCJXgXrvbhbyTuxVdrHtbo77BrCblPQfxZAMuuUDoUcu8EH
-# DDDZtOYEKaOvjvmOcrTIrb8IAGfamaCrogaqKntiSqlIzNLfG0QS5d+ypeBAyWFV
-# irZADhuKJUxZ/ojVL9izn3TsuvUMVShY8gG8e2l5PVOOCBgFtswn6zXKxN0V7OVD
-# C/mcprx7k9mjcPXZitXXK6sdh8nvqn4zKXtJAh6E/G5D0g3iUJDJZOOaEJi6rND3
-# Ru6m5uDk0+ZYi62tYti2xDbKY3qNr1SFxIF02N6aKq/0RyfVDD9KV+5MOC4KqUFw
-# fJhLB/gFCry+uTBBbbgl/Gb1R6fGMkrVaB1j4dNf9MXEdbIHFEpqkFCRIWW/Tg1v
-# z5ZYxJkfgvzxwrqCHFGZ0rnkiCasZ31ffazafE7VY0p/rc5tR1DuGSkEQo1tjJIU
-# 7kxulkrixQtzy/mJob6esKZYwSHfz3bbLzE13A/k3HGRT9mXa+mv+JZKS5Mxo7xa
-# PMXXQ8EH/AStdqlCcNv1cs6CcqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRgk8HV
+# Gk+YbeUFk6dD8HVeDfP02DANBgkqhkiG9w0BAQEFAASCAgAxw4dlLjXLJfklMqmF
+# dofMy7z4/si8bL4k+LiLL4+yLIWD8qSrcU2H2NVVq2QUnEVabz6ROHabeiMwdtJV
+# Boo9+ZHNUrRDEVfkdT2Aw1pH8GeCQvOomDtsetaE1PEFGlhh/YCAYhpBuTfwSCFy
+# JpeHQFGPkkdVOupd7rjj2crPbBdEAarwP3KZVz7ziGjmiQ34ggqhCNthAHDMYnKW
+# 9Xkye/H4PNKrqx9dCFUpSSS4oWzk34KmDwuU+eOvYmIFMljJ3bDD2unAjtK6Q6pP
+# XjQpdphGYyLyeX55qwUOrcXo8XPiTiQpqbyCW2iWg00veTGoJLym0qjjGO8rMm1c
+# PeNhWkjvVnfsN4Ul8EC47u4W+3tSlnpq/3y2z7QZedIFSXgag4tsE91Jju2VbKrP
+# UyuuneoD1tkINW/WhKLTdRsmurs7ICjRHWLMIP7sgntBdCpD4tSUM67ZKtCW3Rhw
+# kUVgAsIk1xZ8t0E2CJaHCa3rnWSLouvrv5vRup6tTnK03NpMQMBxDfwEXAKHMPt7
+# I7TTM7p/XWLyNB2YEikyIUx1HqCULj/RhokjhVSuH3NKYw0WsePFyinDtURr1VV1
+# bHw77QCd4UF//Kg144IFY5NJhinhgslPX5eti70KvdITnNenRqk4Wl5tNNx5Olc6
+# 4ZLI1fydUeR9grIEE2bRCsYFn6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjYyMTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCDpM/nsM32eeI81UMuzg7nigai9K1EIx2RyoMVx
-# CW/5YzANBgkqhkiG9w0BAQEFAASCAgBleI0Ys4+FV45lx9+gTU9QKdBHF3X3/zet
-# dpW45vmRijSVOflp6huv+XYw4YD8kAEV0yM9njhNy39eJOKvcg4pjlavel3Ly1Z5
-# WSReJAuXMRVBXIu40ncvSDrc4kAgJlqIpiLCpCgVAybDyPSaayW7NRn4EMSNXAt4
-# gEU8qm8B0wP5NJjLA8PE/qScs2zrBkyPEs8FZIcsy2b/lVQG8ErV9zIyPJnbCnHE
-# HViPXERbjrGjtMsj70JOGDD0DASywcaoABu39kW/KKkWeb6FgOqrmryIpWsiPRqU
-# 2piXDNr5B3ZcAVvuldgbPUCsNcNSEPnKYZxho7oehiLIadrGH7h2X8unh+PGeb0u
-# JMs3aZlhunw35uYIG2xtYeJr969KM6GMP8K6cGRot0EwsgV7cIsXX7s3VUKuMEjD
-# Gb6oAaIvRjkU2GhAmGSa1kHhioi/wu6dHfbmUa9abwTAeN1OL5WBa17BbAvPd4vx
-# dNf3sFvjISL4RYljnAcGwrpcG9mqjjwOCpLIxAtGyMfuiAjQkW/9rtG5nlyAuvxe
-# nGcVVLXqIThZmOLTMaimh+ZTC2RH7wMtUCivNcKCCUcwR6TN22IQBiHKpvZ9WtqB
-# 9MvNaGswwk9gAQevi+yIsoQEuLU8djuLSx/WaD4vJN1KFJA5aNzKk5+DwpL9etH1
-# DRZCmMXXpQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjcxMDAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCBCamEa/JLREc3L4Gftrz0y5zjaTPE6xBBVb7PT
+# Xn5eATANBgkqhkiG9w0BAQEFAASCAgAeV1uOKkRQNkolSt3vl5f8v8vf124bGhgJ
+# bO38/vLaVFggRc9RSkGSEl/Wg1ras4CfM4xjIoD45IXklGOz3+xXWtS/sEwoXzW2
+# 85ag+OJsELrkb7mxUMtql78mTn6mcA8aDANHzyY7TtklvX2G7DSxs97NASB7HjtN
+# 0rHCC+D+hlmZSdNKAosGzPqq/euwk6mQck/zo1MRfzWaCXuYnhv+MeE3DXbKH7Ic
+# BaRz2opj8xGDS6jxzZty955S24fID4uPArrVKolHKCRJj2DBflplNtjz1+/8VMrF
+# qQ6ZESraY6CEQwlIkSP4qbUVh+NF3GSRmcgNF+iKK1DpqSHCYWN6HaA0gcJG+zmN
+# aIX87R9vl2W9nL+7mq+2M5C6vwUwniDDfpCsz4ybvnIwtsoEnVrZK9vID5Ewz2gP
+# UvBscDO+YrepZGtVIH3LpHGGVIE1WYjRMfev2VzqSFR/cZ04CVwYG/oQhAtYlSpU
+# u+dFvTtixNa6MBc0W35VoKNg6TRee514oA/1m8h7oeFxLzpjgPgxvZnSWaVyj/t1
+# ZVuSaIzxcBIsTuOBBfe44fhWeWYiIsnzsC7mj7KZO0mFbI6v9EAWiwnuJHtXzvbT
+# C9be4At6/vORIpwz1Sx4bkAqM100UbeDsGFVGkNei4cq/hF+DztvJPEBTAFS3tw9
+# c8sHYqJn2Q==
 # SIG # End signature block
