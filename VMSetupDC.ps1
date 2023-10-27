@@ -434,29 +434,6 @@ Begin
                     Add-DnsServerPrimaryZone -Name $DNSReverseLookupZone -ReplicationScope Domain -DynamicUpdate Secure
                 }
 
-                ######
-                # CAA
-                ######
-
-                # FIX
-                # Check if "\# Length" is needed
-                # Array of allowed CAs
-                # Replace = Clone and add : https://docs.microsoft.com/en-us/powershell/module/dnsserver/set-dnsserverresourcerecord?view=win10-ps
-
-                # Get CAA record
-                $CAA = Get-DnsServerResourceRecord -ZoneName $DomainName -Name $DomainName -Type 257
-
-                # RData with flag = 0, tag length = 5, tag = issue and value = $DomainName
-                # See https://tools.ietf.org/html/rfc6844#section-5
-                $RData = "00056973737565$($DomainName.ToCharArray().ToInt32($null).ForEach({ '{0:X}' -f $_ }) -join '')"
-
-                # Checking CAA record
-                if ((-not $CAA -or $CAA.RecordData.Data -ne $RData) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting `"$RData`" to CAA record." @VerboseSplat))
-                {
-                    Add-DnsServerResourceRecord -ZoneName $DomainName -Name $DomainName -Type 257 -RecordData $RData
-                }
-
                 ##########
                 # Records
                 ##########
@@ -3495,8 +3472,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/fLULP9DmR8KJin5Lr0+l/Br
-# VxugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoHCJijxPLIzCBP0MK59g1v5F
+# Ym+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3627,34 +3604,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTA04gP
-# Ff/3RRyjvenRRZd2QEHNXDANBgkqhkiG9w0BAQEFAASCAgCGZxCsYYDsq2EaCDgf
-# 6AEB+l3VMBxd/DiwLLuBqMNPCwKTccY7SYQu9cd6WTIkQKPx7PmcYr/QqvpFyfWJ
-# RJQBM3kap9yb3zywMw4vCNYVVsIpWWic1fHp6QQ2yNvF/F+i0Zw2ecYna3NKGc6u
-# 4lNlASIfIDpoN6Yh11Ggmh7D5CpjQnj7uFg1bARnjhOH3Kv7By5XkLHFeerl1EP/
-# yz7v1oYp566rDqKRHDYB5hiP1H9EuEGOCOw663jBJ0yDvjQUuP5jQ1VCgtFRIjRu
-# e8+r43P0yV1FBlOCu6btzdcyW5LjWoW1l8UEloh8U/frQpGDVX1JCkZmqpF5zqW4
-# XwBriiKQbMLq8lVemUYcEq8sHYX/sngey4d5+H4S6VlHPD/IOmWU1gF+aHdv/0eK
-# K85jZBbomQLH3f49qVpt3WKWfxiAYsxOPDignCCYHp+5oNhrTt6J8+KUKPa2LXX1
-# xPs/Y38RSjYeH2dK/CfrL8EqYQ3MRRyCGBVU1ze62GO2mNqW52wmhvA3rBh1O02M
-# KfkGoN/KThmp8W4oZHG3ixmU60xpJwr9KEMF2iGPO3G7yodxPcfvR1zJxv+ToAcR
-# NymtUrsEyvqnROthMG3Oyo4OY4HY/bsiiLL/alP8CuemJ2ixCxpGjPqTF8HsYwwo
-# xIi4ZiLinapcTubgXkkb79e2saGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQJNsfg
+# 8ft/Emk53r69t0zg/uf6qTANBgkqhkiG9w0BAQEFAASCAgAl3o3t08MrAseUP+Nf
+# zemN2uNVVigthr1cseMyB0cST9vPLcvOKzDSadNGN4oHasiOjuVlBCxRxcc+UUpf
+# QA4dyGHieV2+BOdEw4UfyEeWSrjbS9SvE0RjUPF3hk/7UjHZt91juG1AeyMGYaQJ
+# uyJhEQ1q/7aBHUO8EjUK96eGa6CLy35sJAMjuEQzjR2nY2J4olcu/Hp1qN9rjFEs
+# TXc4I2DGTOMNXRA0AcvSoTbZQIQopLeuWy+IxKWZaKJViX7e5SLLoHxqlNWiLbr7
+# BUAczXmWlotPlUTYZxYPZqyf93AvLhqUEewqrgXxNYlvUr8kWpgF+VDy64TCAwwu
+# I2SrXLY2vE1pcNrpsNgIC4MdSzieMMTvAossM5QXc9CXYJmTX5/jcZ/aLclG+Cxo
+# fH1dfiOrcrFfrU9ceO1rC+oYhqBK3ctjoSS/fnETuWY7dVdr7H3fWCDkohHqdhaF
+# kTTXeMZnMwYRHiuapZ36RnYDQFi+i/sn5MwiEgB7O/D1LxUOVIvnj15ir76GH9Xl
+# Jw7OmMseJp46zkYZqZ/lUpBjK1UqJIuEUlUnt0+LSojWW2/4mCczw/BvXjEymflw
+# P+27ku/6kZFm+9x/KUqE5MoWOe94Z29GfdAoqg2l4p7CpKaZn5/+5CZNrGn0OJPl
+# FJusE2Cy+8LCXVVUXfFBNSlUIKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMTIyMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDBL5D2vpcfcvGzjfQzLKIx0YdLTkpZ08ZHHZ3W
-# bKzNOTANBgkqhkiG9w0BAQEFAASCAgB59ZzlMBGPX4PKAxOevt0Yy4Pf5cVZYdfV
-# XGgO5SJ3Al1U0qT+Is5oqhD8o8e9QnLEqO+2fLLlhkjxqOQ812rPQl0JxOEhqQ8S
-# I+n8e3jIb+w3p6F8gvneM7lc3CDhgk68GGHADTZ/BTm2cMmTRLGQ540bZfwIKCll
-# KTi49dNkPS7wCtDPxZYifxuHIqNhLM2nXJOQRdytclVGDPdighaYMUBFZ7FKGF4e
-# Rd91hpyRI9QaViib8zZAIc1D+y06Yg6a/dCXndtAmMBzwxsR8n0PGDkXM/9vuzhd
-# eHYkCPIcpkW20SUuYxe9xF7JdkeJqt07/VtwszKa/fexYBZnrlU7ubC0Az95NCma
-# alQopn1OMuP04HUxN9juSfZXfmxGQOENBimglSXuhWKgV6+AJb3gqofjwMrP7ss6
-# b12Dotaa7SYg4B22EYESIKI60svxQc49Tk1N6F5R4dCqk6fuvyL24yHppHzIGRnO
-# RDPZnHcQBI6wY//LpEFhdwtS21PfSR4ws0r+yLDYGLifp+eY2CaLSBJYas/kBipG
-# pcfTTdKbwYiyILDRLKj9EiKlxxFB5sE90sHvzk2TC0cMQfy5/WXwpvlNaqQoHrKZ
-# EEvAxHuS3B4sHlXSTatgkgX53nHFfKZ6K2tcthUXPu8lWQycb64gdIIL1SkiLz3j
-# qy1m9Vup3g==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjcyMjAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCBFzi4o4uDKUArCUccxmWzXmWL3AXwUsFiaFJrx
+# 5x305TANBgkqhkiG9w0BAQEFAASCAgBEaUuxNr8GR3FvRU9NJBLKMQDDoXHECiuy
+# a9f8pTUzqyP9vovc5PUes6LIR2+9zs1sD+otYgdB5JKHwaoRrAMfpniHrPJx2S8Z
+# t246fLxnxnkASi7VVeXhPvchTjOFGPE5yCo1OTaFRlQihdWcUhHUQDEqa6xJC3zR
+# fkPsptkEiV3pNKYPmRIq9n6+BaaNjrCjq5XbLzMxPcl3utVGJRmLQGg0YiQ5VCU/
+# SA0tzThfQP9qbzgYJmdxnfMthvgAdiOjIG5NZZp6PDAgfoUmRL94vjrZbB29I2fO
+# wCQrveRtdBIUsb5o/Slrjk2kC116OoLswr1D0p3IiAceZQfmBhpgQ2HW5tqN1dB+
+# 6/4aT2yIRF1WDZnbGctJ2CY1xcFpr7uJUkGIZ3XKeXKU4/yLr3lrQ+tNkOngPzep
+# c4Nl5mqkhuzWrj1a5yn/pBQTpJMP4hjzY6/oF4o4p3CNxgQvOqGoVBu/GT7yw4bd
+# +K+MMyg693GmOq4JM7ZZJvlxk9klS4OfGCIughgcV9oxip4krgzKh/OZyym6Q/C6
+# eg8bUKg3qOo0rsb6EMlqNDaIhg+t1t5ayVJ14/5SJu9UBTyW5bAOzk9bZMAm8GDW
+# 4/DnCw7RqKC1xtWLruSbWiPqW1RIMCEgrkqJ+HddI+4i0zIpVacSF2wAhXch/644
+# o36DCWNYEA==
 # SIG # End signature block
