@@ -286,15 +286,61 @@ Begin
                 Version = '1607'
                 Server = 'Windows Server 2016'
                 Workstation = 'Windows 10 1607'
-
-                # FIX
-                # Add baselines
+                Baseline =
+                @(
+                    'MSFT Windows 10 1607 and Server 2016 - Domain Security'
+                    'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 1607 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 1607 - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 10 1607 - Computer'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2016 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2016 - Domain Controller'
+                )
             }
             '17763' = # Windows Server 2019 / Windows 10 1809
             @{
                 Version = '1809'
                 Server = 'Windows Server 2019'
                 Workstation = 'Windows 10 1809'
+                Baseline =
+                @(
+                    'MSFT Windows 10 1809 and Server 2019 - Domain Security'
+                    'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 1809 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 1809 - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 10 1809 - Computer'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2019 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2019 - Domain Controller'
+                )
+            }
+            '19045' = # Windows 10 22H2
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 10 22H2'
 
                 # FIX
                 # Add baselines
@@ -322,14 +368,6 @@ Begin
                     'MSFT Windows Server 2022 - Domain Controller'
                 )
             }
-            '19045' = # Windows 10 22H2
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 10 22H2'
-
-                # FIX
-                # Add baselines
-            }
             '22000' = # Windows 11 21H2
             @{
                 Version = '21H2'
@@ -338,11 +376,11 @@ Begin
                 @(
                     'MSFT Windows 11 - Domain Security'
                     'MSFT Windows 11 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 - Computer-'
+                    'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer-'
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 21H2 - User-'
+                    'MSFT Internet Explorer 11 21H2 (Windows 11) - User-'
                     'MSFT Windows 11 - User'
                 )
                 ComputerBaseline =
@@ -3506,8 +3544,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEJcdTtZakTw+UaLIKPh2FZga
-# DMqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKIKuP8rxKqgrpwNiVnL6l8De
+# h52gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3638,34 +3676,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSCZINr
-# PERmo+UAJoZ8Y13a/g8OdDANBgkqhkiG9w0BAQEFAASCAgCC51WXg0aaXAfYrjCu
-# VOzxN5KSbH+P36eZgm8KfjuUAds2FCcUjNQRQipCo/hkLkyoWRvTRHQ1g/FtsDbP
-# NwprYXSCcSEMRmkI3nd84+Xg7B2G05ap4LFtlMIEsB08wTfLtxaZzYc4w5quitko
-# 0wpQxwR58o/DlAkFJviAYPjS8oSR8HV9PlNwgRyDCL8dvNVt3zxjL4JKgHHGLknN
-# z4V1cKoEDvN2WJSonS/xaArUuaCmieG8mchPNywb3OG42FAGO2bg1IZPBos1kd/4
-# anhN8e2Ibo+TsSA/tg4dA3H2B5tSNdPpjDhUbUFSJM6NDWm7eA7iu/RKfGoWULVG
-# gdmIiCB8ZWPtoW51kEMfBIZbAWfTQxuLQqI4NqUlqvUEsErOKw6dJjWMGICHXhlZ
-# A9+4EaFQ16s01x4cmq4mEb7gVZeQJ4zOY/nfNzpw1CmMXTcddjyi2SVjf2oI2eLP
-# mhEfAG8VLpuD40ij+R/gN8BRK+yYHOK+w7PTBslMtj2mhVwGjbyhdJ+bonVU4sFA
-# IprC75rrjuhbF7mSJpsp1AzGJwicF+fDW912MzdKQ88vO1/6lvPVHv+yOqqx1UrN
-# KUq71BWA7fgOInp+PemlgeyJv82l9I+0h3y2RNiWSeB6/dUMsWB/gadXIXSEOG/1
-# JPMUNHZvRxPDp0+XVQwUN9K6+KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRyZuWq
+# JB5TddYhz6MYDbCbdPAwYTANBgkqhkiG9w0BAQEFAASCAgArwypnxRgBQ5amSVi1
+# wzqu4jgzkrZA9UTUNQkHQm2ChASLFYU8PR7AWOq5/JB04pWs/+JNVuj1K3zXJnaa
+# aRlHtLEDmJ/nDWL8Ne3HB7Nr9Fkux8ts6VxnZl+NFBTyARoKsAGfgE3IqqGss/1s
+# badvx//Onjom/MXkCnNSd0nK2Z2cdQUsvy7bWd2wjLb7LR5bgaPOyDeLvjOd/1FS
+# QmRdCmnWiKa4l2coE8IuPWJ2QbKEdN/B/H92bmMHRFgb4FdgXRUv/GCaOK1bUgyX
+# A+RH4UKOpXD32qKTfZ55GsaJNzvIfT3QyCq1j7lLeCijZSuKDvHa2umjOF7P0/PR
+# tkf3IYqfSDlPQPDWISUf708SXy3fyTXpz6HpkcyDNatLN6ws3L2+Fkv2bnU1V7Ky
+# yKLJ5x9N8DV6Z4AR8f+tcEpb/a0Anr0DrwZRHKEpi0Egh1zVyRR6RJ3fTrb8C1H6
+# 1gJ8cQXqvI/wfeQZ20uF7JPfYZ3aBU87/1yIVZu68cLtang5Q7IDdYulSrns5xFx
+# JAYQJR4yZ1u2BFmXdxeKYrUj0y51K+Ga2m8Ty5ifyBCgoEUG+J2JQLawqvab4adp
+# QruBApRfCdjzb3pG9t2/riIJCdN2tEhg6Uwv/JEnT8vATqrhzkrwSovDvyAGVYLp
+# Z9lksokW3NJn5mn+ojcGJgFhFaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDMxNjAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCDq7TFfXza5mEPY8K70hOJAa6iCpzTBGEVkISV6
-# L6f40zANBgkqhkiG9w0BAQEFAASCAgAvY1eCTSn9iJ/7HS/IDcqISY+PxasdOVcD
-# AABS0dxhARKQBoTRysn7MNNZwriwpqn9m2xemoykukgtVsCyybg6+OHH44Jgoc/2
-# LSSCBgjEPJykJnaWGbuiV02+Yx7gJN9oBIljF3jKBGeig8v5umglTWhySfWJmW6H
-# YboNasBHz2tO7F0N6hgVqGIqT1LCEV5EKTtjeLw12BVXGwRqs+ekg5lql1VsHjqL
-# ErC7FITBVq+CXsz8tAupZV6VPzNavJDIM2+DSFHbBCV9RlU91kcixg1AdPxWWCrn
-# budpCWPlbIni31rN8tsDXxGSKaiegJvBQo64Q0bL63se7IpZ4SKpSUx1KBq7bffH
-# NQ2NJjyfabIK9bDiCqhFfPVMdWFZS87oxwpjQ/yyTuQ4JMCHCGJUZVusOspk3XdY
-# kcXTuy/1CcphpniuYeW/FcHymlgDxa0cioPRddLHAJODtN//bnqgOkP8u2L2Z25/
-# 9Xec8rcSvTI98bFb9whQjE1fB8NPXn1cTTa2rGnnlSXD/C48DzPn1TCSCru50opW
-# KBB6QRtJYhGKo6I3ch6MXEs5LsBHc00spi0OqtmfL8twO8Z5Oz5Fy/i+gWhgZ6XL
-# 42rgWemqPjgD8kHyG8DFl8bDji9xAe+VGDECQyPKkwNfLicYm2dD5eBmBZQQFC+N
-# 4YyEhioNcQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDMxODAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCCp1C2OE0j1QQcxQoEHAJs5J6iKYlWFxapjgAeU
+# opC6EjANBgkqhkiG9w0BAQEFAASCAgB8nYEKG/JoRQ46oCjB+DXc7EhmArNBYE5T
+# Y64kSt31gxA7qEJIxUi6nQcm4Nw/HslxYWTM4uEmM95N6oWQeK4mhvpet7x8e+fW
+# 2jRI0/1uQJtSEOncrxoCDF30WZyr52DNQv8GvWp44hx4juvIVQLy3RI9rM0zxqtT
+# 84gyf8YzBoRfLssGZ0+faxuRIicf+SeacQqBijAgMNw7BL5SZZDGynwEXvu+Ftoi
+# 1PC40qlIByBvTqFTYdYVZE2wRPTaI6riFEBAUif3G18D9cbNzdX+39ggQoEa0P5o
+# FGcVCV22HAtEOnHGO4UH3Qh9XPIzq19Oop66SDEYPPw0d6ncLxEKK5P3J0f63VDt
+# 95nn3gz+6DiEM6Xc2m1WmCf/eOOQLVUstAy1EvEZ1Yrx/kzX8Cfwpd2zsPAfroFe
+# J1RWAMyL/mpOuAiv3FZzNx8cWF49aoRwinhIjuUeu7z0NeBwbeR5X5R5RTJMz2aD
+# mk2LFYGKUNv3UgIC33jf5S0P2fEuLVLLB1ysVP6FHxqqJdyl2q6bmphfy5rbqMeK
+# /LJRbNUZKVaZGNpv6aQUVGuoQSZo1iLomi7/Db7egVoo/8V8Z2f23GaBx62zlmWO
+# jvCkiO1xkhZS3H02wuw8bZ62FgDRhGzRQ0TdhRjCgYILcVVXw4QFvJEpT/Gwqn6d
+# hV6+jsIUGA==
 # SIG # End signature block
