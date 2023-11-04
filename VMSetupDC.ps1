@@ -2097,6 +2097,24 @@ Begin
             Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
             Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
 
+            #################################
+            # Adfs Dkm Container Permissions
+            #################################
+
+            $AdfsDkmContainerPermissions =
+            @(
+                @{
+                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+                }
+            )
+
+            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+
             ####################
             # Deny Block SMB In
             ####################
@@ -2117,28 +2135,11 @@ Begin
             Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
             #>
 
-            #################################
-            # Adfs Dkm Container Permissions
-            #################################
-
-            $AdfsDkmContainerPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
-
             ################################
             # AdSync Basic Read Permissions
             ################################
 
+            <#
             $AdSyncBasicReadPermissions =
             @(
                 @{
@@ -2206,11 +2207,13 @@ Begin
             )
 
             Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+            #>
 
             ########################################
             # AdSync Password Hash Sync Permissions
             ########################################
 
+            <#
             $AdSyncPasswordHashSyncPermissions =
             @(
                 @{
@@ -2233,11 +2236,13 @@ Begin
             )
 
             Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+            #>
 
             ###########################################
             # AdSync MsDs Consistency Guid Permissions
             ###########################################
 
+            <#
             $AdSyncMsDsConsistencyGuidPermissions =
             @(
                 @{
@@ -2261,6 +2266,7 @@ Begin
 
             Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
             Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+            #>
 
             #####################################################
             # Set Domain Admins as Owner on all Computer objects
@@ -2414,19 +2420,19 @@ Begin
             # Base security policies
             $DomainSecurity =
             @(
-                "$DomainPrefix - Security - Enable Virtualization Based Security+"
-                "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
-                "$DomainPrefix - Security - Enable SMB Encryption+"
                 "$DomainPrefix - Security - Block Untrusted Fonts+"
                 "$DomainPrefix - Security - Client Kerberos Armoring+"
+                "$DomainPrefix - Security - Disable LLMNR+"
+                "$DomainPrefix - Security - Disable Net Session Enumeration+"
+                "$DomainPrefix - Security - Disable Netbios+"
+                "$DomainPrefix - Security - Disable Telemetry+"
+                "$DomainPrefix - Security - Disable TLS 1.x+"
+                "$DomainPrefix - Security - Disable WPAD+"
+                "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
+                "$DomainPrefix - Security - Enable SMB Encryption+"
+                "$DomainPrefix - Security - Enable Virtualization Based Security+"
                 "$DomainPrefix - Security - Require Client LDAP Signing+"
                 "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
-                "$DomainPrefix - Security - Disable Net Session Enumeration+"
-                "$DomainPrefix - Security - Disable Telemetry+"
-                "$DomainPrefix - Security - Disable Netbios+"
-                "$DomainPrefix - Security - Disable TLS 1.x+"
-                "$DomainPrefix - Security - Disable LLMNR+"
-                "$DomainPrefix - Security - Disable WPAD+"
             )
 
             $GPOLinks =
@@ -2440,10 +2446,10 @@ Begin
 
                 $BaseDN =
                 @(
-                    "$DomainPrefix - Domain - Force Group Policy+"
-                    "$DomainPrefix - Domain - Firewall - Settings+"
-                    "$DomainPrefix - Domain - Firewall - Block Legacy Protocols+"
                     "$DomainPrefix - Domain - Certificate Services Client+"
+                    "$DomainPrefix - Domain - Firewall - Block Legacy Protocols+"
+                    "$DomainPrefix - Domain - Firewall - Settings+"
+                    "$DomainPrefix - Domain - Force Group Policy+"
                     "$DomainPrefix - Domain - Remote Desktop+"
                     "$DomainPrefix - Domain - Windows Update+"
                     "$DomainPrefix - Domain - Display Settings+"
@@ -2456,13 +2462,13 @@ Begin
 
                 "OU=Domain Controllers,$BaseDN" = $DomainSecurity +
                 @(
+                    "$DomainPrefix - Domain Controller - Advanced Audit+"
+                    "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
+                    "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
+                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
+                    "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                     "$DomainPrefix - Security - Disable Spooler+"
                     "$DomainPrefix - Security - KDC Kerberos Armoring+"
-                    "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
-                    "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
-                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
-                    "$DomainPrefix - Domain Controller - Advanced Audit+"
-                    "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 ) +
                 $WinBuilds.Item($DCBuild).DCBaseline +
                 $WinBuilds.Item($DCBuild).BaseLine +
@@ -2476,9 +2482,9 @@ Begin
 
                 "OU=$DomainName,$BaseDN" =
                 @(
-                    "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
-                    "$DomainPrefix - Firewall - Permit General Mgmt+"
                     "$DomainPrefix - Firewall - Block SMB In-"
+                    "$DomainPrefix - Firewall - Permit General Mgmt+"
+                    "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
                     "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
                 )
             }
@@ -2531,8 +2537,8 @@ Begin
                     # Certificate Authorities
                     $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                            "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
                             "$DomainPrefix - Certificate Authority+"
+                            "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
                         )
                     )
 
@@ -2555,9 +2561,9 @@ Begin
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
+                            "$DomainPrefix - Firewall - Permit SMB In+"
                             "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
                             "$DomainPrefix - IPSec - Web Server"  # IPSec
-                            "$DomainPrefix - Firewall - Permit SMB In+"
                             "$DomainPrefix - Web Server+"
                         )
                     )
@@ -3589,8 +3595,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEnA/a51RINbYIMUAYvRLDHKB
-# vg2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAwlOE4l5nj2KTtaTboAljuRJ
+# l9egghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3721,34 +3727,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRmw7Q2
-# sS8sGgTWhawZxDJHwAA+HTANBgkqhkiG9w0BAQEFAASCAgBSiJLiXIvIoq3mRIlo
-# PeHiH0PR719vQ3ogUQOGOhdZc6bExl7SDujx0r5iiaQAwYv+MRuNbl3xkOIoKzSx
-# aqwkw5VeaXQTZaQ/VaVgkNk4NPt1dVMUhFfb2q4LrLZN5lXYLVqYP/rnuX4eNfx7
-# m3++Uz/OgdzlKPrMfTeHhTbNA64vDZ3QfJKikaBDSxE9DbUW220QRRsWOoW2YMKr
-# HfzCToEOwOfKtmb6uKGdpEH/PyH/drG/Xg4YliAJ+xIMUx9LM9D0bj6NnRmyNs1m
-# 0/s8ploNM+0SINbrGYEKkb8n9qpit8TuCUzKVvScHqMmC5sDG+m2OIZrzT7xlWIE
-# FlepW06OrTLrdH3bGaQEpZ1pEMZYJdR0wIOJd+NLQAl3gzV/J6Abd/o9Ri5iwW9R
-# QUeEqNhdoHHxMYXKmsX5HH214s3c/S/JE6BDxU/Zh7IqF3gRfMTpwUHIuS/MExnM
-# ZX2mBqpvj5Unfq5YtYVLUmd6eWK3gMpCwj78cV50Qd7ynFIw0lLyXpwLMgvRh2je
-# s/Xa+IJQ1I4UuNTb7Uoa0KatCG5HFoCE1oz6qXG2pChcGszVncR3318ze8QzdnAv
-# 3tk/cqESQrSVTaQw1wDWq/5H4Df2Ei0pphw/3Qi66MGDRMfXKtGK2MoFE320LY+s
-# 2eU9SnWbBSnRXI9pF6+m39D88KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQXy8DD
+# PTn53ccLNKKAb2q8vW5/+TANBgkqhkiG9w0BAQEFAASCAgAIwjShVCGr34/W1DtG
+# GIp1NNgY9L1uw97lJqvSDPYVy7cGiJ4aBCvoMGHAt025KoVUC+xAM6kHcS8dWUKJ
+# +iBzU1dKOdxI5znkdRKxwVtxPVP4BbSKqcgWj6ILmPiTmCRNW9hHTQ0DBidWbXLZ
+# dnR/BlR4Y7NJhoGLQzYfbGFL3ER6+emUwUHQ3YYbr7uOzecjWnlDECpLayZeAOPl
+# OlhgzrQrnitcbuTepg7Zgi3OTx6XrAnUjocamD7ogTlsXlwlx0Yl0sHsKgPL1jvo
+# 31BvkzwCSXRdY3KgF25oa5tQQpQ8m+86ZpTKPpK6Z1AKG/Y85F0O1p6JJ73J17vy
+# XvPiOtUpCKdk6dyk+WQYXxyUSz2mhrh6wZ7HMl/1SUcHXeNFvitsauvqvrKt4l+N
+# Kbh+eyXF2zajx/CZsc+9B3HjEbEkqOtvNEE+ZOdwrOB1r/ALZDt/Hd9OeXw2Ixu0
+# gzJVzTSOaUvctW2CwbbzDhk1BjzwKRd18ICFHtzjma+P6fVTPG/5URSkd/XtlSKQ
+# aRq3hQqItIdbjRmKw7TwzY8wCBThhjLSSr5QOYT8VWfmQutaSiIhJ6XgzLOrJ7NN
+# yQvCbsVGGu9AYxdV9+ejVhWRrwD0y5gt4IPY0pojZIfkH3hxKXYeakS3bTBJi3aQ
+# sLyjrwu0RPRYVseHRZqU2io/EaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDMyMTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCCqTC29oYFunKkgTRMSYMQU5NwUVx2botKvTRLf
-# K8dAtjANBgkqhkiG9w0BAQEFAASCAgCK0zYUhPLsR41f/AYPgrjbagoVq0XvwkSu
-# 5lAwPFIAQ62uzZWEvKfymQIo/FeRvTeEdHo2iWD/xJ6elWMdZh3rYxkZ5ohY5o2F
-# HBYZhTJf4pClv74ggzFL37HjCMqvN0jtErpqR1GiKo7a19FxmiqavVYsjAqwcg2g
-# ekxZkMeOJvUHnCJKEpSSj6Y8CFd2MTuMZ4lwdVtlzYyLHvfG//fs3dnUifuJrYOR
-# Tq3lkbmzrMOWnzSHPs7dXFBI8wxyYl0FtGm8Rh8sR/9TzinomSoE2ZdSIbNPJ0yx
-# x7B+oNbpK9LGozBQpn/Y7UW6Z97oNkewwEUrrAKzIRCf/dZYf/++V3GSc3pVJvl/
-# u0kLYZGOCQ1S8BVLujjwbFcjxClmAHG1nLTJjyvYiwhS8c0frEKoyFFOUBVyWrGj
-# UlE20gIhjt6LNtYYCeBwF91NNTJzmyTu372ASGGEPwjeHUOW78JFo1Ybzvohd3Bi
-# sR29/aJixEROBU2jOXeAfGqNIazvQN+Z5tu+NpYOn6oGLFAJ1Q9td3/59H5KiUfj
-# ZRM6uNnO+FD0RtOuR1vC7KAKXVo1nGDu50n9oE0u9XxEDXel2nwhICVdi6syjL9r
-# kjHuyI0qsvGc7xOqU9IMU40RaX2gdyXGK+2NH0zfs32CDg0p1A2aR8Q0mn8BT9zM
-# j8Pq/Ldhbg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDQwMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDNfnIB/7vboQOpI3meUfC8RaIvnI02F2U/g0Tu
+# X0QKQjANBgkqhkiG9w0BAQEFAASCAgBfL9wDbnxdzwQNpSz0OfiKCpBrgzyHuH6A
+# B6eAtOxm9tUZKpYvSh6Ooh1S42gtIpRdzm1xXpNtrmXSTZBz5V+asZluq52D0tdR
+# oJiMCkskaWhUG/0fKAbQpFK0cIC9ySd5+DhNwxOM/Ik5Qt/iPk7ideXGaONBIgOe
+# H4yN7mPXiBzVnsXdRKr2SQnhbmJM0h3jquzJhtw/DBy1rGzgkRF4YNyUjhZabfZi
+# y9gqZcIgkg0gOd2x1lE6zf9xPmLVUB/qkyL9oQLCLRdB6Fjl6v6oQDR2asRn0MRL
+# 86FOfrV0DHwlSsMjIWmgBYEY1bGvcBR6zXR7aVHuzLumHk7uobx55yMKIh5jgLs9
+# 24h1HfEH4PEWzLg4WA8HxX1Lo2Qa5eecQjJRlcWGH/DzYcW2r6rKoa2SesMeh9yJ
+# anvmSQ5go/bM1+OVX+3yU0J6hoC9yywZw5zEtC+pYk2kQTUAGlv4pdgHVHObqk8y
+# jZQc8PPDSttGRG+C+Rodz22PzNDKNuM7aLtQxG7O5WXA4Qrpyhm4yrAxRVkm9kHe
+# 2AaE+7lUQHCFZcnXfTc0t81pMRcY3evPppZv7ZcQGFrM4HoMe3apBMl/DsKpEXx/
+# wflROAlbbES+9hqnCgVYpyF/oqZ2zXdJMqKa1H/Gc/G+4rU/orc4v9k7VqwVrObC
+# uYau6z3qDQ==
 # SIG # End signature block
