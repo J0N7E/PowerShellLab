@@ -1498,22 +1498,6 @@ Begin
 
             $DomainGroups +=
             @(
-                <#
-                @{
-                    Name                = 'Delegate Adfs Container Generic Read'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-                #>
-
                 @{
                     Name                = 'Delegate Adfs Dkm Container Permissions'
                     Scope               = 'DomainLocal'
@@ -1614,6 +1598,20 @@ Begin
                     @(
                         @{
                             Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Template Exchange Enrollment Agent'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
                             SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'Subtree'
                         }
@@ -2030,18 +2028,6 @@ Begin
 
             $CreateChildComputer =
             @(
-                <#
-                FIX
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['attributeCertificateAttribute'];
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-                #>
-
                 @{
                     ActiveDirectoryRights = 'CreateChild';
                     InheritanceType       = 'All';
@@ -2114,26 +2100,6 @@ Begin
             )
 
             Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
-
-            ####################
-            # Deny Block SMB In
-            ####################
-
-            <#
-            $DenySmbBlock =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Apply Group Policy'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Deny';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Gpo Deny Firewall Block SMB In";
-                }
-            )
-
-            Set-Ace -DistinguishedName (Get-GPO -Name "$DomainPrefix - Firewall - Block SMB In" | Select-Object -ExpandProperty Path) -AceList $DenySmbBlock
-            #>
 
             ################################
             # AdSync Basic Read Permissions
@@ -3595,8 +3561,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAwlOE4l5nj2KTtaTboAljuRJ
-# l9egghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUN1xkCCAIIcFgeQVle1xQmfMX
+# kH+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3727,34 +3693,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQXy8DD
-# PTn53ccLNKKAb2q8vW5/+TANBgkqhkiG9w0BAQEFAASCAgAIwjShVCGr34/W1DtG
-# GIp1NNgY9L1uw97lJqvSDPYVy7cGiJ4aBCvoMGHAt025KoVUC+xAM6kHcS8dWUKJ
-# +iBzU1dKOdxI5znkdRKxwVtxPVP4BbSKqcgWj6ILmPiTmCRNW9hHTQ0DBidWbXLZ
-# dnR/BlR4Y7NJhoGLQzYfbGFL3ER6+emUwUHQ3YYbr7uOzecjWnlDECpLayZeAOPl
-# OlhgzrQrnitcbuTepg7Zgi3OTx6XrAnUjocamD7ogTlsXlwlx0Yl0sHsKgPL1jvo
-# 31BvkzwCSXRdY3KgF25oa5tQQpQ8m+86ZpTKPpK6Z1AKG/Y85F0O1p6JJ73J17vy
-# XvPiOtUpCKdk6dyk+WQYXxyUSz2mhrh6wZ7HMl/1SUcHXeNFvitsauvqvrKt4l+N
-# Kbh+eyXF2zajx/CZsc+9B3HjEbEkqOtvNEE+ZOdwrOB1r/ALZDt/Hd9OeXw2Ixu0
-# gzJVzTSOaUvctW2CwbbzDhk1BjzwKRd18ICFHtzjma+P6fVTPG/5URSkd/XtlSKQ
-# aRq3hQqItIdbjRmKw7TwzY8wCBThhjLSSr5QOYT8VWfmQutaSiIhJ6XgzLOrJ7NN
-# yQvCbsVGGu9AYxdV9+ejVhWRrwD0y5gt4IPY0pojZIfkH3hxKXYeakS3bTBJi3aQ
-# sLyjrwu0RPRYVseHRZqU2io/EaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRypgTL
+# +lUCaTQdFQQbI8chvnwVWjANBgkqhkiG9w0BAQEFAASCAgDHFmjzfVhc1hk4wsSX
+# zncKP3j/2NrUwP3Q1WTdpDfJj7KiJsvY9rFA3u6HvnXrENLa+Acw8XRlDS03SUq9
+# a9NJu1hgbQaEtmpGTBWQEvAzfpJG8ae6iro9GB2173m2oFewJm1xPLTs4uHjZXQI
+# m8KaheV+QO/4iu6wj0RQBNxe/HIEH4G1/bI5deMQu8ZWsWZIE7BVgcuFHl9oITba
+# 59lRXWZWFbXxVqNBK7Mh9eNzJZcNugBKzc4lNJqCLvwjU/2dedPIEYxpJWf9mABY
+# wAoHyTLP00//hmO4GMItYqAc1edf/tVur6mscPUuJE9MHFOXijvNS+Y6kW0EBHLp
+# LuK/+OBFHFLrNAezEHY74H03+v5KIZUF32nYRGMy+YWQgHYpgtAQsV/VmXN8cJDj
+# tDbhw44k1vX/+wGtTs/WiM/8nLehXRb3IJUybx+jtzvGZJwM+CS3pawAjOOKiy8m
+# tVLsfzy4j0nKAJ135nKUpUf7nNxu6mHn0BAk5jl0wDfWD0lNb9nk5DV5VicXAwVd
+# JmHpPeirFf/Bfsvcz28REkpDFa2cmbunTRsw5ChP4q/4WuSr4mY93goccZSPK5LT
+# jU/wcpF4r/peCvScaGOd+EaSBZCiysC2/ZEnYxOGQIX1emLilipFJJBQyZ6mxgK6
+# vLnXd/81kgyrhUVgRRleb5kYUaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDQwMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDNfnIB/7vboQOpI3meUfC8RaIvnI02F2U/g0Tu
-# X0QKQjANBgkqhkiG9w0BAQEFAASCAgBfL9wDbnxdzwQNpSz0OfiKCpBrgzyHuH6A
-# B6eAtOxm9tUZKpYvSh6Ooh1S42gtIpRdzm1xXpNtrmXSTZBz5V+asZluq52D0tdR
-# oJiMCkskaWhUG/0fKAbQpFK0cIC9ySd5+DhNwxOM/Ik5Qt/iPk7ideXGaONBIgOe
-# H4yN7mPXiBzVnsXdRKr2SQnhbmJM0h3jquzJhtw/DBy1rGzgkRF4YNyUjhZabfZi
-# y9gqZcIgkg0gOd2x1lE6zf9xPmLVUB/qkyL9oQLCLRdB6Fjl6v6oQDR2asRn0MRL
-# 86FOfrV0DHwlSsMjIWmgBYEY1bGvcBR6zXR7aVHuzLumHk7uobx55yMKIh5jgLs9
-# 24h1HfEH4PEWzLg4WA8HxX1Lo2Qa5eecQjJRlcWGH/DzYcW2r6rKoa2SesMeh9yJ
-# anvmSQ5go/bM1+OVX+3yU0J6hoC9yywZw5zEtC+pYk2kQTUAGlv4pdgHVHObqk8y
-# jZQc8PPDSttGRG+C+Rodz22PzNDKNuM7aLtQxG7O5WXA4Qrpyhm4yrAxRVkm9kHe
-# 2AaE+7lUQHCFZcnXfTc0t81pMRcY3evPppZv7ZcQGFrM4HoMe3apBMl/DsKpEXx/
-# wflROAlbbES+9hqnCgVYpyF/oqZ2zXdJMqKa1H/Gc/G+4rU/orc4v9k7VqwVrObC
-# uYau6z3qDQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDUxMjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDVNhJKKvTIAKsVhr3Jci+97CakFI4XK8Wa32Zc
+# LiIPFDANBgkqhkiG9w0BAQEFAASCAgCPjDB5Ep05GGLeD6Se/bBwKqOwHHItsQMI
+# 9np9qPReoVbndcjEl4dfoFlZVLACbEePzkw6WQH2tjItcht0RFC3DTVU8W7Vdbpa
+# Jb54sSznk4Qa6REeT5lPTGN4o9qsw9PIDaVIoRoEd4aI6lG842iLB0tQv117V67N
+# FHt7Dk6EdxikSO8yl/1aY1rDlbBWQZZNCt0O/PMQZZPmxVIpPnqVNPt9lkOYdDw1
+# 286G4GOjuO92TvL3sSkHdxNgwk+sFI/VG9NxnDP5Xf0c6NTEiwNlhUJaFxtetdrl
+# HsXUiGG5sMb6jwqvANesr2M5nRPeLwlbPwSt4jInN5rIlVRfu+j4r9Y95FLikpBA
+# dtE+Pd1Z4zugy+TyrpVd3Gqf0OjjUQIuP24fzr/enNC33+XJQ7FBQTVt3fwiXBNJ
+# snB1/xpVoiAZouNj/fNgo9v9MDgJxEiDiYXkDBoqv1/msfM/KBs6AGCVqY7/7vqB
+# Yk0gOFX2dwZRKNbMQmjQDIunA+gk/bwmJ7IctRq7ZoudqXKge/XZBIJVYDgwbNrD
+# OlPS3jGoKzkaqv7xFywZouOUhbgC4XEoG66PKlKM8ZRopVWCH97AHRug0YaV1irv
+# HUFEcp1IPIHMrKmzLT1Wf1rHdKSwbIqXoojeiy3RVY03d90iw+jwRMQ24Er1cucx
+# MH5zsRAdmQ==
 # SIG # End signature block
