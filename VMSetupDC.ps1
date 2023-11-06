@@ -1308,75 +1308,6 @@ Begin
                 }
             }
 
-            #######
-            # GMSA
-            #######
-
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Adfs'
-                    Description         = 'Members can retrieve the managed password for MsaAdfs'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Ndes'
-                    Description         = 'Members can retrieve the managed password for MsaNdes'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'CertSrv'
-                    Description         = 'Members can retrieve the managed password for MsaCertSrv'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                <#
-                @{
-                    Name                = 'AzADSyncSrv'
-                    Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-                #>
-            )
-
             ######################
             # Domain Local Groups
             ######################
@@ -1501,61 +1432,7 @@ Begin
                         }
                     )
                 }
-
             )
-
-            #########
-            # Adsync
-            #########
-
-            <#
-
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Delegate AdSync Basic Read Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Delegate AdSync Password Hash Sync Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Delegate AdSync msDS Consistency Guid Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
-
-            #>
 
             ###############
             # CA Templates
@@ -1689,6 +1566,126 @@ Begin
                     )
                 }
             )
+
+            #######
+            # GMSA
+            #######
+
+            $DomainGroups +=
+            @(
+                @{
+                    Name                = 'Adfs'
+                    Description         = 'Members can retrieve the managed password for MsaAdfs'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Ndes'
+                    Description         = 'Members can retrieve the managed password for MsaNdes'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'CertSrv'
+                    Description         = 'Members can retrieve the managed password for MsaCertSrv'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+
+                <#
+                @{
+                    Name                = 'AzADSyncSrv'
+                    Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
+                }
+                #>
+            )
+
+            #########
+            # Adsync
+            #########
+
+            <#
+            $DomainGroups +=
+            @(
+                @{
+                    Name                = 'Delegate AdSync Basic Read Permissions'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Delegate AdSync Password Hash Sync Permissions'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
+                }
+
+                @{
+                    Name                = 'Delegate AdSync msDS Consistency Guid Permissions'
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
+                }
+            )
+            #>
 
             ###############
             # Build groups
@@ -2749,7 +2746,6 @@ Begin
                 }
             }
 
-
             # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
             # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
             #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
@@ -3493,8 +3489,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAgoy1YLklLUZ46l46VH/iZov
-# GSagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSsIpC8I+PQBMUHUUDkbXYfE5
+# dgGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3625,34 +3621,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTfx27T
-# Kl0oCXgfaJsegqzq06I1tTANBgkqhkiG9w0BAQEFAASCAgCALFhoEqlmp/43o/O7
-# 99XAlQswCqTbkHoYede5xborebw1+WeVRbeCqV3mPZKn3FxL91Isx4SMc0UDHv0D
-# koE+GWPUg0ZHRRYvzLcbh8V5CkULWoc4KKoSUlT4ADR0KzLqjz3ayJNvOyzx8flj
-# ICfdyYXABj/94UBrxmwVHHj1EhMUJ+UAfQFAWdiupLLIUtkVURK8MlV6hcrrTYYc
-# hqPFay9FDNCmwWS2W2QUUaWMH4Gp/8p7bjUth5x1CWYT63hw8YwsjJwLk4TADRHs
-# gWHb9kocOX5wimNyaKMGm2Z8HZB9tWNRuEeQRvYbggGzNOWfTa0aTvCu7ucGT47s
-# bwUlseWgVH6Yxhhs14LGqw2SEbLdqHfmzwVjCsiZjgVb/xogWKr+0hJ1OWQprAN9
-# NRNz9KX1fvM95vGRo3+A4O/vWBdznmN2/NPxSQA4a2eM4bcMg7qHxjbhCjXi+F4Y
-# umBy1OIbZatLTFlcaP/TCWvuRLvwBToeddM+oX3WVqPqhRFuNlyy9cyvMxjSI3Px
-# aDJ5xmxCxBjFudpeWcdDn8Erp7Kdpj79oNsjD9ju+AQrNe8aoIDYMhyeq1CTLWu/
-# 0lioMZPupFj/PyzNjM+v8lm+qAkC3uhpNfxg7wahO0KSA+OAb1pr46ha9HzFgBgG
-# OVj4FqSI+JtWRSNprkdQP/mXx6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSLDpHr
+# n3B4eKoaMiR3cJXVuGbVcTANBgkqhkiG9w0BAQEFAASCAgB0B+CVbkAqPJzV7n24
+# 601um/r5S7TUPUKitJuc77Gl3ntPeRCZbE028sCqOCeVoDKAwuZiMltG27VXcnjj
+# SKGM2cCLFk04R6hN4YEAjZZCd16iwtf1WhdNuLO4iXCb3I43RpsW5eJrVCNoOd4m
+# UBEAskEzbPtBrBa8Yh4HYsCIeU9YYEpz9tEUBMn4c1FUc5aO6WjnUzubKVfms2Cn
+# DLwzTSe83BL5dT9iPINvLLfP7x5v7NuhGUnq2dHyM4aL4E7Ph+O+6kUzwstLb30r
+# vDiU0rm7PMAPe9ooxpYpmd/IJWBlYhaKvY4KMQ2aa9iMzXJhqeTciT5Sjay0WHMA
+# uG9k1wYhE5kq+U6vRWq513b1I0d0hZRyTYcd+gEgLtebo9dkKqJmDENNFwsOMUma
+# xHV/QMmTACzbKZ1rrSluZ8ULDL4sPN/sVPx9iuaIJgnWiFubZ+m6nEN07OUmRpJg
+# ehzqmt3QFFeBxs1dLDDSdILIC0SlJ/HIJINv+QlxWfu52lqhuUs+ExVTM78QVtG/
+# RWzvQ8Mrto2f0325sITb6sOU64wiI0yBVFfNrR8rEm/nMeFvnLY2OIFLN2X+3ZZL
+# T00OKBKiDdyTcYj25Xvxd45e8e2wL7ant6qp5fU8j4D98crVZomi6NcrPtjhUz0V
+# xq3jdn3zVb2iBxaP4X60jjX6UqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxOTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCDc3Bq5q/J4CrVoQ4lCHPXKyK1KPTsab9lP85Rt
-# 8hScNjANBgkqhkiG9w0BAQEFAASCAgCTJMYczIgVO6+j0wW05PCbGcifNFPB17qd
-# N2I69+zloS5ThvDPWpyp2EyhmQTviRENfQJgGliNO7Qh34LQ2JeTzfPcYquRJQIm
-# 4fyD20KisNnOa1khsMjIqYhYGIdXQ31a/WJeNRcmXWR9MUEag7M/8dApyVBm/IzA
-# n8xh7GI6KR/dxJWATczosFKCm0XAs3wfgHKJbGaghJ9xMc1PAkGIg6/fOghu2aZW
-# Ul+l2pClPv26prBrJVpIbGZ2g00fKxa932tHv1J29gxFDnfIf9FBtom+yA/VWEca
-# cy6QkWZlofwJPMS826Ugc3PmJJM8ZQodKbO09MMCaM9Qu8KJVzAKsPvgEkm/lL6p
-# 0iU8Y25ffHuOzK5UjLyiiichqJDR4HQ6QPKxqpHjMKHaXEaqzYTdzyR7rq1zhLnp
-# UvD4qaOe4bpdwh1rm5c/d50modSycG1setONGy/djcPQZOCQGUaNPCjx4pCbPpn6
-# Bo+4gOuTgkBxdtSJ3UKORqx1S1Xd17cIGe+QoBtkJ1GZ0wrDK1s3fpj/unVvkirm
-# 1ClSiS0UvpVtm2XdChjL8LIiYYHEzT1bIFRrbB1sJenVK2EIySBFPhxuR9m2L5he
-# dlMQQWUMdZPOEWTV8L8V2QwfyjuehAthrX84X0XK0J8jzWMSpJrARWkhA/0RGXAE
-# Uz2W0MsP3A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYyMTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCCVeDR5kiybVFDQhJaJuQY/ELM7VgRJ/c00MR5n
+# B4P/8zANBgkqhkiG9w0BAQEFAASCAgAWcxdACE2lwmg96BsvwlJnCsiju3ZRqHlL
+# KJuQUPDAlcRWhnIvkZb6ph7YkAwDfMJCctsimzJmDha+jsgkWELxR2JeUdExUlJC
+# EI9CdNTeE4dYLRVZWoW1wQAxBPYzyMGHVjGeV9PONPkxNYWsmY6fJxsllQUaOI/h
+# oyRRK5O4KO+t/zfV8YUFHcdvK/pnWfAzeoaBTYAIHQIn8EXIENGR5L4qYwR1flu5
+# SSKkTdklW8AGOtr/4K17hpUQ0hZ3oRL5zeIBGkOEnm5xK8YxAkbDwve6hjaYXtwU
+# C8kP2fIIUv29oIj2xYbWZuRZi8ExKq+vFyVLILFWCdUuQYR2FZzb0PsvGHDmPpOC
+# mB4FCMlhCuhds8NyWnOm8hu6NTGT6QQhu13L9UdTMrJUh3mixYyvCbMyOFjAxo/E
+# ZeJA9yvm63BE28FBl/hbHtdhaI04bBOeklDjNEqTUHeNOSdUDSQD378T6eYzAoUw
+# ZM24kj9TY9nlO+tjBAH6got82Do7Av4fkZ1mS4xSKNabSvLh7T2o7f3qhRNTbQ/+
+# CFFiDR0lD1ySNQEO0qbMiK4FZKdV+qk1Xg9TTdxvktdkZS4EsB9ZptJ68sV9q9I0
+# q4kc50kxYT5o0yhMmJXx/TE26TQs6LI0tGMwMs2BfGi/UQ4oC8Oj4iphAX3bkLNY
+# qHUbnE+9Cg==
 # SIG # End signature block
