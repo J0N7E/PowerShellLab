@@ -115,7 +115,6 @@ Begin
         {
             throw "$_ $( $_.ScriptStackTrace)"
         }
-
     } -NoNewScope
 
     #################
@@ -139,7 +138,7 @@ Begin
             DHCPScopeEndRange = "$DomainNetworkId.254"
             DHCPScopeSubnetMask = '255.255.255.0'
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
-            DHCPScopeDNSServer = @("$DomainNetworkId.10")
+            #DHCPScopeDNSServer defaults to domain controll ip address
             DHCPScopeLeaseDuration = '8.00:00:00'
         }
     }
@@ -484,233 +483,242 @@ Begin
 
             return
         }
-        else
+
+        # ██████╗ ███╗   ██╗███████╗
+        # ██╔══██╗████╗  ██║██╔════╝
+        # ██║  ██║██╔██╗ ██║███████╗
+        # ██║  ██║██║╚██╗██║╚════██║
+        # ██████╔╝██║ ╚████║███████║
+        # ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
+        # Check if DNS server is installed and running
+        if ((Get-Service -Name DNS -ErrorAction SilentlyContinue) -and (Get-Service -Name DNS).Status -eq 'Running')
         {
-            # ██████╗ ███╗   ██╗███████╗
-            # ██╔══██╗████╗  ██║██╔════╝
-            # ██║  ██║██╔██╗ ██║███████╗
-            # ██║  ██║██║╚██╗██║╚════██║
-            # ██████╔╝██║ ╚████║███████║
-            # ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+            #########
+            # Server
+            #########
 
-            # Check if DNS server is installed and running
-            if ((Get-Service -Name DNS -ErrorAction SilentlyContinue) -and (Get-Service -Name DNS).Status -eq 'Running')
+            # Checking DNS server scavenging state
+            if (((Get-DnsServerScavenging).ScavengingState -ne $DNSScavengingState) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DNS server scavenging state to $DNSScavengingState." @VerboseSplat))
             {
-                #########
-                # Server
-                #########
-
-                # Checking DNS server scavenging state
-                if (((Get-DnsServerScavenging).ScavengingState -ne $DNSScavengingState) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DNS server scavenging state to $DNSScavengingState." @VerboseSplat))
-                {
-                    Set-DnsServerScavenging -ScavengingState $DNSScavengingState -ApplyOnAllZones
-                }
-
-                # Checking DNS server refresh interval
-                if (((Get-DnsServerScavenging).RefreshInterval -ne $DNSRefreshInterval) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DNS server refresh interval to $DNSRefreshInterval." @VerboseSplat))
-                {
-                    Set-DnsServerScavenging -RefreshInterval $DNSRefreshInterval -ApplyOnAllZones
-                }
-
-                # Checking DNS server no refresh interval
-                if (((Get-DnsServerScavenging).NoRefreshInterval -ne $DNSNoRefreshInterval) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DNS server no refresh interval to $DNSNoRefreshInterval." @VerboseSplat))
-                {
-                    Set-DnsServerScavenging -NoRefreshInterval $DNSNoRefreshInterval -ApplyOnAllZones
-                }
-
-                # Checking DNS server scavenging interval
-                if (((Get-DnsServerScavenging).ScavengingInterval -ne $DNSScavengingInterval) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DNS server scavenging interval to $DNSScavengingInterval." @VerboseSplat))
-                {
-                    Set-DnsServerScavenging -ScavengingInterval $DNSScavengingInterval -ApplyOnAllZones
-                }
-
-                ##########
-                # Reverse
-                ##########
-
-                # Checking reverse lookup zone
-                if (-not (Get-DnsServerZone -Name $DNSReverseLookupZone -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Adding DNS server reverse lookup zone `"$DNSReverseLookupZone`"." @VerboseSplat))
-                {
-                    Add-DnsServerPrimaryZone -Name $DNSReverseLookupZone -ReplicationScope Domain -DynamicUpdate Secure
-                }
-
-                ##########
-                # Records
-                ##########
-
-                # Initialize
-                $DnsRecords =
-                @(
-                    @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
-                    @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.100" }
-                    @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.100" }
-                    @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.100" }
-                    @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.250" }
-                )
-
-                foreach($Rec in $DnsRecords)
-                {
-                    switch($Rec.Type)
-                    {
-                        'A'
-                        {
-                            $RecordType = @{ A = $true; IPv4Address = $Rec.Data; }
-                        }
-                        'CNAME'
-                        {
-                            $RecordType = @{ CName = $true; HostNameAlias = $Rec.Data; }
-                        }
-                    }
-
-                    if (-not (Get-DnsServerResourceRecord -ZoneName $DomainName -Name $Rec.Name -RRType $Rec.Type -ErrorAction SilentlyContinue) -and
-                        (ShouldProcess @WhatIfSplat -Message "Adding $($Rec.Type) `"$($Rec.Name)`" -> `"$($Rec.Data)`"." @VerboseSplat))
-                    {
-                        Add-DnsServerResourceRecord -ZoneName $DomainName @RecordType -Name $Rec.Name
-                    }
-                }
+                Set-DnsServerScavenging -ScavengingState $DNSScavengingState -ApplyOnAllZones
             }
 
-            # ██████╗ ██╗  ██╗ ██████╗██████╗
-            # ██╔══██╗██║  ██║██╔════╝██╔══██╗
-            # ██║  ██║███████║██║     ██████╔╝
-            # ██║  ██║██╔══██║██║     ██╔═══╝
-            # ██████╔╝██║  ██║╚██████╗██║
-            # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝
-
-            # Check if DHCP server is installed and running
-            if ((Get-Service -Name DHCPServer).Status -eq 'Running')
+            # Checking DNS server refresh interval
+            if (((Get-DnsServerScavenging).RefreshInterval -ne $DNSRefreshInterval) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DNS server refresh interval to $DNSRefreshInterval." @VerboseSplat))
             {
-                # Authorize DHCP server
-                if ((Get-DhcpServerSetting).IsAuthorized -eq $false -and
-                    (ShouldProcess @WhatIfSplat -Message "Authorizing DHCP server." @VerboseSplat))
+                Set-DnsServerScavenging -RefreshInterval $DNSRefreshInterval -ApplyOnAllZones
+            }
+
+            # Checking DNS server no refresh interval
+            if (((Get-DnsServerScavenging).NoRefreshInterval -ne $DNSNoRefreshInterval) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DNS server no refresh interval to $DNSNoRefreshInterval." @VerboseSplat))
+            {
+                Set-DnsServerScavenging -NoRefreshInterval $DNSNoRefreshInterval -ApplyOnAllZones
+            }
+
+            # Checking DNS server scavenging interval
+            if (((Get-DnsServerScavenging).ScavengingInterval -ne $DNSScavengingInterval) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DNS server scavenging interval to $DNSScavengingInterval." @VerboseSplat))
+            {
+                Set-DnsServerScavenging -ScavengingInterval $DNSScavengingInterval -ApplyOnAllZones
+            }
+
+            ##########
+            # Reverse
+            ##########
+
+            # Checking reverse lookup zone
+            if (-not (Get-DnsServerZone -Name $DNSReverseLookupZone -ErrorAction SilentlyContinue) -and
+               (ShouldProcess @WhatIfSplat -Message "Adding DNS server reverse lookup zone `"$DNSReverseLookupZone`"." @VerboseSplat))
+            {
+                Add-DnsServerPrimaryZone -Name $DNSReverseLookupZone -ReplicationScope Domain -DynamicUpdate Secure
+            }
+
+            ##########
+            # Records
+            ##########
+
+            # Initialize
+            $DnsRecords =
+            @(
+                @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
+                @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.100" }
+                @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.100" }
+                @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.100" }
+                @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.250" }
+            )
+
+            foreach($Rec in $DnsRecords)
+            {
+                switch($Rec.Type)
                 {
-                    Add-DhcpServerInDC -DnsName "$env:COMPUTERNAME.$env:USERDNSDOMAIN"
-                }
-
-                # Set conflict detection attempts
-                if ((Get-DhcpServerSetting).ConflictDetectionAttempts -ne 1 -and
-                    (ShouldProcess @WhatIfSplat -Message "Setting DHCP server conflict detection attempts to 1." @VerboseSplat))
-                {
-                    Set-DhcpServerSetting -ConflictDetectionAttempts 1
-                }
-
-                # Dynamically update DNS
-                if ((Get-DhcpServerv4DnsSetting).DynamicUpdates -ne 'Always' -and
-                    (ShouldProcess @WhatIfSplat -Message "Enable DHCP always dynamically update DNS records." @VerboseSplat))
-                {
-                    Set-DhcpServerv4DnsSetting -DynamicUpdates Always
-                }
-
-                # Dynamically update DNS for older clients
-                if ((Get-DhcpServerv4DnsSetting).UpdateDnsRRForOlderClients -ne $true -and
-                    (ShouldProcess @WhatIfSplat -Message "Enable DHCP dynamically update DNS records for older clients." @VerboseSplat))
-                {
-                    Set-DhcpServerv4DnsSetting -UpdateDnsRRForOlderClients $true
-                }
-
-                # Scope
-                if (-not (Get-DhcpServerv4Scope -ScopeId $DHCPScope -ErrorAction SilentlyContinue) -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding DHCP scope $DHCPScope ($DHCPScopeStartRange-$DHCPScopeEndRange/$DHCPScopeSubnetMask) with duration $DHCPScopeLeaseDuration" @VerboseSplat))
-                {
-                    Add-DhcpServerv4Scope -Name $DHCPScope -StartRange $DHCPScopeStartRange -EndRange $DHCPScopeEndRange -SubnetMask $DHCPScopeSubnetMask -LeaseDuration $DHCPScopeLeaseDuration
-                }
-
-                # Range
-                if (((((Get-DhcpServerv4Scope).StartRange -ne $DHCPScopeStartRange) -or
-                       (Get-DhcpServerv4Scope).EndRange -ne $DHCPScopeEndRange)) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope range $DHCPScopeStartRange-$DHCPScopeEndRange" @VerboseSplat))
-                {
-                    Set-DhcpServerv4Scope -ScopeID $DHCPScope -StartRange $DHCPScopeStartRange -EndRange $DHCPScopeEndRange
-                }
-
-                # SubnetMask
-                if (((Get-DhcpServerv4Scope).SubnetMask -ne $DHCPScopeSubnetMask) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope subnet mask to $DHCPScopeSubnetMask" @VerboseSplat))
-                {
-                    Set-DhcpServerv4Scope -ScopeID $DHCPScope -SubnetMask $DHCPScopeSubnetMask
-                }
-
-                # Lease duration
-                if (((Get-DhcpServerv4Scope).LeaseDuration -ne $DHCPScopeLeaseDuration) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope lease duration to $DHCPScopeLeaseDuration" @VerboseSplat))
-                {
-                    Set-DhcpServerv4Scope -ScopeID $DHCPScope -LeaseDuration $DHCPScopeLeaseDuration
-                }
-
-                # DNS domain
-                if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 15 -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope DNS Domain to $env:USERDNSDOMAIN" @VerboseSplat))
-                {
-                    Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -DNSDomain $env:USERDNSDOMAIN
-                }
-
-                # DNS server
-                if ((-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 6 -ErrorAction SilentlyContinue) -or
-                    @(Compare-Object -ReferenceObject $DHCPScopeDNSServer -DifferenceObject (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 6).Value -SyncWindow 0).Length -ne 0) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope DNS to $DHCPScopeDNSServer" @VerboseSplat))
-                {
-                    Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -DNSServer $DHCPScopeDNSServer
-                }
-
-                # Gateway
-                if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 3 -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope router to $DHCPScopeDefaultGateway" @VerboseSplat))
-                {
-                    Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -Router $DHCPScopeDefaultGateway
-                }
-
-                # Disable netbios
-                if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 1 -VendorClass 'Microsoft Windows 2000 Options' -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope option to disable netbios." @VerboseSplat))
-                {
-                    Set-DhcpServerv4OptionValue -ScopeId $DHCPScope -VendorClass 'Microsoft Windows 2000 Options' -OptionId 1 -Value 2
-                }
-
-                ###############
-                # Reservations
-                ###############
-
-                $DhcpReservations =
-                @(
-                    @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.50"; }
-                    @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.100"; }
-                    @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
-                )
-
-                foreach($Reservation in $DhcpReservations)
-                {
-                    # Get clientId from dhcp active leases
-                    $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -match $Reservation.Host -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
-
-                    # Check if client id exist
-                    if ($ClientId)
+                    'A'
                     {
-                        $CurrentReservation = Get-DhcpServerv4Reservation -ScopeId $DHCPScope | Where-Object { $_.Name -eq $Reservation.Name -and $_.IPAddress -eq $Reservation.IPAddress }
+                        $RecordType = @{ A = $true; IPv4Address = $Rec.Data; }
+                    }
+                    'CNAME'
+                    {
+                        $RecordType = @{ CName = $true; HostNameAlias = $Rec.Data; }
+                    }
+                }
 
-                        if ($CurrentReservation)
-                        {
-                            if ($CurrentReservation.ClientId -ne $ClientId -and
-                               (ShouldProcess @WhatIfSplat -Message "Updating DHCP reservation `"$($Reservation.Name)`" -> $($Reservation.IPAddress) ($ClientID)." @VerboseSplat))
-                            {
-                                Set-DhcpServerv4Reservation -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
+                if (-not (Get-DnsServerResourceRecord -ZoneName $DomainName -Name $Rec.Name -RRType $Rec.Type -ErrorAction SilentlyContinue) -and
+                    (ShouldProcess @WhatIfSplat -Message "Adding $($Rec.Type) `"$($Rec.Name)`" -> `"$($Rec.Data)`"." @VerboseSplat))
+                {
+                    Add-DnsServerResourceRecord -ZoneName $DomainName @RecordType -Name $Rec.Name
+                }
+            }
+        }
 
-                                $UpdatedObjects.Add($Reservation.Host, $true)
-                            }
-                        }
-                        elseif (ShouldProcess @WhatIfSplat -Message "Adding DHCP reservation `"$($Reservation.Name)`" -> $($Reservation.IPAddress) ($ClientId)." @VerboseSplat)
+        # ██████╗ ██╗  ██╗ ██████╗██████╗
+        # ██╔══██╗██║  ██║██╔════╝██╔══██╗
+        # ██║  ██║███████║██║     ██████╔╝
+        # ██║  ██║██╔══██║██║     ██╔═══╝
+        # ██████╔╝██║  ██║╚██████╗██║
+        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝
+
+        if (-not $DHCPScopeDNSServer)
+        {
+            # get IPAddress
+            $DHCPScopeDNSServer = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Manual', 'DHCP')} | Sort-Object -Property ifIndex | Select-Object -ExpandProperty IPAddress -First 1
+        }
+
+        # Check if DHCP server is installed and running
+        if ((Get-Service -Name DHCPServer).Status -eq 'Running')
+        {
+            # Authorize DHCP server
+            if ((Get-DhcpServerSetting).IsAuthorized -eq $false -and
+                (ShouldProcess @WhatIfSplat -Message "Authorizing DHCP server." @VerboseSplat))
+            {
+                Add-DhcpServerInDC -DnsName "$env:COMPUTERNAME.$env:USERDNSDOMAIN"
+            }
+
+            # Set conflict detection attempts
+            if ((Get-DhcpServerSetting).ConflictDetectionAttempts -ne 1 -and
+                (ShouldProcess @WhatIfSplat -Message "Setting DHCP server conflict detection attempts to 1." @VerboseSplat))
+            {
+                Set-DhcpServerSetting -ConflictDetectionAttempts 1
+            }
+
+            # Dynamically update DNS
+            if ((Get-DhcpServerv4DnsSetting).DynamicUpdates -ne 'Always' -and
+                (ShouldProcess @WhatIfSplat -Message "Enable DHCP always dynamically update DNS records." @VerboseSplat))
+            {
+                Set-DhcpServerv4DnsSetting -DynamicUpdates Always
+            }
+
+            # Dynamically update DNS for older clients
+            if ((Get-DhcpServerv4DnsSetting).UpdateDnsRRForOlderClients -ne $true -and
+                (ShouldProcess @WhatIfSplat -Message "Enable DHCP dynamically update DNS records for older clients." @VerboseSplat))
+            {
+                Set-DhcpServerv4DnsSetting -UpdateDnsRRForOlderClients $true
+            }
+
+            # Scope
+            if (-not (Get-DhcpServerv4Scope -ScopeId $DHCPScope -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding DHCP scope $DHCPScope ($DHCPScopeStartRange-$DHCPScopeEndRange/$DHCPScopeSubnetMask) with duration $DHCPScopeLeaseDuration" @VerboseSplat))
+            {
+                Add-DhcpServerv4Scope -Name $DHCPScope -StartRange $DHCPScopeStartRange -EndRange $DHCPScopeEndRange -SubnetMask $DHCPScopeSubnetMask -LeaseDuration $DHCPScopeLeaseDuration
+            }
+
+            # Range
+            if (((((Get-DhcpServerv4Scope).StartRange -ne $DHCPScopeStartRange) -or
+                   (Get-DhcpServerv4Scope).EndRange -ne $DHCPScopeEndRange)) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope range $DHCPScopeStartRange-$DHCPScopeEndRange" @VerboseSplat))
+            {
+                Set-DhcpServerv4Scope -ScopeID $DHCPScope -StartRange $DHCPScopeStartRange -EndRange $DHCPScopeEndRange
+            }
+
+            # SubnetMask
+            if (((Get-DhcpServerv4Scope).SubnetMask -ne $DHCPScopeSubnetMask) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope subnet mask to $DHCPScopeSubnetMask" @VerboseSplat))
+            {
+                Set-DhcpServerv4Scope -ScopeID $DHCPScope -SubnetMask $DHCPScopeSubnetMask
+            }
+
+            # Lease duration
+            if (((Get-DhcpServerv4Scope).LeaseDuration -ne $DHCPScopeLeaseDuration) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope lease duration to $DHCPScopeLeaseDuration" @VerboseSplat))
+            {
+                Set-DhcpServerv4Scope -ScopeID $DHCPScope -LeaseDuration $DHCPScopeLeaseDuration
+            }
+
+            # DNS domain
+            if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 15 -ErrorAction SilentlyContinue) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope DNS Domain to $env:USERDNSDOMAIN" @VerboseSplat))
+            {
+                Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -DNSDomain $env:USERDNSDOMAIN
+            }
+
+            # DNS server
+            if ((-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 6 -ErrorAction SilentlyContinue) -or
+                @(Compare-Object -ReferenceObject $DHCPScopeDNSServer -DifferenceObject (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 6).Value -SyncWindow 0).Length -ne 0) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope DNS to $DHCPScopeDNSServer" @VerboseSplat))
+            {
+                Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -DNSServer $DHCPScopeDNSServer
+            }
+
+            # Gateway
+            if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 3 -ErrorAction SilentlyContinue) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope router to $DHCPScopeDefaultGateway" @VerboseSplat))
+            {
+                Set-DhcpServerv4OptionValue -ScopeID $DHCPScope -Router $DHCPScopeDefaultGateway
+            }
+
+            # Disable netbios
+            if (-not (Get-DhcpServerv4OptionValue -ScopeId $DHCPScope -OptionId 1 -VendorClass 'Microsoft Windows 2000 Options' -ErrorAction SilentlyContinue) -and
+               (ShouldProcess @WhatIfSplat -Message "Setting DHCP scope option to disable netbios." @VerboseSplat))
+            {
+                Set-DhcpServerv4OptionValue -ScopeId $DHCPScope -VendorClass 'Microsoft Windows 2000 Options' -OptionId 1 -Value 2
+            }
+
+            ###############
+            # Reservations
+            ###############
+
+            $DhcpReservations =
+            @(
+                @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.50"; }
+                @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.100"; }
+                @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
+            )
+
+            foreach($Reservation in $DhcpReservations)
+            {
+                # Get clientId from dhcp active leases
+                $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -match $Reservation.Host -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
+
+                # Check if client id exist
+                if ($ClientId)
+                {
+                    $CurrentReservation = Get-DhcpServerv4Reservation -ScopeId $DHCPScope | Where-Object { $_.Name -eq $Reservation.Name -and $_.IPAddress -eq $Reservation.IPAddress }
+
+                    if ($CurrentReservation)
+                    {
+                        if ($CurrentReservation.ClientId -ne $ClientId -and
+                           (ShouldProcess @WhatIfSplat -Message "Updating DHCP reservation `"$($Reservation.Name)`" -> $($Reservation.IPAddress) ($ClientID)." @VerboseSplat))
                         {
-                            Add-DhcpServerv4Reservation -ScopeId $DHCPScope -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
+                            Set-DhcpServerv4Reservation -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
 
                             $UpdatedObjects.Add($Reservation.Host, $true)
                         }
                     }
+                    elseif (ShouldProcess @WhatIfSplat -Message "Adding DHCP reservation `"$($Reservation.Name)`" -> $($Reservation.IPAddress) ($ClientId)." @VerboseSplat)
+                    {
+                        Add-DhcpServerv4Reservation -ScopeId $DHCPScope -Name $Reservation.Name -IPAddress $Reservation.IPAddress -ClientId $ClientID
+
+                        $UpdatedObjects.Add($Reservation.Host, $true)
+                    }
                 }
             }
+        }
+
+        # Check if to skip
+        if (-not $SetupDhcpDnsOnly.IsPresent)
+        {
 
             #  ██████╗ ██╗   ██╗
             # ██╔═══██╗██║   ██║
@@ -885,15 +893,6 @@ Begin
                 }
                 #>
 
-                # Join domain account
-                @{
-                    Name = 'JoinDomain'
-                    Password = 'P455w0rd'
-                    NeverExpires = $true
-                    AccountNotDelegated = $true
-                    MemberOf = @()
-                }
-
                 # Users
                 @{
                     Name = 'Alice'
@@ -958,12 +957,6 @@ Begin
                 # Domain Admin
                 @{
                     Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "CN=Users,$BaseDN"
-                }
-
-                # Join domain account
-                @{
-                    Filter = "Name -like 'JoinDomain' -and ObjectCategory -eq 'Person'"
                     TargetPath = "CN=Users,$BaseDN"
                 }
 
@@ -1450,27 +1443,6 @@ Begin
                     }
                 )
             }
-
-            ##############
-            # Join domain
-            ##############
-
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Delegate Create Child Computer'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'JoinDomain' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "CN=Users,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
 
             ######
             # Pki
@@ -2023,33 +1995,6 @@ Begin
             $SchemaID = @{}
             Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
 
-            ########################
-            # Create Child Computer
-            ########################
-
-            $CreateChildComputer =
-            @(
-                @{
-                    ActiveDirectoryRights = 'CreateChild';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['Computer'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['Computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
-
             ################################
             # Install Certificate Authority
             ################################
@@ -2250,25 +2195,10 @@ Begin
 
                 {
                     $ComputerAcl.SetOwner([System.Security.Principal.NTAccount] "$DomainNetbiosName\Domain Admins")
-                    $ComputerAclChanged = $true
-                }
 
-                foreach ($AccessRule in $ComputerAcl.Access)
-                {
-                    if ($AccessRule.IdentityReference.Value -match 'JoinDomain' -and
-                        ((ShouldProcess @WhatIfSplat -Message "Removing `"JoinDomain: $($AccessRule.ActiveDirectoryRights)`" from `"$($Computer.Name)`"." @VerboseSplat)))
-                    {
-                        $ComputerAcl.RemoveAccessRule($AccessRule) > $null
-                        $ComputerAclChanged = $true
-                    }
-                }
-
-                if ($ComputerAclChanged = $true)
-                {
                     Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
                 }
             }
-
 
             #  ██████╗ ██████╗  ██████╗
             # ██╔════╝ ██╔══██╗██╔═══██╗
@@ -2318,7 +2248,6 @@ Begin
 
                             $GptContent = Get-Content -Path $GpFile -Raw
 
-                            $GptContent = $GptContent -replace '%join_domain%', "*$((Get-ADUser -Identity 'JoinDomain').SID.Value)"
                             $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
                             $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
@@ -3296,101 +3225,100 @@ Begin
             {
                 Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
             }
+        }
 
-            # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
-            # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
-            # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ██║  ███╗██████╔╝██║   ██║
-            # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝     ██║   ██║██╔═══╝ ██║   ██║
-            # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║         ╚██████╔╝██║     ╚██████╔╝
-            # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝          ╚═════╝ ╚═╝      ╚═════╝
+        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
+        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
+        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ██║  ███╗██████╔╝██║   ██║
+        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝     ██║   ██║██╔═══╝ ██║   ██║
+        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║         ╚██████╔╝██║     ╚██████╔╝
+        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝          ╚═════╝ ╚═╝      ╚═════╝
 
-            if ($BackupGpo.IsPresent -and
-                (ShouldProcess @WhatIfSplat -Message "Backing up GPOs to `"$env:TEMP\GpoBackup`"" @VerboseSplat))
+        if ($BackupGpo.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Backing up GPOs to `"$env:TEMP\GpoBackup`"" @VerboseSplat))
+        {
+            # Remove old directory
+            Remove-Item -Recurse -Path "$env:TEMP\GpoBackup" -Force -ErrorAction SilentlyContinue
+
+            # Create new directory
+            New-Item -Path "$env:TEMP\GpoBackup" -ItemType Directory > $null
+
+            # Export
+            foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
             {
-                # Remove old directory
-                Remove-Item -Recurse -Path "$env:TEMP\GpoBackup" -Force -ErrorAction SilentlyContinue
+                # Backup gpo
+                $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
 
-                # Create new directory
-                New-Item -Path "$env:TEMP\GpoBackup" -ItemType Directory > $null
-
-                # Export
-                foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
+                # Replace domain name in site to zone assignment list
+                if ($Backup.DisplayName -match 'Site to Zone Assignment List')
                 {
-                    # Backup gpo
-                    $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
+                    # Get backup filepath
+                    $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
 
-                    # Replace domain name in site to zone assignment list
-                    if ($Backup.DisplayName -match 'Site to Zone Assignment List')
-                    {
-                        # Get backup filepath
-                        $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
-
-                        # Replace domain wildcard with placeholder
-                        ((Get-Content -Path $GpReportFile -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReportFile
-                    }
-
-                    # Replace sids in GptTempl.inf
-                    if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
-                    {
-                        $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
-
-                        $GptContent = Get-Content -Path $GptTmplFile -Raw
-                        $GptContent = $GptContent -replace "\*$((Get-ADUser  -Identity 'JoinDomain').SID.Value)", '%join_domain%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)", '%tier_0_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)", '%tier_1_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)", '%tier_2_admins%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
-                        $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
-
-                        Set-Content -Path $GptTmplFile -Value $GptContent
-                    }
+                    # Replace domain wildcard with placeholder
+                    ((Get-Content -Path $GpReportFile -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReportFile
                 }
 
-                foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
+                # Replace sids in GptTempl.inf
+                if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
                 {
-                    if ($file.Attributes.ToString().Contains('Hidden'))
-                    {
-                        Set-ItemProperty -Path $file.FullName -Name Attributes -Value Normal
-                    }
+                    $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+
+                    $GptContent = Get-Content -Path $GptTmplFile -Raw
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)", '%tier_0_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)", '%tier_1_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)", '%tier_2_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
+
+                    Set-Content -Path $GptTmplFile -Value $GptContent
                 }
             }
 
-            # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
-            # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
-            # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝       ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
-            # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝        ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
-            # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║            ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
-            # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝            ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
-
-            if ($BackupTemplates.IsPresent -and
-                (ShouldProcess @WhatIfSplat -Message "Backing up certificate templates to `"$env:TEMP\TemplatesBackup`"" @VerboseSplat))
+            foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
             {
-                # Remove old directory
-                Remove-Item -Path "$env:TEMP\TemplatesBackup" -Recurse -Force -ErrorAction SilentlyContinue
-
-                # Create new directory
-                New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
-
-                # Export
-                foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+                if ($file.Attributes.ToString().Contains('Hidden'))
                 {
-                    # Remove domain prefix
-                    $Name = $Template.Name.Replace($DomainPrefix, '')
-
-                    # Export template to json files
-                    $Template | Select-Object -Property @{ n = 'Name' ; e = { $Name }}, @{ n = 'DisplayName'; e = { $_.DisplayName.Replace("$DomainPrefix ", '') }}, flags, revision, *PKI*, @{ n = 'msPKI-Template-Minor-Revision' ; e = { 1 }} -ExcludeProperty 'msPKI-Template-Minor-Revision', 'msPKI-Cert-Template-OID' | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_tmpl.json"
-
-                    # Export acl to json files
-                    # Note: Convert to/from csv for ToString on all enums
-                    Get-Acl -Path "AD:$($Template.DistinguishedName)" | Select-Object -ExpandProperty Access | Select-Object -Property *, @{ n = 'IdentityReference'; e = { $_.IdentityReference.ToString().Replace($DomainNetbiosName, '%domain%') }} -ExcludeProperty 'IdentityReference' | ConvertTo-Csv | ConvertFrom-Csv | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_acl.json"
+                    Set-ItemProperty -Path $file.FullName -Name Attributes -Value Normal
                 }
+            }
+        }
+
+        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝       ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝        ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║            ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝            ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+
+        if ($BackupTemplates.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Backing up certificate templates to `"$env:TEMP\TemplatesBackup`"" @VerboseSplat))
+        {
+            # Remove old directory
+            Remove-Item -Path "$env:TEMP\TemplatesBackup" -Recurse -Force -ErrorAction SilentlyContinue
+
+            # Create new directory
+            New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
+
+            # Export
+            foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+            {
+                # Remove domain prefix
+                $Name = $Template.Name.Replace($DomainPrefix, '')
+
+                # Export template to json files
+                $Template | Select-Object -Property @{ n = 'Name' ; e = { $Name }}, @{ n = 'DisplayName'; e = { $_.DisplayName.Replace("$DomainPrefix ", '') }}, flags, revision, *PKI*, @{ n = 'msPKI-Template-Minor-Revision' ; e = { 1 }} -ExcludeProperty 'msPKI-Template-Minor-Revision', 'msPKI-Cert-Template-OID' | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_tmpl.json"
+
+                # Export acl to json files
+                # Note: Convert to/from csv for ToString on all enums
+                Get-Acl -Path "AD:$($Template.DistinguishedName)" | Select-Object -ExpandProperty Access | Select-Object -Property *, @{ n = 'IdentityReference'; e = { $_.IdentityReference.ToString().Replace($DomainNetbiosName, '%domain%') }} -ExcludeProperty 'IdentityReference' | ConvertTo-Csv | ConvertFrom-Csv | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_acl.json"
             }
         }
 
@@ -3564,8 +3492,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQsDcelYTbIEteFsSVSXd8sSc
-# zeCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjAOA4I9N4JorVXDO+Dcaos/p
+# 4FCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3696,34 +3624,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRKPmFc
-# hrqpNXHmEarBMuSMTCDl3zANBgkqhkiG9w0BAQEFAASCAgAXTXzoC8jzHpDDDvJ9
-# bL/lw+7XwkEtJ162mTticvNvzGfvtKtaU7KuGGnX4Yx+E11KIWi1vOht2TuBQZKD
-# 3o/cLuFFBoaIFXn3Uv3yaKvFiDp+5L9S2EwGXIMzk+pB0UzTUPdTzrP3ghYaUHjX
-# MUT2jMbyuVIGOtPPqvqcy9Xj84TTJI1A5gI/+j53FUHXBMPB5OFDbIK5YcLqVvRl
-# CpBGGgxf8kV4k+bNaBcb4s9fKlaYAfhMhPQQe1E38CgVA1mgB/sVUBKSN54n0vuT
-# EWrSO3jn6k5IOrLOwE0Eu6SNjT7h9vbn55X/sHZo/WQeQIiUVnPAXh+IZfj1Cwml
-# Q5PzN7ZyZSRhE65HbZebnRisYVZToKMrJJzdldfOghz2n3DCo+TMN+Q7jGiE4/1G
-# yvngsMpn9Ff1FZP7TXt3WJmdX4hhAk2Gkv6PxYcIf1FLso+EA/ui644aeyolNaoY
-# hNebErGUSPTIhiRUbTHLmf3RLjYlZDsgqYnZdw/+l8GZq3vbt9K0d7Xv3U7eYqGs
-# A8ugNvuD1pGvTb0li8cMQ6Fd58Nul5mFnBjDUz11Yz+4UupqD7DLtI1J2+M0hN7l
-# jb4/Y9+9VtqUlCUpzlJLP5Wvq56s/3bqT//Hfg9w2h2YbLtw4s3HgXJ68/xoa3Uf
-# 7/BE8X3QPh4RTb0/2YK59lPAaKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTgPyX1
+# UKhGr/IokjR3ruDRc26+cjANBgkqhkiG9w0BAQEFAASCAgAbAv78vHZMCqAy3BBW
+# Pgg+AVI+HrebLnUykgkpC/Thr8qjUyzrOQFKim4udfa3aX5qdlsEoTdVrFGx2de2
+# fdiw5TH+DFQpQcEJh+VLxMsdKS2c3bVsP7hxARNR+aXoUEaH37r+y8WPgsP7/DJ6
+# MR/Sj3F6sVF/GVqaha44GH4aDT2FMi2DtCW5dW9XbIP6ThbdnwqIiY7qdyMl76CR
+# WhMypEymX2bMBeId9/qK0UKpAswNlRe2ofL04O7rUnk/bnjxV+uCE29gfs44vc+c
+# quliofxCCyZLhHs9jSESFOrFe6VjfZK2AAjKmIi7XvSQOVELOQFQhLeHtGwtCY0p
+# 1eyMtNB82tX09Ff7h5oMsiVol+1Q8Pxu/a3owO35Ii7/Y8dQC5XQfbXpNpqSZfA+
+# zvVInWswcfToQc07lgnawvaBmXeUGUQLVLRpnLYLSTCgeeIOU5XB2snot7Xnpdyw
+# FBc9UHHf5ltIaBEOqNn2/tCDd8uFVbxKR7X3gWvvDG4c+bIUL0uxaxfc1v6eN+GG
+# ooRjaUEAmab/xY4GFwNgNWidLvxKgFfkBFB6n7hHmbXC13I8AsyGqZQPkkht/GQC
+# 3ErRohAeCO8sv2EOdD9K3QuGAc2Z8Gq6XMaIuaEG82SbP7OxZ9cKTVhR+BIWBxM/
+# JRZPnzBQKgxFg126cByZz7svhqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxNzAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCCX+WWulslBHj5SL8tYVZZHXEBOOvMcS9XLoWCq
-# taFugjANBgkqhkiG9w0BAQEFAASCAgBQlKB52xlMPAFIOheC7xWdPStbTfA8/1gE
-# TkjJVnRdDcjj/LRaSNOovcLIsCZktGqWTv/+ibn9hzdOhBrxe+ZZz3QQ8yoIErz1
-# kkP7HGQxSrR9W0NNfvhFdF/SLXPVSl87aOKrxP9kVciYoL7GdZ5GMLlRGlr4MkbZ
-# ruHsGz3seTxraTAZN7f7rlzDfPH4G9zyQ1boTMT/Scc2/81VJaROQzDGuaMBn4Xp
-# NRRdGVbqqiFZcmPQFXjK/+MZVlnpp9O6jsVXxD2QLSNYOi6BxhDPKwt4SyrCoutt
-# Y37Eu1mqNE5SoM+uC9z2VNIs6ZpfNdDupJlwLpdFILBN4xsgthOHYLX2v0BHn9DX
-# VQCZJelUV97dtV3gKPozY37pdYYoFqbJ/QswMpYibWolDBnSaXDHtId5SMWLmbxP
-# b7NjwSlGwQkb0yGJyT1aY/8K/450KfSPC2aDFzPPaAzCkTpslhYrRdfDmktvwc4X
-# K9HVg2cOhWlNyAY8UMAmTPKCeDn7I8uYmTYVepg+5y7gPNpcnE0nYxzzQ7Fl6eFV
-# 3OcMUQYxru92ZRzuMcr8eQWqNhbakuALMPUW2pyyf8vk4Clcy7iLGDZfUriDkUPm
-# 1z3sVmRiSfAx6YE8NyQ1/RD+D/pSuTov2N1CjHmT2mxvBZKgjmpTaKS4G0Tfz9Bd
-# wZ1kO3Thgw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxODAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCC0PBGtcDl7UKUdkRx45rrcCPAyDndj5zXdj8pa
+# 2yJDfDANBgkqhkiG9w0BAQEFAASCAgA+V/8w//B+kqcSlPRzkntE3m7XHAvRW9pS
+# QymRkiDuka/U+PAXtn2JEZcaSoFzhkIQeqrlHheCo2prJKi8EZwXO4m6ufa13Wcx
+# DC51lxzGxEbDKl1EkEk7p7mXvcgUQxtu2bUAf9EgyrI16tSFqXbLwFmIt/T9d+Bk
+# fNKHLPUYVihAH/dTv9LRJ04q/x3TSM1nxugqNBxbr79imj0phePtiS6gEInySAqV
+# JvJsMh2xIybjVJg+hpmlcw/2suZ1upPGbm7kd5frlBS7B2ZwpJoO6Hna2/0FVhOP
+# Zy0pry5uZ5o5kYl/B/6MMdorBkfahWRF1R0Duk2XeyT/WpimH8SHFI/+YRTPHP1Z
+# HVWKqEF9Dz1BeFII80ajf1wgz8p9vikTyVTVmNipg8R1igoRVui73kdJD+Q3wJFH
+# j02soMNUzwkdd7zUpG9NfkXcjNz3ZBVVK2iSjJMpoppxEDNK1dpZgLX84inhXeC5
+# wxt21oAM0BJHoNR+9D8+x0dEo3vsp4+zONDMmV4MBMXLwoacNPtsjMN3+VhUd+Es
+# sxiN4wsSrYXPEKraZo92Vbm3FJqtlAkWEX67MTg2nbmUqnABNxa9M3HvmV/ymYUZ
+# 81gu1mvHtWiW1lmeyLx3e9jYcdbC8gH4BP9YkuA30TXBONyzxE0FXimr1Pb+cm/q
+# SJSvtQQR8Q==
 # SIG # End signature block
