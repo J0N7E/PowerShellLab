@@ -73,6 +73,7 @@ $Settings +=
     [ordered]@{
         RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @();       Credential = $Settings.Lac; }
         DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Dac; }
+        DC2    = @{ Name = 'DC02';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Dac; }
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
         ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
@@ -217,7 +218,9 @@ function Setup-DC
         [Switch]$BackupTemplates,
         [Switch]$BackupReplace,
 
-        [Switch]$RemoveAuthenticatedUsersFromUserGpos
+        [Switch]$RemoveAuthenticatedUsersFromUserGpos,
+
+        [String]$VMName = 'DC01'
     )
 
     # Initialize
@@ -269,7 +272,7 @@ function Setup-DC
     # Default argumentlist
     $Argumentlist =
     @(
-        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $DC $Dac -Verbose",
+        "$NoExitStr-File $LabPath\VMSetupDC.ps1 -VMName $VMName $Dac -Verbose",
         "-DomainNetworkId $($Settings.DomainNetworkId)",
         "-DomainName $($Settings.DomainName)",
         "-DomainNetbiosName $($Settings.DomainNetBiosName)",
@@ -640,8 +643,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjcyXXxIDPZftMVkGvXGddIy0
-# RE6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKuCuWdVCrDjZh/O2FTf3n8rL
+# qe6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -772,34 +775,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRUu8q8
-# ig7eoGEQwMbMY8G0TrjdLDANBgkqhkiG9w0BAQEFAASCAgBGX5tI6TCEZr2Jsx3C
-# HUyg2YxHrOgseQvq1ZPGk/iHkYwJNjbgMjtt3FmnTtV3dskeMudzngRNk24TqifO
-# 9umn0A6eD7YdTxYlcH5K5QlzaNtZDz4DvSOfDiTDz8Ltf4lvmSWcSlDNPTt5GikT
-# oKPO6r8jQjHHZ5eD9BiNOtiThwlv15R0li0dzlFyFy5dTEYQfhzhVfUwiUudLGvz
-# 1XF4bV0a8tBDXtDU9VPlukwq+WlBMxWm57z+nL4z+dpnNqBrjzwy2hyWulzOTCOb
-# QeVkAkDVF1Hl0chQ8Wg+mzmReWLujlof7WpE5P9VZxiVCNEuFZmW08TM/8eu0XCu
-# epqTCrC0ntYpxpjVHFNucMy6WQgVXKxT1zANQfx8XIvuEkOUdSv61WTIQYD3wDIu
-# ErrpgYQozooiwQY0CkbD3BEM3LLeHqUgI/dP6GpEvrTvETue/Nr/3LmZDbJzP3oR
-# IkLmIf+ZaYLwqQDj6Y+Tvm4rAeEiGKmx66HhY93M1QYo4TpM0v56/owQ1HGzaMAW
-# gGYwXwkH7pnCSGZJRlDtpNJYX1cV6L5/V3bWxcwV7EA0/Pyp6Lg8lDOvWRFOmgpF
-# BmPoN6UYUQFaaqRcu0TPu4NIX6ROmvaZig1pmBD51iKQSPNLFFqnv98uG8DNRLt4
-# h392pr48CVov4p3D7I9BSPAZzKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTpyqEU
+# kngJ+iLyzGJUJyd6tR4WeTANBgkqhkiG9w0BAQEFAASCAgCphtg6ispPLTpjvwiW
+# 98BgA/4RPf9Qid3ZR5nUKLscr9zHJ+4b91Gr/XJQJthqtItb9sZBdE7zuDnCbcAV
+# bv96bDIXHZIZj8wmv+n7vtFJWyZYZRWSnW4s9V8CAmmkJop645JbZttHqYF8+XhS
+# cuRn1a9WKBPLqCHCBEsQfXNFtVFJ4wlO7yzwKONeFaJxm+21EQAq7L/p9bHh29gv
+# GV5dyP70pkjQSJHGPII4WOefnzJvpwpEbIeFt3YoSHozIgwbCfkRaQgVAKHRGtk5
+# /C+fu6HdByqWeTc8fRxmCO4IYF5QHL2daZ9YfhOOkg6DTZKhcbxOogilbYV0cnPg
+# IGfgornB5sV5uLpqjIVE03jV7lFgPCEx+lMll40mIVm1UvM994R2mQYAffd9JEJy
+# jsXnl59QWUNIQdCoN/OeYa7xI0KGC+y2SXcN+fuEYe7rfsE+qVUyMPxGyp+zqwYf
+# LrqCAyZvV1O1ZqeUCVzFSX8XMZPI5A/ViC1ul1rx6Ty2nAkZW9Tjr6bMww6sPH6r
+# KPkSyQ2BI8Q0A4GfpgyGgcusb8bDtRBORHTA05Tf6qMT6EN9jxzHrsQ6Wzl247Bx
+# cvjoak6U5jhVTrsKf3Id8pV5b5xR+awbgBzDrZX9ytSZEUcR8BSl9kp2pdrbZZFg
+# kcvtMcu6bmjAzasrvynEKdBdc6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDQwMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBdPsvYDH8Q8BTcL68akcVSHmOhou/cZ5O0O1rr
-# FJlUmzANBgkqhkiG9w0BAQEFAASCAgCgDlDU5rjcv/DJRi/EykqqSgVn1/k+pVSK
-# U9nY2WcZ2hU0CnsN7rruNtIxWjRdE7D0TvXuE6KPjSCbVZbU1Fh+OKi8wh5H7KB2
-# T41+i+JfN1VRod56xuUCo6xXVlIZcWQ3VV82W0zvEB/lk19WtKrE0gAIdI8AOfxq
-# LN1OLxhlj4xXTgQY+UjKVvsUSiV3swJxwisV5I3wTPpyh9TlhBvuRa1CpJpw+jsf
-# swiSKTs8j6msXHrJf5hkCqUBR5lMIQj+rJkBFNDYI3esubWdcnGRfGXe39h2lyNm
-# mHQ1uACkiqXNg2XwIvAO231LIs4qYd2ny/9wTGQAfdQISOIncBI60Y3ccEg+uh1E
-# jX38lo6O2H8DkIcP2d37IeMh3zwK6BUMAtS2a0uBcxtF/c0vTWUYB7ijPyK08noB
-# ou9+jrtsEkTJnOQ71n52j8o1UPjNLa6c06Lgt5EKkBH7hn3OfJkvlxT+l6/7MvJu
-# PI1++Oi4u4Jo+oZq+P9cWtLLgaegw0wBfZEd93j/QcWMOBtblS6Dj2ZeImGzp0q4
-# STMdYWGvxYKkN8Yv/RG+lWFT8Ko/2xY7Noy2YKtrwzsX9gxzP/yVYs1SpgPGIdZn
-# YIQ0eLxHof+dD/ZtMr9mDtNo4VVKVHGXz2jXw+8kY0g0IMv124mt6HKnO+bahGmt
-# nsIeM1Jxaw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxMTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAdPiib9Qy5erH0PRkrpVxEuzfvDBUe7kO5f41E
+# 5R98gjANBgkqhkiG9w0BAQEFAASCAgBZEft/NYR+VhIYKdWGk0hF8cyu6dgnkRK5
+# o+81fOUKSaFGqlhclbCNVqs0gNqVRnQfz2oR+kmdzlDuw5bYv4NaYhsfTiToVeEo
+# 9gBso+G+1fTc9FJZuOftdK0AIonTDM2RTEekv/QuuxVx+RORCP7qEjg4buvqRHAY
+# vJjxbKC060g/RIFtMxTW5JIFpaKaHCcW17D+yNg7zRGgt1qfZC0VqnE2zCZZ/+nK
+# hYSaKUMFC1Wduk7ZaArGcHBQ0CUuohc81trwoxCtZu0fRaAydngc2hga5QPjip4r
+# qY1Fpr2x3TFQUsF0G+EVINX2xhKJl1lUNjpNdoOh4Ne4zoQ/L7P9dwj+LTJ8QQpm
+# ETmU6g2oBpfwSHulqG149aWHtdXojS2Yy+DnQ7ARAm1Z2XqMrgoPx/sCxeB2ohgH
+# JOaOEba72zqy/GoQoLZHDJ0U2YVBXUOZK4ugxGJwnqMtSQIeDubsDeou35b/40vb
+# UOLgdbkjY7DVArsmq+AYZZwdmZvxbvQMvlDf2riqcU6J0qsa+HKnO05BpFwS5bPB
+# WhYznIrpTEVrOrwv7OhMfBwoLPNsR7lqmZYFneCwsdDbO1OUND/rgB2hWALLxtAO
+# yxc8JXeoW2zNVr0ufNKHuoszDiqdqIItYO/BJ0lz5qnsY+GKHkgDkhsWjj12zMmp
+# kSF5dDcc0w==
 # SIG # End signature block
