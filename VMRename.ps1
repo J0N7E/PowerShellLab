@@ -58,7 +58,7 @@ Begin
     $Serializable =
     @(
         @{ Name = 'Session';                                  },
-        @{ Name = 'Credential';         Type = [PSCredential] },
+        @{ Name = 'Credential';         Type = [PSCredential] }
     )
 
     #########
@@ -107,6 +107,34 @@ Begin
         $Result = @()
         $StopRestart = $false
 
+        ##################
+        # Get/Set Content
+        ##################
+
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $GetContentSplat =
+            @{
+                Raw = $true
+                AsByteStream = $true
+            }
+            $SetContentSplat = @{ AsByteStream = $true }
+        }
+        else
+        {
+            $GetContentSplat =
+            @{
+                Raw = $true
+                Encoding = 'Byte'
+            }
+            $SetContentSplat = @{ Encoding = 'Byte' }
+        }
+
+        #########
+        # Rename
+        #########
+
+        # Get registry values
         $RegActiveComputerName = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName -Name ComputerName
         $RegComputerName       = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName -Name ComputerName
 
@@ -134,8 +162,16 @@ Begin
             $Result += @{ Renamed = $NewName }
         }
 
+        ##############
+        # Domain join
+        ##############
+
+        Write-Host 1
+
         if ($JoinBlob.Count)
         {
+            Write-Host 2
+
             $Win32ComputerSystem   = Get-CimInstance -ClassName Win32_ComputerSystem
             $Win32Domain           = $Win32ComputerSystem.Domain
             $Win32PartOfDomain     = $Win32ComputerSystem.PartOfDomain
@@ -143,25 +179,48 @@ Begin
             if (-not $Win32PartOfDomain -and
                 (ShouldProcess @WhatIfSplat -Message "Adding $NewName to domain..." @VerboseSplat))
             {
-                try
-                {
-                    djoin
+                Write-Host 3
 
-                    $Result += @{ Joined = $NewName }
-                }
-                catch [Exception]
+                # Itterate all files
+                foreach($file in $JoinBlob.GetEnumerator())
                 {
-                    $StopRestart = $true
-                    throw $_
+                    # Save file to temp
+                    Set-Content @SetContentSplat -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
+
+                    if (Test-Path -Path "$env:TEMP\$($file.Key.Name)")
+                    {
+                        try
+                        {
+                            djoin /requestodj /loadfile "$env:TEMP\$($file.Key.Name)" /windowspath C:\Windows /localos
+
+                            Write-Host 6
+
+                            $Result += @{ Joined = $NewName }
+                        }
+                        catch [Exception]
+                        {
+                            Write-Host 7
+
+                            $StopRestart = $true
+                            throw $_
+                        }
+                    }
+
+                    # Remove temp file
+                    Remove-Item -Path "$env:TEMP\$($file.Key.Name)" -Force
                 }
             }
         }
+
+        Write-Host 10
 
         # Check if to restart
         if ($Restart.IsPresent -and -not $StopRestart -and $Result.Count -gt 0 -and
            (ShouldProcess @WhatIfSplat -Message "Restarting $NewName..." @VerboseSplat))
         {
-            Restart-Computer -Force
+            Write-Host 11
+
+            #Restart-Computer -Force
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -300,8 +359,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYTN/6EZ49spYYmlxNrwcS4sE
-# ctOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUT71s2bTCVzu9zNpwbe5FgDzu
+# 8MygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -432,34 +491,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTUzTso
-# qLggHExaPx39MntobOKAITANBgkqhkiG9w0BAQEFAASCAgBCl6K1IIrkRfS/mSg2
-# s01YUNyheRlwSZCD702kZNBbfaRFgYZnn20hnbNL0vflSniqrp5cA+Me9e42IXZc
-# es2H0LQKjFiW5xMOohEJOtESF2SAVTeeQt0MEUstHm9Qa0aqZpkvnCIQtTFg4VZ3
-# shkerRDU8jYl4qPXY20jVQbrg7Pvp/PCfYEGrkzF8sWceBaGtVp7/44GMNWu9/31
-# lLplx+4c46jSf0iqZx4bk8khn6LB550vMg2PV6vi+Lk7qVH97fmEl1oAP/9fS1v/
-# qSCJwhA5eKkRqDFsNBCyaJpy6bc/S9byFYseMSi0o/NxTWhcSz+yI6zULNAFyi6T
-# r0L7hF+Ia+kkOpWN0L3QhLr6AZKIEXhcp6EdXjBUPzPEIM6MWv+ubJpWWLwZyQoa
-# SGQxwemKXrZJjWGPNUlZ9y6pavGjVZ65dLI1CGtMiGXnw9klovDqcZybcP1cGkA2
-# uhDKNuJ3Y2YGF/Y8faZs8y7JTCVA7fEEr8hG+biQqzv4PRSnpVpsJg3qecrNJV6M
-# HyaKO8Xvd08yRiEwMwvs/tpf+c/1pM296HJiP32nu9CsqlGKoARmoUMr/b86BrHu
-# fvoy89zDKfZ5aDpvOPHG/1jT7jtS0++U3lPBo8AfPGe/R6RcUt/hJ8BQj7vBNA84
-# xyscwgmYS1OrDYtkmRdkM7vnWqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRfNNsz
+# tC8wbg6/+7UiLpkvIYX57zANBgkqhkiG9w0BAQEFAASCAgAG8YwaskB9EvbbGDtC
+# qIiGsWodS1Fbm5ql80z51AwEknEaS5S0QwSVoKHG40YJCNbHJNj28EczdklTcfcz
+# O9tS1JQmyG//BZMytKTrC5aKF5/G3RCiqSr6oyeP/owrpEWaxQx072qvgIWrc3I2
+# nA88nQ5BkgTSjwHhPSrJbTSa/6/Zip6WSrHTeIKquY+uaRdzJx7DmM/K3WN7kaEG
+# blVmBirM1BrMB+DwHCtG40fSlLaAy/EWCTIHxe0qIPYWI/zZ8YRae9ZEKroblTp+
+# SzFLr2B8cX/lcFPxeIOsZYhEY20Olxwoe0ijq5zf972UOlsV1oEBIpxJaSpDgWsp
+# gxEDNXnIYylpbZRUz4+pOr+zKlRTbXKsyDnrXuZ3Y4RQRGVLXguAEch1OlodudO/
+# 0SvJgjt7+OUzOg4DkvAHP5Lbwe3dZK9czuk3MdiDKKjcABxiZNdNIeJ+KpmhOTw9
+# HDIVoR7gOlCPqEEyPpjLzZwg6jIvJiBW99/upveF7Z+jZYicuy6BZst2QwDxIEJw
+# NT1p+7H/8zYrKI3aCk6Jp0O5konDQgwo4Z+gpfsWz1mMBPFwOad6q9XoPPoBfIVD
+# H7JNYDKR2d3BdcGJ2mkUVZK5x6lUhV6r+IEQxLAZt9hPBKiRgopbT3WdQeAj3yU+
+# miPwb28mN+lFpgu4W1U0Z45OL6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxNDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBUvPl4PsfTiStYpi8mmuBQN2bSvtmDY+cI7aTW
-# nGl9PTANBgkqhkiG9w0BAQEFAASCAgAJ0KnzNJlOH+UZcEOd790C/OYGfJaOe7jq
-# XY8JQKQWaFvj2IO/1sdECENZgRFvz3+kQnb03D7vpdQcPalZIRmdTwGfjgpCkqK6
-# 3gGH2saen8dWFe8w/pXK6GSnKs1IXR+0aBDbXoZKtGIJxznGw0w4hQ4A67Bzp6EW
-# 0vDwrZVjSoAwZbShu7VNIs0iNnrZ1NtFFXs0si+Z3lZa4FQaIevil7v7e7Xdrv6V
-# pbEguO0NXLeUxNQPFMZNgcS0+3K6uB61pIgteVBouIVqMrNqwYoYd/+IC5SEBBYa
-# oLBbZ2aAkN5mgmtSJuyze7n8QfkLHUUHl9lon7qOjjSa1goPn2JyHz4rvo/N1HTk
-# 7SGuoPEj6+WLEocFNLiqCTDxf6NCH3fdSEkZTxYhtXQvhbeLZBltD5ulg/k8tlfH
-# 8BWVd9h80asesrNPz2gwhpADeIl8DHcQy70yx9rIgvrQM8/jCSnplDcDv7uxMH5i
-# T61BXI1CVFmwArxElQE4XbAk0iMyPIO43FLObaLS6bCvre9PGqmihFI/b2LqsO3+
-# GSZNeKu4G/AD07Q4+5ns9MQ8xcq2/Q7K6WrNFFZ+yqJrRhE0WEbaPW52NucjFTsQ
-# LXFAcjKsRXAOvxY+JjmjcMqPkB4QTYI0bydovVS+sUsFIvh7Y2Xga6oJ+Jq/tKoP
-# oQGu/o6onw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYxNjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDtlmnUnvOZlZxvMlmqeTumTm/ADmz/vG03BEbS
+# 7htNZjANBgkqhkiG9w0BAQEFAASCAgAblf1BPOhvhxs/RtBbIybAEv3qcEQixZ4L
+# aEV0BMbippYyPB7+qhlQUbsVdh8vxsVal1KaMXdlKN6QK2TgRz/788uGS7hddmu1
+# BYJoRTvaeCw2JXPv58anD0gOwm1deYNPAD1zxXk/w75eaxhuUUr3NHHvnfrk3x9g
+# Ct9f+0P/UxLUMzvl2dmnPT7zZpWYhXfQL9GGmNws4ah0PDDaKfUrDGw4sTaLDkBX
+# 9uIwk7WYXx9tc4YVRXzSh66J6o1b2rpEVVygDZxjO68d6twxVWImwY2EnHA2/WmK
+# YOPrFyzc7Bc4yCtX/KfFZIxiG0czzIqYs5ZU5D2p/MyP6OiSJ+3TQsTrlk25s6uj
+# dRpkkJ1VbzgMWiDysRiFWaCLL8HmuDy9HdBwU0cRxVKImpED7Wib60hYUlyaGEAm
+# HcqxY3azEcBjUsLync4ef872KEymf/Rjmgicj5xGQTKAzhK+pMrIfwlp297MS5QZ
+# hItmDpHM4wIPV9u93axJlSULmjNYB7Pp7XMbneRL8mqDDw+GM2mDPa4oSSLGZpZU
+# Jtr8pgI0Ci1oXoR1l/EAkiCa6X87v4E8Jaeey4CtEVFd59BYtOhNKwFSzByMnwNE
+# HjilRz3WMmfvdsRc8TteyYLyPoVyKV/lcIN7t05hL/9YmT8SgingW6f8ixt9DPDb
+# S6lsCmjghQ==
 # SIG # End signature block
