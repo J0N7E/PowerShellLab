@@ -2699,48 +2699,53 @@ Begin
             # Permissions
             ##############
 
-            foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
+            foreach($Tier in @(0, 1, 2))
             {
-                $Build = ($WinBuilds.GetEnumerator() | Where-Object { $GpoName -in $_.Value.UserBaseline }).Key
-
-                if ($Build)
+                foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
                 {
-                    # Set groups
-                    $GpoPermissionGroups = @('Domain Users')
+                    $Build = ($WinBuilds.GetEnumerator() | Where-Object { $_.Value.UserBaseline.Where({ $_.TrimEnd('-') -eq $GpoName }) }).Key
 
-                    # Add workstation
-                    if ($WinBuilds.Item($Build).Workstation)
+                    if ($Build)
                     {
-                        $GpoPermissionGroups += "Tier 2 - $($WinBuilds.Item($Build).Workstation)"
-                    }
+                        # Set groups
+                        $GpoPermissionGroups = @('Domain Users')
 
-                    <# FIX
-
-                    # Add server
-                    if ($WinBuilds.Item($Build).Server -and $GpoName -match 'Internet Explorer')
-                    {
-                        $GpoPermissionGroups += $WinBuilds.Item($Build).Server
-                    }
-                    #>
-
-                    # Itterate groups
-                    foreach ($Group in $GpoPermissionGroups)
-                    {
-                        # Set permission
-                        if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
-                            (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
+                        if ($Tier -eq 2)
                         {
-                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
+                            # Add workstation group
+                            if ($WinBuilds.Item($Build).Workstation)
+                            {
+                                $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Workstation)"
+                            }
                         }
-                    }
-
-                    if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
-                    {
-                        # Remove authenticated user
-                        if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
-                            (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
+                        else
                         {
-                            Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None -Confirm:$false > $nul
+                            # Add server group
+                            if ($WinBuilds.Item($Build).Server)
+                            {
+                                $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Server)"
+                            }
+                        }
+
+                        # Itterate groups
+                        foreach ($Group in $GpoPermissionGroups)
+                        {
+                            # Set permission
+                            if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
+                                (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
+                            {
+                                Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
+                            }
+                        }
+
+                        if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
+                        {
+                            # Remove authenticated user
+                            if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
+                                (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
+                            {
+                                Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None -Confirm:$false > $nul
+                            }
                         }
                     }
                 }
@@ -3489,8 +3494,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSsIpC8I+PQBMUHUUDkbXYfE5
-# dgGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhYOMRghHweY5O0L0FSfnW0KY
+# bAGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3621,34 +3626,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSLDpHr
-# n3B4eKoaMiR3cJXVuGbVcTANBgkqhkiG9w0BAQEFAASCAgB0B+CVbkAqPJzV7n24
-# 601um/r5S7TUPUKitJuc77Gl3ntPeRCZbE028sCqOCeVoDKAwuZiMltG27VXcnjj
-# SKGM2cCLFk04R6hN4YEAjZZCd16iwtf1WhdNuLO4iXCb3I43RpsW5eJrVCNoOd4m
-# UBEAskEzbPtBrBa8Yh4HYsCIeU9YYEpz9tEUBMn4c1FUc5aO6WjnUzubKVfms2Cn
-# DLwzTSe83BL5dT9iPINvLLfP7x5v7NuhGUnq2dHyM4aL4E7Ph+O+6kUzwstLb30r
-# vDiU0rm7PMAPe9ooxpYpmd/IJWBlYhaKvY4KMQ2aa9iMzXJhqeTciT5Sjay0WHMA
-# uG9k1wYhE5kq+U6vRWq513b1I0d0hZRyTYcd+gEgLtebo9dkKqJmDENNFwsOMUma
-# xHV/QMmTACzbKZ1rrSluZ8ULDL4sPN/sVPx9iuaIJgnWiFubZ+m6nEN07OUmRpJg
-# ehzqmt3QFFeBxs1dLDDSdILIC0SlJ/HIJINv+QlxWfu52lqhuUs+ExVTM78QVtG/
-# RWzvQ8Mrto2f0325sITb6sOU64wiI0yBVFfNrR8rEm/nMeFvnLY2OIFLN2X+3ZZL
-# T00OKBKiDdyTcYj25Xvxd45e8e2wL7ant6qp5fU8j4D98crVZomi6NcrPtjhUz0V
-# xq3jdn3zVb2iBxaP4X60jjX6UqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQaGIge
+# mpQ14sooFD+clIZiV3u01jANBgkqhkiG9w0BAQEFAASCAgBwdoE+zerGJ0GooY9j
+# EB0QiFJqo0IE5ES99mdfNUp1ruKptiS2/SFHrhwLGtu/RsFHZKx19LDCTi9XtLZn
+# sKwed0T7tyMxEgTwNE1knK7wyFNZBNuOG9rew39EcLLwjSuqCpvivFhBXiccIP8P
+# qlJ9WLzHSqUoR+nXmv0br/Nxy/uFVpiu2mOwBnxW1oOEaJZQn3ARw+ZXY201BL28
+# G3NGTG7YAcLWoRYI2rWMVoCgDT8+fX3npxz9jV97V+4nRb2f6i66STt5B8XxHNrD
+# T15Zsn+TC90wvi4YqI5Xvll+Lo9Sz8eKReHvZclxMu5V7il/XW0NPNSwzc1ZSN7x
+# t8qI/U1h5RvUZmICUTcWpEa03cBWLRMIKvD/GsmC05FFefmkwCA/9vzdkAMmJMe7
+# K6J9s+ovUSO5IwT8IacbkRnMXXV/dbetgZfeMCPDOWDzlpZmwp4Vm4590veom4E5
+# 8O1X7CSIWCpMxueM/TYM1QMjqrSMN/T3ihtKEBFAnu2cx1zwb/N8u7HnGozFe1u4
+# 5giX3eDewo9kqrJTBUV41Dg8hZ8YQDRRNSOzWf06T3sbNCDvWeE+wt08JEWE1TVk
+# tfzYOwCkEY/Nh86uYbyXw9h31RJ4WwkbQGRXm/FbKnH+7vjpxpA72LjwP07CB4hl
+# APOFz4RIUqFnkjW6yMAlXGi1o6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDYyMTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCVeDR5kiybVFDQhJaJuQY/ELM7VgRJ/c00MR5n
-# B4P/8zANBgkqhkiG9w0BAQEFAASCAgAWcxdACE2lwmg96BsvwlJnCsiju3ZRqHlL
-# KJuQUPDAlcRWhnIvkZb6ph7YkAwDfMJCctsimzJmDha+jsgkWELxR2JeUdExUlJC
-# EI9CdNTeE4dYLRVZWoW1wQAxBPYzyMGHVjGeV9PONPkxNYWsmY6fJxsllQUaOI/h
-# oyRRK5O4KO+t/zfV8YUFHcdvK/pnWfAzeoaBTYAIHQIn8EXIENGR5L4qYwR1flu5
-# SSKkTdklW8AGOtr/4K17hpUQ0hZ3oRL5zeIBGkOEnm5xK8YxAkbDwve6hjaYXtwU
-# C8kP2fIIUv29oIj2xYbWZuRZi8ExKq+vFyVLILFWCdUuQYR2FZzb0PsvGHDmPpOC
-# mB4FCMlhCuhds8NyWnOm8hu6NTGT6QQhu13L9UdTMrJUh3mixYyvCbMyOFjAxo/E
-# ZeJA9yvm63BE28FBl/hbHtdhaI04bBOeklDjNEqTUHeNOSdUDSQD378T6eYzAoUw
-# ZM24kj9TY9nlO+tjBAH6got82Do7Av4fkZ1mS4xSKNabSvLh7T2o7f3qhRNTbQ/+
-# CFFiDR0lD1ySNQEO0qbMiK4FZKdV+qk1Xg9TTdxvktdkZS4EsB9ZptJ68sV9q9I0
-# q4kc50kxYT5o0yhMmJXx/TE26TQs6LI0tGMwMs2BfGi/UQ4oC8Oj4iphAX3bkLNY
-# qHUbnE+9Cg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDcwMDAw
+# MDVaMC8GCSqGSIb3DQEJBDEiBCD9Hc5oJyoon+sL9KTwWg0YL2+n6qE+tB70UYFR
+# HsfFcDANBgkqhkiG9w0BAQEFAASCAgBFpabBP8xjVaGahNuwjpJrBtVka7eKvnHv
+# qCIVMQc2vnJy9SvcmAUcasKuGyYv5sJsF0ZaT+RcUxlCl5nRP/2fJYkI+ISSasAX
+# hXyINMs50ex+GdFJ4aJXZRJDKcHf3VlQ3psR9zO/b93/43G87q21CPjqaLHzgwTs
+# AF4BbUwRKFAaw4stLnbv0Y9k60B7LmVlH0Ap4roe34IpV0l1A5xisovIoXgrJw+Y
+# IdjniXjjDfM4yLN60Z8+qm5vA9VFXUIT7nTZm230G3ZOjNJ1azjdB3zFhQ0axlJ4
+# aZrE7gP3+C0AaDtVryGuXfWxxMucgpZzbLIEIxrbco5FIGGpKGZghV6pcOwoVOlg
+# gYTlMCDtxCS150mScIhF0zaGbfBUv26dLht5uPNy0DCbgFMjC7B3Dv9XhU+3UdqU
+# VljEwwJ9ic6I6dA0iF6FcEG1HZioGVa2T02o8JqUtqsq2J0yxCT9JUKbWO8Er+zc
+# LyuyRvS30jYdnWemNLPwHJrxg2mXsI7lo9u/LrXm6WZ5uSera1b7jhoAZd/ski4P
+# sI/RNa4tECHumQZPj+AaOsv4RwuuFs5MJ9gEpmICQbupLfqzbD0tZgxiiZA/YQlk
+# Li7fbhztBS6PlOmvLM+BzngmvvH3kZcdpEbvFZeIaN5JvRk7MLTwgD/u4vJEmBB7
+# 4g1knqAV3g==
 # SIG # End signature block
