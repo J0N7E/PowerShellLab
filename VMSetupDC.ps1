@@ -240,202 +240,107 @@ Begin
         # Set friendly netbios name
         $DomainPrefix = $DomainNetbiosName.Substring(0, 1).ToUpper() + $DomainNetbiosName.Substring(1)
 
-        ############
-        # Fucntions
-        ############
+        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
+        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
+        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ██║  ███╗██████╔╝██║   ██║
+        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝     ██║   ██║██╔═══╝ ██║   ██║
+        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║         ╚██████╔╝██║     ╚██████╔╝
+        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝          ╚═════╝ ╚═╝      ╚═════╝
 
-        function ConvertTo-CanonicalName
+        if ($BackupGpo.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Backing up GPOs to `"$env:TEMP\GpoBackup`"" @VerboseSplat))
         {
-            param
-            (
-                [Parameter(Mandatory=$true)]
-                [ValidateNotNullOrEmpty()]
-                [string]$DistinguishedName
-            )
+            # Remove old directory
+            Remove-Item -Recurse -Path "$env:TEMP\GpoBackup" -Force -ErrorAction SilentlyContinue
 
-            $CN = [string]::Empty
-            $DC = [string]::Empty
+            # Create new directory
+            New-Item -Path "$env:TEMP\GpoBackup" -ItemType Directory > $null
 
-            foreach ($item in ($DistinguishedName.split(',')))
+            # Export
+            foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
             {
-                if ($item -match 'DC=')
+                Write-Verbose -Message "Backing up $($Gpo.Id)..." @VerboseSplat
+
+                # Backup gpo
+                $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
+
+                # Replace domain name in site to zone assignment list
+                if ($Backup.DisplayName -match 'Site to Zone Assignment List')
                 {
-                    $DC += $item.Replace('DC=', '') + '.'
+                    # Get backup filepath
+                    $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
+
+                    # Replace domain wildcard with placeholder
+                    ((Get-Content -Path $GpReportFile -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReportFile
                 }
-                else
+
+                # Replace sids in GptTempl.inf
+                if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
                 {
-                    $CN = '/' + $item.Substring(3) + $CN
+                    $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+
+                    $GptContent = Get-Content -Path $GptTmplFile -Raw
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)", '%tier_0_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)", '%tier_1_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)", '%tier_2_admins%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
+                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
+
+                    Set-Content -Path $GptTmplFile -Value $GptContent
                 }
             }
 
-            Write-Output -InputObject ($DC.Trim('.') + $CN)
+            foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
+            {
+                if ($file.Attributes.ToString().Contains('Hidden'))
+                {
+                    Set-ItemProperty -Path $file.FullName -Name Attributes -Value Normal
+                }
+            }
         }
 
-        # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
-        # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
-        # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
-        # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-        # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
-        #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝       ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝        ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║            ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝            ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 
-        $WinBuilds =
-        [ordered]@{
-           # Build
-            '14393' = # Windows Server 2016 / Windows 10 1607
-            @{
-                Version = '1607'
-                Server = 'Windows Server 2016'
-                Workstation = 'Windows 10 1607'
-                Baseline =
-                @(
-                    'MSFT Windows 10 1607 and Server 2016 - Domain Security'
-                    'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 1607 - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 1607 - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 10 1607 - Computer'
-                )
-                ServerBaseline =
-                @(
-                    'MSFT Windows Server 2016 - Member Server'
-                )
-                DCBaseline =
-                @(
-                    'MSFT Windows Server 2016 - Domain Controller'
-                )
+        if ($BackupTemplates.IsPresent -and
+            (ShouldProcess @WhatIfSplat -Message "Backing up certificate templates to `"$env:TEMP\TemplatesBackup`"" @VerboseSplat))
+        {
+            # Remove old directory
+            Remove-Item -Path "$env:TEMP\TemplatesBackup" -Recurse -Force -ErrorAction SilentlyContinue
+
+            # Create new directory
+            New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
+
+            # Export
+            foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+            {
+                # Remove domain prefix
+                $Name = $Template.Name.Replace($DomainPrefix, '')
+
+                # Export template to json files
+                $Template | Select-Object -Property @{ n = 'Name' ; e = { $Name }}, @{ n = 'DisplayName'; e = { $_.DisplayName.Replace("$DomainPrefix ", '') }}, flags, revision, *PKI*, @{ n = 'msPKI-Template-Minor-Revision' ; e = { 1 }} -ExcludeProperty 'msPKI-Template-Minor-Revision', 'msPKI-Cert-Template-OID' | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_tmpl.json"
+
+                # Export acl to json files
+                # Note: Convert to/from csv for ToString on all enums
+                Get-Acl -Path "AD:$($Template.DistinguishedName)" | Select-Object -ExpandProperty Access | Select-Object -Property *, @{ n = 'IdentityReference'; e = { $_.IdentityReference.ToString().Replace($DomainNetbiosName, '%domain%') }} -ExcludeProperty 'IdentityReference' | ConvertTo-Csv | ConvertFrom-Csv | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_acl.json"
             }
-            '17763' = # Windows Server 2019 / Windows 10 1809
-            @{
-                Version = '1809'
-                Server = 'Windows Server 2019'
-                Workstation = 'Windows 10 1809'
-                Baseline =
-                @(
-                    'MSFT Windows 10 1809 and Server 2019 - Domain Security'
-                    'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 1809 - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 1809 - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 10 1809 - Computer'
-                )
-                ServerBaseline =
-                @(
-                    'MSFT Windows Server 2019 - Member Server'
-                )
-                DCBaseline =
-                @(
-                    'MSFT Windows Server 2019 - Domain Controller'
-                )
-            }
-            '19045' = # Windows 10 22H2
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 10 22H2'
-                Baseline =
-                @(
-                    'MSFT Windows 10 22H2 - Domain Security'
-                    'MSFT Windows 10 22H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 22H2 (Windows 10) - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 10 22H2 - Computer'
-                )
-            }
-            '20348' = # Windows Server 2022
-            @{
-                Version = '21H2'
-                Server = 'Windows Server 2022'
-                Baseline =
-                @(
-                    'MSFT Windows Server 2022 - Domain Security'
-                    'MSFT Windows Server 2022 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
-                )
-                ServerBaseline =
-                @(
-                    'MSFT Windows Server 2022 - Member Server'
-                )
-                DCBaseline =
-                @(
-                    'MSFT Windows Server 2022 - Domain Controller'
-                )
-            }
-            '22000' = # Windows 11 21H2
-            @{
-                Version = '21H2'
-                Workstation = 'Windows 11 21H2'
-                Baseline =
-                @(
-                    'MSFT Windows 11 21H2 - Domain Security'
-                    'MSFT Windows 11 21H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 21H2 (Windows 11) - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 11 21H2 - Computer'
-                )
-            }
-            '22621' = # Windows 11 22H2
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 11 22H2'
-                Baseline =
-                @(
-                    'MSFT Windows 11 22H2 - Domain Security'
-                    'MSFT Windows 11 22H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 22H2 (Windows 11) - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 22H2 (Windows 11) - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 11 22H2 - Computer'
-                )
-            }
-            '22631' = # Windows 11 23H2
-            @{
-                Version = '23H2'
-                Workstation = 'Windows 11 23H2'
-                Baseline =
-                @(
-                    'MSFT Windows 11 23H2 - Domain Security'
-                    'MSFT Windows 11 23H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 23H2 - Computer-'
-                )
-                UserBaseline =
-                @(
-                    'MSFT Internet Explorer 11 23H2 - User-'
-                )
-                ComputerBaseline =
-                @(
-                    'MSFT Windows 11 23H2 - Computer'
-                )
-            }
+        }
+
+        # Check if to skip
+        if ($BackupGpo.IsPresent -or $BackupTemplates.IsPresent)
+        {
+            return
         }
 
         # ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗
@@ -717,513 +622,712 @@ Begin
         }
 
         # Check if to skip
-        if (-not $SetupDhcpDnsOnly.IsPresent)
+        if ($SetupDhcpDnsOnly.IsPresent)
         {
+            return
+        }
 
-            #  ██████╗ ██╗   ██╗
-            # ██╔═══██╗██║   ██║
-            # ██║   ██║██║   ██║
-            # ██║   ██║██║   ██║
-            # ╚██████╔╝╚██████╔╝
-            #  ╚═════╝  ╚═════╝
+        # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
+        # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
+        # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
+        # ██║███╗██║██║██║╚██╗██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+        # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
+        #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
-            $RedirUsr = 'Redirect Users'
-            $RedirCmp = 'Redirect Computers'
+        $WinBuilds =
+        [ordered]@{
+           # Build
+            '14393' = # Windows Server 2016 / Windows 10 1607
+            @{
+                Version = '1607'
+                Server = 'Windows Server 2016'
+                Workstation = 'Windows 10 1607'
+                Baseline =
+                @(
+                    'MSFT Windows 10 1607 and Server 2016 - Domain Security'
+                    'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 1607 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 1607 - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 10 1607 - Computer'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2016 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2016 - Domain Controller'
+                )
+            }
+            '17763' = # Windows Server 2019 / Windows 10 1809
+            @{
+                Version = '1809'
+                Server = 'Windows Server 2019'
+                Workstation = 'Windows 10 1809'
+                Baseline =
+                @(
+                    'MSFT Windows 10 1809 and Server 2019 - Domain Security'
+                    'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 1809 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 1809 - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 10 1809 - Computer'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2019 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2019 - Domain Controller'
+                )
+            }
+            '19045' = # Windows 10 22H2
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 10 22H2'
+                Baseline =
+                @(
+                    'MSFT Windows 10 22H2 - Domain Security'
+                    'MSFT Windows 10 22H2 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 22H2 (Windows 10) - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 10 22H2 - Computer'
+                )
+            }
+            '20348' = # Windows Server 2022
+            @{
+                Version = '21H2'
+                Server = 'Windows Server 2022'
+                Baseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Security'
+                    'MSFT Windows Server 2022 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
+                )
+                ServerBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Member Server'
+                )
+                DCBaseline =
+                @(
+                    'MSFT Windows Server 2022 - Domain Controller'
+                )
+            }
+            '22000' = # Windows 11 21H2
+            @{
+                Version = '21H2'
+                Workstation = 'Windows 11 21H2'
+                Baseline =
+                @(
+                    'MSFT Windows 11 21H2 - Domain Security'
+                    'MSFT Windows 11 21H2 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 21H2 (Windows 11) - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 11 21H2 - Computer'
+                )
+            }
+            '22621' = # Windows 11 22H2
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 11 22H2'
+                Baseline =
+                @(
+                    'MSFT Windows 11 22H2 - Domain Security'
+                    'MSFT Windows 11 22H2 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 22H2 (Windows 11) - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 22H2 (Windows 11) - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 11 22H2 - Computer'
+                )
+            }
+            '22631' = # Windows 11 23H2
+            @{
+                Version = '23H2'
+                Workstation = 'Windows 11 23H2'
+                Baseline =
+                @(
+                    'MSFT Windows 11 23H2 - Domain Security'
+                    'MSFT Windows 11 23H2 - Defender Antivirus'
+                    'MSFT Internet Explorer 11 23H2 - Computer-'
+                )
+                UserBaseline =
+                @(
+                    'MSFT Internet Explorer 11 23H2 - User-'
+                )
+                ComputerBaseline =
+                @(
+                    'MSFT Windows 11 23H2 - Computer'
+                )
+            }
+        }
 
-            $OrganizationalUnits =
-            @(
-                @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
-                @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
-                @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
-            )
+        #  ██████╗ ██╗   ██╗
+        # ██╔═══██╗██║   ██║
+        # ██║   ██║██║   ██║
+        # ██║   ██║██║   ██║
+        # ╚██████╔╝╚██████╔╝
+        #  ╚═════╝  ╚═════╝
 
-            ###########
-            # Tier 0-2
-            ###########
+        $RedirUsr = 'Redirect Users'
+        $RedirCmp = 'Redirect Computers'
 
-            foreach($Tier in @(0,1,2))
+        $OrganizationalUnits =
+        @(
+            @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
+            @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
+            @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
+        )
+
+        ###########
+        # Tier 0-2
+        ###########
+
+        foreach($Tier in @(0,1,2))
+        {
+            $OrganizationalUnits += @{ Name = "Tier $Tier";                                            Path = "OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Administrators';                         Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Groups';                                 Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Access Control';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Computers';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Local Administrators';        Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Remote Desktop Access';       Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+        }
+
+        #########
+        # Tier 0
+        #########
+
+        $OrganizationalUnits += @{ Name = 'Certificate Authority Templates';   Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{ Name = 'Group Managed Service Accounts';    Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{ Name = 'Service Accounts';                            Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
+
+        # Server builds
+        foreach ($Build in $WinBuilds.GetEnumerator())
+        {
+            if ($Build.Value.Server)
             {
-                $OrganizationalUnits += @{ Name = "Tier $Tier";                                            Path = "OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Administrators';                         Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Groups';                                 Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Access Control';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Computers';                   Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Local Administrators';        Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Remote Desktop Access';       Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+                $ServerName = $Build.Value.Server
+
+                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Network Policy Server';     Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            }
+        }
+
+        #########
+        # Tier 1
+        #########
+
+        $OrganizationalUnits += @{ Name = 'Group Managed Service Accounts';    Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{ Name = 'Service Accounts';                            Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
+
+        # Server builds
+        foreach ($Build in $WinBuilds.GetEnumerator())
+        {
+            if ($Build.Value.Server)
+            {
+                $ServerName = $Build.Value.Server
+
+                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Application Servers';       Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Remote Access Servers';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+            }
+        }
+
+        #########
+        # Tier 2
+        #########
+
+        # Workstation builds
+        foreach ($Build in $WinBuilds.GetEnumerator())
+        {
+            if ($Build.Value.Workstation)
+            {
+                $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
+            }
+        }
+
+        # Build ou
+        foreach($Ou in $OrganizationalUnits)
+        {
+            # Check if OU exist
+            if (-not (Get-ADOrganizationalUnit -SearchBase $Ou.Path -Filter "Name -like '$($Ou.Name)'" -SearchScope OneLevel -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Creating OU=$($Ou.Name)" @VerboseSplat))
+            {
+                # Create OU
+                New-ADOrganizationalUnit -Name $Ou.Name -Path $Ou.Path
+
+                if ($Ou.Path -eq "OU=$DomainName,$BaseDN")
+                {
+                    if ($Ou.Name -eq $RedirCmp)
+                    {
+                        ShouldProcess @WhatIfSplat -Message "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat > $null
+                        redircmp "OU=$($Ou.Name),$($Ou.Path)" > $null
+                    }
+
+                    if ($Ou.Name -eq $RedirUsr)
+                    {
+                        ShouldProcess @WhatIfSplat -Message "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat > $null
+                        redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
+                    }
+                }
+            }
+        }
+
+        # ██╗   ██╗███████╗███████╗██████╗ ███████╗
+        # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
+        # ██║   ██║███████╗█████╗  ██████╔╝███████╗
+        # ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║
+        # ╚██████╔╝███████║███████╗██║  ██║███████║
+        #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
+
+        $Users =
+        @(
+            # Domain administrator
+            @{
+                Name = 'Admin'
+                Description = 'Account for administering domain controllers/domain'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $true
+                MemberOf = @('Domain Admins', 'Protected Users')
+            }
+
+            # Administrators
+            @{
+                Name = 'Tier0Admin'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $true
+                MemberOf = @()
+            }
+            @{
+                Name = 'Tier1Admin'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $true
+                MemberOf = @()
+            }
+            @{
+                Name = 'Tier2Admin'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $true
+                MemberOf = @()
+            }
+
+            # Service accounts
+            <#
+            @{
+                Name = 'AzADDSConnector'
+                Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p'
+                NeverExpires = $true
+                AccountNotDelegated = $false
+                MemberOf = @()
+            }
+            #>
+
+            # Users
+            @{
+                Name = 'Alice'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $false
+                MemberOf = @()
+            }
+            @{
+                Name = 'Bob'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $false
+                MemberOf = @()
+            }
+            @{
+                Name = 'Eve'
+                Password = 'P455w0rd'
+                NeverExpires = $false
+                AccountNotDelegated = $false
+                MemberOf = @()
+            }
+        )
+
+        # Setup users
+        foreach ($User in $Users)
+        {
+            if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
+               (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
+            {
+                $DescriptionSplat = @{}
+
+                if ($User.Description)
+                {
+                    $DescriptionSplat = @{ Description = $User.Description }
+                }
+
+                New-ADUser -Name $User.Name -DisplayName $User.Name @DescriptionSplat -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $User.NeverExpires -AccountNotDelegated $User.AccountNotDelegated -Enabled $true
+
+                if ($User.MemberOf)
+                {
+                    Add-ADPrincipalGroupMembership -Identity $User.Name -MemberOf $User.MemberOf
+                }
+            }
+        }
+
+        # ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
+        # ████╗ ████║██╔═══██╗██║   ██║██╔════╝
+        # ██╔████╔██║██║   ██║██║   ██║█████╗
+        # ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝
+        # ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
+        # ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
+
+        $MoveObjects =
+        @(
+            # Domain controllers
+            @{
+                Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Domain Controllers,$BaseDN"
+            }
+
+            # Domain Admin
+            @{
+                Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "CN=Users,$BaseDN"
             }
 
             #########
             # Tier 0
             #########
 
-            $OrganizationalUnits += @{ Name = 'Certificate Authority Templates';   Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{ Name = 'Group Managed Service Accounts';    Path = "OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{ Name = 'Service Accounts';                            Path = "OU=Tier 0,OU=$DomainName,$BaseDN"; }
+            # Admin
+            @{
+                Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
 
-            # Server builds
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Server)
-                {
-                    $ServerName = $Build.Value.Server
+            # Computers
+            @{
+                Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
 
-                    $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Network Policy Server';     Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                }
+            @{
+                Filter = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
+
+            @{
+                Filter = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
+
+            @{
+                Filter = "Name -like 'NPS*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Network Policy Server,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
+
+            # Service accounts
+            @{
+                Filter = "Name -like 'Az*' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+            }
+
+            @{
+                Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
             }
 
             #########
             # Tier 1
             #########
 
-            $OrganizationalUnits += @{ Name = 'Group Managed Service Accounts';    Path = "OU=Groups,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{ Name = 'Service Accounts';                            Path = "OU=Tier 1,OU=$DomainName,$BaseDN"; }
+            # Admin
+            @{
+                Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN"
+            }
 
-            # Server builds
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Server)
-                {
-                    $ServerName = $Build.Value.Server
+            # Computers
+            @{
+                Filter = "Name -like 'WAP*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
+            }
 
-                    $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Application Servers';       Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Remote Access Servers';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                    $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                }
+            @{
+                Filter = "Name -like 'RAS*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Remote Access Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
             }
 
             #########
             # Tier 2
             #########
 
-            # Workstation builds
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Workstation)
-                {
-                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
-                }
+            # Admin
+            @{
+                Filter = "Name -like 'Tier2Admin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
 
-            # Build ou
-            foreach($Ou in $OrganizationalUnits)
-            {
-                # Check if OU exist
-                if (-not (Get-ADOrganizationalUnit -SearchBase $Ou.Path -Filter "Name -like '$($Ou.Name)'" -SearchScope OneLevel -ErrorAction SilentlyContinue) -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating OU=$($Ou.Name)" @VerboseSplat))
-                {
-                    # Create OU
-                    New-ADOrganizationalUnit -Name $Ou.Name -Path $Ou.Path
-
-                    if ($Ou.Path -eq "OU=$DomainName,$BaseDN")
-                    {
-                        if ($Ou.Name -eq $RedirCmp)
-                        {
-                            ShouldProcess @WhatIfSplat -Message "Redirecting Computers to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat > $null
-                            redircmp "OU=$($Ou.Name),$($Ou.Path)" > $null
-                        }
-
-                        if ($Ou.Name -eq $RedirUsr)
-                        {
-                            ShouldProcess @WhatIfSplat -Message "Redirecting Users to OU=$($Ou.Name),$($Ou.Path)" @VerboseSplat > $null
-                            redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
-                        }
-                    }
-                }
+            # Computers
+            @{
+                Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
 
-            # ██╗   ██╗███████╗███████╗██████╗ ███████╗
-            # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
-            # ██║   ██║███████╗█████╗  ██████╔╝███████╗
-            # ██║   ██║╚════██║██╔══╝  ██╔══██╗╚════██║
-            # ╚██████╔╝███████║███████╗██║  ██║███████║
-            #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
-
-            $Users =
-            @(
-                # Domain administrator
-                @{
-                    Name = 'Admin'
-                    Description = 'Account for administering domain controllers/domain'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $true
-                    MemberOf = @('Domain Admins', 'Protected Users')
-                }
-
-                # Administrators
-                @{
-                    Name = 'Tier0Admin'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $true
-                    MemberOf = @()
-                }
-                @{
-                    Name = 'Tier1Admin'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $true
-                    MemberOf = @()
-                }
-                @{
-                    Name = 'Tier2Admin'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $true
-                    MemberOf = @()
-                }
-
-                # Service accounts
-                <#
-                @{
-                    Name = 'AzADDSConnector'
-                    Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p'
-                    NeverExpires = $true
-                    AccountNotDelegated = $false
-                    MemberOf = @()
-                }
-                #>
-
-                # Users
-                @{
-                    Name = 'Alice'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $false
-                    MemberOf = @()
-                }
-                @{
-                    Name = 'Bob'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $false
-                    MemberOf = @()
-                }
-                @{
-                    Name = 'Eve'
-                    Password = 'P455w0rd'
-                    NeverExpires = $false
-                    AccountNotDelegated = $false
-                    MemberOf = @()
-                }
-            )
-
-            # Setup users
-            foreach ($User in $Users)
-            {
-                if (-not (Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue) -and
-                   (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
-                {
-                    $DescriptionSplat = @{}
-
-                    if ($User.Description)
-                    {
-                        $DescriptionSplat = @{ Description = $User.Description }
-                    }
-
-                    New-ADUser -Name $User.Name -DisplayName $User.Name @DescriptionSplat -SamAccountName $User.Name -UserPrincipalName "$($User.Name)@$DomainName" -AccountPassword (ConvertTo-SecureString -String $User.Password -AsPlainText -Force) -ChangePasswordAtLogon $false -PasswordNeverExpires $User.NeverExpires -AccountNotDelegated $User.AccountNotDelegated -Enabled $true
-
-                    if ($User.MemberOf)
-                    {
-                        Add-ADPrincipalGroupMembership -Identity $User.Name -MemberOf $User.MemberOf
-                    }
-                }
+            # Users
+            @{
+                Filter = "(Name -eq 'Alice' -or Name -eq 'Bob' -or Name -eq 'Eve') -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
+        )
 
-            # ███╗   ███╗ ██████╗ ██╗   ██╗███████╗
-            # ████╗ ████║██╔═══██╗██║   ██║██╔════╝
-            # ██╔████╔██║██║   ██║██║   ██║█████╗
-            # ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██╔══╝
-            # ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ███████╗
-            # ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
+        # Move objects
+        foreach ($Obj in $MoveObjects)
+        {
+            # Set targetpath
+            $TargetPath = $Obj.TargetPath
 
-            $MoveObjects =
-            @(
-                # Domain controllers
-                @{
-                    Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Domain Controllers,$BaseDN"
-                }
+            # Get object
+            $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope Subtree -Properties cn
 
-                # Domain Admin
-                @{
-                    Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "CN=Users,$BaseDN"
-                }
-
-                #########
-                # Tier 0
-                #########
-
-                # Admin
-                @{
-                    Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                # Computers
-                @{
-                    Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                @{
-                    Filter = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Federation Services,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                @{
-                    Filter = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Web Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                @{
-                    Filter = "Name -like 'NPS*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Network Policy Server,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                # Service accounts
-                @{
-                    Filter = "Name -like 'Az*' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                @{
-                    Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                }
-
-                #########
-                # Tier 1
-                #########
-
-                # Admin
-                @{
-                    Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN"
-                }
-
-                # Computers
-                @{
-                    Filter = "Name -like 'WAP*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
-                }
-
-                @{
-                    Filter = "Name -like 'RAS*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "OU=Remote Access Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
-                }
-
-                #########
-                # Tier 2
-                #########
-
-                # Admin
-                @{
-                    Filter = "Name -like 'Tier2Admin' -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN"
-                }
-
-                # Computers
-                @{
-                    Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'"
-                    TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-                }
-
-                # Users
-                @{
-                    Filter = "(Name -eq 'Alice' -or Name -eq 'Bob' -or Name -eq 'Eve') -and ObjectCategory -eq 'Person'"
-                    TargetPath = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN"
-                }
-            )
-
-            # Move objects
-            foreach ($Obj in $MoveObjects)
+            # Itterate if multiple
+            foreach ($CurrentObj in $ADObjects)
             {
-                # Set targetpath
-                $TargetPath = $Obj.TargetPath
-
-                # Get object
-                $ADObjects = Get-ADObject -Filter $Obj.Filter -SearchBase "OU=$DomainName,$BaseDN" -SearchScope Subtree -Properties cn
-
-                # Itterate if multiple
-                foreach ($CurrentObj in $ADObjects)
+                # Check if computer
+                if ($CurrentObj.ObjectClass -eq 'Computer')
                 {
-                    # Check if computer
-                    if ($CurrentObj.ObjectClass -eq 'Computer')
-                    {
-                        # Get computer build
-                        $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
-                            $_ -match "\((\d+)\)"
-                        } | ForEach-Object { $Matches[1] }
+                    # Get computer build
+                    $Build = $CurrentObj | Get-ADComputer -Property OperatingSystemVersion | Select-Object -ExpandProperty OperatingSystemVersion | Where-Object {
+                        $_ -match "\((\d+)\)"
+                    } | ForEach-Object { $Matches[1] }
 
-                        if (-not $Build)
+                    if (-not $Build)
+                    {
+                        ShouldProcess @WhatIfSplat -Message "Did'nt find build for $($CurrentObj.Name), skiping move." -WriteWarning > $null
+                        continue
+                    }
+
+                    # Set targetpath with server version
+                    if ($Obj.TargetPath -match '%ServerPath%')
+                    {
+                        if(-not $WinBuilds.Item($Build).Server)
                         {
-                            ShouldProcess @WhatIfSplat -Message "Did'nt find build for $($CurrentObj.Name), skiping move." -WriteWarning > $null
+                            ShouldProcess @WhatIfSplat -Message "Missing winver server entry for build $Build, skiping move." -WriteWarning > $null
                             continue
                         }
 
-                        # Set targetpath with server version
-                        if ($Obj.TargetPath -match '%ServerPath%')
-                        {
-                            if(-not $WinBuilds.Item($Build).Server)
-                            {
-                                ShouldProcess @WhatIfSplat -Message "Missing winver server entry for build $Build, skiping move." -WriteWarning > $null
-                                continue
-                            }
-
-                            $TargetPath = $Obj.TargetPath.Replace('%ServerPath%', "OU=$($WinBuilds.Item($Build).Server)")
-                        }
-
-                        # Set targetpath with windows version
-                        if ($Obj.TargetPath -match '%WorkstationPath%')
-                        {
-                            if(-not $WinBuilds.Item($Build).Workstation)
-                            {
-                                ShouldProcess @WhatIfSplat -Message "Missing winver workstation entry for build $Build, skiping move." -WriteWarning > $null
-                                continue
-                            }
-
-                            $TargetPath = $Obj.TargetPath.Replace('%WorkstationPath%', "OU=$($WinBuilds.Item($Build).Workstation)")
-                        }
+                        $TargetPath = $Obj.TargetPath.Replace('%ServerPath%', "OU=$($WinBuilds.Item($Build).Server)")
                     }
 
-                    # Check if object is in targetpath
-                    if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$TargetPath" -and
-                       (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$TargetPath`"." @VerboseSplat))
+                    # Set targetpath with windows version
+                    if ($Obj.TargetPath -match '%WorkstationPath%')
                     {
-                        # Move object
-                        $CurrentObj | Move-ADObject -TargetPath $TargetPath
+                        if(-not $WinBuilds.Item($Build).Workstation)
+                        {
+                            ShouldProcess @WhatIfSplat -Message "Missing winver workstation entry for build $Build, skiping move." -WriteWarning > $null
+                            continue
+                        }
+
+                        $TargetPath = $Obj.TargetPath.Replace('%WorkstationPath%', "OU=$($WinBuilds.Item($Build).Workstation)")
                     }
                 }
-            }
 
-            #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
-            # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
-            # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
-            # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
-            # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
-            #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
-
-            ##########
-            # Kds Key
-            ##########
-
-            if (-not (Get-KdsRootKey) -and
-                (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
-            {
-                # DC computer object must not be moved from OU=Domain Controllers
-                Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
-            }
-
-            ################
-            # Global Groups
-            ################
-
-            # Initialize
-            $DomainGroups = @()
-
-            # Name              : Name & display name
-            # Description       : ...
-            # Scope             : Global / DomainLocal
-            # Path              : OU location
-            # MemberOf          : Member of these groups
-            # Members           : Hashtable containing:
-                # Filter        : Filter to get members
-                # SearchBase    : Where to look for members
-                # SearchScope   : Depth Base/OneLevel/Subtree to look for members
-
-            #########
-            # Tier 0
-            #########
-
-            # Administrators
-            foreach($Tier in @(0, 1, 2))
-            {
-                # Administrators
-                $DomainGroups +=
-                @{
-                    Name                = "Tier $Tier - Admins"
-                    Scope               = 'Global'
-                    Path                = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    MemberOf            = @('Protected Users')
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            }
-
-            #############
-            # Tier 0 + 1
-            #############
-
-            # Servers, server by build
-            foreach($Tier in @(0, 1))
-            {
-                $DomainGroups +=
-                @{
-                    Name                = "Tier $Tier - Computers"
-                    Scope               = 'Global'
-                    Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
-                            SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                # Server by build
-                foreach ($Build in $WinBuilds.GetEnumerator())
+                # Check if object is in targetpath
+                if ($CurrentObj -and $CurrentObj.DistinguishedName -notlike "*$TargetPath" -and
+                   (ShouldProcess @WhatIfSplat -Message "Moving object `"$($CurrentObj.Name)`" to `"$TargetPath`"." @VerboseSplat))
                 {
-                    if ($Build.Value.Server)
-                    {
-                        $DomainGroups +=
-                        @{
-                            Name                = "Tier $Tier - $($Build.Value.Server)"
-                            Scope               = 'Global'
-                            Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            Members             =
-                            @(
-                                @{
-                                    Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                    SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                                    SearchScope = 'Subtree'
-                                }
-                            )
-                        }
+                    # Move object
+                    $CurrentObj | Move-ADObject -TargetPath $TargetPath
+                }
+            }
+        }
+
+        #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
+        # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
+        # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
+        # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
+        # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
+        #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
+
+        ##########
+        # Kds Key
+        ##########
+
+        if (-not (Get-KdsRootKey) -and
+            (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
+        {
+            # DC computer object must not be moved from OU=Domain Controllers
+            Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
+        }
+
+        ################
+        # Global Groups
+        ################
+
+        # Initialize
+        $DomainGroups = @()
+
+        # Name              : Name & display name
+        # Description       : ...
+        # Scope             : Global / DomainLocal
+        # Path              : OU location
+        # MemberOf          : Member of these groups
+        # Members           : Hashtable containing:
+            # Filter        : Filter to get members
+            # SearchBase    : Where to look for members
+            # SearchScope   : Depth Base/OneLevel/Subtree to look for members
+
+        #########
+        # Tier 0
+        #########
+
+        # Administrators
+        foreach($Tier in @(0, 1, 2))
+        {
+            # Administrators
+            $DomainGroups +=
+            @{
+                Name                = "Tier $Tier - Admins"
+                Scope               = 'Global'
+                Path                = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                MemberOf            = @('Protected Users')
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        }
+
+        #############
+        # Tier 0 + 1
+        #############
+
+        # Servers, server by build
+        foreach($Tier in @(0, 1))
+        {
+            $DomainGroups +=
+            @{
+                Name                = "Tier $Tier - Computers"
+                Scope               = 'Global'
+                Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
+                        SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            # Server by build
+            foreach ($Build in $WinBuilds.GetEnumerator())
+            {
+                if ($Build.Value.Server)
+                {
+                    $DomainGroups +=
+                    @{
+                        Name                = "Tier $Tier - $($Build.Value.Server)"
+                        Scope               = 'Global'
+                        Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        Members             =
+                        @(
+                            @{
+                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                                SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                                SearchScope = 'Subtree'
+                            }
+                        )
                     }
                 }
             }
+        }
 
-            #################
-            # Tier 0 + 1 + 2
-            #################
+        #################
+        # Tier 0 + 1 + 2
+        #################
 
-            # Users
-            foreach($Tier in @(0, 1, 2))
+        # Users
+        foreach($Tier in @(0, 1, 2))
+        {
+            $DomainGroups +=
+            @{
+                Name                = "Tier $Tier - Users"
+                Scope               = 'Global'
+                Path                = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        }
+
+        # Local admins, rdp access
+        foreach($Tier in @(0, 1, 2))
+        {
+            foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
             {
+
                 $DomainGroups +=
                 @{
-                    Name                = "Tier $Tier - Users"
+                    Name              = "Tier $Tier - Local Admin - $($Computer.Name)"
+                    Scope             = 'Global'
+                    Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    MemberOf          = @('Protected Users')
+                }
+
+                $DomainGroups +=
+                @{
+                    Name                = "Tier $Tier - Rdp Access - $($Computer.Name)"
                     Scope               = 'Global'
-                    Path                = "OU=Security Roles,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                    Path                = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
@@ -1234,161 +1338,74 @@ Begin
                     )
                 }
             }
+        }
 
-            # Local admins, rdp access
-            foreach($Tier in @(0, 1, 2))
+        #########
+        # Tier 2
+        #########
+
+        # Workstations
+        $DomainGroups +=
+        @{
+            Name                = 'Tier 2 - Computers'
+            Scope               = 'Global'
+            Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+            Members             =
+            @(
+                @{
+                    Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*'"
+                    SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
+                    SearchScope = 'Subtree'
+                }
+            )
+        }
+
+        # Workstation by build
+        foreach ($Build in $WinBuilds.GetEnumerator())
+        {
+            if ($Build.Value.Workstation)
             {
-                foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
-                {
-
-                    $DomainGroups +=
-                    @{
-                        Name              = "Tier $Tier - Local Admin - $($Computer.Name)"
-                        Scope             = 'Global'
-                        Path              = "OU=Local Administrators,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        MemberOf          = @('Protected Users')
-                    }
-
-                    $DomainGroups +=
-                    @{
-                        Name                = "Tier $Tier - Rdp Access - $($Computer.Name)"
-                        Scope               = 'Global'
-                        Path                = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
-                                SearchBase  = "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                                SearchScope = 'OneLevel'
-                            }
-                        )
-                    }
+                $DomainGroups +=
+                @{
+                    Name                = "Tier 2 - $($Build.Value.Workstation)"
+                    Scope               = 'Global'
+                    Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                            SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
+                            SearchScope = 'Subtree'
+                        }
+                    )
                 }
             }
+        }
 
+        ######################
+        # Domain Local Groups
+        ######################
+
+        #########
+        # Tier 0
+        #########
+
+        foreach($Tier in @(0, 1, 2))
+        {
             #########
-            # Tier 2
+            # Admins
             #########
-
-            # Workstations
-            $DomainGroups +=
-            @{
-                Name                = 'Tier 2 - Computers'
-                Scope               = 'Global'
-                Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                Members             =
-                @(
-                    @{
-                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*'"
-                        SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                    }
-                )
-            }
-
-            # Workstation by build
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Workstation)
-                {
-                    $DomainGroups +=
-                    @{
-                        Name                = "Tier 2 - $($Build.Value.Workstation)"
-                        Scope               = 'Global'
-                        Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-                                SearchScope = 'Subtree'
-                            }
-                        )
-                    }
-                }
-            }
-
-            ######################
-            # Domain Local Groups
-            ######################
-
-            #########
-            # Tier 0
-            #########
-
-            foreach($Tier in @(0, 1, 2))
-            {
-                #########
-                # Admins
-                #########
-
-                $DomainGroups +=
-                @(
-                    @{
-                        Name                = "Delegate Tier $Tier Admin Rights"
-                        Scope               = 'DomainLocal'
-                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                                SearchScope = 'OneLevel'
-                            }
-                        )
-                    }
-                )
-
-                #######
-                # Laps
-                #######
-
-                $DomainGroups +=
-                @(
-                    @{
-                        Name                = "Delegate Tier $Tier Laps Read Password"
-                        Scope               = 'DomainLocal'
-                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                                SearchScope = 'OneLevel'
-                            }
-                        )
-                    }
-
-                    @{
-                        Name                = "Delegate Tier $Tier Laps Reset Password"
-                        Scope               = 'DomainLocal'
-                        Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                                SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                                SearchScope = 'OneLevel'
-                            }
-                        )
-                    }
-                )
-            }
-
-            ######
-            # Pki
-            ######
 
             $DomainGroups +=
             @(
                 @{
-                    Name                = 'Delegate Install Certificate Authority'
+                    Name                = "Delegate Tier $Tier Admin Rights"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
+                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1397,1933 +1414,1919 @@ Begin
             )
 
             #######
-            # Adfs
+            # Laps
             #######
 
             $DomainGroups +=
             @(
                 @{
-                    Name                = 'Delegate Adfs Dkm Container Permissions'
+                    Name                = "Delegate Tier $Tier Laps Read Password"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                # Add MsaAdfs service account to "Windows Authorization Access Group" (since Authenticated Users is removed from "Pre-Windows 2000 Compatible Access")
-                # https://social.technet.microsoft.com/wiki/contents/articles/38310.adfs-troubleshooting-users-not-able-to-login-from-external-network-silent-login-failure.aspx
-
-                @{
-                    Name                = 'Windows Authorization Access Group'
-                    Scope               = 'DomainLocal'
-                    Path                = "CN=Builtin,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
-
-            ###############
-            # CA Templates
-            ###############
-
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Template ADFS Service Communication'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template Exchange Enrollment Agent'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template CEP Encryption'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template NDES'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
                 }
 
                 @{
-                    Name                = 'Template OCSP Response Signing'
+                    Name                = "Delegate Tier $Tier Laps Reset Password"
                     Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template SSL'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template WHFB Enrollment Agent'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template WHFB Authentication'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
-                            SearchBase  = "CN=Managed Service Accounts,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Template WHFB Authentication'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Domain Users' -and ObjectCategory -eq 'Group'"
-                            SearchBase  = "CN=Users,$BaseDN"
+                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
                 }
             )
+        }
 
-            #######
-            # GMSA
-            #######
+        ######
+        # Pki
+        ######
 
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Adfs'
-                    Description         = 'Members can retrieve the managed password for MsaAdfs'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
+        $DomainGroups +=
+        @(
+            @{
+                Name                = 'Delegate Install Certificate Authority'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        )
 
-                @{
-                    Name                = 'Ndes'
-                    Description         = 'Members can retrieve the managed password for MsaNdes'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
+        #######
+        # Adfs
+        #######
 
-                @{
-                    Name                = 'CertSrv'
-                    Description         = 'Members can retrieve the managed password for MsaCertSrv'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
+        $DomainGroups +=
+        @(
+            @{
+                Name                = 'Delegate Adfs Dkm Container Permissions'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                        SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
 
-                <#
-                @{
-                    Name                = 'AzADSyncSrv'
-                    Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-                #>
-            )
+            # Add MsaAdfs service account to "Windows Authorization Access Group" (since Authenticated Users is removed from "Pre-Windows 2000 Compatible Access")
+            # https://social.technet.microsoft.com/wiki/contents/articles/38310.adfs-troubleshooting-users-not-able-to-login-from-external-network-silent-login-failure.aspx
 
-            #########
-            # Adsync
-            #########
+            @{
+                Name                = 'Windows Authorization Access Group'
+                Scope               = 'DomainLocal'
+                Path                = "CN=Builtin,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                        SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        )
+
+        ###############
+        # CA Templates
+        ###############
+
+        $DomainGroups +=
+        @(
+            @{
+                Name                = 'Template ADFS Service Communication'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template Exchange Enrollment Agent'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template CEP Encryption'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template NDES'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'MsaNdes' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                        SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template OCSP Response Signing'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template SSL'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template WHFB Enrollment Agent'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                        SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template WHFB Authentication'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'MsaAdfs' -and ObjectClass -eq 'msDS-GroupManagedServiceAccount'"
+                        SearchBase  = "CN=Managed Service Accounts,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Template WHFB Authentication'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Certificate Authority Templates,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'Domain Users' -and ObjectCategory -eq 'Group'"
+                        SearchBase  = "CN=Users,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        )
+
+        #######
+        # GMSA
+        #######
+
+        $DomainGroups +=
+        @(
+            @{
+                Name                = 'Adfs'
+                Description         = 'Members can retrieve the managed password for MsaAdfs'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'Ndes'
+                Description         = 'Members can retrieve the managed password for MsaNdes'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
+
+            @{
+                Name                = 'CertSrv'
+                Description         = 'Members can retrieve the managed password for MsaCertSrv'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
 
             <#
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = 'Delegate AdSync Basic Read Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Delegate AdSync Password Hash Sync Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-
-                @{
-                    Name                = 'Delegate AdSync msDS Consistency Guid Permissions'
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
+            @{
+                Name                = 'AzADSyncSrv'
+                Description         = 'Members can retrieve the managed password for MsaAzADSyncSrv'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Group Managed Service Accounts,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 'AS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
             #>
+        )
 
-            ###############
-            # Build groups
-            ###############
+        #########
+        # Adsync
+        #########
 
-            foreach($Group in $DomainGroups)
-            {
-                # Check if group managed service account
-                $IsGmsa = ($Group.Path -match 'Group Managed Service Accounts')
-
-                # Set group name
-                if ($IsGmsa)
-                {
-                    $ADGroup_Name = "Gmsa $($Group.Name)"
-                }
-                else
-                {
-                    $ADGroup_Name = "$($Group.Name)"
-                }
-
-                $ADGroup_Description_Splat = @{}
-
-                if ($Group.Description)
-                {
-                    $ADGroup_Description_Splat += @{ Description = $Group.Description }
-                }
-
-                # Get group
-                $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Members
-
-                # Check if group exist
-                if (-not $ADGroup -and
-                    (ShouldProcess @WhatIfSplat -Message "Creating `"$ADGroup_Name`" group." @VerboseSplat))
-                {
-                    $ADGroup = New-ADGroup -Name $ADGroup_Name `
-                                           -DisplayName $ADGroup_Name `
-                                           -Path $Group.Path `
-                                           -GroupScope $Group.Scope `
-                                           -GroupCategory Security `
-                                           -PassThru @ADGroup_Description_Splat
-                }
-
-                if ($ADGroup)
-                {
-                    # Group managed service account
-                    if ($IsGmsa)
-                    {
-                        $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
-
-                        # Check if service account exist
-                        if (-not $Msa -and
-                            (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
-                        {
-                            # Encryption types
-                            # https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/decrypting-the-selection-of-supported-kerberos-encryption-types/ba-p/1628797
-
-                            New-ADServiceAccount -Name "Msa$($Group.Name)" `
-                                                 -SamAccountName "Msa$($Group.Name)" `
-                                                 -DNSHostName "Msa$($Group.Name).$DomainName" `
-                                                 -KerberosEncryptionType AES128, AES256 `
-                                                 -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)"
-
-                            Start-Sleep -Seconds 1
-
-                            $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
-                        }
-
-                        if ($Msa)
-                        {
-                            # Initialize
-                            $PrincipalsAllowedToRetrieveManagedPassword = @()
-
-                            # Retrive password
-                            if($ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
-                               (ShouldProcess @WhatIfSplat -Message "Allow `"$ADGroup_Name`" to retrieve `"Msa$($Group.Name)`" password." @VerboseSplat))
-                            {
-                                # Populate and strip old sids
-                                if ($Msa.PrincipalsAllowedToRetrieveManagedPassword)
-                                {
-                                    $PrincipalsAllowedToRetrieveManagedPassword += $Msa.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*'})
-                                }
-
-                                Set-ADServiceAccount -Identity $Msa.Name -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
-                            }
-                        }
+        <#
+        $DomainGroups +=
+        @(
+            @{
+                Name                = 'Delegate AdSync Basic Read Permissions'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
                     }
-
-                    # Check if group should be member of other groups
-                    if ($Group.MemberOf)
-                    {
-                        # Itterate other groups
-                        foreach($OtherName in $Group.MemberOf)
-                        {
-                            # Get other group
-                            $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Members
-
-                            # Check if member of other group
-                            if (($OtherGroup -and -not $OtherGroup.Members.Where({ $_ -match $ADGroup.Name })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$OtherName`"." @VerboseSplat))
-                            {
-                                # Add group to other group
-                                Add-ADPrincipalGroupMembership -Identity $ADGroup.Name -MemberOf @("$OtherName")
-                            }
-                        }
-                    }
-
-                    foreach ($Member in $Group.Members)
-                    {
-                        # Check if filter exist
-                        if ($Member.Filter)
-                        {
-                            $GetObjectSplat = @{ 'Filter' = $Member.Filter }
-
-                            if ($Member.SearchScope)
-                            {
-                                $GetObjectSplat.Add('SearchScope', $Member.SearchScope)
-                            }
-
-                            if ($Member.SearchBase)
-                            {
-                                $GetObjectSplat.Add('SearchBase', $Member.SearchBase)
-                            }
-
-                            # Get members
-                            foreach($NewMember in (Get-ADObject @GetObjectSplat))
-                            {
-                                # Check if member is part of group
-                                if ((-not $ADGroup.Members.Where({ $_ -match $NewMember.Name })) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
-                                {
-                                    # Add new member
-                                    Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$ADGroup_Name")
-
-                                    # Remember computer objects added to group
-                                    if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
-                                    {
-                                        $UpdatedObjects.Add($NewMember.Name, $true)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                )
             }
 
-            #  █████╗ ██████╗ ███████╗███████╗    ██████╗ ██╗  ██╗███╗   ███╗
-            # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██║ ██╔╝████╗ ████║
-            # ███████║██║  ██║█████╗  ███████╗    ██║  ██║█████╔╝ ██╔████╔██║
-            # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║  ██║██╔═██╗ ██║╚██╔╝██║
-            # ██║  ██║██████╔╝██║     ███████║    ██████╔╝██║  ██╗██║ ╚═╝ ██║
-            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝
-
-            # Check adfs container
-            if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
-            {
-                # Create adfs container
-                New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
+            @{
+                Name                = 'Delegate AdSync Password Hash Sync Permissions'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
             }
 
-            $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
-            $AdfsDkmGuid = [Guid]::NewGuid().Guid
+            @{
+                Name                = 'Delegate AdSync msDS Consistency Guid Permissions'
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'AzADDSConnector' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        )
+        #>
 
-            # Check dkm container
-            if (-not $AdfsDkmContainer -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
+        ###############
+        # Build groups
+        ###############
+
+        foreach($Group in $DomainGroups)
+        {
+            # Check if group managed service account
+            $IsGmsa = ($Group.Path -match 'Group Managed Service Accounts')
+
+            # Set group name
+            if ($IsGmsa)
             {
-                # Create dkm container
-                $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
-                $SetupADFS = $true
+                $ADGroup_Name = "Gmsa $($Group.Name)"
             }
             else
             {
-                $AdfsDkmGuid = $AdfsDkmContainer.Name
+                $ADGroup_Name = "$($Group.Name)"
             }
 
-            $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
+            $ADGroup_Description_Splat = @{}
 
-            # Get dkm group
-            $AdfsDkmGroup = Get-ADGroup -Identity 'Delegate Adfs Dkm Container Permissions' -Properties Members
-
-            if ($AdfsdkmGroup)
+            if ($Group.Description)
             {
-                $AdfsDkmGroup_AdminsIsMember = $AdfsDkmGroup.Members.Where({ $_ -match 'Tier 0 - Admins' })
-
-                if ((-not $AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $true) -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"Tier 0 - Admins`" to `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
-                {
-                    # Add to group
-                    Add-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf @('Delegate Adfs Dkm Container Permissions')
-                }
-
-                if (($AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $false) -and
-                    (ShouldProcess @WhatIfSplat -Message "Removing `"Tier 0 - Admins`" from `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
-                {
-                    # Remove from group
-                    Remove-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf 'Delegate Adfs Dkm Container Permissions' -Confirm:$false
-                }
+                $ADGroup_Description_Splat += @{ Description = $Group.Description }
             }
 
-            #  █████╗ ██████╗ ███████╗███████╗    ███╗   ███╗███████╗ █████╗
-            # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ████╗ ████║██╔════╝██╔══██╗
-            # ███████║██║  ██║█████╗  ███████╗    ██╔████╔██║███████╗███████║
-            # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║╚██╔╝██║╚════██║██╔══██║
-            # ██║  ██║██████╔╝██║     ███████║    ██║ ╚═╝ ██║███████║██║  ██║
-            # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
+            # Get group
+            $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Members
 
-            $Principals =
-            @(
-                (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
-            )
-
-            if ($SetupAdfs -eq $true)
+            # Check if group exist
+            if (-not $ADGroup -and
+                (ShouldProcess @WhatIfSplat -Message "Creating `"$ADGroup_Name`" group." @VerboseSplat))
             {
-                $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+                $ADGroup = New-ADGroup -Name $ADGroup_Name `
+                                       -DisplayName $ADGroup_Name `
+                                       -Path $Group.Path `
+                                       -GroupScope $Group.Scope `
+                                       -GroupCategory Security `
+                                       -PassThru @ADGroup_Description_Splat
             }
 
-            foreach($Principal in $Principals)
+            if ($ADGroup)
             {
-                if ($Principal)
+                # Group managed service account
+                if ($IsGmsa)
                 {
-                    # Initialize
-                    $PrincipalsAllowedToRetrieveManagedPassword = @()
-                    $PrincipalsAllowedToDelegateToAccount = @()
+                    $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
 
-                    # Get service account
-                    $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
-
-                    if ($MsaAdfs)
+                    # Check if service account exist
+                    if (-not $Msa -and
+                        (ShouldProcess @WhatIfSplat -Message "Creating managed service account `"Msa$($Group.Name)`$`"." @VerboseSplat))
                     {
-                        # Check PrincipalsAllowedToRetrieveManagedPassword
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                        # Encryption types
+                        # https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/decrypting-the-selection-of-supported-kerberos-encryption-types/ba-p/1628797
+
+                        New-ADServiceAccount -Name "Msa$($Group.Name)" `
+                                             -SamAccountName "Msa$($Group.Name)" `
+                                             -DNSHostName "Msa$($Group.Name).$DomainName" `
+                                             -KerberosEncryptionType AES128, AES256 `
+                                             -PrincipalsAllowedToRetrieveManagedPassword "$($ADGroup.DistinguishedName)"
+
+                        Start-Sleep -Seconds 1
+
+                        $Msa = Get-ADServiceAccount -Filter "Name -eq 'Msa$($Group.Name)'" -Properties PrincipalsAllowedToRetrieveManagedPassword
+                    }
+
+                    if ($Msa)
+                    {
+                        # Initialize
+                        $PrincipalsAllowedToRetrieveManagedPassword = @()
+
+                        # Retrive password
+                        if($ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
+                           (ShouldProcess @WhatIfSplat -Message "Allow `"$ADGroup_Name`" to retrieve `"Msa$($Group.Name)`" password." @VerboseSplat))
                         {
                             # Populate and strip old sids
-                            if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
+                            if ($Msa.PrincipalsAllowedToRetrieveManagedPassword)
                             {
-                                $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
+                                $PrincipalsAllowedToRetrieveManagedPassword += $Msa.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*'})
                             }
 
-                            # Add
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
+                            Set-ADServiceAccount -Identity $Msa.Name -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $ADGroup.DistinguishedName)
+                        }
+                    }
+                }
+
+                # Check if group should be member of other groups
+                if ($Group.MemberOf)
+                {
+                    # Itterate other groups
+                    foreach($OtherName in $Group.MemberOf)
+                    {
+                        # Get other group
+                        $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Members
+
+                        # Check if member of other group
+                        if (($OtherGroup -and -not $OtherGroup.Members.Where({ $_ -match $ADGroup.Name })) -and
+                            (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$OtherName`"." @VerboseSplat))
+                        {
+                            # Add group to other group
+                            Add-ADPrincipalGroupMembership -Identity $ADGroup.Name -MemberOf @("$OtherName")
+                        }
+                    }
+                }
+
+                foreach ($Member in $Group.Members)
+                {
+                    # Check if filter exist
+                    if ($Member.Filter)
+                    {
+                        $GetObjectSplat = @{ 'Filter' = $Member.Filter }
+
+                        if ($Member.SearchScope)
+                        {
+                            $GetObjectSplat.Add('SearchScope', $Member.SearchScope)
                         }
 
-                        # Check PrincipalsAllowedToDelegateToAccount
-                        if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
-                            (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                        if ($Member.SearchBase)
                         {
-                            # Populate and strip old sids
-                            if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
-                            {
-                                $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
-                            }
+                            $GetObjectSplat.Add('SearchBase', $Member.SearchBase)
+                        }
 
-                            # Add
-                            Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
+                        # Get members
+                        foreach($NewMember in (Get-ADObject @GetObjectSplat))
+                        {
+                            # Check if member is part of group
+                            if ((-not $ADGroup.Members.Where({ $_ -match $NewMember.Name })) -and
+                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
+                            {
+                                # Add new member
+                                Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$ADGroup_Name")
+
+                                # Remember computer objects added to group
+                                if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
+                                {
+                                    $UpdatedObjects.Add($NewMember.Name, $true)
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
 
-            if ($SetupAdfs -eq $false)
+        #  █████╗ ██████╗ ███████╗███████╗    ██████╗ ██╗  ██╗███╗   ███╗
+        # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██║ ██╔╝████╗ ████║
+        # ███████║██║  ██║█████╗  ███████╗    ██║  ██║█████╔╝ ██╔████╔██║
+        # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║  ██║██╔═██╗ ██║╚██╔╝██║
+        # ██║  ██║██████╔╝██║     ███████║    ██████╔╝██║  ██╗██║ ╚═╝ ██║
+        # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝
+
+        # Check adfs container
+        if (-not (Get-ADObject -Filter "Name -eq 'ADFS' -and ObjectCategory -eq 'Container'" -SearchBase "CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope 'OneLevel') -and
+            (ShouldProcess @WhatIfSplat -Message "Adding `"CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN`" container." @VerboseSplat))
+        {
+            # Create adfs container
+            New-ADObject -Name "ADFS" -Path "CN=Microsoft,CN=Program Data,$BaseDN" -Type Container
+        }
+
+        $AdfsDkmContainer = Get-ADObject -Filter "Name -like '*'" -SearchBase "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -SearchScope OneLevel
+        $AdfsDkmGuid = [Guid]::NewGuid().Guid
+
+        # Check dkm container
+        if (-not $AdfsDkmContainer -and
+            (ShouldProcess @WhatIfSplat -Message "Adding `"CN=$AdfsDkmGuid,CN=ADFS`" container." @VerboseSplat))
+        {
+            # Create dkm container
+            $AdfsDkmContainer = New-ADObject -Name $AdfsDkmGuid -Path "CN=ADFS,CN=Microsoft,CN=Program Data,$BaseDN" -Type Container -PassThru
+            $SetupADFS = $true
+        }
+        else
+        {
+            $AdfsDkmGuid = $AdfsDkmContainer.Name
+        }
+
+        $Result += @{ AdfsDkmGuid = $AdfsDkmGuid }
+
+        # Get dkm group
+        $AdfsDkmGroup = Get-ADGroup -Identity 'Delegate Adfs Dkm Container Permissions' -Properties Members
+
+        if ($AdfsdkmGroup)
+        {
+            $AdfsDkmGroup_AdminsIsMember = $AdfsDkmGroup.Members.Where({ $_ -match 'Tier 0 - Admins' })
+
+            if ((-not $AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $true) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"Tier 0 - Admins`" to `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
             {
+                # Add to group
+                Add-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf @('Delegate Adfs Dkm Container Permissions')
+            }
+
+            if (($AdfsDkmGroup_AdminsIsMember -and $SetupADFS -eq $false) -and
+                (ShouldProcess @WhatIfSplat -Message "Removing `"Tier 0 - Admins`" from `"Delegate Adfs Dkm Container Permissions`"." @VerboseSplat))
+            {
+                # Remove from group
+                Remove-ADPrincipalGroupMembership -Identity 'Tier 0 - Admins' -MemberOf 'Delegate Adfs Dkm Container Permissions' -Confirm:$false
+            }
+        }
+
+        #  █████╗ ██████╗ ███████╗███████╗    ███╗   ███╗███████╗ █████╗
+        # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ████╗ ████║██╔════╝██╔══██╗
+        # ███████║██║  ██║█████╗  ███████╗    ██╔████╔██║███████╗███████║
+        # ██╔══██║██║  ██║██╔══╝  ╚════██║    ██║╚██╔╝██║╚════██║██╔══██║
+        # ██║  ██║██████╔╝██║     ███████║    ██║ ╚═╝ ██║███████║██║  ██║
+        # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
+
+        $Principals =
+        @(
+            (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
+        )
+
+        if ($SetupAdfs -eq $true)
+        {
+            $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+        }
+
+        foreach($Principal in $Principals)
+        {
+            if ($Principal)
+            {
+                # Initialize
+                $PrincipalsAllowedToRetrieveManagedPassword = @()
+                $PrincipalsAllowedToDelegateToAccount = @()
+
                 # Get service account
                 $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
 
                 if ($MsaAdfs)
                 {
                     # Check PrincipalsAllowedToRetrieveManagedPassword
-                    if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match 'tier0admin' }) -and
-                        (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                    if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword -and
+                        (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
                     {
-                        # Remove
-                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -notmatch 'tier0admin' } )
+                        # Populate and strip old sids
+                        if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword)
+                        {
+                            $PrincipalsAllowedToRetrieveManagedPassword += $MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
+                        }
+
+                        # Add
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($PrincipalsAllowedToRetrieveManagedPassword + $Principal.DistinguishedName)
                     }
 
                     # Check PrincipalsAllowedToDelegateToAccount
-                    if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({ $_ -match 'tier0admin' }) -and
-                        (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                    if ($Principal.DistinguishedName -notin $MsaAdfs.PrincipalsAllowedToDelegateToAccount -and
+                        (ShouldProcess @WhatIfSplat -Message "Allow `"$($Principal.Name)`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
                     {
-                        # Remove
-                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -notmatch 'tier0admin' } )
+                        # Populate and strip old sids
+                        if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount)
+                        {
+                            $PrincipalsAllowedToDelegateToAccount += $MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({$_ -notmatch 'S-\d-\d-\d{2}-.*?'})
+                        }
+
+                        # Add
+                        Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                     }
                 }
             }
+        }
 
+        if ($SetupAdfs -eq $false)
+        {
+            # Get service account
+            $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
 
-            # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
-            # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
-            # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
-            # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
-            # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
-            # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
-
-            # Check if AD drive is mapped
-            if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
+            if ($MsaAdfs)
             {
-                Import-Module -Name ActiveDirectory
-            }
-
-            $AccessRight = @{}
-            Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
-
-            $SchemaID = @{}
-            Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
-
-            ################################
-            # Install Certificate Authority
-            ################################
-
-            $InstallCertificateAuthority =
-            @(
-                @{
-                    ActiveDirectoryRights = 'GenericAll';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
-
-            $AddToGroup =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'All';
-                    ObjectType            = $SchemaID['member'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
-                }
-            )
-
-            # Set R/W on member object
-            Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
-            Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
-
-            #################################
-            # Adfs Dkm Container Permissions
-            #################################
-
-            $AdfsDkmContainerPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
-                    InheritanceType       = 'All';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
-
-            ################################
-            # AdSync Basic Read Permissions
-            ################################
-
-            <#
-            $AdSyncBasicReadPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['contact'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['device'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['computer'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['inetOrgPerson'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = '00000000-0000-0000-0000-000000000000';
-                    InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
-            #>
-
-            ########################################
-            # AdSync Password Hash Sync Permissions
-            ########################################
-
-            <#
-            $AdSyncPasswordHashSyncPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes All'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ExtendedRight';
-                    InheritanceType       = 'None';
-                    ObjectType            = $AccessRight['Replicating Directory Changes'];
-                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
-            #>
-
-            ###########################################
-            # AdSync MsDs Consistency Guid Permissions
-            ###########################################
-
-            <#
-            $AdSyncMsDsConsistencyGuidPermissions =
-            @(
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['user'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-
-                @{
-                    ActiveDirectoryRights = 'ReadProperty, WriteProperty';
-                    InheritanceType       = 'Descendents';
-                    ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
-                    InheritedObjectType   = $SchemaID['group'];
-                    AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
-                }
-            )
-
-            Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-            Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
-            #>
-
-            ####################
-            # Set Domain Admins
-            # as Owner on all
-            # computer objects
-            ####################
-
-            foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
-            {
-                $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
-                $ComputerAclChanged = $false
-
-                if ($ComputerAcl.Owner -notmatch 'Domain Admins' -and
-                    (ShouldProcess @WhatIfSplat -Message "Setting `"$DomainNetbiosName\Domain Admins`" as owner for $($Computer.Name)." @VerboseSplat))
-
+                # Check PrincipalsAllowedToRetrieveManagedPassword
+                if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match 'tier0admin' }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
                 {
-                    $ComputerAcl.SetOwner([System.Security.Principal.NTAccount] "$DomainNetbiosName\Domain Admins")
-
-                    Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
+                    # Remove
+                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -notmatch 'tier0admin' } )
                 }
-            }
 
-            #  ██████╗ ██████╗  ██████╗
-            # ██╔════╝ ██╔══██╗██╔═══██╗
-            # ██║  ███╗██████╔╝██║   ██║
-            # ██║   ██║██╔═══╝ ██║   ██║
-            # ╚██████╔╝██║     ╚██████╔╝
-            #  ╚═════╝ ╚═╝      ╚═════╝
-
-            #########
-            # Import
-            #########
-
-            #Initialize
-            $GpoPaths = @()
-            $GpoPaths += Get-Item -Path "$env:TEMP\Gpo" -ErrorAction SilentlyContinue
-            $GPoPaths += Get-ChildItem -Path "$env:TEMP\Baseline" -Directory -ErrorAction SilentlyContinue
-
-            # Itterate gpo paths
-            foreach($GpoDir in $GpoPaths)
-            {
-                # Read gpos
-                foreach($Gpo in (Get-ChildItem -Path "$($GpoDir.FullName)" -Directory))
+                # Check PrincipalsAllowedToDelegateToAccount
+                if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({ $_ -match 'tier0admin' }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
                 {
-                    # Set gpreport filepath
-                    $GpReportFile = "$($Gpo.FullName)\gpreport.xml"
-
-                    # Get gpo name from xml
-                    $GpReportName = (Select-Xml -Path $GpReportFile -XPath '/').Node.GPO.Name
-
-                    if (-not $GpReportName.StartsWith('MSFT'))
-                    {
-                        if (-not $GpReportName.StartsWith($DomainPrefix))
-                        {
-                            $GpReportName = "$DomainPrefix - $($GpReportName.Remove(0, $GpReportName.IndexOf('-') + 2))"
-                        }
-
-                        # Set domain name in site to zone assignment list
-                        if ($GpReportName -match 'Site to Zone Assignment List')
-                        {
-                            ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
-                        }
-
-                        # Set sids in GptTempl.inf
-                        if ($GpReportName -match '(Restrict User Rights Assignment)')
-                        {
-                            $GpFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
-
-                            $GptContent = Get-Content -Path $GpFile -Raw
-
-                            $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_0_admins%', "*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_0_computers%', "*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_0_users%', "*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_1_admins%', "*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_1_computers%', "*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_1_users%', "*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
-                            $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
-
-                            Set-Content -Path $GpFile -Value $GptContent
-                        }
-                    }
-
-                    # Check if gpo exist
-                    if (-not (Get-GPO -Name $GpReportName -ErrorAction SilentlyContinue) -and
-                        (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportName`"." @VerboseSplat))
-                    {
-                        Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
-
-                        Start-Sleep -Milliseconds 500
-
-                        if ($GpReportName -match '- (.*?) - IPSec - Restrict')
-                        {
-                            switch($Matches[1])
-                            {
-                                { $_ -match 'Domain Controller' }
-                                {
-                                    $TierGroupUser = 'Domain Admins'
-                                    $TierGroupComputer = 'Domain Controllers'
-                                }
-
-                                default
-                                {
-                                    $TierGroupUser = "$($Matches[1]) - Admins"
-                                    $TierGroupComputer = "$($Matches[1]) - Computers"
-                                }
-                            }
-
-                            foreach ($Item in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue))
-                            {
-                                $NewValue = $Item.Value -replace "RUAuth=O:LSD:\(A;;CC;;;.*?\)", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
-                                $NewValue = $NewValue -replace "RMauth=O:LSD:\(A;;CC;;;.*?\)", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
-
-                                if ($NewValue -ne $Item.Value -and
-                                    (ShouldProcess @WhatIfSplat -Message "Setting `"$GpReportName`" group sids for `"$($Item.ValueName)`"." @VerboseSplat))
-                                {
-                                    Set-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ValueName $Item.ValueName -Value $NewValue -Type $Item.Type > $null
-                                }
-                            }
-                        }
-                    }
+                    # Remove
+                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -notmatch 'tier0admin' } )
                 }
             }
+        }
 
-            ########
-            # Links
-            ########
 
-            # Get DC build
-            $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
+        # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
+        # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
+        # ██║  ██║█████╗  ██║     █████╗  ██║  ███╗███████║   ██║   █████╗
+        # ██║  ██║██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝
+        # ██████╔╝███████╗███████╗███████╗╚██████╔╝██║  ██║   ██║   ███████╗
+        # ╚═════╝ ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
 
-            # Base security policies
-            $DomainSecurity =
-            @(
-                "$DomainPrefix - Security - Block Untrusted Fonts+"
-                "$DomainPrefix - Security - Client Kerberos Armoring+"
-                "$DomainPrefix - Security - Disable LLMNR & mDNS+"
-                "$DomainPrefix - Security - Disable Net Session Enumeration+"
-                "$DomainPrefix - Security - Disable Netbios+"
-                "$DomainPrefix - Security - Disable Telemetry+"
-                "$DomainPrefix - Security - Disable TLS 1.x+"
-                "$DomainPrefix - Security - Disable WPAD+"
-                "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
-                "$DomainPrefix - Security - Enable SMB Encryption+"
-                "$DomainPrefix - Security - Enable Virtualization Based Security+"
-                "$DomainPrefix - Security - Require Client LDAP Signing+"
-                "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
-            )
+        # Check if AD drive is mapped
+        if (-not (Get-PSDrive -Name AD -ErrorAction SilentlyContinue))
+        {
+            Import-Module -Name ActiveDirectory
+        }
 
-            $GPOLinks =
+        $AccessRight = @{}
+        Get-ADObject -SearchBase "CN=Configuration,$BaseDN" -LDAPFilter "(&(objectClass=controlAccessRight)(rightsguid=*))" -Properties displayName, rightsGuid | ForEach-Object { $AccessRight.Add($_.displayName, [System.GUID] $_.rightsGuid) }
+
+        $SchemaID = @{}
+        Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
+
+        ################################
+        # Install Certificate Authority
+        ################################
+
+        $InstallCertificateAuthority =
+        @(
             @{
-                #######
-                # Root
-                #######
+                ActiveDirectoryRights = 'GenericAll';
+                InheritanceType       = 'All';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+            }
+        )
 
-                # Enforced if ending with +
-                # Disabled if ending with -
+        Set-Ace -DistinguishedName "CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -AceList $InstallCertificateAuthority
 
-                $BaseDN =
-                @(
-                    "$DomainPrefix - Domain - Certificate Services Client+"
-                    "$DomainPrefix - Domain - Firewall - Block Legacy Protocols+"
-                    "$DomainPrefix - Domain - Firewall - Settings+"
-                    "$DomainPrefix - Domain - Force Group Policy+"
-                    "$DomainPrefix - Domain - Remote Desktop+"
-                    "$DomainPrefix - Domain - Windows Update+"
-                    "$DomainPrefix - Domain - Display Settings+"
-                    'Default Domain Policy'
-                )
+        $AddToGroup =
+        @(
+            @{
+                ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                InheritanceType       = 'All';
+                ObjectType            = $SchemaID['member'];
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate Install Certificate Authority";
+            }
+        )
 
-                #####################
-                # Domain controllers
-                #####################
+        # Set R/W on member object
+        Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
+        Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
 
-                "OU=Domain Controllers,$BaseDN" = $DomainSecurity +
-                @(
-                    "$DomainPrefix - Domain Controller - Advanced Audit+"
-                    "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
-                    "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
-                    "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
-                    "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                    "$DomainPrefix - Security - Disable Spooler+"
-                    "$DomainPrefix - Security - KDC Kerberos Armoring+"
-                ) +
-                $WinBuilds.Item($DCBuild).DCBaseline +
-                $WinBuilds.Item($DCBuild).BaseLine +
-                @(
-                    'Default Domain Controllers Policy'
-                )
+        #################################
+        # Adfs Dkm Container Permissions
+        #################################
 
-                ############
-                # Domain OU
-                ############
+        $AdfsDkmContainerPermissions =
+        @(
+            @{
+                ActiveDirectoryRights = 'CreateChild, WriteProperty, DeleteTree, GenericRead, WriteDacl, WriteOwner';
+                InheritanceType       = 'All';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions";
+            }
+        )
 
-                "OU=$DomainName,$BaseDN" =
-                @(
-                    "$DomainPrefix - Firewall - Block SMB In-"
-                    "$DomainPrefix - Firewall - Permit General Mgmt+"
-                    "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
-                    "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
-                )
+        Set-Ace -DistinguishedName $AdfsDkmContainer.DistinguishedName -AceList $AdfsDkmContainerPermissions -Owner "$DomainNetbiosName\Delegate Adfs Dkm Container Permissions"
+
+        ################################
+        # AdSync Basic Read Permissions
+        ################################
+
+        <#
+        $AdSyncBasicReadPermissions =
+        @(
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['contact'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ############
-            # Computers
-            # Tier 0-2
-            ############
-
-            foreach($Tier in @(0, 1, 2))
-            {
-                $ComputerPolicy = $DomainSecurity
-
-                if ($Tier -eq 2)
-                {
-                    # Workstations
-                    $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler Client Connections+")
-                }
-                else
-                {
-                    # Servers
-                    $ComputerPolicy += @("$DomainPrefix - Security - Disable Cached Credentials+")
-                    $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler+")
-                }
-
-                # Link tier gpos
-                $ComputerPolicy +=
-                @(
-                    "$DomainPrefix - Tier $Tier - IPSec - Restrict"  # IPSec
-                    "$DomainPrefix - Tier $Tier - Local Users and Groups+"
-                    "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
-                )
-
-                # Link computer policy
-                $GPOLinks.Add("OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['user'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ############
-            # Computers
-            # Tier 0
-            ############
-
-            foreach($Build in $WinBuilds.Values)
-            {
-                # Check if server build
-                if ($Build.Server)
-                {
-                    # Link baseline & server baseline
-                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
-
-                    # Certificate Authorities
-                    $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - Certificate Authority+"
-                            "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
-                        )
-                    )
-
-                    # Federation Services
-                    $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - IPSec - Web Server"  # IPSec
-                            "$DomainPrefix - Web Server+"
-                        )
-                    )
-
-                    # Network Policy Server
-                    $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - IPSec - Network Policy Server"  # IPSec
-                            "$DomainPrefix - Network Policy Server+"
-                        )
-                    )
-
-                    # Web Servers
-                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - Firewall - Permit SMB In+"
-                            "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
-                            "$DomainPrefix - IPSec - Web Server"  # IPSec
-                            "$DomainPrefix - Web Server+"
-                        )
-                    )
-                }
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['group'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ############
-            # Computers
-            # Tier 1
-            ############
-
-            foreach($Build in $WinBuilds.Values)
-            {
-                # Check if server build
-                if ($Build.Server)
-                {
-                    # Linkd baseline & server baseline
-                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", (
-
-                            $Build.Baseline +
-                            $Build.ServerBaseline
-                        )
-                    )
-
-                    # Remote Access Servers
-                    $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - IPSec - Remote Access Server"  # IPSec
-                            "$DomainPrefix - Remote Access Server+"
-                        )
-                    )
-
-                    # Web Application Proxy
-                    $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - IPSec - Web Application Proxy"  # IPSec
-                            "$DomainPrefix - Web Server+"
-                        )
-                    )
-
-                    # Web Servers
-                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
-
-                            "$DomainPrefix - IPSec - Web Server"  # IPSec
-                            "$DomainPrefix - Web Server+"
-                        )
-                    )
-                }
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['device'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ############
-            # Computers
-            # Tier 2
-            ############
-
-            foreach($Build in $WinBuilds.Values)
-            {
-                # Check if workstation build
-                if ($Build.Workstation)
-                {
-                    # Link baseline & computer baseline
-                    $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", (
-
-                            $Build.Baseline +
-                            $Build.ComputerBaseline
-                        )
-                    )
-                }
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['computer'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ###################
-            # Service Accounts
-            ###################
-
-            foreach($Tier in @(0, 1))
-            {
-                # Link password policy
-                $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
-
-                        "$DomainPrefix - Security - Service Password Policy+"
-                    )
-                )
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['inetOrgPerson'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
             }
 
-            ########
-            # Users
-            ########
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['foreignSecurityPrincipal'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Basic Read Permissions";
+            }
+        )
 
-            # Initialize
-            $UserServerBaseline = @()
-            $UserWorkstationBaseline = @()
+        Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncBasicReadPermissions
+        #>
 
-            # Get baseline for all versions from winver
-            foreach($Build in $WinBuilds.Values)
-            {
-                if ($Build.Server -and $Build.UserBaseline)
-                {
-                    $UserServerBaseline += $Build.UserBaseline
-                }
+        ########################################
+        # AdSync Password Hash Sync Permissions
+        ########################################
 
-                if ($Build.Workstation -and $Build.UserBaseline)
-                {
-                    $UserWorkstationBaseline += $Build.UserBaseline
-                }
+        <#
+        $AdSyncPasswordHashSyncPermissions =
+        @(
+            @{
+                ActiveDirectoryRights = 'ExtendedRight';
+                InheritanceType       = 'None';
+                ObjectType            = $AccessRight['Replicating Directory Changes All'];
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
             }
 
-            ###########
-            # Users
-            # Tier 0-2
-            ###########
+            @{
+                ActiveDirectoryRights = 'ExtendedRight';
+                InheritanceType       = 'None';
+                ObjectType            = $AccessRight['Replicating Directory Changes'];
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync Password Hash Sync Permissions";
+            }
+        )
 
-            foreach($Tier in @(0, 1, 2))
-            {
-                $UserPolicy =
-                @(
-                    # Empty
-                )
+        Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncPasswordHashSyncPermissions
+        #>
 
-                # Link administrators policy
-                $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+        ###########################################
+        # AdSync MsDs Consistency Guid Permissions
+        ###########################################
 
-                if ($Tier -eq 2)
-                {
-                    # Workstations
-                    $UserPolicy +=
-                    @(
-                        "$DomainPrefix - User - Disable WPAD"
-                        "$DomainPrefix - User - Disable WSH-"
-                    )
-
-                    $UserPolicy += $UserWorkstationBaseline
-                }
-                else
-                {
-                    # Servers
-                    $UserPolicy +=  $UserServerBaseline
-                }
-
-                # Link users policy
-                $GPOLinks.Add("OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+        <#
+        $AdSyncMsDsConsistencyGuidPermissions =
+        @(
+            @{
+                ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                InheritedObjectType   = $SchemaID['user'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
             }
 
-            ############
-            # Link GPOs
-            ############
+            @{
+                ActiveDirectoryRights = 'ReadProperty, WriteProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = $SchemaID['mS-DS-ConsistencyGuid'];
+                InheritedObjectType   = $SchemaID['group'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate AdSync MsDs Consistency Guid Permissions";
+            }
+        )
 
-            # Itterate targets
-            foreach ($Target in $GPOLinks.Keys)
+        Set-Ace -DistinguishedName "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+        Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
+        #>
+
+        ####################
+        # Set Domain Admins
+        # as Owner on all
+        # computer objects
+        ####################
+
+        foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
+        {
+            $ComputerAcl = Get-Acl -Path "AD:$($Computer.DistinguishedName)"
+            $ComputerAclChanged = $false
+
+            if ($ComputerAcl.Owner -notmatch 'Domain Admins' -and
+                (ShouldProcess @WhatIfSplat -Message "Setting `"$DomainNetbiosName\Domain Admins`" as owner for $($Computer.Name)." @VerboseSplat))
+
             {
-                $Order = 1
-                $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
+                $ComputerAcl.SetOwner([System.Security.Principal.NTAccount] "$DomainNetbiosName\Domain Admins")
 
-                # Itterate GPOs
-                foreach($GpoName in ($GPOLinks.Item($Target)))
+                Set-Acl -Path "AD:$($Computer.DistinguishedName)" -AclObject $ComputerAcl
+            }
+        }
+
+        #  ██████╗ ██████╗  ██████╗
+        # ██╔════╝ ██╔══██╗██╔═══██╗
+        # ██║  ███╗██████╔╝██║   ██║
+        # ██║   ██║██╔═══╝ ██║   ██║
+        # ╚██████╔╝██║     ╚██████╔╝
+        #  ╚═════╝ ╚═╝      ╚═════╝
+
+        #########
+        # Import
+        #########
+
+        #Initialize
+        $GpoPaths = @()
+        $GpoPaths += Get-Item -Path "$env:TEMP\Gpo" -ErrorAction SilentlyContinue
+        $GPoPaths += Get-ChildItem -Path "$env:TEMP\Baseline" -Directory -ErrorAction SilentlyContinue
+
+        # Itterate gpo paths
+        foreach($GpoDir in $GpoPaths)
+        {
+            # Read gpos
+            foreach($Gpo in (Get-ChildItem -Path "$($GpoDir.FullName)" -Directory))
+            {
+                # Set gpreport filepath
+                $GpReportFile = "$($Gpo.FullName)\gpreport.xml"
+
+                # Get gpo name from xml
+                $GpReportName = (Select-Xml -Path $GpReportFile -XPath '/').Node.GPO.Name
+
+                if (-not $GpReportName.StartsWith('MSFT'))
                 {
-                    $LinkEnabled = 'Yes'
-                    $LinkEnabledBool = $true
-                    $LinkEnforce = 'No'
-                    $LinkEnforceBool = $false
-
-                    $IsRestrictingGpo = $GpoName -match 'Enable LAPS|Restrict User Rights Assignment'
-                    $IsIPSecGpo = $GpoName -match 'IPSec'
-
-                    if ($IsRestrictingGpo -or $IsIPSecGpo)
+                    if (-not $GpReportName.StartsWith($DomainPrefix))
                     {
-                        $LinkEnabled = 'No'
-                        $LinkEnabledBool = $false
-                        $LinkEnforce = 'Yes'
-                        $LinkEnforceBool = $true
-
-                        if ($RestrictDomain -eq $true -or $EnableIPSec -eq $True)
-                        {
-                            $LinkEnabled = 'Yes'
-                            $LinkEnabledBool = $true
-                        }
-                    }
-                    elseif ($GpoName.EndsWith('-'))
-                    {
-                        $LinkEnabled = 'No'
-                        $LinkEnabledBool = $false
-                        $GpoName = $GpoName.TrimEnd('-')
-                    }
-                    elseif ($GpoName.EndsWith('+'))
-                    {
-                        $LinkEnforce = 'Yes'
-                        $LinkEnforceBool = $true
-                        $GpoName = $GpoName.TrimEnd('+')
+                        $GpReportName = "$DomainPrefix - $($GpReportName.Remove(0, $GpReportName.IndexOf('-') + 2))"
                     }
 
-                    # Get gpo report
-                    [xml]$GpoXml = Get-GPOReport -Name $GpoName -ReportType Xml -ErrorAction SilentlyContinue
-
-                    if ($GpoXml)
+                    # Set domain name in site to zone assignment list
+                    if ($GpReportName -match 'Site to Zone Assignment List')
                     {
-                        $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
+                        ((Get-Content -Path $GpReportFile -Raw) -replace '%domain_wildcard%', "*.$DomainName") | Set-Content -Path $GpReportFile
+                    }
 
-                        # Check link
-                        if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
-                            (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
+                    # Set sids in GptTempl.inf
+                    if ($GpReportName -match '(Restrict User Rights Assignment)')
+                    {
+                        $GpFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+
+                        $GptContent = Get-Content -Path $GpFile -Raw
+
+                        $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%schema_admins%', "*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_0_admins%', "*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_0_computers%', "*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_0_users%', "*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_1_admins%', "*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_1_computers%', "*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_1_users%', "*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_2_admins%', "*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
+                        $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
+
+                        Set-Content -Path $GpFile -Value $GptContent
+                    }
+                }
+
+                # Check if gpo exist
+                if (-not (Get-GPO -Name $GpReportName -ErrorAction SilentlyContinue) -and
+                    (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportName`"." @VerboseSplat))
+                {
+                    Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
+
+                    Start-Sleep -Milliseconds 500
+
+                    if ($GpReportName -match '- (.*?) - IPSec - Restrict')
+                    {
+                        switch($Matches[1])
                         {
-                            New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforce -ErrorAction Stop > $null
-                        }
-                        else
-                        {
-                            foreach ($Link in $GpoXml.GPO.LinksTo)
+                            { $_ -match 'Domain Controller' }
                             {
-                                if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
-                                     ($Link.Enabled -ne $LinkEnabledBool -and (($IsRestrictingGpo -and $RestrictDomain -notlike $null) -or ($IsIPSecGpo -and $EnableIPSec -notlike $null)))) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnabled] -> `"$TargetShort`"" @VerboseSplat))
-                                {
-                                    Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
-                                }
+                                $TierGroupUser = 'Domain Admins'
+                                $TierGroupComputer = 'Domain Controllers'
+                            }
 
-                                if ($Link.NoOverride -ne $LinkEnforceBool -and
-                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
-                                {
-                                    Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
-                                }
-
-                                if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
-                                {
-                                    Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
-                                }
+                            default
+                            {
+                                $TierGroupUser = "$($Matches[1]) - Admins"
+                                $TierGroupComputer = "$($Matches[1]) - Computers"
                             }
                         }
 
-                        $Order++;
+                        foreach ($Item in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue))
+                        {
+                            $NewValue = $Item.Value -replace "RUAuth=O:LSD:\(A;;CC;;;.*?\)", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
+                            $NewValue = $NewValue -replace "RMauth=O:LSD:\(A;;CC;;;.*?\)", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
+
+                            if ($NewValue -ne $Item.Value -and
+                                (ShouldProcess @WhatIfSplat -Message "Setting `"$GpReportName`" group sids for `"$($Item.ValueName)`"." @VerboseSplat))
+                            {
+                                Set-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ValueName $Item.ValueName -Value $NewValue -Type $Item.Type > $null
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ########
+        # Links
+        ########
+
+        # Get DC build
+        $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
+
+        # Base security policies
+        $DomainSecurity =
+        @(
+            "$DomainPrefix - Security - Block Untrusted Fonts+"
+            "$DomainPrefix - Security - Client Kerberos Armoring+"
+            "$DomainPrefix - Security - Disable LLMNR & mDNS+"
+            "$DomainPrefix - Security - Disable Net Session Enumeration+"
+            "$DomainPrefix - Security - Disable Netbios+"
+            "$DomainPrefix - Security - Disable Telemetry+"
+            "$DomainPrefix - Security - Disable TLS 1.x+"
+            "$DomainPrefix - Security - Disable WPAD+"
+            "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
+            "$DomainPrefix - Security - Enable SMB Encryption+"
+            "$DomainPrefix - Security - Enable Virtualization Based Security+"
+            "$DomainPrefix - Security - Require Client LDAP Signing+"
+            "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
+        )
+
+        $GPOLinks =
+        @{
+            #######
+            # Root
+            #######
+
+            # Enforced if ending with +
+            # Disabled if ending with -
+
+            $BaseDN =
+            @(
+                "$DomainPrefix - Domain - Certificate Services Client+"
+                "$DomainPrefix - Domain - Firewall - Block Legacy Protocols+"
+                "$DomainPrefix - Domain - Firewall - Settings+"
+                "$DomainPrefix - Domain - Force Group Policy+"
+                "$DomainPrefix - Domain - Remote Desktop+"
+                "$DomainPrefix - Domain - Windows Update+"
+                "$DomainPrefix - Domain - Display Settings+"
+                'Default Domain Policy'
+            )
+
+            #####################
+            # Domain controllers
+            #####################
+
+            "OU=Domain Controllers,$BaseDN" = $DomainSecurity +
+            @(
+                "$DomainPrefix - Domain Controller - Advanced Audit+"
+                "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
+                "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
+                "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
+                "$DomainPrefix - Domain Controller - Time - PDC NTP+"
+                "$DomainPrefix - Security - Disable Spooler+"
+                "$DomainPrefix - Security - KDC Kerberos Armoring+"
+            ) +
+            $WinBuilds.Item($DCBuild).DCBaseline +
+            $WinBuilds.Item($DCBuild).BaseLine +
+            @(
+                'Default Domain Controllers Policy'
+            )
+
+            ############
+            # Domain OU
+            ############
+
+            "OU=$DomainName,$BaseDN" =
+            @(
+                "$DomainPrefix - Firewall - Block SMB In-"
+                "$DomainPrefix - Firewall - Permit General Mgmt+"
+                "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
+                "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
+            )
+        }
+
+        ############
+        # Computers
+        # Tier 0-2
+        ############
+
+        foreach($Tier in @(0, 1, 2))
+        {
+            $ComputerPolicy = $DomainSecurity
+
+            if ($Tier -eq 2)
+            {
+                # Workstations
+                $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler Client Connections+")
+            }
+            else
+            {
+                # Servers
+                $ComputerPolicy += @("$DomainPrefix - Security - Disable Cached Credentials+")
+                $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler+")
+            }
+
+            # Link tier gpos
+            $ComputerPolicy +=
+            @(
+                "$DomainPrefix - Tier $Tier - IPSec - Restrict"  # IPSec
+                "$DomainPrefix - Tier $Tier - Local Users and Groups+"
+                "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
+            )
+
+            # Link computer policy
+            $GPOLinks.Add("OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
+        }
+
+        ############
+        # Computers
+        # Tier 0
+        ############
+
+        foreach($Build in $WinBuilds.Values)
+        {
+            # Check if server build
+            if ($Build.Server)
+            {
+                # Link baseline & server baseline
+                $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
+
+                # Certificate Authorities
+                $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - Certificate Authority+"
+                        "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
+                    )
+                )
+
+                # Federation Services
+                $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - IPSec - Web Server"  # IPSec
+                        "$DomainPrefix - Web Server+"
+                    )
+                )
+
+                # Network Policy Server
+                $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - IPSec - Network Policy Server"  # IPSec
+                        "$DomainPrefix - Network Policy Server+"
+                    )
+                )
+
+                # Web Servers
+                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - Firewall - Permit SMB In+"
+                        "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
+                        "$DomainPrefix - IPSec - Web Server"  # IPSec
+                        "$DomainPrefix - Web Server+"
+                    )
+                )
+            }
+        }
+
+        ############
+        # Computers
+        # Tier 1
+        ############
+
+        foreach($Build in $WinBuilds.Values)
+        {
+            # Check if server build
+            if ($Build.Server)
+            {
+                # Linkd baseline & server baseline
+                $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", (
+
+                        $Build.Baseline +
+                        $Build.ServerBaseline
+                    )
+                )
+
+                # Remote Access Servers
+                $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - IPSec - Remote Access Server"  # IPSec
+                        "$DomainPrefix - Remote Access Server+"
+                    )
+                )
+
+                # Web Application Proxy
+                $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - IPSec - Web Application Proxy"  # IPSec
+                        "$DomainPrefix - Web Server+"
+                    )
+                )
+
+                # Web Servers
+                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                        "$DomainPrefix - IPSec - Web Server"  # IPSec
+                        "$DomainPrefix - Web Server+"
+                    )
+                )
+            }
+        }
+
+        ############
+        # Computers
+        # Tier 2
+        ############
+
+        foreach($Build in $WinBuilds.Values)
+        {
+            # Check if workstation build
+            if ($Build.Workstation)
+            {
+                # Link baseline & computer baseline
+                $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", (
+
+                        $Build.Baseline +
+                        $Build.ComputerBaseline
+                    )
+                )
+            }
+        }
+
+        ###################
+        # Service Accounts
+        ###################
+
+        foreach($Tier in @(0, 1))
+        {
+            # Link password policy
+            $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
+
+                    "$DomainPrefix - Security - Service Password Policy+"
+                )
+            )
+        }
+
+        ########
+        # Users
+        ########
+
+        # Initialize
+        $UserServerBaseline = @()
+        $UserWorkstationBaseline = @()
+
+        # Get baseline for all versions from winver
+        foreach($Build in $WinBuilds.Values)
+        {
+            if ($Build.Server -and $Build.UserBaseline)
+            {
+                $UserServerBaseline += $Build.UserBaseline
+            }
+
+            if ($Build.Workstation -and $Build.UserBaseline)
+            {
+                $UserWorkstationBaseline += $Build.UserBaseline
+            }
+        }
+
+        ###########
+        # Users
+        # Tier 0-2
+        ###########
+
+        foreach($Tier in @(0, 1, 2))
+        {
+            $UserPolicy =
+            @(
+                # Empty
+            )
+
+            # Link administrators policy
+            $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+
+            if ($Tier -eq 2)
+            {
+                # Workstations
+                $UserPolicy +=
+                @(
+                    "$DomainPrefix - User - Disable WPAD"
+                    "$DomainPrefix - User - Disable WSH-"
+                )
+
+                $UserPolicy += $UserWorkstationBaseline
+            }
+            else
+            {
+                # Servers
+                $UserPolicy +=  $UserServerBaseline
+            }
+
+            # Link users policy
+            $GPOLinks.Add("OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+        }
+
+        ############
+        # Link GPOs
+        ############
+
+        function ConvertTo-CanonicalName
+        {
+            param
+            (
+                [Parameter(Mandatory=$true)]
+                [ValidateNotNullOrEmpty()]
+                [string]$DistinguishedName
+            )
+
+            $CN = [string]::Empty
+            $DC = [string]::Empty
+
+            foreach ($item in ($DistinguishedName.split(',')))
+            {
+                if ($item -match 'DC=')
+                {
+                    $DC += $item.Replace('DC=', '') + '.'
+                }
+                else
+                {
+                    $CN = '/' + $item.Substring(3) + $CN
+                }
+            }
+
+            Write-Output -InputObject ($DC.Trim('.') + $CN)
+        }
+
+        # Itterate targets
+        foreach ($Target in $GPOLinks.Keys)
+        {
+            $Order = 1
+            $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
+
+            # Itterate GPOs
+            foreach($GpoName in ($GPOLinks.Item($Target)))
+            {
+                $LinkEnabled = 'Yes'
+                $LinkEnabledBool = $true
+                $LinkEnforce = 'No'
+                $LinkEnforceBool = $false
+
+                $IsRestrictingGpo = $GpoName -match 'Enable LAPS|Restrict User Rights Assignment'
+                $IsIPSecGpo = $GpoName -match 'IPSec'
+
+                if ($IsRestrictingGpo -or $IsIPSecGpo)
+                {
+                    $LinkEnabled = 'No'
+                    $LinkEnabledBool = $false
+                    $LinkEnforce = 'Yes'
+                    $LinkEnforceBool = $true
+
+                    if ($RestrictDomain -eq $true -or $EnableIPSec -eq $True)
+                    {
+                        $LinkEnabled = 'Yes'
+                        $LinkEnabledBool = $true
+                    }
+                }
+                elseif ($GpoName.EndsWith('-'))
+                {
+                    $LinkEnabled = 'No'
+                    $LinkEnabledBool = $false
+                    $GpoName = $GpoName.TrimEnd('-')
+                }
+                elseif ($GpoName.EndsWith('+'))
+                {
+                    $LinkEnforce = 'Yes'
+                    $LinkEnforceBool = $true
+                    $GpoName = $GpoName.TrimEnd('+')
+                }
+
+                # Get gpo report
+                [xml]$GpoXml = Get-GPOReport -Name $GpoName -ReportType Xml -ErrorAction SilentlyContinue
+
+                if ($GpoXml)
+                {
+                    $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
+
+                    # Check link
+                    if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
+                        (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
+                    {
+                        New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforce -ErrorAction Stop > $null
                     }
                     else
                     {
-                        ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" -WriteWarning > $null
+                        foreach ($Link in $GpoXml.GPO.LinksTo)
+                        {
+                            if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                                 ($Link.Enabled -ne $LinkEnabledBool -and (($IsRestrictingGpo -and $RestrictDomain -notlike $null) -or ($IsIPSecGpo -and $EnableIPSec -notlike $null)))) -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnabled] -> `"$TargetShort`"" @VerboseSplat))
+                            {
+                                Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
+                            }
+
+                            if ($Link.NoOverride -ne $LinkEnforceBool -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
+                            {
+                                Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
+                            }
+
+                            if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
+                            {
+                                Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
+                            }
+                        }
                     }
+
+                    $Order++;
                 }
-            }
-
-            ##############
-            # Permissions
-            ##############
-
-            foreach($Tier in @(0, 1, 2))
-            {
-                foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
+                else
                 {
-                    $Build = ($WinBuilds.GetEnumerator() | Where-Object { $_.Value.UserBaseline.Where({ $_.TrimEnd('-') -eq $GpoName }) }).Key
+                    ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" -WriteWarning > $null
+                }
+            }
+        }
 
-                    if ($Build)
+        ##############
+        # Permissions
+        ##############
+
+        foreach($Tier in @(0, 1, 2))
+        {
+            foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
+            {
+                $Build = ($WinBuilds.GetEnumerator() | Where-Object { $_.Value.UserBaseline.Where({ $_.TrimEnd('-') -eq $GpoName }) }).Key
+
+                if ($Build)
+                {
+                    # Set groups
+                    $GpoPermissionGroups = @('Domain Users')
+
+                    if ($Tier -eq 2)
                     {
-                        # Set groups
-                        $GpoPermissionGroups = @('Domain Users')
-
-                        if ($Tier -eq 2)
+                        # Add workstation group
+                        if ($WinBuilds.Item($Build).Workstation)
                         {
-                            # Add workstation group
-                            if ($WinBuilds.Item($Build).Workstation)
-                            {
-                                $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Workstation)"
-                            }
+                            $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Workstation)"
                         }
-                        else
+                    }
+                    else
+                    {
+                        # Add server group
+                        if ($WinBuilds.Item($Build).Server)
                         {
-                            # Add server group
-                            if ($WinBuilds.Item($Build).Server)
-                            {
-                                $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Server)"
-                            }
+                            $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Server)"
                         }
+                    }
 
-                        # Itterate groups
-                        foreach ($Group in $GpoPermissionGroups)
+                    # Itterate groups
+                    foreach ($Group in $GpoPermissionGroups)
+                    {
+                        # Set permission
+                        if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
+                            (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
                         {
-                            # Set permission
-                            if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
-                                (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
-                            {
-                                Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
-                            }
+                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
                         }
+                    }
 
-                        if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
+                    if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
+                    {
+                        # Remove authenticated user
+                        if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
+                            (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
                         {
-                            # Remove authenticated user
-                            if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
-                                (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
-                            {
-                                Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None -Confirm:$false > $nul
-                            }
+                            Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None -Confirm:$false > $nul
                         }
                     }
                 }
             }
+        }
 
-            # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
-            # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
-            #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
-            #    ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
-            #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
-            #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+        # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+        # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+        #    ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+        #    ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+        #    ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+        #    ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 
-            # Set oid path
-            $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+        # Set oid path
+        $OidPath = "CN=OID,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
 
-            # Get msPKI-Cert-Template-OID
+        # Get msPKI-Cert-Template-OID
+        $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+
+        # Check if msPKI-Cert-Template-OID exist
+        if (-not $msPKICertTemplateOid -and
+            (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
+        {
+            # Install default templates
+            TryCatch { certutil -InstallDefaultTemplates } > $null
+
+            # Wait a bit
+            Start-Sleep -Seconds 1
+
+            # Reload msPKI-Cert-Template-OID
             $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
+        }
 
-            # Check if msPKI-Cert-Template-OID exist
-            if (-not $msPKICertTemplateOid -and
-                (ShouldProcess @WhatIfSplat -Message "Creating default certificate templates." @VerboseSplat))
+        # Check if templates exist
+        if ($msPKICertTemplateOid -and (Test-Path -Path "$env:TEMP\Templates"))
+        {
+            # Define empty acl
+            $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
+
+            # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
+            $EmptyAcl.SetAccessRuleProtection($true, $false)
+
+            # Set template path
+            $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
+
+            # Read templates
+            foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
             {
-                # Install default templates
-                TryCatch { certutil -InstallDefaultTemplates } > $null
+                # Read template file and convert from json
+                $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
 
-                # Wait a bit
-                Start-Sleep -Seconds 1
+                # Add domain prefix to template name
+                $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
 
-                # Reload msPKI-Cert-Template-OID
-                $msPKICertTemplateOid = Get-ADObject -Identity $OidPath -Properties msPKI-Cert-Template-OID | Select-Object -ExpandProperty msPKI-Cert-Template-OID
-            }
-
-            # Check if templates exist
-            if ($msPKICertTemplateOid -and (Test-Path -Path "$env:TEMP\Templates"))
-            {
-                # Define empty acl
-                $EmptyAcl = New-Object -TypeName System.DirectoryServices.ActiveDirectorySecurity
-
-                # https://docs.microsoft.com/en-us/dotnet/api/system.security.accesscontrol.objectsecurity.setaccessruleprotection?view=dotnet-plat-ext-3.1
-                $EmptyAcl.SetAccessRuleProtection($true, $false)
-
-                # Set template path
-                $CertificateTemplatesPath = "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN"
-
-                # Read templates
-                foreach ($TemplateFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_tmpl.json'))
+                # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
+                if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
+                    (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
                 {
-                    # Read template file and convert from json
-                    $SourceTemplate = $TemplateFile | Get-Content | ConvertFrom-Json
-
-                    # Add domain prefix to template name
-                    $NewTemplateName = "$DomainPrefix$($SourceTemplate.Name)"
-
-                    # https://github.com/GoateePFE/ADCSTemplate/blob/master/ADCSTemplate.psm1
-                    if (-not (Get-ADObject -SearchBase $CertificateTemplatesPath -Filter "Name -eq '$NewTemplateName' -and objectClass -eq 'pKICertificateTemplate'") -and
-                        (ShouldProcess @WhatIfSplat -Message "Creating template `"$NewTemplateName`"." @VerboseSplat))
+                    # Generate new template oid and cn
+                    do
                     {
-                        # Generate new template oid and cn
-                        do
+                       $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
+                       $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
+                       $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
+                    }
+                    while (
+
+                        # Check if oid exist
+                        Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
+                    )
+
+                    # Add domain prefix to template display name
+                    $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
+
+                    # Oid attributes
+                    $NewOidAttributes =
+                    @{
+                        'DisplayName' = $NewTemplateDisplayName
+                        'msPKI-Cert-Template-OID' = $NewOid
+                        'flags' = [System.Int32] '1'
+                    }
+
+                    # Create oid
+                    New-ADObject -Name $NewOidCn -Path $OidPath -Type 'msPKI-Enterprise-OID' -OtherAttributes $NewOidAttributes
+
+                    # Template attributes
+                    $NewTemplateAttributes =
+                    @{
+                        'DisplayName' = $NewTemplateDisplayName
+                        'msPKI-Cert-Template-OID' = $NewOid
+                    }
+
+                    # Import attributes
+                    foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
+                    {
+                        Switch ($Property.Name)
                         {
-                           $Part2 = Get-Random -Minimum 10000000 -Maximum 99999999
-                           $NewOid = "$msPKICertTemplateOid.$(Get-Random -Minimum 10000000 -Maximum 99999999).$Part2"
-                           $NewOidCn = "$Part2.$((1..32 | % { '{0:X}' -f (Get-Random -Max 16) }) -join '')"
-                        }
-                        while (
-
-                            # Check if oid exist
-                            Get-ADObject -SearchBase $OidPath -Filter "cn -eq '$NewOidCn' -and msPKI-Cert-Template-OID -eq '$NewOID'"
-                        )
-
-                        # Add domain prefix to template display name
-                        $NewTemplateDisplayName = "$DomainPrefix $($SourceTemplate.DisplayName)"
-
-                        # Oid attributes
-                        $NewOidAttributes =
-                        @{
-                            'DisplayName' = $NewTemplateDisplayName
-                            'msPKI-Cert-Template-OID' = $NewOid
-                            'flags' = [System.Int32] '1'
-                        }
-
-                        # Create oid
-                        New-ADObject -Name $NewOidCn -Path $OidPath -Type 'msPKI-Enterprise-OID' -OtherAttributes $NewOidAttributes
-
-                        # Template attributes
-                        $NewTemplateAttributes =
-                        @{
-                            'DisplayName' = $NewTemplateDisplayName
-                            'msPKI-Cert-Template-OID' = $NewOid
-                        }
-
-                        # Import attributes
-                        foreach ($Property in ($SourceTemplate | Get-Member -MemberType NoteProperty))
-                        {
-                            Switch ($Property.Name)
+                            { $_ -in @('flags',
+                                       'revision',
+                                       'msPKI-Certificate-Name-Flag',
+                                       'msPKI-Enrollment-Flag',
+                                       'msPKI-Minimal-Key-Size',
+                                       'msPKI-Private-Key-Flag',
+                                       'msPKI-RA-Signature',
+                                       'msPKI-Template-Minor-Revision',
+                                       'msPKI-Template-Schema-Version',
+                                       'pKIDefaultKeySpec',
+                                       'pKIMaxIssuingDepth')}
                             {
-                                { $_ -in @('flags',
-                                           'revision',
-                                           'msPKI-Certificate-Name-Flag',
-                                           'msPKI-Enrollment-Flag',
-                                           'msPKI-Minimal-Key-Size',
-                                           'msPKI-Private-Key-Flag',
-                                           'msPKI-RA-Signature',
-                                           'msPKI-Template-Minor-Revision',
-                                           'msPKI-Template-Schema-Version',
-                                           'pKIDefaultKeySpec',
-                                           'pKIMaxIssuingDepth')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
-                                    break
-                                }
+                                $NewTemplateAttributes.Add($_, [System.Int32]$SourceTemplate.$_)
+                                break
+                            }
 
-                                { $_ -in @('msPKI-Certificate-Application-Policy',
-                                           'msPKI-RA-Application-Policies',
-                                           'msPKI-Supersede-Templates',
-                                           'pKICriticalExtensions',
-                                           'pKIDefaultCSPs',
-                                           'pKIExtendedKeyUsage')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
-                                    break
-                                }
+                            { $_ -in @('msPKI-Certificate-Application-Policy',
+                                       'msPKI-RA-Application-Policies',
+                                       'msPKI-Supersede-Templates',
+                                       'pKICriticalExtensions',
+                                       'pKIDefaultCSPs',
+                                       'pKIExtendedKeyUsage')}
+                            {
+                                $NewTemplateAttributes.Add($_, [Microsoft.ActiveDirectory.Management.ADPropertyValueCollection]$SourceTemplate.$_)
+                                break
+                            }
 
-                                { $_ -in @('pKIExpirationPeriod',
-                                           'pKIKeyUsage',
-                                           'pKIOverlapPeriod')}
-                                {
-                                    $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
-                                    break
-                                }
+                            { $_ -in @('pKIExpirationPeriod',
+                                       'pKIKeyUsage',
+                                       'pKIOverlapPeriod')}
+                            {
+                                $NewTemplateAttributes.Add($_, [System.Byte[]]$SourceTemplate.$_)
+                                break
+                            }
 
-                                { $_ -in @('Name',
-                                           'DisplayName')}
-                                {
-                                    break
-                                }
+                            { $_ -in @('Name',
+                                       'DisplayName')}
+                            {
+                                break
+                            }
 
-                                default
-                                {
-                                    ShouldProcess @WhatIfSplat -Message "Missing template property handler for `"$($Property.Name)`"." -WriteWarning > $null
-                                }
+                            default
+                            {
+                                ShouldProcess @WhatIfSplat -Message "Missing template property handler for `"$($Property.Name)`"." -WriteWarning > $null
                             }
                         }
-
-                        # Create template
-                        $NewADObj = New-ADObject -Name $NewTemplateName -Path $CertificateTemplatesPath -Type 'pKICertificateTemplate' -OtherAttributes $NewTemplateAttributes -PassThru
-
-                        # Empty acl
-                        Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
                     }
-                }
 
-                # Read acl files
-                foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
+                    # Create template
+                    $NewADObj = New-ADObject -Name $NewTemplateName -Path $CertificateTemplatesPath -Type 'pKICertificateTemplate' -OtherAttributes $NewTemplateAttributes -PassThru
+
+                    # Empty acl
+                    Set-Acl -AclObject $EmptyAcl -Path "AD:$($NewADObj.DistinguishedName)"
+                }
+            }
+
+            # Read acl files
+            foreach ($AclFile in (Get-ChildItem -Path "$env:TEMP\Templates" -Filter '*_acl.json'))
+            {
+                # Read acl file and convert from json
+                $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
+
+                foreach ($Ace in $SourceAcl)
                 {
-                    # Read acl file and convert from json
-                    $SourceAcl = $AclFile | Get-Content | ConvertFrom-Json
-
-                    foreach ($Ace in $SourceAcl)
-                    {
-                        Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
-                    }
-                }
-
-                Start-Sleep -Seconds 1
-                Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
-            }
-
-            #  █████╗ ██╗   ██╗████████╗██╗  ██╗███╗   ██╗    ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
-            # ██╔══██╗██║   ██║╚══██╔══╝██║  ██║████╗  ██║    ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
-            # ███████║██║   ██║   ██║   ███████║██╔██╗ ██║    ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
-            # ██╔══██║██║   ██║   ██║   ██╔══██║██║╚██╗██║    ██╔═══╝ ██║   ██║██║     ██║██║       ╚██╔╝
-            # ██║  ██║╚██████╔╝   ██║   ██║  ██║██║ ╚████║    ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
-            # ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
-
-            $AuthenticationTires =
-            @(
-                @{ Name = 'Domain Controllers';  Liftime = 45; }
-                @{ Name = 'Tier 0';              Liftime = 45; }
-                @{ Name = 'Tier 1';              Liftime = 45; }
-                @{ Name = 'Tier 2';              Liftime = 45; }
-                @{ Name = 'Lockdown';            Liftime = 45; }
-            )
-
-            foreach ($Tier in $AuthenticationTires)
-            {
-                ##############
-                # Get members
-                ##############
-
-                switch ($Tier.Name)
-                {
-                    'Domain Controllers'
-                    {
-                        $PolicyUsers   = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
-                        $SiloComputers = @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
-                        $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Domain Controllers Silo"))'
-                    }
-
-                    'Lockdown'
-                    {
-                        $PolicyUsers   = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
-                        $SiloComputers = $null
-                        $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
-                    }
-                    default
-                    {
-                        $PolicyUsers =
-                        @(
-                            @(Get-ADGroup -Identity "$($Tier.Name) - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
-                            @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members)
-                        )
-                        $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
-                        $Condition     = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"$($Tier.Name) Silo`"))"
-                    }
-                }
-
-                ################
-                # Create Policy
-                ################
-
-                # Get policy
-                $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
-
-                if (-not $AuthPolicy -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
-                {
-                    $Splat =
-                    @{
-                        Name = "$($Tier.Name) Policy"
-                        Enforce = $false
-                        ProtectedFromAccidentalDeletion = $false
-                        UserTGTLifetimeMins = $Tier.Liftime
-                        UserAllowedToAuthenticateFrom = $Condition
-                    }
-
-                    $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
-                }
-
-                ################
-                # Add to Policy
-                ################
-
-                # Itterate all group members
-                foreach ($UserDN in $PolicyUsers)
-                {
-                    # Get common name
-                    $UserCN = $($UserDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
-                    # Get assigned authentication policy
-                    $AssignedPolicy = Get-ADObject -Identity $UserDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
-
-                    if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
-                        (ShouldProcess -Message "Adding `"$UserCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
-                    {
-                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $UserDN
-                    }
-                }
-
-                ##############
-                # Create Silo
-                ##############
-
-                # Get silo
-                $AuthSilo = Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'"
-
-                if (-not $AuthSilo -and
-                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
-                {
-                    $Splat =
-                    @{
-                        Name = "$($Tier.Name) Silo"
-                        Enforce = $false
-                        ProtectedFromAccidentalDeletion = $false
-                        UserAuthenticationPolicy = "$($Tier.Name) Policy"
-                        ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
-                        ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
-                    }
-
-                    $AuthSilo = New-ADAuthenticationPolicySilo @Splat -PassThru
-                }
-
-                #####################
-                # Add/Assign to Silo
-                #####################
-
-                # Itterate all group members
-                foreach ($ComputerDN in $SiloComputers)
-                {
-                    # Get common name
-                    $ComputerCN = $($ComputerDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
-                    if ($ComputerDN -notin ($AuthSilo | Select-Object -ExpandProperty Members) -and
-                        (ShouldProcess -Message "Adding $ComputerCN to `"$($Tier.Name) Silo`"" @VerboseSplat))
-                    {
-                        Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$ComputerDN"
-                    }
-
-                    # Get assigned authentication policy silo
-                    $AssignedPolicy = Get-ADObject -Identity $ComputerDN -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
-
-                    if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
-                        (ShouldProcess -Message "Assigning $ComputerCN with `"$($Tier.Name) Silo`"" @VerboseSplat))
-                    {
-                        Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $ComputerDN
-                    }
-                }
-
-                ######################
-                # Restrict/Unrestrict
-                ######################
-
-                switch ($RestrictDomain)
-                {
-                    $true
-                    {
-                        # Auth policy enforced
-                        if ($AuthPolicy.Enforce -ne $true -and
-                            (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
-                        {
-                            Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
-                        }
-
-                        # Auth silo enforced
-                        if ($AuthSilo.Enforce -ne $true -and
-                            (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
-                        {
-                            Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
-                        }
-                    }
-
-                    $false
-                    {
-                        # Auth policy NOT enforced
-                        if ($AuthPolicy.Enforce -eq $true -and
-                            (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
-                        {
-                            Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
-                        }
-
-                        # Auth silo NOT enforced
-                        if ($AuthSilo.Enforce -eq $true -and
-                            (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
-                        {
-                            Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
-                        }
-                    }
+                    Set-Ace -DistinguishedName "CN=$DomainPrefix$($AclFile.BaseName.Replace('_acl', '')),$CertificateTemplatesPath" -AceList ($Ace | Select-Object -Property AccessControlType, ActiveDirectoryRights, InheritanceType, @{ n = 'IdentityReference'; e = { $_.IdentityReference.Replace('%domain%', $DomainNetbiosName) }}, ObjectType, InheritedObjectType)
                 }
             }
 
-            # ██╗      █████╗ ██████╗ ███████╗
-            # ██║     ██╔══██╗██╔══██╗██╔════╝
-            # ██║     ███████║██████╔╝███████╗
-            # ██║     ██╔══██║██╔═══╝ ╚════██║
-            # ███████╗██║  ██║██║     ███████║
-            # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
-
-            # Check msLAPS-Password
-            if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
-            {
-                # Update schema
-                Update-LapsAdSchema -Confirm:$false
-
-                # Set permission
-                Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
-
-                foreach ($Tier in @(0,1,2))
-                {
-                    Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Read Password" > $null
-                    Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Reset Password" > $null
-                }
-            }
-
-            # ██████╗  ██████╗ ███████╗████████╗
-            # ██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝
-            # ██████╔╝██║   ██║███████╗   ██║
-            # ██╔═══╝ ██║   ██║╚════██║   ██║
-            # ██║     ╚██████╔╝███████║   ██║
-            # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
-
-            ###############
-            # Empty Groups
-            ###############
-
-            $EmptyGroups =
-            @(
-                'Account Operators',
-                'Backup Operators',
-                'Print Operators',
-                'Server Operators',
-                'Pre-Windows 2000 Compatible Access',
-                'Enterprise Admins',
-                'Schema Admins'
-            )
-
-            # Remove members
-            foreach ($Group in $EmptyGroups)
-            {
-                foreach ($Member in (Get-ADGroupMember -Identity $Group))
-                {
-                    if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
-                    {
-                        if ($Group -eq 'Pre-Windows 2000 Compatible Access' -and
-                            $Member.Name -eq 'Authenticated Users')
-                        {
-                            net localgroup "Pre-Windows 2000 Compatible Access" "Authenticated Users" /delete > $null
-                        }
-                        else
-                        {
-                            Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
-                        }
-                    }
-                }
-            }
-
-            $Administrator = Get-ADUser -Filter 'Name -eq "administrator"' -SearchBase "CN=Users,$BaseDN" -SearchScope OneLevel -Properties AccountNotDelegated
-
-            # Set administrator account sensitive and cannot be delegated
-            if (($Administrator | Select-Object -ExpandProperty AccountNotDelegated) -ne $true -and
-                (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
-            {
-                $Administrator | Set-ADUser -AccountNotDelegated $true
-            }
-
-            ######
-            # SPN
-            ######
-
-            # MsaAdfs
-            if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
-                (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
-            {
-                setspn -a host/adfs.$DomainName MsaAdfs > $null
-            }
-
-            #######
-            # Misc
-            #######
-
-            # Join domain quota
-            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
-                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
-            {
-                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
-            }
-
-            # DsHeuristics
-            if ((Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Properties dsHeuristics).dsHeuristics -ne '00000000010000000002000000011' -and
-                (ShouldProcess @WhatIfSplat -Message "Settings dsHeuristics to `"00000000010000000002000000011`"" @VerboseSplat))
-            {
-                Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Replace @{ 'dsHeuristics' = '00000000010000000002000000011' }
-            }
-
-            # Protect Domain Controllers OU from accidental deletion
-            if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
-                (ShouldProcess @WhatIfSplat -Message "Protecting Domain Controllers OU from accidental deletion." @VerboseSplat))
-            {
-                Set-ADObject "OU=Domain Controllers,$BaseDN" -ProtectedFromAccidentalDeletion $true
-            }
-
-            # Default site subnet
-            if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
-                (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
-            {
-                New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
-            }
-
-            # Register schema mmc
-            if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
-            {
-                regsvr32.exe /s schmmgmt.dll
-            }
-
-            # Recycle bin
-            if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
-                (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
-            {
-                Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
-            }
+            Start-Sleep -Seconds 1
+            Remove-Item -Path "$($env:TEMP)\Templates" -Recurse -Force
         }
 
-        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
-        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
-        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ██║  ███╗██████╔╝██║   ██║
-        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝     ██║   ██║██╔═══╝ ██║   ██║
-        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║         ╚██████╔╝██║     ╚██████╔╝
-        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝          ╚═════╝ ╚═╝      ╚═════╝
+        #  █████╗ ██╗   ██╗████████╗██╗  ██╗███╗   ██╗    ██████╗  ██████╗ ██╗     ██╗ ██████╗██╗   ██╗
+        # ██╔══██╗██║   ██║╚══██╔══╝██║  ██║████╗  ██║    ██╔══██╗██╔═══██╗██║     ██║██╔════╝╚██╗ ██╔╝
+        # ███████║██║   ██║   ██║   ███████║██╔██╗ ██║    ██████╔╝██║   ██║██║     ██║██║      ╚████╔╝
+        # ██╔══██║██║   ██║   ██║   ██╔══██║██║╚██╗██║    ██╔═══╝ ██║   ██║██║     ██║██║       ╚██╔╝
+        # ██║  ██║╚██████╔╝   ██║   ██║  ██║██║ ╚████║    ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
+        # ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        if ($BackupGpo.IsPresent -and
-            (ShouldProcess @WhatIfSplat -Message "Backing up GPOs to `"$env:TEMP\GpoBackup`"" @VerboseSplat))
+        $AuthenticationTires =
+        @(
+            @{ Name = 'Domain Controllers';  Liftime = 45; }
+            @{ Name = 'Tier 0';              Liftime = 45; }
+            @{ Name = 'Tier 1';              Liftime = 45; }
+            @{ Name = 'Tier 2';              Liftime = 45; }
+            @{ Name = 'Lockdown';            Liftime = 45; }
+        )
+
+        foreach ($Tier in $AuthenticationTires)
         {
-            # Remove old directory
-            Remove-Item -Recurse -Path "$env:TEMP\GpoBackup" -Force -ErrorAction SilentlyContinue
+            ##############
+            # Get members
+            ##############
 
-            # Create new directory
-            New-Item -Path "$env:TEMP\GpoBackup" -ItemType Directory > $null
-
-            # Export
-            foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
+            switch ($Tier.Name)
             {
-                Write-Verbose -Message "Backing up $($Gpo.Id)..." @VerboseSplat
-
-                # Backup gpo
-                $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
-
-                # Replace domain name in site to zone assignment list
-                if ($Backup.DisplayName -match 'Site to Zone Assignment List')
+                'Domain Controllers'
                 {
-                    # Get backup filepath
-                    $GpReportFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\gpreport.xml"
-
-                    # Replace domain wildcard with placeholder
-                    ((Get-Content -Path $GpReportFile -Raw) -replace "\*\.$($DomainName -replace '\.', '\.')", '%domain_wildcard%') | Set-Content -Path $GpReportFile
+                    $PolicyUsers   = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
+                    $SiloComputers = @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
+                    $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Domain Controllers Silo"))'
                 }
 
-                # Replace sids in GptTempl.inf
-                if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
+                'Lockdown'
                 {
-                    $GptTmplFile = "$env:TEMP\GpoBackup\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
-
-                    $GptContent = Get-Content -Path $GptTmplFile -Raw
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)", '%enterprise_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Schema Admins').SID.Value)", '%schema_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Admins').SID.Value)", '%tier_0_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Computers').SID.Value)", '%tier_0_computers%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 0 - Users').SID.Value)", '%tier_0_users%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Admins').SID.Value)", '%tier_1_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Computers').SID.Value)", '%tier_1_computers%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 1 - Users').SID.Value)", '%tier_1_users%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Admins').SID.Value)", '%tier_2_admins%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)", '%tier_2_computers%'
-                    $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)", '%tier_2_users%'
-
-                    Set-Content -Path $GptTmplFile -Value $GptContent
+                    $PolicyUsers   = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
+                    $SiloComputers = $null
+                    $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
+                }
+                default
+                {
+                    $PolicyUsers =
+                    @(
+                        @(Get-ADGroup -Identity "$($Tier.Name) - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
+                        @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                    )
+                    $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
+                    $Condition     = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"$($Tier.Name) Silo`"))"
                 }
             }
 
-            foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
+            ################
+            # Create Policy
+            ################
+
+            # Get policy
+            $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
+
+            if (-not $AuthPolicy -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
             {
-                if ($file.Attributes.ToString().Contains('Hidden'))
+                $Splat =
+                @{
+                    Name = "$($Tier.Name) Policy"
+                    Enforce = $false
+                    ProtectedFromAccidentalDeletion = $false
+                    UserTGTLifetimeMins = $Tier.Liftime
+                    UserAllowedToAuthenticateFrom = $Condition
+                }
+
+                $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
+            }
+
+            ################
+            # Add to Policy
+            ################
+
+            # Itterate all group members
+            foreach ($UserDN in $PolicyUsers)
+            {
+                # Get common name
+                $UserCN = $($UserDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+
+                # Get assigned authentication policy
+                $AssignedPolicy = Get-ADObject -Identity $UserDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+
+                if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
+                    (ShouldProcess -Message "Adding `"$UserCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
                 {
-                    Set-ItemProperty -Path $file.FullName -Name Attributes -Value Normal
+                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $UserDN
+                }
+            }
+
+            ##############
+            # Create Silo
+            ##############
+
+            # Get silo
+            $AuthSilo = Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'"
+
+            if (-not $AuthSilo -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
+            {
+                $Splat =
+                @{
+                    Name = "$($Tier.Name) Silo"
+                    Enforce = $false
+                    ProtectedFromAccidentalDeletion = $false
+                    UserAuthenticationPolicy = "$($Tier.Name) Policy"
+                    ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
+                    ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
+                }
+
+                $AuthSilo = New-ADAuthenticationPolicySilo @Splat -PassThru
+            }
+
+            #####################
+            # Add/Assign to Silo
+            #####################
+
+            # Itterate all group members
+            foreach ($ComputerDN in $SiloComputers)
+            {
+                # Get common name
+                $ComputerCN = $($ComputerDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
+
+                if ($ComputerDN -notin ($AuthSilo | Select-Object -ExpandProperty Members) -and
+                    (ShouldProcess -Message "Adding $ComputerCN to `"$($Tier.Name) Silo`"" @VerboseSplat))
+                {
+                    Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$ComputerDN"
+                }
+
+                # Get assigned authentication policy silo
+                $AssignedPolicy = Get-ADObject -Identity $ComputerDN -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
+
+                if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
+                    (ShouldProcess -Message "Assigning $ComputerCN with `"$($Tier.Name) Silo`"" @VerboseSplat))
+                {
+                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $ComputerDN
+                }
+            }
+
+            ######################
+            # Restrict/Unrestrict
+            ######################
+
+            switch ($RestrictDomain)
+            {
+                $true
+                {
+                    # Auth policy enforced
+                    if ($AuthPolicy.Enforce -ne $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    {
+                        Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
+                    }
+
+                    # Auth silo enforced
+                    if ($AuthSilo.Enforce -ne $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    {
+                        Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
+                    }
+                }
+
+                $false
+                {
+                    # Auth policy NOT enforced
+                    if ($AuthPolicy.Enforce -eq $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    {
+                        Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
+                    }
+
+                    # Auth silo NOT enforced
+                    if ($AuthSilo.Enforce -eq $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    {
+                        Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
+                    }
                 }
             }
         }
 
-        # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗     ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
-        # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
-        # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝       ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
-        # ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝        ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
-        # ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║            ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
-        # ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝            ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+        # ██╗      █████╗ ██████╗ ███████╗
+        # ██║     ██╔══██╗██╔══██╗██╔════╝
+        # ██║     ███████║██████╔╝███████╗
+        # ██║     ██╔══██║██╔═══╝ ╚════██║
+        # ███████╗██║  ██║██║     ███████║
+        # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
 
-        if ($BackupTemplates.IsPresent -and
-            (ShouldProcess @WhatIfSplat -Message "Backing up certificate templates to `"$env:TEMP\TemplatesBackup`"" @VerboseSplat))
+        # Check msLAPS-Password
+        if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
         {
-            # Remove old directory
-            Remove-Item -Path "$env:TEMP\TemplatesBackup" -Recurse -Force -ErrorAction SilentlyContinue
+            # Update schema
+            Update-LapsAdSchema -Confirm:$false
 
-            # Create new directory
-            New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
+            # Set permission
+            Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
 
-            # Export
-            foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+            foreach ($Tier in @(0,1,2))
             {
-                # Remove domain prefix
-                $Name = $Template.Name.Replace($DomainPrefix, '')
-
-                # Export template to json files
-                $Template | Select-Object -Property @{ n = 'Name' ; e = { $Name }}, @{ n = 'DisplayName'; e = { $_.DisplayName.Replace("$DomainPrefix ", '') }}, flags, revision, *PKI*, @{ n = 'msPKI-Template-Minor-Revision' ; e = { 1 }} -ExcludeProperty 'msPKI-Template-Minor-Revision', 'msPKI-Cert-Template-OID' | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_tmpl.json"
-
-                # Export acl to json files
-                # Note: Convert to/from csv for ToString on all enums
-                Get-Acl -Path "AD:$($Template.DistinguishedName)" | Select-Object -ExpandProperty Access | Select-Object -Property *, @{ n = 'IdentityReference'; e = { $_.IdentityReference.ToString().Replace($DomainNetbiosName, '%domain%') }} -ExcludeProperty 'IdentityReference' | ConvertTo-Csv | ConvertFrom-Csv | ConvertTo-Json | Out-File -FilePath "$env:TEMP\TemplatesBackup\$($Name)_acl.json"
+                Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Read Password" > $null
+                Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Reset Password" > $null
             }
+        }
+
+        # ██████╗  ██████╗ ███████╗████████╗
+        # ██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝
+        # ██████╔╝██║   ██║███████╗   ██║
+        # ██╔═══╝ ██║   ██║╚════██║   ██║
+        # ██║     ╚██████╔╝███████║   ██║
+        # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
+
+        ###############
+        # Empty Groups
+        ###############
+
+        $EmptyGroups =
+        @(
+            'Account Operators',
+            'Backup Operators',
+            'Print Operators',
+            'Server Operators',
+            'Pre-Windows 2000 Compatible Access',
+            'Enterprise Admins',
+            'Schema Admins'
+        )
+
+        # Remove members
+        foreach ($Group in $EmptyGroups)
+        {
+            foreach ($Member in (Get-ADGroupMember -Identity $Group))
+            {
+                if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
+                {
+                    if ($Group -eq 'Pre-Windows 2000 Compatible Access' -and
+                        $Member.Name -eq 'Authenticated Users')
+                    {
+                        net localgroup "Pre-Windows 2000 Compatible Access" "Authenticated Users" /delete > $null
+                    }
+                    else
+                    {
+                        Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
+                    }
+                }
+            }
+        }
+
+        $Administrator = Get-ADUser -Filter 'Name -eq "administrator"' -SearchBase "CN=Users,$BaseDN" -SearchScope OneLevel -Properties AccountNotDelegated
+
+        # Set administrator account sensitive and cannot be delegated
+        if (($Administrator | Select-Object -ExpandProperty AccountNotDelegated) -ne $true -and
+            (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
+        {
+            $Administrator | Set-ADUser -AccountNotDelegated $true
+        }
+
+        ######
+        # SPN
+        ######
+
+        # MsaAdfs
+        if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
+            (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
+        {
+            setspn -a host/adfs.$DomainName MsaAdfs > $null
+        }
+
+        #######
+        # Misc
+        #######
+
+        # Join domain quota
+        if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
+            (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+        {
+            Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
+        }
+
+        # DsHeuristics
+        if ((Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Properties dsHeuristics).dsHeuristics -ne '00000000010000000002000000011' -and
+            (ShouldProcess @WhatIfSplat -Message "Settings dsHeuristics to `"00000000010000000002000000011`"" @VerboseSplat))
+        {
+            Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Replace @{ 'dsHeuristics' = '00000000010000000002000000011' }
+        }
+
+        # Protect Domain Controllers OU from accidental deletion
+        if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
+            (ShouldProcess @WhatIfSplat -Message "Protecting Domain Controllers OU from accidental deletion." @VerboseSplat))
+        {
+            Set-ADObject "OU=Domain Controllers,$BaseDN" -ProtectedFromAccidentalDeletion $true
+        }
+
+        # Default site subnet
+        if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
+            (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
+        {
+            New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
+        }
+
+        # Register schema mmc
+        if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
+        {
+            regsvr32.exe /s schmmgmt.dll
+        }
+
+        # Recycle bin
+        if (-not (Get-ADOptionalFeature -Filter "Name -eq 'Recycle Bin Feature'" | Select-Object -ExpandProperty EnabledScopes) -and
+            (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
+        {
+            Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -3496,8 +3499,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp5ItdfWYPqCXde5QeZi5BQHb
-# J7SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUexlJTBkzg2WZ7BvFASZwYTAU
+# X7CgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3628,34 +3631,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSSnwFj
-# TtFF9P9qw2IBkI5IFlQrGTANBgkqhkiG9w0BAQEFAASCAgB5Y5zdsKEs/N1gU9l0
-# 1sk+O98bEFBvw8g6fF2JIlKp2CRv+A2Ow4ZFcyT1zCOoMQxBs7yXerOSF1chEYji
-# CrhG6zps6gAM0HYWd/+aV/AVhk+Eb6f5gkm9+fWI0OcMj1hBw1vibSlSRWDBbxJS
-# RRkUMn7Ag+Ls29+UDjPEWBnWQnzj3SB9ETu167sth+T+7bYxNiE5P8qa2jBKZZHx
-# P+HitFmNmua6v6Q7HIYyon/fxE4/6HNqtI5Nzx4VqLvzUbNM5AUisI+1agn0jqLn
-# UFPpqrFKsmBX/HclL5/tVSDpgUMIWq9dfBn7BzpPkHzEkgVEhJDOkdQDrfUsT+Rp
-# gNNVYR50xgGu4VJhpxD1emGrydMKrRr5BvxJyhLECZD8XExugraJFn7p2/fHJnGk
-# MB+6TM6N3s+L1i0Jtd7Mmk0Ul32xWizXHR16j1qUUxdfuNbtOjJ148HcZwBu98vT
-# zaVT63VveSQ44QdzzVmUjW1qv9Nqc6TbSSg8Cs06GMMaurfhTBOud8YE9pU8VdPg
-# Ibmo1IxA7mpSt9voMcgF29htnhcO+i/hwWbZ4BZCLSEjSyw42k4V/7CE1KVGeVBi
-# s/CgfnoAk1EoW212nsEpViLKroRj+NlrvvR22sEMVX8eEZc3P/Riq1RsORiVFjV5
-# +U1097uf3VHvo8AzLZmgALLuF6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQJtn3u
+# c3gNo0ZGERSY/1N3gbWdWTANBgkqhkiG9w0BAQEFAASCAgDKEtydrZ0nL52dmM6B
+# /ojCQRNfRrbDw7Q53YsRY2UPmOvW7ZxMGSz/tb9ZN/dhtXR2M2PSQr/DiOQ1nmIu
+# Ry6Q5ljoKLxpsZMw/sHdWOdm1Ab4LaIj6pWldQPGnD2hxVMaUVTt2ffaTq7gR9X2
+# tDnOc3DmODZOXfiSzudeUYZM8gJ/8d0OOoBtY0B6EcCnTpDfI7+SiKfJMtvMc8Qr
+# PD/X/8tcY2AH+82Ezwi57/A+1WkflAkPFrBrp9E5/fGArpkppTvyT735olW4n4+Q
+# O7Zbsaonx1sIbXJf2WxjF/wRwU+DXErY7mUZbfQ5/4FBfSLCu5FiRIReNgZ4SZz1
+# VzAY55RF5fSiLc4Lh7JrwBAdlew0+Yc8kq0WyCK5lmqPPlJeDVZ9Za+IL33n3bRo
+# uhlnr52ZZXAn03km+o7mYVPGiEF3bXuL66EYMo0K9l4gablzQnRS1uK1IJl2VIvg
+# dPe7wUpAlwG5GnG3nlrx0SIKphhCD/2n7oBTDOCWp4aNUDenNJPUNxdFR7taCa9y
+# l6C5yCIopLHN/H+u/40iftewVSO2Gr3VLKodYlED8R+PfuPC8/AGmZJLlj/m8Xe/
+# wiI44+aC/W2sRlSPdFwZCiLkhfOMxy+91dK9vF9t5sgPdj2YaJAKja1NBvaKUYUZ
+# NNknZB3R/u1fiDmwTSQtQwBm66GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDcwODAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCC8S6iydB7/g//iwwTPNFRgWE5u9Y7iwXPWgtLQ
-# qt6/cDANBgkqhkiG9w0BAQEFAASCAgBB6A57ZtaL/KRq+KgPzTwg5SfdRMt3E8iP
-# CGU6Vxmk2jSxb2cug2uMklPZveuOH0GVQDDj7ukQnQiTZ7eb3MppPLSPRUmCD3ws
-# eWxN2wcgxNd2V/o3wHOw6m3w9n7XrGhihcX7raquqU57FIGvz7E0FiHgvvVUpMCt
-# pBMHPdsSIAOZqnVDybZQ/G4CSnMTyB+4Pvp3yVWJiJ8rG6mx3ioMoDoz7EW+YDTR
-# R3BonzUbsesio4tAwYgbZNsIyhqvm2agHCr6nVeUwe2sxjcC34WrP4aFlBeJqR2P
-# xSHz21iSCnwts4We2/Kmq474R3jW7RUZhG3D9vwpcNCN+qrHIBp25HPRqyofcNmz
-# 4uvQ9+4MLpdIpjP1UNGuB6zNXz9rCF3Q8UVavhkJru8x0HTe+j4dqnTzVNcMtHMN
-# mShSbZLyyhNJQ05VBw8FvWxU2GQEMqHTcZQoVX1papb0TaizMCyGCZLAGt1vgkyV
-# OH2a8uCv/B9uMeDsRzs0wwZ1hcm9o2fJ6vqEOKU8z55GR2hOW9OVSMR1L90dfrFQ
-# A5/wEAKXLK4C1jl2a3gLGMvCZs+4k1WM+aYSHRPTlH4KB47kBmd7NTj3Aji/wSXP
-# 5kg0yy9m2fMAymIBQ5lSzKrHG24TEaaCSrf0abOFfgcBZeCHh1IkQ+dwtMzPt12D
-# nWTVlJuHLQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDcwOTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCA5AuKQa449Iy0u9GbzvDlNfd1zOg+SsPcsjrLY
+# MdNaxzANBgkqhkiG9w0BAQEFAASCAgBBXNKpkvejSkY2B7DhcFo5es7OMz4g7vYh
+# E+VILCVGt0LjOJ9bqtrXe7Oo1EjZ1qu7h7EdM5ewfjd8nArIrhIhwu3ANij8ubYn
+# mdKNUVn5i1/OyCNm1Y9Igd3UVtpbCVmwLViMbYT+KblivLtnRGuBmxqVGqUB0g3o
+# QlRRkl1oDyEBPgAIWkwZVK/OQh2SWU/MlB9Amn+m2vunSSmGy2Ev5yYtfupjpjJW
+# DyKZ/zuwtG4sPaR/jgG/ZceV0W3PTFodP5vVwgxIsYj/S68YkmPBP9jaPd6M8lc1
+# Z8NvI8oEtXbKh1Xwic0uwLJUx/oWDnQ/hApn90VZaB6PBpBeB36Olv8CGpMRVY70
+# yFOSKiH1xVAPaI2tzJ0IRzhYy32pwqe4ibAY1OFKP+ksVVcOAEx1F27N/y+E4pk1
+# m3XOV6FI+GFxsocto06wItinDTGL1fSfdc9C1o2koEDxPYU1JBw2QStvdMR1RGNj
+# jFv+DDtHIWSD61FKj1kj4iqT/tRPvwIgNO4LIjhSJXvxEzjCXQ4qFmq2AvZM4d+9
+# WjHPDv5ywZxeXHA3uKIs0DguUVSSBIaczsbRjCPJFxojbD+dWMM2joqcae3wyCXt
+# BLjyf5pl+1l3jNB9pJCG7g/oDbdIuaqGIN1KeokBhLmlCiA9QeB+UBg9solZBvuD
+# r858hXi44w==
 # SIG # End signature block
