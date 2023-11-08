@@ -261,17 +261,17 @@ Begin
             {
                 Write-Verbose -Message "Backing up $($Gpo.DisplayName)..." @VerboseSplat
 
+                # Set path
+                $GpoBackupPath = "$env:TEMP\GpoBackup\$($Gpo.DisplayName.Replace("$DomainPrefix - ", ''))"
+
+                # Create directory
+                New-Item -Path $GpoBackupPath -Type Directory > $null
+
                 # Backup gpo
-                $Backup = Backup-GPO -Guid $Gpo.Id -Path "$env:TEMP\GpoBackup"
+                $Backup = Backup-GPO -Guid $Gpo.Id -Path $GpoBackupPath
 
-                # Set folder name
-                $GpoFolder = "$($Backup.DisplayName.Replace("$DomainPrefix - ", ''))"
-
-                # Rename folder
-                Rename-Item -Path "$env:TEMP\GpoBackup\{$($Backup.Id)}" -NewName $GpoFolder -Force
-
-                # Get backup filepath
-                $GpReportFile = "$env:TEMP\GpoBackup\$GpoFolder\gpreport.xml"
+                # Get gpreport file
+                $GpReportFile = "$GpoBackupPath\{$($Backup.Id)}\gpreport.xml"
 
                 # Replace domain prefix with placeholder
                 ((Get-Content -Path $GpReportFile -Raw) -replace "<Name>$DomainPrefix -", "<Name>%domain_prefix% -") | Set-Content -Path $GpReportFile
@@ -279,7 +279,7 @@ Begin
                 # Replace sids
                 if ($Backup.DisplayName -match 'Restrict User Rights Assignment')
                 {
-                    $GptTmplFile = "$env:TEMP\GpoBackup\$GpoFolder\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+                    $GptTmplFile = "$GpoBackupPath\{$($Backup.Id)}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
                     $GptContent = Get-Content -Path $GptTmplFile -Raw
                     $GptContent = $GptContent -replace "\*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)", '%domain_admins%'
@@ -2422,7 +2422,7 @@ Begin
             # Domain controllers
             #####################
 
-            "OU=Domain Controllers,$BaseDN" = $DomainSecurity +
+            "OU=Domain Controllers,$BaseDN" =
             @(
                 "$DomainPrefix - Domain Controller - Advanced Audit+"
                 "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
@@ -2432,6 +2432,7 @@ Begin
                 "$DomainPrefix - Domain Controller - Time - PDC NTP+"
                 "$DomainPrefix - Security - Disable Spooler+"
             ) +
+            $DomainSecurity +
             $WinBuilds.Item($DCBuild).DCBaseline +
             $WinBuilds.Item($DCBuild).BaseLine +
             @(
@@ -3493,8 +3494,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQ+BQC/g4oItD+y8poViib8vR
-# +FWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnVwrhM4Awzt1/J6crZI7OI/e
+# PQSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3625,34 +3626,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRblNAX
-# GB+Y7m9e2ukkPoVUVkmQxzANBgkqhkiG9w0BAQEFAASCAgAJH3Yc7I7LM5FypFEy
-# r0SOdbTQeeV3ojbm3oKUxoqeatjnvCENUB8yfY8yq90BrUxXdEjTzFVQen0gDMoN
-# LRzpoWczecKjSNFgrGMTu+ZreuparRw4j2kV5vRMzhwKbY+onVFKy3f2AOLHo0fa
-# D/o5QccA3opKInXw6bYNvqdUeZL7eT2V/OpTn9bjm3J/xGtNsM9Ps7JT8PKBxk5b
-# KwjpNfwf7grY0NRfzPi8oUFSLuCG2kQ7cf5T2psEx/QLz7DpkceXGdNEQ+Vs2PyJ
-# dktsj60jAx/st3L97a7nY1EeHpa/dtCRL6lGiKP95Yr10axg6OATW6kWXdNI4tTr
-# gB1TuVVhCz/JvZ/O6U0YDAELRCFPndkOPGCiQ1427f5f8fQQmx1HRPtvg+0ImqBo
-# vEiJsbTc0Lo8x+I/H8RtJXV+q4Qvmu3CvvRAT9/bYEXqmE2Rpv7BScm1oWzQo0Ss
-# uGtF8OSmMx7Sw7SgiVQJDC479v707a0I0PyTFGYSS5jbxyob2OrWNjPuZzcIoYrg
-# wlX8DEEDck7vXJ39F91N76BhR9argmAQYmgdyf1z3IyHOTSRttMmCVma3fwSz0iF
-# +F84YELFS09gjp8edIa8jIBrL7mFTRWGaYcAQWR9wZSfkChLr2Rbspn6S32xckU3
-# npwQL4Sdmt2FOKtY3XOEUBNuI6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRwEP5C
+# R+ryfsJ3QWwQME7S1Tqk+jANBgkqhkiG9w0BAQEFAASCAgAiiUgRdMdGxgbQ5g2r
+# Q8YOOQuTfWqy/2/SrnxoOvFFB3y725RCliC9BjyGKPhXb5IgFRZoRmUrOlVXR6Tj
+# UnSPRvFzUUU0zYCEGmkeOLKkC5Qap5yw2Pga8txaStE74QXNPfAhnqQCA8BosNCF
+# qmU/BzMn/xBmi5IuU+F+ZVf2Mcf3NKT/D1j3dcq5dWs+WFWnfGor43VYAV8+EvWy
+# J4FCvgIvLq0VA6CgU/AwIPd6rzRNX7PudsFE0LxHpZ1zvpKDGiNyjBgccUv6DFjZ
+# Hovf2x36i6FWW/jchLOAF46R7V0AHcbjKOiW8VtKqU6My2Es4HTHuCead3bu7mhV
+# Blz6MH8Kvl/kfvrUlcL6zHaxw4f2m1xVxgKd3BLlkIfTDEOZoqCiv+cBh/W4a1Xd
+# i6WNHMncsNsduxZcoQ9hjUga8Op6/gAIfwS0r9Gp6bBbhmwpeTgKeu4af3r9Idrt
+# sTROkHSfeGZu3h5dRSUjPu9EI9IkRFbKnvg31fcEC+dLy04ET7XyPsn/a0PTPqn9
+# dKjux98+cSZiy3mcvWoXqa8KUZnyXLVMnRm7Xk3XeJYCOKwDQ9OpEqe5EHDtPV1k
+# 6QfsiFzFS0InVjxrZovTWtrceaaUtZa1beKgRSmRHTl9r2n/hKbRNGuLaADq1Puc
+# d7AASv57cRSPqXsYIn9ULI2eo6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDcxMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBqXRSVyfQBuRcx+aN53gcXjjTbQNhc9IJnGY3N
-# wRIY5DANBgkqhkiG9w0BAQEFAASCAgACdlF1ebT7vK74DUr6hmSmRgpUNPwJGRKN
-# xW6PntETwKWx+U22HkaJaQLeVpm3y4sJKRniERPi0lIRstE8YnhQwnVQFNnqtTIG
-# F+vrryh0Gl+pfVt3Bq/7o9DdxTJXfz7uRqJ/6dTSmiOBASxmwZYDfTymNik/upmZ
-# turSeZ2PdJhem7DGiytsPmKZVxko29fLiAWFzm3Q51wSiSKd765WhOfKTVTD70hI
-# Muil66y6IloO12r097isXnJjlvZLns917jwWhQBsRJ6ff4Uvz8l8Y8DvOgz5OKRg
-# KVjIi3HnEK+MjBau4mhkR62b5BretKM+J9/443f75RuDiE3hO2Au6+ZK0YKmBaK1
-# fZqkgNC87pGouXMv68Wjy5UhD3POqvlsyUgUp61dGlvIDDjavFSx1s0Qzl/jyAzD
-# qmXkzq/jINF8gLeLDfBcApdtrisLOKauXd/jsKu5WMoUdtSvJVzj+6zTyVeeXA94
-# CA7xqciDieXP92s2/AVzrLivmyEdIbmweLKVTGF+OhPtRy747zI3OlRFPYPkEeE8
-# mq9yqdJmvp0YWw65PHmr01+vFRLkS2bNgk3EyfKY5zQgq2OfbDkf3TfIggsFpIT9
-# eCeSIdzA5ltpiMAb3WWQFemDKs0LCULi4k0N2DR5xx6Wl2duDCSrckXr6kYBbXrA
-# g0K/j0HQmA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDgwOTAw
+# MDZaMC8GCSqGSIb3DQEJBDEiBCC6wVfuEH28su1oXqecSttR1iuj1S7h6KfSgxiC
+# TuPilDANBgkqhkiG9w0BAQEFAASCAgBvUz0GCKs7dpkJN9pBr5wHawZaTtrK5XEi
+# dPPsGe6b5iw2GnYwZzPj2abN3XSgRzynAn8mGj7IOrv4V/F938T1H6z3zqhCvCdu
+# a0yTLn8YOZn//gdtx5JvX3546GIqHwNoNr53cnFf4OTcUj31yENyR9XItVQwUxee
+# YXd1nToolVjQs037tvdWyBRQ8Pvv5YCJhFZXaM0hvhBtz3bmiQWUiO++wQ2s5kBS
+# 5ySKi4M1OEFEl5DNMQ66drAa0OKSzhY9Ym83VSAq1gF35JX0Q0vsog6LTHUYqMWx
+# I9vP4fZi0aGeE2xUJQdUWniGKWLAlX6ne3RQu16RaW/b+uObZ0TSe0GW53mDRm3v
+# QlhWY/5LUX+ehghAARiTfJFTd34auWzQC60MLcY/gm8napPapLUUsj7CDhsIy97j
+# Ah1tzASXzHgaSOxpxd+myqI4Xb9LW+ZMFwbEg3dS+rPYTUTP62+h8DAi28AuJGz7
+# ppdh80Px5whI41LTl5GY2RLo/KUoiqiLeYWNe0JD0r72K7hnjUE95ItpgPt51njs
+# C7H2/X5n4ti9e9bB9pilyfFS6D5oN58lERqhlcXxRvLk5wn6QWpXQle+bL68L/ag
+# g8UVTcv3nDdo056snxjZwxxhCe0eIf3CaDvXX8uuSU8BfLzHv16EZ0juA3Rk8ph0
+# L7xz5NNqow==
 # SIG # End signature block
