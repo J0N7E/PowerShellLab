@@ -2291,28 +2291,28 @@ Begin
         $GPoPaths += Get-ChildItem -Path "$env:TEMP\Baseline" -Directory -ErrorAction SilentlyContinue
 
         # Itterate gpo paths
-        foreach($GpoDir in $GpoPaths)
+        foreach($GpoPath in $GpoPaths)
         {
             # Read gpos
-            foreach($Gpo in (Get-ChildItem -Path "$($GpoDir.FullName)" -Directory))
+            foreach($Gpo in (Get-ChildItem -Path "$($GpoPath.FullName)" -Directory))
             {
-                # Set gpreport filepath
-                $GpReportFile = "$($Gpo.FullName)\gpreport.xml"
+                # Get gpo Id
+                $GpoId = (Get-ChildItem -Path $Gpo.FullName -Directory).FullName -match '{(.*?)}' | ForEach-Object { $Matches[1] }
 
-                # Get gpo name from xml
-                $GpReportName = (Select-Xml -Path $GpReportFile -XPath '/').Node.GPO.Name
+                # Set gpo name
+                $gpoName = $Gpo.Name
 
-                if (-not $GpReportName.StartsWith('MSFT'))
+                if (-not $GpoName.StartsWith('MSFT'))
                 {
                     # Set domain prefix
-                    $GpReportName.Replace('%domain_prefix%', $DomainPrefix)
+                    $GpoName = "$DomainPrefix - $GpoName"
 
                     # Set sids in GptTempl.inf
-                    if ($GpReportName -match 'Restrict User Rights Assignment')
+                    if ($GpoName -match 'Restrict User Rights Assignment')
                     {
-                        $GpFile = "$($Gpo.FullName)\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
+                        $GptFile = "$($Gpo.FullName)\{$GpoId}\DomainSysvol\GPO\Machine\microsoft\windows nt\SecEdit\GptTmpl.inf"
 
-                        $GptContent = Get-Content -Path $GpFile -Raw
+                        $GptContent = Get-Content -Path $GptFile -Raw
 
                         $GptContent = $GptContent -replace '%domain_admins%', "*$((Get-ADGroup -Identity 'Domain Admins').SID.Value)"
                         $GptContent = $GptContent -replace '%enterprise_admins%', "*$((Get-ADGroup -Identity 'Enterprise Admins').SID.Value)"
@@ -2327,19 +2327,19 @@ Begin
                         $GptContent = $GptContent -replace '%tier_2_computers%', "*$((Get-ADGroup -Identity 'Tier 2 - Computers').SID.Value)"
                         $GptContent = $GptContent -replace '%tier_2_users%', "*$((Get-ADGroup -Identity 'Tier 2 - Users').SID.Value)"
 
-                        Set-Content -Path $GpFile -Value $GptContent
+                        Set-Content -Path $GptFile -Value $GptContent
                     }
                 }
 
                 # Check if gpo exist
-                if (-not (Get-GPO -Name $GpReportName -ErrorAction SilentlyContinue) -and
-                    (ShouldProcess @WhatIfSplat -Message "Importing $($Gpo.Name) `"$GpReportName`"." @VerboseSplat))
+                if (-not (Get-GPO -Name $GpoName -ErrorAction SilentlyContinue) -and
+                    (ShouldProcess @WhatIfSplat -Message "Importing `"$GpoName`"." @VerboseSplat))
                 {
-                    Import-GPO -Path "$($GpoDir.FullName)" -BackupId $Gpo.Name -TargetName $GpReportName -CreateIfNeeded > $null
+                    Import-GPO -Path "$($Gpo.FullName)" -BackupId $GpoId -TargetName $GpoName -CreateIfNeeded > $null
 
-                    Start-Sleep -Milliseconds 500
+                    Start-Sleep -Milliseconds 125
 
-                    if ($GpReportName -match '- (.*?) - IPSec - Restrict')
+                    if ($GpoName -match '- (.*?) - IPSec - (?:Request|Restrict)')
                     {
                         switch($Matches[1])
                         {
@@ -2356,21 +2356,22 @@ Begin
                             }
                         }
 
-                        foreach ($Item in (Get-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue))
+                        foreach ($Item in (Get-GPRegistryValue -Name $GpoName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ErrorAction SilentlyContinue))
                         {
                             $NewValue = $Item.Value -replace "RUAuth=O:LSD:\(A;;CC;;;.*?\)", "RUAuth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupUser).SID.Value))"
                             $NewValue = $NewValue -replace "RMauth=O:LSD:\(A;;CC;;;.*?\)", "RMauth=O:LSD:(A;;CC;;;$((Get-ADGroup -Identity $TierGroupComputer).SID.Value))"
 
                             if ($NewValue -ne $Item.Value -and
-                                (ShouldProcess @WhatIfSplat -Message "Setting `"$GpReportName`" group sids for `"$($Item.ValueName)`"." @VerboseSplat))
+                                (ShouldProcess @WhatIfSplat -Message "Setting `"$GpoName`" group sids for `"$($Item.ValueName)`"." @VerboseSplat))
                             {
-                                Set-GPRegistryValue -Name $GpReportName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ValueName $Item.ValueName -Value $NewValue -Type $Item.Type > $null
+                                Set-GPRegistryValue -Name $GpoName -Key 'HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsFirewall\FirewallRules' -ValueName $Item.ValueName -Value $NewValue -Type $Item.Type > $null
                             }
                         }
                     }
                 }
             }
         }
+
 
         ########
         # Links
@@ -3494,8 +3495,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnVwrhM4Awzt1/J6crZI7OI/e
-# PQSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjFLKBNaNeLzc43TtyClBmbR6
+# /WOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3626,34 +3627,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRwEP5C
-# R+ryfsJ3QWwQME7S1Tqk+jANBgkqhkiG9w0BAQEFAASCAgAiiUgRdMdGxgbQ5g2r
-# Q8YOOQuTfWqy/2/SrnxoOvFFB3y725RCliC9BjyGKPhXb5IgFRZoRmUrOlVXR6Tj
-# UnSPRvFzUUU0zYCEGmkeOLKkC5Qap5yw2Pga8txaStE74QXNPfAhnqQCA8BosNCF
-# qmU/BzMn/xBmi5IuU+F+ZVf2Mcf3NKT/D1j3dcq5dWs+WFWnfGor43VYAV8+EvWy
-# J4FCvgIvLq0VA6CgU/AwIPd6rzRNX7PudsFE0LxHpZ1zvpKDGiNyjBgccUv6DFjZ
-# Hovf2x36i6FWW/jchLOAF46R7V0AHcbjKOiW8VtKqU6My2Es4HTHuCead3bu7mhV
-# Blz6MH8Kvl/kfvrUlcL6zHaxw4f2m1xVxgKd3BLlkIfTDEOZoqCiv+cBh/W4a1Xd
-# i6WNHMncsNsduxZcoQ9hjUga8Op6/gAIfwS0r9Gp6bBbhmwpeTgKeu4af3r9Idrt
-# sTROkHSfeGZu3h5dRSUjPu9EI9IkRFbKnvg31fcEC+dLy04ET7XyPsn/a0PTPqn9
-# dKjux98+cSZiy3mcvWoXqa8KUZnyXLVMnRm7Xk3XeJYCOKwDQ9OpEqe5EHDtPV1k
-# 6QfsiFzFS0InVjxrZovTWtrceaaUtZa1beKgRSmRHTl9r2n/hKbRNGuLaADq1Puc
-# d7AASv57cRSPqXsYIn9ULI2eo6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRgN/rN
+# XLFPo6kA6bPyBm5h4HtX+jANBgkqhkiG9w0BAQEFAASCAgCftaL2td9EjPvVOBZY
+# XjtV+4dpJx2IUNn9fSf4Y8ihX+GzZpwKSgwjqsjsLwN2rrQ3+3KYr/x49OYEQghX
+# O0X5gxxWGKgV39YhTGQpIWsXozD8CtR8TxmIyqPJ00eYU91z2uUEaw6V4hjD9FU5
+# B+coiln8OQFcSF3GMe0OuOxdoQZzR8b6mj8rr1pS8hHIaaQ9aXY9dhTHYVsbmLIO
+# fkaacFiV4tCNv6h1sK198YOgjXFvr8XPFbbfy3vnF4It5380FW6QBmDsO9PPEbXU
+# JAsBx5zyFXxeJrUB5wlLNfIrY28+3ha80bE9gR1LdN8Q1XDB+hWExZIsdZ4hEFDu
+# ayAUgt+GlNmIhHgz+i/QLSqnk4B62m1l1CA4VadzUFX3QbCZ6WzgbBBYhn4hwJaA
+# pkfbEzI+T3xutvstediX1dZ2vt5j/K63rTQ7Vytohv3+QwdTi125sHwi25ia8Ac1
+# 0Xgo3FARo6f5A8bFHNHdSgqldJZW7fb6XbNRnQg6dcCLgz1BnUPMXhaPDSl2PpP/
+# ks2Z/dh8bNyRx6KysC7zzFJQzDVBErAyMRq6PZH2pQdveQPVs6OeqLoTVSPLgp7F
+# 1nDkIkyide1V9e3EA2CkVLTH0yf62g0uTth3DJMSDrEWdfL1pmh0ZESAGyJk5unR
+# RlBg8q66J5ahNH0a4C2BlPpYeaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDgwOTAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCC6wVfuEH28su1oXqecSttR1iuj1S7h6KfSgxiC
-# TuPilDANBgkqhkiG9w0BAQEFAASCAgBvUz0GCKs7dpkJN9pBr5wHawZaTtrK5XEi
-# dPPsGe6b5iw2GnYwZzPj2abN3XSgRzynAn8mGj7IOrv4V/F938T1H6z3zqhCvCdu
-# a0yTLn8YOZn//gdtx5JvX3546GIqHwNoNr53cnFf4OTcUj31yENyR9XItVQwUxee
-# YXd1nToolVjQs037tvdWyBRQ8Pvv5YCJhFZXaM0hvhBtz3bmiQWUiO++wQ2s5kBS
-# 5ySKi4M1OEFEl5DNMQ66drAa0OKSzhY9Ym83VSAq1gF35JX0Q0vsog6LTHUYqMWx
-# I9vP4fZi0aGeE2xUJQdUWniGKWLAlX6ne3RQu16RaW/b+uObZ0TSe0GW53mDRm3v
-# QlhWY/5LUX+ehghAARiTfJFTd34auWzQC60MLcY/gm8napPapLUUsj7CDhsIy97j
-# Ah1tzASXzHgaSOxpxd+myqI4Xb9LW+ZMFwbEg3dS+rPYTUTP62+h8DAi28AuJGz7
-# ppdh80Px5whI41LTl5GY2RLo/KUoiqiLeYWNe0JD0r72K7hnjUE95ItpgPt51njs
-# C7H2/X5n4ti9e9bB9pilyfFS6D5oN58lERqhlcXxRvLk5wn6QWpXQle+bL68L/ag
-# g8UVTcv3nDdo056snxjZwxxhCe0eIf3CaDvXX8uuSU8BfLzHv16EZ0juA3Rk8ph0
-# L7xz5NNqow==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMDgxMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDIIR7solh25oUGxr94gVPTrP7cP1qCNPVjlJXm
+# Ms9L3DANBgkqhkiG9w0BAQEFAASCAgATW1A60OQkEqy+CcpsNEC+gU78TvAiCBwh
+# 87WaUKGlLD4vu4r6QAhG5Riz4ibj/39NibWOVuug8cgdRwaQSCUCwOwXmy8Qg56J
+# 6FFGbM5Cr3p01PUS4GiitStm+IPlbejz3fl9YDfEkjOv72NrCoZMDXCpJ0W0Cgh/
+# oi6mgB6NqZLRvlZcToOOsvb/K2KSatQsLfMGJusdp3PLjtC8nRqNSHOWH4cr5kVv
+# gQ7Dv6RDzeRR6BNXhpdvKPb8OgPC8+V7qAB1YguqAfCaG/Jk9Iuck9+WVF97jwi8
+# wA51Xisi0JyCLm44GCfO3VHC1FA3W+uCNcAazNw1sFL2zbrUzl7u1ppzqs15+fjL
+# aGI91HIT1vWmTxMr4TTkRPlozukCHBZvCuU4mGHMT5FZ/L3MBr/sdiLpcSMQoH+p
+# JsAKobbmsB/UnQtdEGhFJZcK6Bo0DXejQNVQ+6JdklhM2u8X5UKCMotBlT2vb83R
+# f6iQO3D2WarFc9UAwyjNkk0dpwkNDAxgB+djN7VJkB7YUp7FC/mD5hzNd+viV/vD
+# AXufywiRho/8iOqMeNxJEBAyY/M0DmvJFXHyl7m7ETaCeA8iwzx0hPiewi5USRcV
+# +XJCqsHrf416CdyQlDLri6sJun08mMiliW+gSj5G6vl8Ny1PpHxt49xsXjcmb0q5
+# k+/E5NWNSg==
 # SIG # End signature block
