@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="CachedLogonsCount" status="CachedLogonsCount" image="7" changed="2023-11-05 13:03:50" uid="{B83E4F84-43BC-4C69-852B-CBA9C30E72F3}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" name="CachedLogonsCount" type="REG_SZ" value="0"/></Registry>
-</RegistrySettings>

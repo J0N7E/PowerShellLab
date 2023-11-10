@@ -1,4 +1,0 @@
-Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting,Setting Value
-,System,Audit Kerberos Service Ticket Operations,{0cce9240-69ae-11d9-bed3-505054503030},Success,,1
-,System,Audit DPAPI Activity,{0cce922d-69ae-11d9-bed3-505054503030},Success,,1
-,System,Audit Logoff,{0cce9216-69ae-11d9-bed3-505054503030},Success,,1
