@@ -2470,7 +2470,6 @@ Begin
             else
             {
                 # Servers
-                $ComputerPolicy += @("$DomainPrefix - Security - Disable SMB 1.0+")
                 $ComputerPolicy += @("$DomainPrefix - Security - Disable Cached Credentials+")
                 $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler+")
             }
@@ -2497,6 +2496,14 @@ Begin
             # Check if server build
             if ($Build.Server)
             {
+                if ($Build -eq '14393')
+                {
+                    # Disable SMB 1.0 for 1607
+                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                        "$DomainPrefix - Security - Disable SMB 1.0+"
+                    )
+                }
+
                 # Link baseline & server baseline
                 $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
 
@@ -2546,6 +2553,14 @@ Begin
             # Check if server build
             if ($Build.Server)
             {
+                if ($Build -eq '14393')
+                {
+                    # Disable SMB 1.0 for 1607
+                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                        "$DomainPrefix - Security - Disable SMB 1.0+"
+                    )
+                }
+
                 # Linkd baseline & server baseline
                 $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", (
 
@@ -2590,6 +2605,14 @@ Begin
             # Check if workstation build
             if ($Build.Workstation)
             {
+                if ($Build -eq '14393')
+                {
+                    # Disable SMB 1.0 for 1607
+                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                        "$DomainPrefix - Security - Disable SMB 1.0+"
+                    )
+                }
+
                 # Link baseline & computer baseline
                 $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", (
 
@@ -3500,8 +3523,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrVRqrqmXXs3mN8QP5njdpAD0
-# +4igghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe2Zd0S5OBGilLmKMN/EKUR1t
+# OwugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3632,34 +3655,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTjf1ht
-# bpPO7x/TwS2q3PC5Sc40AjANBgkqhkiG9w0BAQEFAASCAgDHoskQPze7kqPDluFT
-# hlbKxIFQ12CIWV115voSWLDwIVtYtJaxpSo+P80ksTq23NQZ6iSx16e/7726qCcI
-# krjBB2tFUCW1vurfxIRDXfzcRst8WUgrIp0gYo1wKQX0Bs2kCTTuaVyPDXJzKBPn
-# 9+2kkSHQS/7YsuGiuwi5NarkIqVCnWx5fzAaGDs3d/ssgGEkG4EFD2jDKNxs+oWM
-# 5LllRfDgpRgrADgdnOEmeVLXMjW1hSi49sSttDS2J3Mp6II2JuukNQnKoNap//hz
-# ROOz0XP1F9SrWTLlvwyCULtXhbNW0scVJNl0wJMKjkhmheRqBeDQ4l4hGh1bCzqd
-# OcA2lRoBuEFf8A+b2MFctEkmecH4qBARu3xXoJCVUOKaR3LRtEpisxsEwxmb06XG
-# T2SNOrl/Eaj8iPqpkRp7fTM9sIpnRQSQcNZM5D4EmpyeOIrXQi186ROjEltB1I5N
-# n0zOrMupIQoXlv37UuSF1JWqk16ZoF78mcyGAn82NjYrtJsUawwXz04wbVa7kDaH
-# jfzU67QsjHI1zSbsCsBohKvKXjyzlgBvpdGbNAs0LofzD9LQmnv6CIPwgMjE4lyU
-# U0+y/0OVKF+LkhJHcPbREPImtY8qnTV2/8MyooG9TIK2dt9wU/gACUtTVgd1A1Z6
-# I783J/AhNbrs4cotHqt3paZgOaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRCkGaU
+# bgZHVt/Xya2QkMlWF6aRKTANBgkqhkiG9w0BAQEFAASCAgB9SIxpPdil929gSrM/
+# mq6gDwdIAQNEE0EFU35h0hrVJjPKVPuuMDl4R2Rw3WPRFO4xYyxYH1XtucyuKq84
+# 6u0v4Km3kU6ZtvRSc4nqb9jsd5aOp3MSX+I+KyJ4TtIuXf4Wyz1f4c5Q4NVMnVoF
+# t0pf9iVbOQob5ugyIzGFkZHqNzFieTzcug7n5u9J+nDPQPQS+pMj2eCLZHg84oq6
+# xFYCmhoQvspJnGNa5GdgRqVTBIiaHaPFkGCk5EBnJ0qGrmoJpi10CmU9jj0kRdmH
+# EPypQHitztAihJ1RTuOlIAlEqV8oTLZl0YznV1WAtVeWzLw+uWkldspNIzA/Zxrk
+# 4nqC3IwHNOne+RyjY6MchSB7T4QUEy24bTPJIb2jtjtzsxv+H9rYQQ+uGXRjS2bz
+# U+q5+6aXx6rN+OLdQ5FHIfdEYRPLof/yEKFFTHCyv6bC47bzNClXAaiGX4/L2zjh
+# FA8lRP/3dvD57xRsPEFEsPFXmWuJzI1TscZw8yV0/ZoiSHyG7bTVZ9UH7DIliENl
+# NnFJ200UnFb53I0HsJY3BKw+PiOietpB8ZNTaUiMikfrTSaCgacHYDkfd6FQxA1X
+# QKjZJLIKkbjBr4eIya2kKow0bwfFEhWJK4Qj2KRoU7+ETR2ZkTn3xz+cVnHV2oiG
+# OH7kPVDN/9zpmYkULJB8bLTTG6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMTAxMTAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDlPSmQC/0Fo7Fz4i8ciVPprBB3OF20+efWbH+l
-# IECE8DANBgkqhkiG9w0BAQEFAASCAgCEXLheP4iwPIAwDjXvBj/jYbxng7bwgGwL
-# Fc2PqkPTvce66XU8ukv7qs8Elv27zSfmrTGJNYPPNeg1pC8S0kdx7LyIdMZ7UKMl
-# bsJuUPB7UP9uNjc+RytGK/rx8YaMtki+CBvRDAlOQBhlJPghmlZ4SOHYp9Ci3d6r
-# 2HDA69SOXJtl0z8XzPNchSvLRZEJA6yJvJVdW5O3KYbWXxPy7sPLlIDxDFhO+0EO
-# S4/0f33g62E0WBxAn5WzBZyqN/vbY27mGKvP7zPzqGHdq7A07MIXTwMdYNZE1AXw
-# dLUWLobay312UG/sZgDHOixpFoXDLOtBHNFl8ziMV7afPYVUmIn5z586qIjGn7Ot
-# OdybRIj3x8pgjdpQ8asuN9Pze05AXq8tlrPinqxIap4KzdxK9ozAFb56WX2OD3Mn
-# iudk/hqshTjsFlrjoVJeTbyaQimxWWrYGL/AtqohyrjfL8qxUKwUDkWGIVOKveIp
-# c2IPN9f/Hi5qpBD3CU9JT2knUBURA8CSBqdYcW7Bkzn4g87sXCxate7cCfvIkfen
-# ljUG4OTT99JixzawYZIWw/sJtmNz+Bn/4vxX8/jJPyUPd5YgngRST2r7fv9TqhAv
-# NJb2leoyXe/fd0EB3nW5Nd0tA57MGw6dosFjtIysIWiSa/df4N9NyejdEa4bobzx
-# PORcB9ZGSg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMTExMTAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCCx+ZkYudrV1q3uXGo6+fyxOIdsFKy3+DxB92pH
+# HdeC3jANBgkqhkiG9w0BAQEFAASCAgAjCz3h0Yqr4vYOeEN1K35ZmhhZaDleDbe8
+# iswob9dQ/LKbLBhmgP0R0t4xjp36l+e4yvfl4tziDW4PSubTy3uOmb048HUSG/Wc
+# AjXWFp4+NsQScjVMD+C3SmaHG3il185olrm7MV49+3KuJyLxJKbysgvO9kBJVQbj
+# 87gKY9ogk1yYR15iVxm7X1bjmacg6r5hphaxDM2AIBwrVfqTf+HA7U+JBakXLeMa
+# ApSXSI56C6VdLzpFcNl/xm+YcJ3L3bjYukdaAnIaw9hdUA2/1N2JlfiabtCkU5xP
+# +1YGUkq8ilAtU7frlqCsUXxlyjb/ziza1mJghG/q7aLSIRomVuZdG/XwZcxf3nNv
+# 2u6b9/yL2qtefM5CdMNz2+39+cvFa3IrbB6nZrOrqVv1iRUY8jNrmrmXfXM8D6hR
+# 51OLzk8u/9wj94BJuvJ/FayYNmXIAC5COunkMT39dHNo+hzk73emR9uzSrB4S/dD
+# yQZhxqgDAVBNe68RvNMGUoJ1L0Wpfq0HgzaFGb6WQunDDuwvWjvgecvLMJYc7UYH
+# 3qy/satuspr27qomJ/VMEpMVmDx342iBZL+8xF6UFYrF5a6cnf0BQVvEfk0xYUVM
+# J2idAP0a9VrPtctyi1Zt9HEzyvMt8jsxKq0F2MtF1zsyhGLEYBIKxfGOKdbJAEna
+# hsmp1qjX1Q==
 # SIG # End signature block
