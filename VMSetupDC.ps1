@@ -2398,6 +2398,33 @@ Begin
             "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
         )
 
+        # Domain controller policies
+        $DomainControllerGpos =
+        @(
+            "$DomainPrefix - Domain Controller - Advanced Audit+"
+            "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
+            "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
+            "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
+            "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
+            "$DomainPrefix - Domain Controller - Time - PDC NTP+"
+            "$DomainPrefix - Security - Disable Spooler+"
+        ) +
+        $DomainSecurity
+
+        # Server 2016 disable SMB
+        if ($Build.Name -eq '14393')
+        {
+            $DomainControllerGpos += @("$DomainPrefix - Security - Disable SMB 1.0+")
+
+        }
+
+        # Domain controller baselines & default
+        $DomainControllerGpos +=    $WinBuilds.Item($DCBuild).DCBaseline +
+                                    $WinBuilds.Item($DCBuild).BaseLine +
+                                    @(
+                                        'Default Domain Controllers Policy'
+                                    )
+
         $GPOLinks =
         @{
             #######
@@ -2423,22 +2450,7 @@ Begin
             # Domain controllers
             #####################
 
-            "OU=Domain Controllers,$BaseDN" =
-            @(
-                "$DomainPrefix - Domain Controller - Advanced Audit+"
-                "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
-                "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
-                "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
-                "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
-                "$DomainPrefix - Domain Controller - Time - PDC NTP+"
-                "$DomainPrefix - Security - Disable Spooler+"
-            ) +
-            $DomainSecurity +
-            $WinBuilds.Item($DCBuild).DCBaseline +
-            $WinBuilds.Item($DCBuild).BaseLine +
-            @(
-                'Default Domain Controllers Policy'
-            )
+            "OU=Domain Controllers,$BaseDN" = $DomainControllerGpos
 
             ############
             # Domain OU
@@ -2491,24 +2503,29 @@ Begin
         # Tier 0
         ############
 
-        foreach($Build in $WinBuilds.Values)
+        foreach($Build in $WinBuilds.GetEnumerator())
         {
             # Check if server build
-            if ($Build.Server)
+            if ($Build.Value.Server)
             {
-                if ($Build -eq '14393')
+                $GpoBase = @(
+
+                    $Build.Value.Baseline +
+                    $Build.Value.ServerBaseline
+                )
+
+                # Server 2016 disable SMB
+                if ($Build.Name -eq '14393')
                 {
-                    # Disable SMB 1.0 for 1607
-                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-                        "$DomainPrefix - Security - Disable SMB 1.0+"
-                    )
+                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
+
                 }
 
-                # Link baseline & server baseline
-                $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $Build.Baseline + $Build.ServerBaseline)
+                # Link server base
+                $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $GpoBase)
 
                 # Certificate Authorities
-                $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Certificate Authority+"
                         "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
@@ -2516,7 +2533,7 @@ Begin
                 )
 
                 # Federation Services
-                $GPOLinks.Add("OU=Federation Services,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - IPSec - Web Server"  # IPSec
                         "$DomainPrefix - Web Server+"
@@ -2524,7 +2541,7 @@ Begin
                 )
 
                 # Network Policy Server
-                $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - IPSec - Network Policy Server"  # IPSec
                         "$DomainPrefix - Network Policy Server+"
@@ -2532,7 +2549,7 @@ Begin
                 )
 
                 # Web Servers
-                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - Firewall - Permit SMB In+"
                         "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
@@ -2548,29 +2565,29 @@ Begin
         # Tier 1
         ############
 
-        foreach($Build in $WinBuilds.Values)
+        foreach($Build in $WinBuilds.GetEnumerator())
         {
             # Check if server build
-            if ($Build.Server)
+            if ($Build.Value.Server)
             {
-                if ($Build -eq '14393')
-                {
-                    # Disable SMB 1.0 for 1607
-                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-                        "$DomainPrefix - Security - Disable SMB 1.0+"
-                    )
-                }
+                $GpoBase = @(
 
-                # Linkd baseline & server baseline
-                $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", (
-
-                        $Build.Baseline +
-                        $Build.ServerBaseline
-                    )
+                    $Build.Value.Baseline +
+                    $Build.Value.ServerBaseline
                 )
 
+                # Server 2016 disable SMB
+                if ($Build.Name -eq '14393')
+                {
+                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
+
+                }
+
+                # Link server base
+                $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", $GpoBase)
+
                 # Remote Access Servers
-                $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - IPSec - Remote Access Server"  # IPSec
                         "$DomainPrefix - Remote Access Server+"
@@ -2578,7 +2595,7 @@ Begin
                 )
 
                 # Web Application Proxy
-                $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - IPSec - Web Application Proxy"  # IPSec
                         "$DomainPrefix - Web Server+"
@@ -2586,7 +2603,7 @@ Begin
                 )
 
                 # Web Servers
-                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
                         "$DomainPrefix - IPSec - Web Server"  # IPSec
                         "$DomainPrefix - Web Server+"
@@ -2600,26 +2617,26 @@ Begin
         # Tier 2
         ############
 
-        foreach($Build in $WinBuilds.Values)
+        foreach($Build in $WinBuilds.GetEnumerator())
         {
             # Check if workstation build
-            if ($Build.Workstation)
+            if ($Build.Value.Workstation)
             {
-                if ($Build -eq '14393')
+                $GpoBase = @(
+
+                    $Build.Value.Baseline +
+                    $Build.Value.ComputerBaseline
+                )
+
+                # Windows 10 1607 disable SMB
+                if ($Build.Name -eq '14393')
                 {
-                    # Disable SMB 1.0 for 1607
-                    $GPOLinks.Add("OU=$($Build.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-                        "$DomainPrefix - Security - Disable SMB 1.0+"
-                    )
+                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
+
                 }
 
-                # Link baseline & computer baseline
-                $GPOLinks.Add("OU=$($Build.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", (
-
-                        $Build.Baseline +
-                        $Build.ComputerBaseline
-                    )
-                )
+                # Link base
+                $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $GpoBase)
             }
         }
 
@@ -2646,16 +2663,16 @@ Begin
         $UserWorkstationBaseline = @()
 
         # Get baseline for all versions from winver
-        foreach($Build in $WinBuilds.Values)
+        foreach($Build in $WinBuilds.GetEnumerator())
         {
-            if ($Build.Server -and $Build.UserBaseline)
+            if ($Build.Value.Server -and $Build.Value.UserBaseline)
             {
-                $UserServerBaseline += $Build.UserBaseline
+                $UserServerBaseline += $Build.Value.UserBaseline
             }
 
-            if ($Build.Workstation -and $Build.UserBaseline)
+            if ($Build.Value.Workstation -and $Build.Value.UserBaseline)
             {
-                $UserWorkstationBaseline += $Build.UserBaseline
+                $UserWorkstationBaseline += $Build.Value.UserBaseline
             }
         }
 
@@ -3523,8 +3540,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUe2Zd0S5OBGilLmKMN/EKUR1t
-# OwugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURnTVGfvoSh6VSpkP1C0MG1ds
+# /tigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3655,34 +3672,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRCkGaU
-# bgZHVt/Xya2QkMlWF6aRKTANBgkqhkiG9w0BAQEFAASCAgB9SIxpPdil929gSrM/
-# mq6gDwdIAQNEE0EFU35h0hrVJjPKVPuuMDl4R2Rw3WPRFO4xYyxYH1XtucyuKq84
-# 6u0v4Km3kU6ZtvRSc4nqb9jsd5aOp3MSX+I+KyJ4TtIuXf4Wyz1f4c5Q4NVMnVoF
-# t0pf9iVbOQob5ugyIzGFkZHqNzFieTzcug7n5u9J+nDPQPQS+pMj2eCLZHg84oq6
-# xFYCmhoQvspJnGNa5GdgRqVTBIiaHaPFkGCk5EBnJ0qGrmoJpi10CmU9jj0kRdmH
-# EPypQHitztAihJ1RTuOlIAlEqV8oTLZl0YznV1WAtVeWzLw+uWkldspNIzA/Zxrk
-# 4nqC3IwHNOne+RyjY6MchSB7T4QUEy24bTPJIb2jtjtzsxv+H9rYQQ+uGXRjS2bz
-# U+q5+6aXx6rN+OLdQ5FHIfdEYRPLof/yEKFFTHCyv6bC47bzNClXAaiGX4/L2zjh
-# FA8lRP/3dvD57xRsPEFEsPFXmWuJzI1TscZw8yV0/ZoiSHyG7bTVZ9UH7DIliENl
-# NnFJ200UnFb53I0HsJY3BKw+PiOietpB8ZNTaUiMikfrTSaCgacHYDkfd6FQxA1X
-# QKjZJLIKkbjBr4eIya2kKow0bwfFEhWJK4Qj2KRoU7+ETR2ZkTn3xz+cVnHV2oiG
-# OH7kPVDN/9zpmYkULJB8bLTTG6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRCUCAM
+# Uct9Q5Zyq3ZfF9DsR9UYlTANBgkqhkiG9w0BAQEFAASCAgBNDi/e8s6bIGaCyA/a
+# szemGqtIPvdAVWoxiEuH/eVy3I1Z31lFhFn9e6nSL6kWK8AIEHerhBSKt4BgdW6Z
+# Rd9AdM8BM+HVJ/C8CoRYhSPvUN6QMkAwoP4jAfMbPHF8vlHQTEsAgxdn5dtkDKRF
+# 0jZv89N2CJRXyBQiUm5ZDLTzW6NM0nSjyVK4nNJFA8PpP1Un0jngvP0VNVSWHVZu
+# GEdaDb6dqiy2nN+fKA9OgzuhUEoW2UAPZ+98GNue4SWHbw0Z0KnPbt02CLVIHtNY
+# TFCC5Rf9S8ITJ46ITdBOcSuZ/lsoc77cAXfF8ZRPA+Vqk/pZsAi9i+O63qf7bNhE
+# z6d5oXSrpCUh6abhib8jothR70AjR8XiOIXe9jA4j8lsAATe5dUUuNFLwcvbsycB
+# 3bs2ZF/gqUSL0EuxytYgGa7grPi7Y/zCzogvy/+cjPe2hZY3yr+tJ+XlGFBCj/FZ
+# nVsdFYuAs34b5vmLk603tpfNvSbEa2xZVsz0xN3G9t/Vbh+xrILKLTlpjBEHX2KY
+# urbA3bmWWttWh9/RsbnRjW5I+mL6jRODrrPMFKcqPO+eJbg8go1QQRyrwciz8bIk
+# gzW+fAwrEjSL3eWLpBzh9StrBxvZ15rsyEYzxCIPiMYx/2BTpwHcy4X4iFL2eo7E
+# CLuOG8jqOlTQGNzJnL9Niveq0qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMTExMTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCCx+ZkYudrV1q3uXGo6+fyxOIdsFKy3+DxB92pH
-# HdeC3jANBgkqhkiG9w0BAQEFAASCAgAjCz3h0Yqr4vYOeEN1K35ZmhhZaDleDbe8
-# iswob9dQ/LKbLBhmgP0R0t4xjp36l+e4yvfl4tziDW4PSubTy3uOmb048HUSG/Wc
-# AjXWFp4+NsQScjVMD+C3SmaHG3il185olrm7MV49+3KuJyLxJKbysgvO9kBJVQbj
-# 87gKY9ogk1yYR15iVxm7X1bjmacg6r5hphaxDM2AIBwrVfqTf+HA7U+JBakXLeMa
-# ApSXSI56C6VdLzpFcNl/xm+YcJ3L3bjYukdaAnIaw9hdUA2/1N2JlfiabtCkU5xP
-# +1YGUkq8ilAtU7frlqCsUXxlyjb/ziza1mJghG/q7aLSIRomVuZdG/XwZcxf3nNv
-# 2u6b9/yL2qtefM5CdMNz2+39+cvFa3IrbB6nZrOrqVv1iRUY8jNrmrmXfXM8D6hR
-# 51OLzk8u/9wj94BJuvJ/FayYNmXIAC5COunkMT39dHNo+hzk73emR9uzSrB4S/dD
-# yQZhxqgDAVBNe68RvNMGUoJ1L0Wpfq0HgzaFGb6WQunDDuwvWjvgecvLMJYc7UYH
-# 3qy/satuspr27qomJ/VMEpMVmDx342iBZL+8xF6UFYrF5a6cnf0BQVvEfk0xYUVM
-# J2idAP0a9VrPtctyi1Zt9HEzyvMt8jsxKq0F2MtF1zsyhGLEYBIKxfGOKdbJAEna
-# hsmp1qjX1Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMTExMjAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCB1LJomyLoD9AQXRd5xdP+uuwc3f6cuTyqMfzz9
+# zSzE2TANBgkqhkiG9w0BAQEFAASCAgCcE8rJ2Kdf6W+hh58FqD9A94lf7qucQbbT
+# HVTLJf1DGhlZkW+4+IgNZCMhqGamSbJ4eJA72Idsk/WN7h31ijFGy+GyGlfTy6hT
+# kDMH5oWbCfug4k6IbPWNWi10x2MgVMstpbFMYdCtpTFHyRtj8tO/H+a43lKAzB4E
+# 2cY2VE9P1Z19jGUObrWGKGpC3jy2usbpxACJKR/SQVUPh0qsI679nbmLY9R2J/it
+# 18UoTRH2LifqrA5/pc9yiuTunbbXfGGxx/gF0t4RAp8GjAsSVHwpFR2S6SZRuCua
+# cldun90xTfW3NJghQviyNwCvmiDUNJloTzf8a53aR7f3zomvpxV+qP7UWxIwcXKv
+# 5ytD8S1A3jkkcQ2J6yT5jV7Qrmkm4csvAkK5pJyBk8GJo3HW+8lxOvgDJRp2zalY
+# B4dMbeRZJrQrQTt02doVR+ngUguMBLUP7QKNmiZEv3fEVNebXLzlDie9j4fYVR6E
+# JUXoofevlGJJ/O7AGiLR1jffI5/BFhG9xHRdDPQag0pFewmMGUGRihJx3PH/Fw55
+# 6NDVAfG9sXBRQR5DNr4V7dpUYyE9QRcfE8NOHBcZ1x6/2s80wAreeKqgSVQ4H5bN
+# +F2F1wCx35C8mZaEsfk4g0ILUzReIsy9w7PITmBJEgg9UGMpGJvmwqM81YZp9fe8
+# bo71j80KTw==
 # SIG # End signature block
