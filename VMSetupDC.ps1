@@ -2438,51 +2438,49 @@ Begin
         # Base security policies
         $DomainSecurity =
         @(
-            "$DomainPrefix - Security - Block Untrusted Fonts+"
-            "$DomainPrefix - Security - Client Kerberos Armoring+"
-            "$DomainPrefix - Security - Disable LLMNR & mDNS+"
-            "$DomainPrefix - Security - Disable Net Session Enumeration+"
-            "$DomainPrefix - Security - Disable Netbios+"
-            "$DomainPrefix - Security - Disable Telemetry+"
-            "$DomainPrefix - Security - Disable TLS 1.0 & 1.1+"
-            "$DomainPrefix - Security - Disable WPAD+"
-            "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit+"
-            "$DomainPrefix - Security - Enable SMB Encryption+"
-            "$DomainPrefix - Security - Enable Virtualization Based Security+"
-            "$DomainPrefix - Security - Require Client LDAP Signing+"
-            "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM+"
-            "$DomainPrefix - Security - Restrict Remote Desktop+"
-            "$DomainPrefix - Security - Restrict SSL Cipher Suites+"
-            "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
+            @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Client Kerberos Armoring";              Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = $true;  Enforced = $true;  }
         )
 
         # Domain controller policies
         $DomainControllerGpos =
         @(
-            "$DomainPrefix - Domain Controller - Advanced Audit+"
-            "$DomainPrefix - Domain Controller - NTP Client - PDC+"
-            "$DomainPrefix - Domain Controller - KDC Kerberos Armoring+"
-            "$DomainPrefix - Domain Controller - Firewall - Basic Rules+"
-            "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding+"
-            "$DomainPrefix - Domain Controller - Restrict User Rights Assignment"  # RestrictDomain
-            "$DomainPrefix - Domain Controller - IPSec - Request"  # IPSec
-            "$DomainPrefix - Security - Disable Spooler+"
+            @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - Firewall - Basic Rules";                  Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = $true;  Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = $false; Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = $false; Enforced = $true;  }
+            @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = $true;  Enforced = $true;  }
         ) +
         $DomainSecurity
 
         # Server 2016 disable SMB
         if ($Build.Name -eq '14393')
         {
-            $DomainControllerGpos += @("$DomainPrefix - Security - Disable SMB 1.0+")
+            $DomainControllerGpos += @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = $true;  Enforced = $true;  }
 
         }
 
         # Domain controller baselines & default
         $DomainControllerGpos += $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
-                                 @(
-                                     'Default Domain Controllers Policy'
-                                 )
+                                 @{ Name = 'Default Domain Controllers Policy';               Enabled = $true;  Enforced = $false; }
 
         $GPOLinks =
         @{
@@ -2495,14 +2493,14 @@ Begin
 
             $BaseDN =
             @(
-                "$DomainPrefix - Domain - Certificate Services Client+"
-                "$DomainPrefix - Domain - Firewall - Block Legacy Protocols+"
-                "$DomainPrefix - Domain - Firewall - Settings+"
-                "$DomainPrefix - Domain - Force Group Policy+"
-                "$DomainPrefix - Domain - Remote Desktop+"
-                "$DomainPrefix - Domain - Windows Update+"
-                "$DomainPrefix - Domain - Display Settings+"
-                'Default Domain Policy'
+                @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Firewall - Block Legacy Protocols";  Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Firewall - Settings";                Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Domain - Display Settings";                   Enabled = $true;  Enforced = $true;  }
+                @{ Name = 'Default Domain Policy';                                       Enabled = $true;  Enforced = $false; }
             )
 
             #####################
@@ -2517,10 +2515,10 @@ Begin
 
             "OU=$DomainName,$BaseDN" =
             @(
-                "$DomainPrefix - Firewall - Block SMB In-"
-                "$DomainPrefix - Firewall - Permit General Mgmt+"
-                "$DomainPrefix - IPSec - Permit General Mgmt"  # IPSec
-                "$DomainPrefix - Security - Enable LAPS"  # RestrictDomain
+                @{ Name = "$DomainPrefix - Firewall - Block SMB In";          Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";   Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - IPSec - Permit General Mgmt";      Enabled = $false; Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Security - Enable LAPS";           Enabled = $false; Enforced = $true;  }
             )
         }
 
@@ -2536,21 +2534,21 @@ Begin
             if ($Tier -eq 2)
             {
                 # Workstations
-                $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler Client Connections+")
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = $true;  Enforced = $true;  }
             }
             else
             {
                 # Servers
-                $ComputerPolicy += @("$DomainPrefix - Security - Disable Cached Credentials+")
-                $ComputerPolicy += @("$DomainPrefix - Security - Disable Spooler+")
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";          Enabled = $true;  Enforced = $true;  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";                     Enabled = $true;  Enforced = $true;  }
             }
 
             # Link tier gpos
             $ComputerPolicy +=
             @(
-                "$DomainPrefix - Tier $Tier - IPSec - Restrict"  # IPSec
-                "$DomainPrefix - Tier $Tier - Local Users and Groups+"
-                "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment"  # RestrictDomain
+                @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = $false; Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = $true;  Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = $false; Enforced = $true;  }
             )
 
             # Link computer policy
@@ -3599,8 +3597,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoQNfaVt+BPrb0jNSEPov2ZaX
-# jaqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs5bMmggqyaXXous5W+bklfR0
+# AeKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3731,34 +3729,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSEQaCl
-# QTTFP+EXqeDzVOpZVeBzLjANBgkqhkiG9w0BAQEFAASCAgByHwxfS8brmxjICDWZ
-# pxqJA66DOlymAhRTVsnARgwHBW2NZ+3RVy+pb5YaAXyxQP5qO3/Wy+/nNc6VD0vx
-# Mi4zqzkhn/MlhFE8M7OWxxGPWVEyoUOjgWER/BYHleFZHjixxe5aNYHtInQp++K9
-# mw/J9PHR/vmPfhHDIRWeMP14xvS+Q892PgOfoufC1jR3A0ucihYuh+P0bqQECiVs
-# Y38rcPZ8HQhJDZuazZCDBIhR2xc5eXFmybKjh6+bWzV6S7H7d3OE3VGB8g3+tHOl
-# qYYwV3bQ0YgNrGYA+nMupcGEdDX/zwLLWjJB5cO0tPY/yDJaAdyiah+o5J1gw4dq
-# T6b5t9OZOr13gKPMMPeZZjyo3nqmt8r80Api2It0FCLp25GcvaS0RWDB2Kl2M9Ah
-# GGCOi8Uu3J/e7XwlOUt7MIknJt4kc8WeavgeEvO41khARDGz+dofCpFFvXtKwwc7
-# SC229ttXBwSn1osf1OfWExAAZeNnHT133VOL82a3pQ5N+Vsi9TSHcsPunvApvC2I
-# +FKcdJYNEye8dUL3RurexJUXoEsAMv+11xQhXdMTvTQ2H7a+DQM5akG4Vvtg0Uqa
-# XHeRjg4ATOrPhC4/NUx+jE9za6NKLa1HghwVpzuWUH2TJXOuMyUcPTZQW36c188x
-# a2lwkjQsp03gAQfRhQ1lRsKIVaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTsFFJ+
+# H+3HIcJEH0lyX/piepD28DANBgkqhkiG9w0BAQEFAASCAgCYFNXOLmJR/4mA84zW
+# OxvexCYPDenRhuJfyLHaD4WQ2eWLlslvQpGnjVDP5SZap1T4sNHJUtFanDYS/GHW
+# Bx1V+1RHtPTAIbhDMZKUtFglTW1imOx9B8iu2IGnSQJmFeOZs4/LvSdpaCktQi6p
+# DoFErK4vvrw3UmJZGcOkRAajKLturP9G4W3wDyGbrWBENW/Ky5CwviDLks4aC6yD
+# y9K8APyOp7GW/FK/Eu5xY/UWUxDfYLeT3saa0D9tzE9sy4frwzDAoAasxjMMvcAh
+# Qtw1E2ydTExFfSVL2Eq4EqtzEU/crDGLeit3w/Hu7DBKyw9mqYjRMCnhVCGSxMZh
+# xZPpsdLmS8rx/3cwuFi3Lynw9pR6Dr+2K+2IAjY3PBxjueCFmIf1tM5O+UzIlSt9
+# 8n4uT0EcGIAkuVUyJiZMxkt9tC24AchEsBW7p/ZBp5qCA+hVN2MR9XAmv1+fl7YY
+# /6aDotiYSZ3d/3uGcjqfQZJHuCHl0GEl+HDFNvPrcK1cRdoNahQ6dAEwQezNWCKy
+# WiMAHougZZk/s4R4gIWUmQKny7Wh+w62qZm+JYR7vmaoStyo+nND4n/wb4clXLRK
+# Coj1+vhfxsd6M2Z8U74G/j9SuWxm5rMPcD3zU7LxNdC039h/03k4Y67S9pk09dlG
+# sIzbziLtFfX1NgEw3ItIWbtSWqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxNTU5
-# NThaMC8GCSqGSIb3DQEJBDEiBCCP1D+gp8opMIR+BnPoe1C6JZk6IGBFcRI3vHXd
-# JK8gMzANBgkqhkiG9w0BAQEFAASCAgALeUADATMF/O0eN7bj30xM/sspQetQEUNT
-# RO45ETP9nsFm3Bb6hLHkX1eTx7ROiECFNlh/QqSeD+AlrSNbdGPS//E1JpVnAPAv
-# cz8m0ma3pnn8f0/IQOrX/DYUn2/ghdKxjiNvN4bUuDHhODxmjTmcSEsl5CGsklSZ
-# n59lXwTA4+WCU4lK2XYeHvSFkCZT/kjqyIz+kM446yg9TwJxMRp/KXwhwfvgB7Tm
-# nA423xLn7aJ2+zkUyDEtff7QDygo6aiot1i3lYhwg9HBBFaKGUtiZv8fDv8rOaOH
-# JXSAP59HXmKBOCH1AJa0bJFj+fFoEynM3i1xpV1gXEwREA0+zb+uuHqruyWrU1jB
-# ylOwA8ffoj/BhEHaOa3V8d8cawuGrqvxVv5jVxp7a27oj+2jUCd+sdzyaot8TRtX
-# qgnwN0ybWpYY8l/DAWLcjGkteUmjmZMcDMzB9NShMSUMU7pt4dD5FlS3xm7t/EKi
-# 24sU0IfteOvUbx41IlWIw0QoSFk6WDi7iVHBCzNmtvsxYCORTe45tQokJGEdICJU
-# 10IysTQsriQ5Ug6bHqtN2h2k7czt6zwObfztclhxdx6yFx9+rlMTiSnUuC4GUWXq
-# xzT33jgoX9T+HiXJdlWiguGqGX2gGikgfqg4+SL7kOOQ6zcDdUnbjPEmInrbNO8A
-# 8B+SKcPVCA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxOTU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCDi3u2E3spZcJjglDRy014gn2/WYVzgq8Y2Ycz8
+# oFipXjANBgkqhkiG9w0BAQEFAASCAgAw+N1fyXZWUp03Mw+J+18pHHA0vJ4FNKk9
+# LNGw8LCcGE7tvaY4MUxrsseuPcIxKZfN5j6yx/Vgo4OeYChH27s6dSziB0qXlvrp
+# WLc+H/zHedkByzY/Ok9X3wmwtfAYTES9GLQGUIIvtWoW7Hakwsg1QE00pChWQY3O
+# hY9E22if2efGyWZWidtVDNXwGaKRNIPWy412twuJ/nPMtqM/m0nUtVQ713Ym9cwK
+# hbV1+/zpNuWZcPYrKLfO5T2HtbMCVcayReZPF+pB2/RyTtH4ob23eR0irHeNFkX6
+# bbS4/4NfeYFolmFA+bPHGabyzNNFfqfqBcsYUUlI6LozP/upnCidDYOmSrovvAl/
+# xQBfiE0BO2oeHlDR/jI8Rc4a+HA83kMAgGJJCINCtFyjGBDNmkWoVP0Go2UXWGpA
+# jt+8KAeXdnw0HtCQjh5hCKEXqrbrYnUYF727JAuZvb6sxs/vB/LABQLOJnN2H/AC
+# 1t+ftvB5W0ULF6PEhvgr5Ctu7+Gxhy4dyGPL+tKVDB30v0c6pEu0gn9lMPTyqs7m
+# AntBaZygvc67hHZwvwumk9eXunipLhCtnBO7ef1qJqkD2GDOKfWD4OXTqlomHkGN
+# CFLKeFdbqEZKvYNswPyXz5bGAWBGhIOEhStGhO6XwFpx4oXZBvC5ugTm5/6OsCRa
+# O+XdJOJUPQ==
 # SIG # End signature block
