@@ -646,25 +646,25 @@ Begin
                 Workstation = 'Windows 10 1607'
                 Baseline =
                 @(
-                    'MSFT Windows 10 1607 and Server 2016 - Domain Security'
-                    'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 1607 - Computer-'
+                    @{ Name = 'MSFT Windows 10 1607 and Server 2016 - Domain Security';             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 1607 - Computer-';                         Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 1607 - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 1607 - User-';                             Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 10 1607 - Computer'
+                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    'MSFT Windows Server 2016 - Member Server'
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    'MSFT Windows Server 2016 - Domain Controller'
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '17763' = # Windows Server 2019 / Windows 10 1809
@@ -674,25 +674,25 @@ Begin
                 Workstation = 'Windows 10 1809'
                 Baseline =
                 @(
-                    'MSFT Windows 10 1809 and Server 2019 - Domain Security'
-                    'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 1809 - Computer-'
+                    @{ Name = 'MSFT Windows 10 1809 and Server 2019 - Domain Security';             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 1809 - Computer-';                         Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 1809 - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 1809 - User-';                             Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 10 1809 - Computer'
+                    @{ Name = 'MSFT Windows 10 1809 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    'MSFT Windows Server 2019 - Member Server'
+                    @{ Name = 'MSFT Windows Server 2019 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    'MSFT Windows Server 2019 - Domain Controller'
+                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '19045' = # Windows 10 22H2
@@ -701,17 +701,17 @@ Begin
                 Workstation = 'Windows 10 22H2'
                 Baseline =
                 @(
-                    'MSFT Windows 10 22H2 - Domain Security'
-                    'MSFT Windows 10 22H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer-'
+                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer-';            Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 22H2 (Windows 10) - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - User-';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 10 22H2 - Computer'
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '20348' = # Windows Server 2022
@@ -720,21 +720,21 @@ Begin
                 Server = 'Windows Server 2022'
                 Baseline =
                 @(
-                    'MSFT Windows Server 2022 - Domain Security'
-                    'MSFT Windows Server 2022 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-'
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';                         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer-';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User-';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    'MSFT Windows Server 2022 - Member Server'
+                    @{ Name = 'MSFT Windows Server 2022 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    'MSFT Windows Server 2022 - Domain Controller'
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22000' = # Windows 11 21H2
@@ -743,17 +743,17 @@ Begin
                 Workstation = 'Windows 11 21H2'
                 Baseline =
                 @(
-                    'MSFT Windows 11 21H2 - Domain Security'
-                    'MSFT Windows 11 21H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer-'
+                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer-';            Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 21H2 (Windows 11) - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - User-';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 11 21H2 - Computer'
+                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22621' = # Windows 11 22H2
@@ -762,17 +762,17 @@ Begin
                 Workstation = 'Windows 11 22H2'
                 Baseline =
                 @(
-                    'MSFT Windows 11 22H2 - Domain Security'
-                    'MSFT Windows 11 22H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 22H2 (Windows 11) - Computer-'
+                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 11) - Computer-';            Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 22H2 (Windows 11) - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 11) - User-';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 11 22H2 - Computer'
+                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22631' = # Windows 11 23H2
@@ -781,17 +781,17 @@ Begin
                 Workstation = 'Windows 11 23H2'
                 Baseline =
                 @(
-                    'MSFT Windows 11 23H2 - Domain Security'
-                    'MSFT Windows 11 23H2 - Defender Antivirus'
-                    'MSFT Internet Explorer 11 23H2 - Computer-'
+                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Internet Explorer 11 23H2 - Computer-';                         Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 UserBaseline =
                 @(
-                    'MSFT Internet Explorer 11 23H2 - User-'
+                    @{ Name = 'MSFT Internet Explorer 11 23H2 - User-';                             Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ComputerBaseline =
                 @(
-                    'MSFT Windows 11 23H2 - Computer'
+                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
         }
@@ -2428,59 +2428,65 @@ Begin
             }
         }
 
-        ########
-        # Links
-        ########
+        ###########
+        # Security
+        ###########
+
+        $DomainSecurity =
+        @(
+            @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Client Kerberos Armoring";              Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
+        )
+
+        ####################
+        # Domain controller
+        ####################
+
+        $DomainControllerGpos =
+        @(
+            @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Firewall - Basic Rules";                  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
+        ) +
+        $DomainSecurity
 
         # Get DC build
         $DCBuild = [System.Environment]::OSVersion.Version.Build.ToString()
 
-        # Base security policies
-        $DomainSecurity =
-        @(
-            @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Client Kerberos Armoring";              Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = $true;  Enforced = $true;  }
-        )
-
-        # Domain controller policies
-        $DomainControllerGpos =
-        @(
-            @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - Firewall - Basic Rules";                  Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = $true;  Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = $false; Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = $false; Enforced = $true;  }
-            @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = $true;  Enforced = $true;  }
-        ) +
-        $DomainSecurity
-
         # Server 2016 disable SMB
         if ($Build.Name -eq '14393')
         {
-            $DomainControllerGpos += @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = $true;  Enforced = $true;  }
+            $DomainControllerGpos += @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }
 
         }
 
         # Domain controller baselines & default
         $DomainControllerGpos += $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
-                                 @{ Name = 'Default Domain Controllers Policy';               Enabled = $true;  Enforced = $false; }
+                                 @{ Name = 'Default Domain Controllers Policy';               Enabled = 'Yes';  Enforced = $false; }
+
+        ########
+        # Links
+        ########
 
         $GPOLinks =
         @{
@@ -2488,19 +2494,16 @@ Begin
             # Root
             #######
 
-            # Enforced if ending with +
-            # Disabled if ending with -
-
             $BaseDN =
             @(
-                @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Firewall - Block Legacy Protocols";  Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Firewall - Settings";                Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Domain - Display Settings";                   Enabled = $true;  Enforced = $true;  }
-                @{ Name = 'Default Domain Policy';                                       Enabled = $true;  Enforced = $false; }
+                @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Firewall - Block Legacy Protocols";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Firewall - Settings";                Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Display Settings";                   Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = $false; }
             )
 
             #####################
@@ -2515,10 +2518,10 @@ Begin
 
             "OU=$DomainName,$BaseDN" =
             @(
-                @{ Name = "$DomainPrefix - Firewall - Block SMB In";          Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";   Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - IPSec - Permit General Mgmt";      Enabled = $false; Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Security - Enable LAPS";           Enabled = $false; Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Firewall - Block SMB In";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";   Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Security - Enable LAPS";           Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - IPSec - Permit General Mgmt";      Enabled = 'No';   Enforced = 'Yes';  }
             )
         }
 
@@ -2534,21 +2537,21 @@ Begin
             if ($Tier -eq 2)
             {
                 # Workstations
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = $true;  Enforced = $true;  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = 'Yes';  Enforced = 'Yes';  }
             }
             else
             {
                 # Servers
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";          Enabled = $true;  Enforced = $true;  }
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";                     Enabled = $true;  Enforced = $true;  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";                     Enabled = 'Yes';  Enforced = 'Yes';  }
             }
 
             # Link tier gpos
             $ComputerPolicy +=
             @(
-                @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = $false; Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = $true;  Enforced = $true;  }
-                @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = $false; Enforced = $true;  }
+                @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
             )
 
             # Link computer policy
@@ -2574,8 +2577,7 @@ Begin
                 # Server 2016 disable SMB
                 if ($Build.Name -eq '14393')
                 {
-                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
-
+                    $GpoBase = @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  } + $GpoBase
                 }
 
                 # Link server base
@@ -2584,34 +2586,34 @@ Begin
                 # Certificate Authorities
                 $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - Certificate Authority+"
-                        "$DomainPrefix - IPSec - Certificate Authority"  # IPSec
+                        @{ Name = "$DomainPrefix - IPSec - Certificate Authority";   Enabled = 'No';   $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - Certificate Authority";           Enabled = 'Yes';  $Enforced = 'Yes';  }
                     )
                 )
 
                 # Federation Services
                 $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - IPSec - Web Server"  # IPSec
-                        "$DomainPrefix - Web Server+"
+                        @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  $Enforced = 'Yes';  }
                     )
                 )
 
                 # Network Policy Server
                 $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - IPSec - Network Policy Server"  # IPSec
-                        "$DomainPrefix - Network Policy Server+"
+                        @{ Name = "$DomainPrefix - IPSec - Network Policy Server";   Enabled = 'No';   $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - Network Policy Server";           Enabled = 'Yes';  $Enforced = 'Yes';  }
                     )
                 )
 
                 # Web Servers
                 $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - Firewall - Permit SMB In+"
-                        "$DomainPrefix - IPSec - Crl Distribution Point"  # IPSec
-                        "$DomainPrefix - IPSec - Web Server"  # IPSec
-                        "$DomainPrefix - Web Server+"
+                        @{ Name = "$DomainPrefix - Firewall - Permit SMB In";        Enabled = 'Yes';  $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - IPSec - Crl Distribution Point";  Enabled = 'No';   $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   $Enforced = 'Yes';  }
+                        @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  $Enforced = 'Yes';  }
                     )
                 )
             }
@@ -2636,8 +2638,7 @@ Begin
                 # Server 2016 disable SMB
                 if ($Build.Name -eq '14393')
                 {
-                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
-
+                    $GpoBase = @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  } + $GpoBase
                 }
 
                 # Link server base
@@ -2646,24 +2647,24 @@ Begin
                 # Remote Access Servers
                 $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - IPSec - Remote Access Server"  # IPSec
-                        "$DomainPrefix - Remote Access Server+"
+                        @{ Name= "$DomainPrefix - IPSec - Remote Access Server";  Enabled = 'No';   Enforced = 'Yes';  }
+                        @{ Name= "$DomainPrefix - Remote Access Server";          Enabled = 'Yes';  Enforced = 'Yes';  }
                     )
                 )
 
                 # Web Application Proxy
                 $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - IPSec - Web Application Proxy"  # IPSec
-                        "$DomainPrefix - Web Server+"
+                        @{ Name= "$DomainPrefix - IPSec - Web Application Proxy"; Enabled = 'No';   Enforced = 'Yes';  }
+                        @{ Name= "$DomainPrefix - Web Server";                    Enabled = 'Yes';  Enforced = 'Yes';  }
                     )
                 )
 
                 # Web Servers
                 $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                        "$DomainPrefix - IPSec - Web Server"  # IPSec
-                        "$DomainPrefix - Web Server+"
+                        @{ Name= "$DomainPrefix - IPSec - Web Server";            Enabled = 'No';   Enforced = 'Yes';  }
+                        @{ Name= "$DomainPrefix - Web Server";                    Enabled = 'Yes';  Enforced = 'Yes';  }
                     )
                 )
             }
@@ -2688,7 +2689,7 @@ Begin
                 # Windows 10 1607 disable SMB
                 if ($Build.Name -eq '14393')
                 {
-                    $GpoBase = @("$DomainPrefix - Security - Disable SMB 1.0+") + $GpoBase
+                    $GpoBase = @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  } + $GpoBase
 
                 }
 
@@ -2706,7 +2707,7 @@ Begin
             # Link password policy
             $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
 
-                    "$DomainPrefix - Security - Service Password Policy+"
+                    @{ Name = "$DomainPrefix - Security - Service Password Policy";  Enabled = 'Yes';  Enforced = 'Yes';  }
                 )
             )
         }
@@ -2753,8 +2754,8 @@ Begin
                 # Workstations
                 $UserPolicy +=
                 @(
-                    "$DomainPrefix - User - Disable WPAD"
-                    "$DomainPrefix - User - Disable WSH-"
+                    @{ Name = "$DomainPrefix - User - Disable WPAD";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - User - Disable WSH";   Enabled = 'Yes';  Enforced = 'Yes';  }
                 )
 
                 $UserPolicy += $UserWorkstationBaseline
@@ -2807,48 +2808,16 @@ Begin
             $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
             # Itterate GPOs
-            foreach($GpoName in ($GPOLinks.Item($Target)))
+            foreach($Gpo in ($GPOLinks.Item($Target)))
             {
-                $LinkEnabled = 'Yes'
-                $LinkEnabledBool = $true
-
-                $LinkEnforce = 'No'
-                $LinkEnforceBool = $false
-
-                $IsRestrictingGpo = $GpoName -match 'Enable LAPS|Restrict User Rights Assignment'
-                $IsIPSecGpo = $GpoName -match 'IPSec'
-
-                if ($IsRestrictingGpo -or $IsIPSecGpo)
+                if (($Gpo.Name -match 'Enable LAPS|Restrict User Rights Assignment' -and $RestrictDomain -eq $true) -or
+                    ($Gpo.Name -match 'IPSec' -and $EnableIPSec -eq $true))
                 {
-                    $LinkEnabled = 'No'
-                    $LinkEnabledBool = $false
-
-                    $LinkEnforce = 'Yes'
-                    $LinkEnforceBool = $true
-
-                    if ($RestrictDomain -eq $true -or $EnableIPSec -eq $true)
-                    {
-                        $LinkEnabled = 'Yes'
-                        $LinkEnabledBool = $true
-                    }
-                }
-                elseif ($GpoName.EndsWith('-'))
-                {
-                    $LinkEnabled = 'No'
-                    $LinkEnabledBool = $false
-
-                    $GpoName = $GpoName.TrimEnd('-')
-                }
-                elseif ($GpoName.EndsWith('+'))
-                {
-                    $LinkEnforce = 'Yes'
-                    $LinkEnforceBool = $true
-
-                    $GpoName = $GpoName.TrimEnd('+')
+                    $Gpo.Enabled = 'Yes'
                 }
 
                 # Get gpo report
-                [xml]$GpoXml = Get-GPOReport -Name $GpoName -ReportType Xml -ErrorAction SilentlyContinue
+                [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
 
                 if ($GpoXml)
                 {
@@ -2856,31 +2825,30 @@ Begin
 
                     # Check link
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
-                        (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
+                        (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Created=$Order] -> `"$TargetShort`"" @VerboseSplat))
                     {
-                        New-GPLink -Name $GpoName -Target $Target -Order $Order -LinkEnabled $LinkEnabled -Enforced $LinkEnforce -ErrorAction Stop > $null
+                        New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
                     }
                     else
                     {
                         foreach ($Link in $GpoXml.GPO.LinksTo)
                         {
-                            if ((($Link.Enabled -ne $LinkEnabledBool -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
-                                 ($Link.Enabled -ne $LinkEnabledBool -and (($IsRestrictingGpo -and $RestrictDomain -notlike $null) -or ($IsIPSecGpo -and $EnableIPSec -notlike $null)))) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enabled=$LinkEnabled] -> `"$TargetShort`"" @VerboseSplat))
+                            if (('No', 'Yes')[$Link.Enabled] -ne $Gpo.Enabled -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enabled=$($Gpo.Enabled)] -> `"$TargetShort`"" @VerboseSplat))
                             {
-                                Set-GPLink -Name $GpoName -Target $Target -LinkEnabled $LinkEnabled > $null
+                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
                             }
 
-                            if ($Link.NoOverride -ne $LinkEnforceBool -and
-                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Enforced=$LinkEnforce] -> `"$TargetShort`"" @VerboseSplat))
+                            if (('No', 'Yes')[$Link.NoOverride] -ne $Gpo.Enforced -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enforced=$($Gpo.Enforced)] -> `"$TargetShort`"" @VerboseSplat))
                             {
-                                Set-GPLink -Name $GpoName -Target $Target -Enforced $LinkEnforce > $null
+                                Set-GPLink -Name $Gpo.Name -Target $Target -Enforced $Gpo.Enforced > $null
                             }
 
-                            if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $GpoName } | Select-Object -ExpandProperty Order) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link `"$GpoName`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
+                            if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $Gpo.Name } | Select-Object -ExpandProperty Order) -and
+                                (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Order=$Order] -> `"$TargetShort`" " @VerboseSplat))
                             {
-                                Set-GPLink -Name $GpoName -Target $Target -Order $Order > $null
+                                Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
                             }
                         }
                     }
@@ -2889,7 +2857,7 @@ Begin
                 }
                 else
                 {
-                    ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$GpoName`" -> `"$TargetShort`"" -WriteWarning > $null
+                    ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$($Gpo.Name)`" -> `"$TargetShort`"" -WriteWarning > $null
                 }
             }
         }
@@ -3597,8 +3565,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs5bMmggqyaXXous5W+bklfR0
-# AeKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp9xgDjUUqHKYY/DbohhbX6aV
+# IyygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3729,34 +3697,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTsFFJ+
-# H+3HIcJEH0lyX/piepD28DANBgkqhkiG9w0BAQEFAASCAgCYFNXOLmJR/4mA84zW
-# OxvexCYPDenRhuJfyLHaD4WQ2eWLlslvQpGnjVDP5SZap1T4sNHJUtFanDYS/GHW
-# Bx1V+1RHtPTAIbhDMZKUtFglTW1imOx9B8iu2IGnSQJmFeOZs4/LvSdpaCktQi6p
-# DoFErK4vvrw3UmJZGcOkRAajKLturP9G4W3wDyGbrWBENW/Ky5CwviDLks4aC6yD
-# y9K8APyOp7GW/FK/Eu5xY/UWUxDfYLeT3saa0D9tzE9sy4frwzDAoAasxjMMvcAh
-# Qtw1E2ydTExFfSVL2Eq4EqtzEU/crDGLeit3w/Hu7DBKyw9mqYjRMCnhVCGSxMZh
-# xZPpsdLmS8rx/3cwuFi3Lynw9pR6Dr+2K+2IAjY3PBxjueCFmIf1tM5O+UzIlSt9
-# 8n4uT0EcGIAkuVUyJiZMxkt9tC24AchEsBW7p/ZBp5qCA+hVN2MR9XAmv1+fl7YY
-# /6aDotiYSZ3d/3uGcjqfQZJHuCHl0GEl+HDFNvPrcK1cRdoNahQ6dAEwQezNWCKy
-# WiMAHougZZk/s4R4gIWUmQKny7Wh+w62qZm+JYR7vmaoStyo+nND4n/wb4clXLRK
-# Coj1+vhfxsd6M2Z8U74G/j9SuWxm5rMPcD3zU7LxNdC039h/03k4Y67S9pk09dlG
-# sIzbziLtFfX1NgEw3ItIWbtSWqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS+jxMC
+# Pvp08OCLcxaf1wXSQCJ9GTANBgkqhkiG9w0BAQEFAASCAgBH5E+0IEvBEhBPUM1T
+# lt95IXtv4KvSAknnb2V+mnYgYoX9rFJ1XhxCwnBdLgo1XyUxz0d4BeoUBfL7oCfI
+# gM++g7eysFSM9eXrjQ9PGYWwSX5O7vWxAmLMecq7ZZFcA+rNHou9FyzUXmNv/FLa
+# 13n99o/UVFMCJW+37286BMFFzJLDOXKb/dRExhp2VvTTvrGZRC3ys1X7EM+2h3aF
+# 42fjmX0lPw0EfDd2n8XlHHjkG+mPmr0Bw0ssDNrvcES5UYbkm8FFHlrapZdCtabS
+# 5Qa1NfCMaWUw1X6JjJ1rS8jMDIeHxCzmGQi54r7FsJEHhNl8lGoZAAWZYQIuV+6a
+# N2zRSNa9OAxLGqr86ag/U76xCCUmjM6F0CU/d9je+TiF0Ks0GNFPlUSvTULPUi/1
+# rreOnInZlPSo74yzq7SGE7XDw19y4NOLvFQoHyRHF88GkwF9T17xJzT/v3/4lX6U
+# M6h8dY5snSsNWu9vok7mguWsy8IDAUJDnb7nM7P/KmfsMrDfEXaRcRaSDCsr16E4
+# pEGkD+ewhavkL82i+Ko6Bz9fj4A2esNQrfshDaAiO2+5jMG7qwYsorWmZ589jHC9
+# kDt/+DGK70mD1mVOiaY5RvKRp75s+zx1PSyn64LV7pL7QwgQq5HzAuldArPRMicI
+# IHpd6zUqJHbT9qqs28ZvrRGGkqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxOTU5
-# NThaMC8GCSqGSIb3DQEJBDEiBCDi3u2E3spZcJjglDRy014gn2/WYVzgq8Y2Ycz8
-# oFipXjANBgkqhkiG9w0BAQEFAASCAgAw+N1fyXZWUp03Mw+J+18pHHA0vJ4FNKk9
-# LNGw8LCcGE7tvaY4MUxrsseuPcIxKZfN5j6yx/Vgo4OeYChH27s6dSziB0qXlvrp
-# WLc+H/zHedkByzY/Ok9X3wmwtfAYTES9GLQGUIIvtWoW7Hakwsg1QE00pChWQY3O
-# hY9E22if2efGyWZWidtVDNXwGaKRNIPWy412twuJ/nPMtqM/m0nUtVQ713Ym9cwK
-# hbV1+/zpNuWZcPYrKLfO5T2HtbMCVcayReZPF+pB2/RyTtH4ob23eR0irHeNFkX6
-# bbS4/4NfeYFolmFA+bPHGabyzNNFfqfqBcsYUUlI6LozP/upnCidDYOmSrovvAl/
-# xQBfiE0BO2oeHlDR/jI8Rc4a+HA83kMAgGJJCINCtFyjGBDNmkWoVP0Go2UXWGpA
-# jt+8KAeXdnw0HtCQjh5hCKEXqrbrYnUYF727JAuZvb6sxs/vB/LABQLOJnN2H/AC
-# 1t+ftvB5W0ULF6PEhvgr5Ctu7+Gxhy4dyGPL+tKVDB30v0c6pEu0gn9lMPTyqs7m
-# AntBaZygvc67hHZwvwumk9eXunipLhCtnBO7ef1qJqkD2GDOKfWD4OXTqlomHkGN
-# CFLKeFdbqEZKvYNswPyXz5bGAWBGhIOEhStGhO6XwFpx4oXZBvC5ugTm5/6OsCRa
-# O+XdJOJUPQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkyMDU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCBZbTjWrei5diPQDcwzbVPzwX5f733mNGNe0e0a
+# jsuoTjANBgkqhkiG9w0BAQEFAASCAgBMki5lkY6QmKtnj6ltVerLkUkiqLp1hXBc
+# I4l2kWLjt92ayX6xOKIcYZipK+FwSJYcdVoCRwjIf0c4uEy15fjeOhA5lnZGQmYu
+# 7RcELSLY6AAzMAqqOdL3gTTEkLc7PVE+eR6+DMYKVponqnAW7lVxqOkxcJqbNN9G
+# TwahAC+S8rpLra09auU9AQ+dB65M4A3waVwl0VMUDbk6NrOyumYz+mqaB1/mlcw1
+# mc129EY0eBYORP7a4ySU9VNk4SsrqnZuGyt9w4+gdXwfAdJ+XXHvXvJxOllk5nvc
+# bO62dm5UZEo5NpTGWdQ6OwUMJGxgnDNSXFWF2JVADvbGIiMAZlZd4mvGJPANcbSq
+# qtNnzGOFHLT9jayyfsSqg/nj5SboW7MM0wzYoYXSNOKXK+l3nQX3aj/Zw9q57W+3
+# HsWgTlzf1xCnF00RvNqTIsrWmTW/xGV5GrzYnb0ROxNv3t04XLVZghiClmC5GsFf
+# Kqu2YqJm9cRT2nfoXSi80EsnXDKaw7UkpS6kvitYRkSvZeu4Q8Ik8S31K0l1o+oS
+# 5/pM3yVIwQZiX1gr7ltW2VCA3wdiDwBzqtKZx0FDBc8p7B1TeqQNpxVebpQ7Uqc5
+# k4p/Ddz+qZVpkKQDi6OBCfO5v3trkrW8vDSMfksHmmwjpDis8QovGA3tm2bo7B6Z
+# racmeoqIog==
 # SIG # End signature block
