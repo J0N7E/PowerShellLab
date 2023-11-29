@@ -72,6 +72,8 @@ Param
     [Object]$RestrictDomain,
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
+    [ValidateSet($true, $false, $null)]
+    [Object]$EnableLAPS,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -2805,15 +2807,26 @@ Begin
         foreach ($Target in $GPOLinks.Keys)
         {
             $Order = 1
-            $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
             # Itterate GPOs
             foreach($Gpo in ($GPOLinks.Item($Target)))
             {
-                if (($Gpo.Name -match 'Enable LAPS|Restrict User Rights Assignment' -and $RestrictDomain -eq $true) -or
-                    ($Gpo.Name -match 'IPSec' -and $EnableIPSec -eq $true))
+                # Enable gpo if switch present
+                if ($Gpo.Name -match 'Restrict User Rights Assignment' -and $RestrictDomain -notlike $null)
                 {
-                    #$Gpo.Enabled = 'Yes'
+                    $Gpo.Enabled = ('No', 'Yes')[$RestrictDomain]
+                }
+
+                # Enable gpo if switch present
+                if ($Gpo.Name -match 'IPSec' -and $EnableIPSec -notlike $null)
+                {
+                    $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec]
+                }
+
+                # Enable gpo if switch present
+                if ($Gpo.Name -match 'Enable LAPS' -and $EnableLAPS -notlike $null)
+                {
+                    $Gpo.Enabled = ('No', 'Yes')[$EnableLAPS]
                 }
 
                 # Get gpo report
@@ -2822,6 +2835,7 @@ Begin
                 if ($GpoXml)
                 {
                     $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
+                    $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     # Check link
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
@@ -2831,19 +2845,16 @@ Begin
                     }
                     else
                     {
-                        foreach ($Link in $GpoXml.GPO.LinksTo)
-                        {
-                            if (('No', 'Yes')[$Link.Enabled -eq 'true'] -ne $Gpo.Enabled -and
+                        $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
+
+                            if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled) -and
+                                () -and
                                 (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enabled=$($Gpo.Enabled)] -> `"$TargetShort`"" @VerboseSplat))
                             {
-                                Write-Host "Target = $Target"
-                                Write-Host "Link.Enabled = $($Link.Enabled)"
-                                Write-Host "Gpo.Enabled = $($Gpo.Enabled)"
-
                                 Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
                             }
 
-                            if (('No', 'Yes')[$Link.NoOverride -eq 'true'] -ne $Gpo.Enforced -and
+                            if ((('No', 'Yes')[$_.NoOverride -eq 'true'] -ne $Gpo.Enforced) -and
                                 (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enforced=$($Gpo.Enforced)] -> `"$TargetShort`"" @VerboseSplat))
                             {
                                 Set-GPLink -Name $Gpo.Name -Target $Target -Enforced $Gpo.Enforced > $null
@@ -3475,6 +3486,7 @@ Process
             $SetupADFS = $Using:SetupADFS
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
+            $EnableLAPS = $Using:EnableLAPS
 
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
@@ -3569,8 +3581,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXArROwRf43gBC5JbIjDsgnHe
-# QgWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU89wif+q1THNd9gmBxvWEFF9x
+# QJKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3701,34 +3713,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSnmu7b
-# uagZwXWvC8DVl7D8+onP0TANBgkqhkiG9w0BAQEFAASCAgDEfxyeGOhDsGq99/Ui
-# UJ8oll/UdD+DRFbIgg7m8UIFeQA+VjOeudYJe5OxnXTu4mQzhGNjbNBJGJZza5KE
-# 1eaW10H/QDO1yy8jAk972YKZ0i7I3jl6nYOZ0inmzLwRD+ynBd8gTi3/ax+ktDeJ
-# WKqDNA1W9/YWaAVDV3DmBh+yfZ4AFUZTqy9c816DVEhuyFJmI3MwnfldbUnYHMON
-# TEO3lHpJPLsf1YAweKRO6aj7XQyQzxbCzKCTekKIwtHgoPHavHH9snE4gsFm4/Bp
-# CRpf1nO/w6rgZ9KlXTk3qrQ75cTYhwlOOZY5n5ptYhBICbJI+JK+n41VMZiZOrx6
-# 3/17YWnDCw1NhdGokk7MIKdzSlgPwG4sZOUubV31SmWlLF4YTun4PSvElptgLVgk
-# P3ta21gKi66RXuXeDuDCQPGUhwpeRdaIyfygBBam+XPFs0NQs7r6qlYcWTmmdaZ0
-# ljBDaj/2yyuAumsTHZWfcuIMFqmxQQpvvx7cMHieX9VLJc8IpPs0Y3dD/aaYo8TY
-# eRfrEFb3VhSQJF8YG09SpqKF27mSFSqTiRBL7iKF9jIrsm2trPbLlwQTox81xx/0
-# zVbSkIPAWLxJnOXScbW/H2KHiYai+KRMvfR29qllodWxmhryozUMplCwgxdNOwdw
-# KtK3nrweCIGH6uSEZo7GwRLRrKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQxUwzj
+# 1dm9Y7XK63lqkBuYIJ3iejANBgkqhkiG9w0BAQEFAASCAgB1jXHO4uPsYatBgpW6
+# QAY/eqBKk/TRDezlgoj+n04RoWf6425BkjLRYCn9YHMnUzCEiUr19GMfmOjemkHo
+# vTjy/it50lvgupNR9DebTVy71rL7fn4I4BJnQaAcIbcpAXOzx66JQEWdNK1R2nbz
+# o24/zerJ0cF41/qbV0asq6GSYiYEVFbrivJMpO5etjF86TJrifsqAZj/Lhj24QBo
+# /e2gWGJOP/Nra0q5m44yV611HN3SKVPYPP70bwnfsWS143c7bFTO198mKys2Sbsm
+# Sbq0ofjB9iZel+8UXp4CX0q7/CIaUWhd0SBEatf01VgBxEdYlD8qJIeaHnBETXPW
+# 1MX7kt7sJkKwKQNz7zcBprBH3vXQ1haoUpETHxl63JtQsG9t0eU3ZbFhRgjj9eqI
+# P09bex/DiTES96kznc9y7zU7HUv1gp5n9o6pGUkBjbPmmwFIvXLsLUO8dkiRS94Z
+# g7UwJQ/ysFp1xvLrPeMcKCsFYzMlgizizxS+0UCiskz54FOs3NIObcEQ7DiPGWe8
+# YQl7qoCqpcJJ9oqt0KSzax8Kvkaw3BZWVu7xTPkuUhOiFlgH0kulIIMln+LujWs4
+# w3JQlRsh+LVfif2Icmnr07L3rlmxYiwzcYuYO+cxXI2+DgaSNJG9cbeggCnMoFoi
+# p9/lwFCD7cml1y/sK1y6uALQb6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkyMTU5
-# NTlaMC8GCSqGSIb3DQEJBDEiBCAfH+7PhatD9EwIMcAwd+yvlVU6BCKRD5IYJy2m
-# n3fofzANBgkqhkiG9w0BAQEFAASCAgAohPRxACWjvp4c+dNoPt5SqP3esjl0kuIx
-# 2eM+JtArcM5dvPPYZ6GvbpONiAsE5MIj7epRbwSyRyB+q9ggadB6V7pqp/1+hpEb
-# Enn19LQmWgessvSONaLBK01wlvSiX3vmmjrci2gHDJreHNMxPIi1xlGj8QR880oU
-# RqnYDtOINmeqDzRTjFFnlC8O/um1d8WHErFHMYN2rgwK1BpCBBaOF+WH0QdeTgVH
-# dPphGkjTNLwcWpFgsc+y9qgQanfWAyU0EWGPkzNbEBbpBtGbQ99nbiskaYU4YyK5
-# lJl7bSiM+GkuVEPX38KqlaeduWlYhGLyYzVpm+Kfu2Zs3RC2i6O/aw2Xbi/qI48a
-# kcRVpDkCnlG7c3et7/hvHTJlfgHKATMAUmxdp5ZW74RIxOZpoX03jOOlytj9kxRU
-# L+h3Dfq05I2Hh+qibRctvx3xDbJ8S3LrqCS9ObSuRGQ/CXnEE95ZPVpF4rJpedjq
-# URdVHu1Ls4FCo941HQHDtk0lhxcRQ23Yx2uDx+mSQsdexzVwpPIf59wrMY+gKEZO
-# F0Ox8BtZnTlkb7OePFAMjGXdZ2ktztBH6dKqDRk4QwAbvwIy2Viyj5DXwOetG4lb
-# RwGW58locLQhin2MYFBimXwTcaPVjRFzvW8aSw1c5gVo1B0N3mvA9te30HYy1Ch8
-# E2qWk9I6Nw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkyMjU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCDA2+bKrlWSn51bWSBxelJImW6SEttF+rXHyNe9
+# D4V+OTANBgkqhkiG9w0BAQEFAASCAgA+wWYi01WwPdwHrRMo4jBP7wMobzhL85rT
+# vbKTMd/JYgT/N8RGSRYVSKhsEs0H6asqxEI5E1iGpUPzNZO1ifk8NKBOKWyXiE0r
+# UUqhHyi4F6AqMWD8wFcYXHqdd5OSHgBDtzFV8qcGoOZ7+T+9fFdOCP5AEIJAIYDF
+# xSWLwKrnJJmgC5RnxDSdgH5yKWB9IhP9jQreyeLMTOlRTHxtUUiBc6c6kmHZg1il
+# VnWJRTvAoffqCPYEiJ31pCmX9SCAQ9dkjXzrifyNmhoPnW5Up1KMCIrgPFgiBt9l
+# mpbPRbd867be7QmTbqiW/fH5eefYXu/38BH4aMn9FaxcrZsa69WiMpDw0vTp/Siu
+# KXiA6fUigPqm6k1jCkZJG+4mwyVU4IM1nKm9qVULbNvCUCTU+h4E6aQadYx5yRsW
+# hjPKW/18wZfQmyuAmAkcHiVg0dXczEZjfySNRlAPnkRl31C6E+6UNAFV6hEd0oN7
+# rDfTVfZqw6Ndrb21kvgcGDXtOt7g1SpsSj2Kla07JMR+xYZWPEI6yqrcrdWEhT1g
+# ItkNGNv7KiF9QRM4kZ8ms9x6aFJxBwirZ5KErE56A7ynOuYiYWeIS2R5nAX8oDtg
+# Nf4so6cUJfK6nUkL7QCZNo/r4QgsSMPzRClwagJGk/t97z0QSRLNGgbeUsefDkhJ
+# kCmAXf4WLg==
 # SIG # End signature block
