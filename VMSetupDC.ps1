@@ -1449,28 +1449,38 @@ Begin
                     )
                 }
             )
-
-            ##############
-            # Join domain
-            ##############
-
-            $DomainGroups +=
-            @(
-                @{
-                    Name                = "Delegate Tier $Tier Create Child Computer"
-                    Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
-                }
-            )
         }
+
+        ##############
+        # Join domain
+        ##############
+
+        $DomainGroups +=
+        @(
+            @{
+                Name                = "Delegate Create Child Computer"
+                Scope               = 'DomainLocal'
+                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'group'"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    },
+                    @{
+                        Filter      = "Name -eq 'Tier 1 - Admins' -and ObjectCategory -eq 'group'"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    },
+                    @{
+                        Filter      = "Name -eq 'Tier 2 - Admins' -and ObjectCategory -eq 'group'"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+        )
 
         ######
         # Pki
@@ -2089,6 +2099,33 @@ Begin
         $SchemaID = @{}
         Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
 
+        ########################
+        # Create Child Computer
+        ########################
+
+        $CreateChildComputer =
+        @(
+            @{
+                ActiveDirectoryRights = 'CreateChild';
+                InheritanceType       = 'All';
+                ObjectType            = $SchemaID['Computer'];
+                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
+            }
+
+            @{
+                ActiveDirectoryRights = 'ReadProperty';
+                InheritanceType       = 'Descendents';
+                ObjectType            = '00000000-0000-0000-0000-000000000000';
+                InheritedObjectType   = $SchemaID['Computer'];
+                AccessControlType     = 'Allow';
+                IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
+            }
+        )
+
+        Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+
         ################################
         # Install Certificate Authority
         ################################
@@ -2274,11 +2311,9 @@ Begin
         Set-Ace -DistinguishedName "CN=AdminSDHolder,CN=System,$BaseDN" -AceList $AdSyncMsDsConsistencyGuidPermissions
         #>
 
-        ####################
-        # Set Domain Admins
-        # as Owner on all
-        # computer objects
-        ####################
+        ###########################
+        # Reset computer ownership
+        ###########################
 
         foreach ($Computer in (Get-ADComputer -Filter "Name -like '*'"))
         {
@@ -3564,8 +3599,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqhujjJX1m9KEX1jtUpNVq+xg
-# 7kWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUoQNfaVt+BPrb0jNSEPov2ZaX
+# jaqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3696,34 +3731,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQdo/Rw
-# aLhG2qAtD58TU82jhy6UTjANBgkqhkiG9w0BAQEFAASCAgAIlgtE5vgotBRw6L9m
-# D0UepaK+dtEzEOlqsWpEjrNKoCgjxC6Uc+qMHDNFpETGGL+z8NdCRf+3Lu6uWMvF
-# qBWwxGgNtXuBh7fBNv6UcVgmV4/4+Hwp8tDA3kDYBb9OgLFH9rpZO5WpT5M/aWwn
-# D/UP9a+krESlPtwSM2KSUnpdwTudu1Op+6vcabp/+E4SMbO4XZa82cD1FCiA2TZk
-# /pbzzYpr/CmrFad5oza7hqG+8aKzxil4M5yJBWD66bXn1shHtzUWTFoEngrCCYM/
-# GzoPugkCXhsFhEVvKSKWd+ZZaRGK19dntw4njv9bHPI6QOTey2j68Qhx4EFI1vQ5
-# EUyUtKLGTFiGYGM4Vqwt9lqQRfPD5XxPhe++U6LjqaMiwsMuqYylNAfoeJcJta9t
-# JMudqRgWWU01hUM7SyFQe7jZi17fbJfj3LtD5ZoUsLr07hjA/AwkHFNp3wFxbkL6
-# 4rxnhyHMprLQTF8/L5IfgLdGO89Cmx4amGt6FD2SXC6dIEKgDtDZrAe7ZdIcECCm
-# CTA9oDr9Dlg9y9uZBLKqqRR2MN4tUOE24XdxLuSLupHhtGXolJBSE9FTrDVyrg4O
-# 4ny813DF+Tv2ZbidcQFbmCfwEVWYm5Migm78tvcDD4wnKJks8EI55UU5H3we2UIl
-# oeTaDYowZd/z1qKpQUMb51JgDKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSEQaCl
+# QTTFP+EXqeDzVOpZVeBzLjANBgkqhkiG9w0BAQEFAASCAgByHwxfS8brmxjICDWZ
+# pxqJA66DOlymAhRTVsnARgwHBW2NZ+3RVy+pb5YaAXyxQP5qO3/Wy+/nNc6VD0vx
+# Mi4zqzkhn/MlhFE8M7OWxxGPWVEyoUOjgWER/BYHleFZHjixxe5aNYHtInQp++K9
+# mw/J9PHR/vmPfhHDIRWeMP14xvS+Q892PgOfoufC1jR3A0ucihYuh+P0bqQECiVs
+# Y38rcPZ8HQhJDZuazZCDBIhR2xc5eXFmybKjh6+bWzV6S7H7d3OE3VGB8g3+tHOl
+# qYYwV3bQ0YgNrGYA+nMupcGEdDX/zwLLWjJB5cO0tPY/yDJaAdyiah+o5J1gw4dq
+# T6b5t9OZOr13gKPMMPeZZjyo3nqmt8r80Api2It0FCLp25GcvaS0RWDB2Kl2M9Ah
+# GGCOi8Uu3J/e7XwlOUt7MIknJt4kc8WeavgeEvO41khARDGz+dofCpFFvXtKwwc7
+# SC229ttXBwSn1osf1OfWExAAZeNnHT133VOL82a3pQ5N+Vsi9TSHcsPunvApvC2I
+# +FKcdJYNEye8dUL3RurexJUXoEsAMv+11xQhXdMTvTQ2H7a+DQM5akG4Vvtg0Uqa
+# XHeRjg4ATOrPhC4/NUx+jE9za6NKLa1HghwVpzuWUH2TJXOuMyUcPTZQW36c188x
+# a2lwkjQsp03gAQfRhQ1lRsKIVaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxMjU5
-# NThaMC8GCSqGSIb3DQEJBDEiBCBmoWbnssl8A2htCJ/WlvqL6bK54SEAv+Nne8IC
-# zm0pgzANBgkqhkiG9w0BAQEFAASCAgAy/tBrTLNwsmsEnSUGacDIX69tq4XihaHS
-# MrB7s2bH4+MtO2GzCldGdfy3YurxP6WHvzG9oZ5oqvOoRBry/v9pv2eR10Q4gj6X
-# WwMlaCXSjUNQd/LIXliZvAQcqphG2zlSZtur8jQr5ewBAnpwTkaP4nL3ceMTHcx1
-# EqmzVu9y/EJAkDYYvDALj5SiFVzIH4Fv/7TDukb8ZQnHdZDoIsU+o3JCpPKtPkhK
-# pRFk/9Y67lIMBnhOdU/md1UbMUtVfBGlWINULluuuyFeU+i4uy2zQvsz1xSFb644
-# 4AogNDxuTIJNZsvct9gGrRExN0jn5i51CIVSPBB689cFAXlG+5Aa6lu7fbKy3kys
-# WHCq7u3f9o5g/4hZ+oqpE2HGCfViA00P7dQ+yVl6nipa61UHzmkXq/Sl8OsAsi7Z
-# rHK8hanZPahT4c/D4FfqbEvUmjes9+HL80E5Tn58Ba3xyjUpFBjYsPazN1ywiuJ1
-# JPFaeaD3b9kPfQut3AqvbbmiXp70bvFY5xxSNw8GRv06SNMw09i7LuU1DPhHY5RV
-# KmMINuy7jSacBShjeSXEsNLDr28fNsAti4lvYsY2u0CjMnQaaTBrx0NNvpNI0UKg
-# cjq8eaJkCRKjG+MCfsp7NsjWTdbPF3VaAlS23zVFX+8sRxWblDG/x4ZbiLtopYzP
-# VJi9mt422Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxNTU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCCP1D+gp8opMIR+BnPoe1C6JZk6IGBFcRI3vHXd
+# JK8gMzANBgkqhkiG9w0BAQEFAASCAgALeUADATMF/O0eN7bj30xM/sspQetQEUNT
+# RO45ETP9nsFm3Bb6hLHkX1eTx7ROiECFNlh/QqSeD+AlrSNbdGPS//E1JpVnAPAv
+# cz8m0ma3pnn8f0/IQOrX/DYUn2/ghdKxjiNvN4bUuDHhODxmjTmcSEsl5CGsklSZ
+# n59lXwTA4+WCU4lK2XYeHvSFkCZT/kjqyIz+kM446yg9TwJxMRp/KXwhwfvgB7Tm
+# nA423xLn7aJ2+zkUyDEtff7QDygo6aiot1i3lYhwg9HBBFaKGUtiZv8fDv8rOaOH
+# JXSAP59HXmKBOCH1AJa0bJFj+fFoEynM3i1xpV1gXEwREA0+zb+uuHqruyWrU1jB
+# ylOwA8ffoj/BhEHaOa3V8d8cawuGrqvxVv5jVxp7a27oj+2jUCd+sdzyaot8TRtX
+# qgnwN0ybWpYY8l/DAWLcjGkteUmjmZMcDMzB9NShMSUMU7pt4dD5FlS3xm7t/EKi
+# 24sU0IfteOvUbx41IlWIw0QoSFk6WDi7iVHBCzNmtvsxYCORTe45tQokJGEdICJU
+# 10IysTQsriQ5Ug6bHqtN2h2k7czt6zwObfztclhxdx6yFx9+rlMTiSnUuC4GUWXq
+# xzT33jgoX9T+HiXJdlWiguGqGX2gGikgfqg4+SL7kOOQ6zcDdUnbjPEmInrbNO8A
+# 8B+SKcPVCA==
 # SIG # End signature block
