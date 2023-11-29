@@ -1449,6 +1449,27 @@ Begin
                     )
                 }
             )
+
+            ##############
+            # Join domain
+            ##############
+
+            $DomainGroups +=
+            @(
+                @{
+                    Name                = "Delegate Tier $Tier Create Child Computer"
+                    Scope               = 'DomainLocal'
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Members             =
+                    @(
+                        @{
+                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            SearchScope = 'OneLevel'
+                        }
+                    )
+                }
+            )
         }
 
         ######
@@ -2395,6 +2416,7 @@ Begin
             "$DomainPrefix - Security - Enable Virtualization Based Security+"
             "$DomainPrefix - Security - Require Client LDAP Signing+"
             "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM+"
+            "$DomainPrefix - Security - Restrict Remote Desktop+"
             "$DomainPrefix - Security - Restrict SSL Cipher Suites+"
             "$DomainPrefix - Security - Restrict PowerShell & Enable Logging+"
         )
@@ -3542,8 +3564,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkRNSYlTyaK9mtQ9aSeBxWqwQ
-# 5lGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqhujjJX1m9KEX1jtUpNVq+xg
+# 7kWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3674,34 +3696,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQhctV9
-# s+OZOQGJhQXenGr5BQDYKzANBgkqhkiG9w0BAQEFAASCAgBrC/kJ2mLfPLobMTSu
-# rn4LNgXm302dmz+ayAmtHbxJ7PjfWpWICI5TPE1oYG7pRu24QkbqeldnkfZBQ5mH
-# Ir3FTTeHZalB9mPhhGijdVzOaumOFkzi+iBFTCsdKkob1lY4EvHlxvuCF12Rjxf7
-# vDwdfoVP6Y8xrwOa/PfFBapcImzgph4NWpMPalP2KQmQzdfQZn1Sgix7IIY1REwE
-# C/rTughuW7wfzq43XwDIPaEZ8Z1VFqqVZF9cBSkhHyq8+sOqhzbizMh+lmB+qDgi
-# VjrxhRoZtk3EZbh7IUeQpVEXQZtoiS3zqzr1r16Lpu3+q7nEVX7qg0SvPssUHOjN
-# AKqSdjF2GqsCcL9dLHdMdindE9RZyTtHBzD/Brt4po1qAkWA7aHQxKg9kbEQlLeG
-# 8JnZWjIAe23JbYzdrzTo41aVk5TY+wawtVQiKCA1V+jdQ1NDsvZrYmkalvSMBPRu
-# GhG1OPwepl6/Lds0oo9YLZz/43d1KRHvYdli9X1kmjtLjCpOgJEpRtHfVL71slz3
-# 33KPk5hvBWbiEiYc/snLNUIIkr3Y4qp2QgwDGP4vggGXSTpESBbKOEVMt7VA65MG
-# ku9H3ljpeeaVT2wExAB+ZHCbM3PZ29743Az5t4q0t4PlYTQvBR1kikyoTeZtZnSS
-# YtTUiVvvWnNUoxBkUMk507Y51qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQdo/Rw
+# aLhG2qAtD58TU82jhy6UTjANBgkqhkiG9w0BAQEFAASCAgAIlgtE5vgotBRw6L9m
+# D0UepaK+dtEzEOlqsWpEjrNKoCgjxC6Uc+qMHDNFpETGGL+z8NdCRf+3Lu6uWMvF
+# qBWwxGgNtXuBh7fBNv6UcVgmV4/4+Hwp8tDA3kDYBb9OgLFH9rpZO5WpT5M/aWwn
+# D/UP9a+krESlPtwSM2KSUnpdwTudu1Op+6vcabp/+E4SMbO4XZa82cD1FCiA2TZk
+# /pbzzYpr/CmrFad5oza7hqG+8aKzxil4M5yJBWD66bXn1shHtzUWTFoEngrCCYM/
+# GzoPugkCXhsFhEVvKSKWd+ZZaRGK19dntw4njv9bHPI6QOTey2j68Qhx4EFI1vQ5
+# EUyUtKLGTFiGYGM4Vqwt9lqQRfPD5XxPhe++U6LjqaMiwsMuqYylNAfoeJcJta9t
+# JMudqRgWWU01hUM7SyFQe7jZi17fbJfj3LtD5ZoUsLr07hjA/AwkHFNp3wFxbkL6
+# 4rxnhyHMprLQTF8/L5IfgLdGO89Cmx4amGt6FD2SXC6dIEKgDtDZrAe7ZdIcECCm
+# CTA9oDr9Dlg9y9uZBLKqqRR2MN4tUOE24XdxLuSLupHhtGXolJBSE9FTrDVyrg4O
+# 4ny813DF+Tv2ZbidcQFbmCfwEVWYm5Migm78tvcDD4wnKJks8EI55UU5H3we2UIl
+# oeTaDYowZd/z1qKpQUMb51JgDKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjIxMzAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCA0wM0f52Hf25AfN96MwemYE7Ka/tISeJ1v595N
-# 3mU2AjANBgkqhkiG9w0BAQEFAASCAgATOVQ7Riy9LMQUrZb7M2uvrQHum/B77QSH
-# rR6I/fPL8G6GgOrS40JKsnZBjMIXFS8L5+gxk6FUwfSu9WJcq7oEzPFCF2XA6CfJ
-# h2fcuDpM2N9ZyaxJsIYk8qk8gJdbfjlGVzb3peelnC4xYogz1celp3iWGk9Hwrrg
-# E1VH8KDMz07o7cwRwJuQDQnTKZFet3dIv4ckxrN80AxQHDt+6HHzM5LISrdY+YJ3
-# wX283naYi2sR3yDxnqb1xXYqJSLro/EADiIS6ybe9iZRr77j3CfHrlETBhLTDwlW
-# z+LQ9JB7Q2imuf8vSBY2ZuZuuAVuEuOgxOjuZgJY0xfgAt2SuvYDxYwo4LACkN4X
-# 0tQHNja5Q/nfeKEDdQuG9tAG4jrKVJJggt5CQe7csIzQ7YAHI4RT8UFzYf6aNE0V
-# NeiJQUvCKJluLAs3W9cyLS17HglWIATSw1A3Y2CF/0vcBVhBMsDxAw1iULrF0po8
-# KWJdmeVuas4Q8bb+9Lke1H+4gbDPihp3CZpMMjeADS6DPrR/4icmzxXoQSAj00hd
-# FPbZxnwtEFra/ZxdyySwn4Prav3bC0iwMpUnrb72BgErRgkkSgvULCbzEfyj2sFo
-# 99yb1AmTuPx+FNSwSvyLneCcS18CJ6SJLZ5oCTwWsb6jfpZbPCC0F98rsESWIncg
-# R+d+mDQrIw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkxMjU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCBmoWbnssl8A2htCJ/WlvqL6bK54SEAv+Nne8IC
+# zm0pgzANBgkqhkiG9w0BAQEFAASCAgAy/tBrTLNwsmsEnSUGacDIX69tq4XihaHS
+# MrB7s2bH4+MtO2GzCldGdfy3YurxP6WHvzG9oZ5oqvOoRBry/v9pv2eR10Q4gj6X
+# WwMlaCXSjUNQd/LIXliZvAQcqphG2zlSZtur8jQr5ewBAnpwTkaP4nL3ceMTHcx1
+# EqmzVu9y/EJAkDYYvDALj5SiFVzIH4Fv/7TDukb8ZQnHdZDoIsU+o3JCpPKtPkhK
+# pRFk/9Y67lIMBnhOdU/md1UbMUtVfBGlWINULluuuyFeU+i4uy2zQvsz1xSFb644
+# 4AogNDxuTIJNZsvct9gGrRExN0jn5i51CIVSPBB689cFAXlG+5Aa6lu7fbKy3kys
+# WHCq7u3f9o5g/4hZ+oqpE2HGCfViA00P7dQ+yVl6nipa61UHzmkXq/Sl8OsAsi7Z
+# rHK8hanZPahT4c/D4FfqbEvUmjes9+HL80E5Tn58Ba3xyjUpFBjYsPazN1ywiuJ1
+# JPFaeaD3b9kPfQut3AqvbbmiXp70bvFY5xxSNw8GRv06SNMw09i7LuU1DPhHY5RV
+# KmMINuy7jSacBShjeSXEsNLDr28fNsAti4lvYsY2u0CjMnQaaTBrx0NNvpNI0UKg
+# cjq8eaJkCRKjG+MCfsp7NsjWTdbPF3VaAlS23zVFX+8sRxWblDG/x4ZbiLtopYzP
+# VJi9mt422Q==
 # SIG # End signature block
