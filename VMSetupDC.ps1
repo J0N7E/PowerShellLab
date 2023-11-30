@@ -2449,7 +2449,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
         )
@@ -2811,22 +2811,28 @@ Begin
             # Itterate GPOs
             foreach($Gpo in ($GPOLinks.Item($Target)))
             {
-                # Enable gpo if switch present
-                if ($Gpo.Name -match 'Restrict User Rights Assignment' -and $RestrictDomain -notlike $null)
+                $IsRestrictingGpo = $Gpo.Name -match 'Restrict User Rights Assignment'
+                $DoChangeRestriction = $IsRestrictingGpo -and $RestrictDomain -notlike $null
+
+                if ($DoChangeRestriction)
                 {
-                    $Gpo.Enabled = ('No', 'Yes')[$RestrictDomain]
+                    $Gpo.Enabled = ('No', 'Yes')[$RestrictDomain -eq $true]
                 }
 
-                # Enable gpo if switch present
-                if ($Gpo.Name -match 'IPSec' -and $EnableIPSec -notlike $null)
+                $IsIPSecGpo = $Gpo.Name -match 'IPSec'
+                $DoChangeIPSec = $IsIPSecGpo -and $EnableIPSec -notlike $null
+
+                if ($DoChangeIPSec)
                 {
-                    $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec]
+                    $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec -eq $true]
                 }
 
-                # Enable gpo if switch present
-                if ($Gpo.Name -match 'Enable LAPS' -and $EnableLAPS -notlike $null)
+                $IsLAPSGpo = $Gpo.Name -match 'Enable LAPS'
+                $DoChangeLAPS = $IsLAPSGpo -and $EnableLAPS -notlike $null
+
+                if ($DoChangeLAPS)
                 {
-                    $Gpo.Enabled = ('No', 'Yes')[$EnableLAPS]
+                    $Gpo.Enabled = ('No', 'Yes')[$EnableLAPS -eq $true]
                 }
 
                 # Get gpo report
@@ -2847,8 +2853,10 @@ Begin
                     {
                         $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
 
-                            if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled) -and
-                                () -and
+                            $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
+
+                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo -and -not $IsLAPSGpo) -or
+                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec -or $DoChangeLAPS))) -and
                                 (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enabled=$($Gpo.Enabled)] -> `"$TargetShort`"" @VerboseSplat))
                             {
                                 Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
@@ -3581,8 +3589,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU89wif+q1THNd9gmBxvWEFF9x
-# QJKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvRraFuImj1LH1OBkvViYrhu0
+# 5S6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3713,34 +3721,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQxUwzj
-# 1dm9Y7XK63lqkBuYIJ3iejANBgkqhkiG9w0BAQEFAASCAgB1jXHO4uPsYatBgpW6
-# QAY/eqBKk/TRDezlgoj+n04RoWf6425BkjLRYCn9YHMnUzCEiUr19GMfmOjemkHo
-# vTjy/it50lvgupNR9DebTVy71rL7fn4I4BJnQaAcIbcpAXOzx66JQEWdNK1R2nbz
-# o24/zerJ0cF41/qbV0asq6GSYiYEVFbrivJMpO5etjF86TJrifsqAZj/Lhj24QBo
-# /e2gWGJOP/Nra0q5m44yV611HN3SKVPYPP70bwnfsWS143c7bFTO198mKys2Sbsm
-# Sbq0ofjB9iZel+8UXp4CX0q7/CIaUWhd0SBEatf01VgBxEdYlD8qJIeaHnBETXPW
-# 1MX7kt7sJkKwKQNz7zcBprBH3vXQ1haoUpETHxl63JtQsG9t0eU3ZbFhRgjj9eqI
-# P09bex/DiTES96kznc9y7zU7HUv1gp5n9o6pGUkBjbPmmwFIvXLsLUO8dkiRS94Z
-# g7UwJQ/ysFp1xvLrPeMcKCsFYzMlgizizxS+0UCiskz54FOs3NIObcEQ7DiPGWe8
-# YQl7qoCqpcJJ9oqt0KSzax8Kvkaw3BZWVu7xTPkuUhOiFlgH0kulIIMln+LujWs4
-# w3JQlRsh+LVfif2Icmnr07L3rlmxYiwzcYuYO+cxXI2+DgaSNJG9cbeggCnMoFoi
-# p9/lwFCD7cml1y/sK1y6uALQb6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQKJ3ox
+# /brrDg4YEFonGcQi7pxHZzANBgkqhkiG9w0BAQEFAASCAgAfojKiLRSFtpScqFp1
+# qM5xJe+e8wRIsmRyVCU1aswtM8JgIdakGzIHReRKtTq3dMknEaIpQPcHvtJaBdc6
+# ZH8IT7cJ3I4jpI0bn4csstKCPtZDMGxomlCc30D9ncc1Khaj9iw8NYmcoNKnwI9B
+# H8yE/YOMo5UR4n1TiBRnb2HEbc5/7mPa7F3xv7B4ME69+SGMXWaASh8cMYa2CaLl
+# M0VhnG62UAhU+D/eea1c7dQxANSsG0JMxrafJzxkQbko+HDgr691bqlNbBOQNnF5
+# lgfPe0ShYxdG3HGfgw8VKS5yH2r2G1KRfKHzZzWQ6Z33SUR8cY7ZhXIiQNaPtPIt
+# 4IRiddUcllKPO1X4hSa+9TGdD2KikUqYVcbkE06XV1quq9FEEtRuJ/lX76XkQQsy
+# vOBBmdeQxYOk54Xr8VJUzPitflLttdV3N4X84aff8CdKG4t3CaJCO/yzNYITiQha
+# 6mGaqbxgWqPjbTyKiuDJEx103H3gyb/EBo4xtU8NyU0p72k/AqMb3ik4rwkS6F/5
+# t1SORj9L6Y4K3eT2z73Lx2Q3pLw19gHON1Vbq5kV1aGkqLLbxbcSFbmGzFJm665d
+# o+cDmgm6Cd/MnLd6+y4AImnqG479WQXhhqMXwMVibrxtGVg5Atx2dEHi8jKWfZaj
+# FwJjwmeK6HFSAxg77vG0wyS2QqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMjkyMjU5
-# NThaMC8GCSqGSIb3DQEJBDEiBCDA2+bKrlWSn51bWSBxelJImW6SEttF+rXHyNe9
-# D4V+OTANBgkqhkiG9w0BAQEFAASCAgA+wWYi01WwPdwHrRMo4jBP7wMobzhL85rT
-# vbKTMd/JYgT/N8RGSRYVSKhsEs0H6asqxEI5E1iGpUPzNZO1ifk8NKBOKWyXiE0r
-# UUqhHyi4F6AqMWD8wFcYXHqdd5OSHgBDtzFV8qcGoOZ7+T+9fFdOCP5AEIJAIYDF
-# xSWLwKrnJJmgC5RnxDSdgH5yKWB9IhP9jQreyeLMTOlRTHxtUUiBc6c6kmHZg1il
-# VnWJRTvAoffqCPYEiJ31pCmX9SCAQ9dkjXzrifyNmhoPnW5Up1KMCIrgPFgiBt9l
-# mpbPRbd867be7QmTbqiW/fH5eefYXu/38BH4aMn9FaxcrZsa69WiMpDw0vTp/Siu
-# KXiA6fUigPqm6k1jCkZJG+4mwyVU4IM1nKm9qVULbNvCUCTU+h4E6aQadYx5yRsW
-# hjPKW/18wZfQmyuAmAkcHiVg0dXczEZjfySNRlAPnkRl31C6E+6UNAFV6hEd0oN7
-# rDfTVfZqw6Ndrb21kvgcGDXtOt7g1SpsSj2Kla07JMR+xYZWPEI6yqrcrdWEhT1g
-# ItkNGNv7KiF9QRM4kZ8ms9x6aFJxBwirZ5KErE56A7ynOuYiYWeIS2R5nAX8oDtg
-# Nf4so6cUJfK6nUkL7QCZNo/r4QgsSMPzRClwagJGk/t97z0QSRLNGgbeUsefDkhJ
-# kCmAXf4WLg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzExMzAwODU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCDV2uOmgMC3tTJCzSzdBHJgFtXZGeLiWweD5+Ri
+# JucK1DANBgkqhkiG9w0BAQEFAASCAgAVTKJd1CByK8i93SMOK14nzLRWwUGhTUlJ
+# TtN7UCoVLFc1Govshf2ACFcBD9neL+ktJqwKB+hW1eLiyPklLTu2fHEG0I9XV/t8
+# dEjTz2+83FXgIMB0KTHif9TAfNV2DUAawjwtM/MuqxQBp5x01PLeFjrD0E64Ka24
+# 9JVVp16s83rRu1Ge7bbelW2J7uA2Eesgf0LYPV6yFgcawLse9dJQPtP6+3653R1m
+# z9g1WupktY+IvUQup/dQYlA5UhQu/Yc2fMkstA4Lu4kG2PhGdpuici60geIm0owg
+# pOdwPGkf9yeMMg70iv8MxM1FOc6ewBbL3ILzeIKsAJwtE1VPBIZZWBbJE5dAVhKv
+# QH0yA9NuCzfg8HQyPGmgzFy1MBy5uURfL1sUDLtqS4oRK3bcrjMawS+D9Ax74Ywk
+# 9HLwzjFknBpzWHAnJwWtNh0dWDK+JwYrmuz5DoQEDKg1NhROz190PSie2LRLTvTr
+# ZWWjXNDPKEBLqPIfXvBUNCycFs1Cxy10oM9bwV2M38kbJshAScY3n7QF6KzQmOqQ
+# gm3PaaWttsyESnwhwCMhRbPMwLwU5tPgZGZ8QfsD3M3l3ar5ErjKwanN183a4RpL
+# VF4pwiN1/XUnZvt4s91kmA0+1XmKUYHAqGPH//YYDwQcffYxqF52rIx3Xn7o7jX1
+# ZYDOy4iYvg==
 # SIG # End signature block
