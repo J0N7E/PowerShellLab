@@ -77,7 +77,10 @@ Param
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
-    [Switch]$RemoveAuthenticatedUsersFromUserGpos
+    [Switch]$RemoveAuthenticatedUsersFromUserGpos,
+
+    # Domain join
+    [Array]$DomainJoin
 )
 
 Begin
@@ -98,7 +101,9 @@ Begin
         @{ Name = 'Session';                                      },
         @{ Name = 'Credential';             Type = [PSCredential] },
         @{ Name = 'DomainLocalPassword';    Type = [SecureString] },
-        @{ Name = 'DHCPScopeDNSServer';     Type = [Array]        }
+        @{ Name = 'DHCPScopeDNSServer';     Type = [Array]        },
+        @{ Name = 'DomainJoin';             Type = [Array]        }
+
     )
 
     #########
@@ -3418,6 +3423,24 @@ Begin
             Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
         }
 
+        # ██████╗  ██████╗ ███╗   ███╗ █████╗ ██╗███╗   ██╗         ██╗ ██████╗ ██╗███╗   ██╗
+        # ██╔══██╗██╔═══██╗████╗ ████║██╔══██╗██║████╗  ██║         ██║██╔═══██╗██║████╗  ██║
+        # ██║  ██║██║   ██║██╔████╔██║███████║██║██╔██╗ ██║         ██║██║   ██║██║██╔██╗ ██║
+        # ██║  ██║██║   ██║██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██   ██║██║   ██║██║██║╚██╗██║
+        # ██████╔╝╚██████╔╝██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ╚█████╔╝╚██████╔╝██║██║ ╚████║
+        # ╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝     ╚════╝  ╚═════╝ ╚═╝╚═╝  ╚═══╝
+
+        if ($DomainJoin)
+        {
+            foreach ($Computer in $DomainJoin)
+            {
+                djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE ""
+
+                # Add blob
+                $Result += @{ File = @{ FileObj = $CACertificateP12; FileContent = (Get-Content @GetContentSplat -Path $CACertificateP12.FullName); }}
+            }
+        }
+
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
         # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
         # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
@@ -3564,6 +3587,27 @@ Process
                         'Warning' { $Item.Value | Write-Warning }
                         'Error'   { $Item.Value | Write-Error }
 
+                        'File'
+                        {
+                            # Save in temp
+                            Set-Content @SetContentSplat -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Value $Item.Value.Item('FileContent')
+
+                            # Check if certificate or crl
+                            if ($Item.Value.Item('FileObj').Extension -eq '.crt' -or $Item.Value.Item('FileObj').Extension -eq '.crl')
+                            {
+                                # Convert to pem
+                                TryCatch { certutil -f -encode "$env:TEMP\$($Item.Value.Item('FileObj').Name)" "$env:TEMP\$($Item.Value.Item('FileObj').Name)" } > $null
+                            }
+
+                            # Set original timestamps
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name CreationTime -Value $Item.Value.Item('FileObj').CreationTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastWriteTime -Value $Item.Value.Item('FileObj').LastWriteTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastAccessTime -Value $Item.Value.Item('FileObj').LastAccessTime
+
+                            # Move to script root if different
+                            Copy-DifferentItem -SourcePath "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -RemoveSourceFile -TargetPath "$PSScriptRoot\$($Item.Value.Item('FileObj').Name)" @VerboseSplat
+                        }
+
                         default
                         {
                             $ResultParsed.Add($Item.Key, $Item.Value)
@@ -3589,8 +3633,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaigKDfehlcz9NGofmSw/6NqL
-# whGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVkzJxQ7pXuou7bZj7nCorc7D
+# WbqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3721,34 +3765,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSiBlF0
-# gSq8WQ0AqC7TTE3fpyMGGjANBgkqhkiG9w0BAQEFAASCAgAC+Y1eiDdBzC8azuvi
-# WAdQCXGyxzD5iS4zv68d/6lsG3k4tjFCTb5/Cfrxwid5lgyH1z+6l3luS9UMikYt
-# mc/HFfW+n4/ZnC9IFzbVxXVDUwFPIxnTBpGirAkV/ZhwM/OeWOd1FPG9N4GdI6G8
-# SqVz4HWIOO/sj0IP+N79C4c1RYuXHNQ826pldsoP86qbLaqiKkbEaUdHYtzuzhv9
-# 5kihYGRp2OWGXKYyDcWgIDFK7/wpN50eAeRnUAAaMRd5HKeBr8fGWs71kxw6ivj7
-# xbVcA5SK8oqIFsLbdEG2XwAUoisxnuWlyEgwzZw3bMbSxJNdUCivOiR62ItNHL2W
-# 2isGgLTJM8pDykw7wmdvOw23ZF0/9Wb4WV2IlydpVqCxmF16RWPQRg6eu1F0EEJV
-# MA85AZ83FaO1LKgT2/mk0NLtAadqWFXkcYRpolWxOhu1tMwE87sNZW4jT2V5pxfX
-# pn3whY/VHWBl06UVoocZQFWMJkTbnHoFyfA6inDf5y/KzLs3FrdYLAso7Pss1alO
-# opU5EQF7ABsGGHQotjMNTYkKJtbjYvgQpAD2P7WsXXu9MjMiwqT1vPq1fkRxQnsr
-# Ao+0weMa4bdGu+xpGLhdWy/8ePPLxna+26lijm2xlKuM2edSpIVqab2VQ4Tta18q
-# yDXGfBZ9lKme/T9If3NfQ473gqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQR5kfu
+# rd+4oR0Ktgjtt67TiWoa4DANBgkqhkiG9w0BAQEFAASCAgBj2O7uRiB+fFuGjnh+
+# ZOyCUYFfQn8S/lpylKUPoXEoqE5xFM+1eUibcgH0DUGkT7lo7vQwvfM+BgGqa6fZ
+# JDOVTBOx2R1MCO4SbalfEXcU2Ke66Z7NiOSNfz/TGx/1lTNFVYN1AZWzzFo+HRhq
+# wgLoIi3k/KncCtJJUO9eoAbWCDCzbd+X8f9FPOSxOYihjcsjisqdcpFkbgYRKigL
+# i58f6QAwWoVUwGG1jdcWt+k+Av7BN1SzfBJIlQPSGEdcJGwxjs9wO+v5y/GbpJ4s
+# 8NU4pQYBcxcuhyp05/FPY6O2AOiSywXM+lWgWMVYbl8+slArERqabmde7pMzK0pA
+# oLwEjHgb8jjHANeACpw1jPH968EHuZ0NKOsclBT4ApSlLuKGfrUsaFQg+J+3x87U
+# xxU+g2FFfR8Zk9rVp0cJxipQj1ZNQzRQWeTiNWElzKB4e3SMo4UOtJZLNiYdfzLr
+# fRJDty4RdD70Nwvz5QT5b7Ywmk49dMVOypUu9xhGu32V4rgi/bt6wjpatG1iVPM4
+# OClUosX0jQ+gKkrF7nfjSDGbq4XXJ6Uo8Ch7ThDrqLxfqdwsigqwBAyErWRKEFV0
+# kSubHokSea0ogXsgQ2ROjItWtgPjT7eJBUm5hrSM+sTeSXwvQpCDVS1LgXqG82IR
+# 6Q0Z1oyI9S99Cd5NEDAK3lAFg6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMDEyMjU5
-# NTdaMC8GCSqGSIb3DQEJBDEiBCDdSjwwvECrgbIxx1/93smEkkWYwrE63PEir7Us
-# dUHDNDANBgkqhkiG9w0BAQEFAASCAgAjGzyJDnApnlYoOrYIdIVHxZVOxKbjWWSO
-# SwoBIQu7GPc+O2WQNRNTJLkRvmXTjuP8C6WcyniBZyH3i8B7GI69CEjnoVEXdegm
-# HKVfvpkRGfyiJj1U7JXElWekpWc8rloOa1ucpaqg2tBP+IZERQu5tJOd/eDwczFa
-# hm2uydRBl8QcvDBYSDV2LEW+GwzZc5fQQGF6nAj4Re3tt0l53+aYo3OZgk3nEDna
-# HInkyOALabws6g85ArbcVBWcl6BPEEYQphCdzKRChFy/OjlMMaVc5ZSLY9P47pS3
-# oc5DERCxpS6Dbo/lFjwXmF5afPUWjjFd34qT1RWGCI/5H3gf5zlVdV2ofD66Gk5k
-# S06Fl60T+H+1S4Fy+Rb3yNvUc6JEIdkbnjyE4EsCttuJ0zpF177JBH1Nvi/y09N0
-# 2fRsuqwApqLi2xmpEVqYBQFyrXb88hG3w3exsdWKFb4QO65rnd3WTB/AUWiPG+uH
-# 8g1faagwtm4UiA3UuUP5znZdOv7jep9edcb4BfQHOacg6Ug26DQ0rPtdlY0vqUse
-# MPHQFd0D91Sikkg6nMW/dGvyrGu5rPoLHz0hDbwVqxuYuuqJQGvrGegdbHGx8rBS
-# iWkj1cmt6quZT8MR8lH/ls4sZZhp+ZXNWxvEfc/G/LZOWXuoVPSzgr3a9hfjeexf
-# g9EsQQ63PA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTAxMTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCCtYbtZny0hovIEq9NdaAQPxc+wEToxgTvIGEyT
+# dyyWqjANBgkqhkiG9w0BAQEFAASCAgAGeGoPUD9dTw3KADt9gmuqxnxAs8wXL8KE
+# IHicoKG3YzIZwgklpVNHjcSD5yFYrX97YhQviPSsJ2+yG6KLzGXf/HP5HXe6vsOl
+# aOrr+XGw8ZDkVNy2pDWcK74djbkDPdmrLoDYcRVsnxeJu7uQHSQIpHPzuDVEtirL
+# JTXclJDOXDRso5gMOAU+qcHYTDm/DqtBRRd8PeTUgi5yVKPTeIuwFRuecyu1MR+P
+# WDmw0yzBjpfF/XcdSgzIx+XnbWo+/IkJBygZbSY7thmN+6UR2eXuH1LZXsY5euTS
+# 2piLmnGA70+JjW9Dd185VKLpXYmGk7SCPPFQBoQeNCJhUALOgD34l0wgaNI6woZY
+# kcjNTLkU4x4m1SEKNhaU3DF5c4A9UUZYLaDZUn4CZtIWN8lBdb63MV717qKahNvR
+# 0jVA0Ol4Imxm7MY47d7Y+AGxt/ynrEjMAtB1MutYJmrA4e0F+430xN22cc//Rc81
+# LlH5BW/koeeMjfMQyjgTexf28iLxiHVZ96lHq9cBwIWRec+NpNGibfu1TN3Z+/Yw
+# 8673LodJ9J644j+SEn3Pl8Pn5dTZvExj3g9wWsc/kBt1DqelC3ydycSay/iHTkRx
+# pDdGlBHdFCYy8sJ/U02aKCSzgv1Vb8PjuxtfD6QGYYwaEI3bpDGlWg7aCFVDwtf1
+# sMqXiwulWQ==
 # SIG # End signature block
