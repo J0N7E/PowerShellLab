@@ -93,19 +93,6 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA', Mandatory=$true)]
     [String]$RootCACommonName,
 
-    # Issuance policies
-    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
-    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
-    [Array]$IssuancePolicies,
-
-    # CA Policy inf file
-    # FIX add
-    [String]$CAPolicy,
-
     # Root CA certificate validity period units
     [Parameter(ParameterSetName='CertFile_EnterpriseRootCA')]
     [Parameter(ParameterSetName='CertFile_StandaloneRootCA')]
@@ -124,6 +111,15 @@ Param
     [Parameter(ParameterSetName='NewKey_StandaloneRootCA')]
     [ValidateSet('Hours', 'Days', 'Weeks', 'Months', 'Years')]
     [String]$RootValidityPeriod = 'Years',
+
+    # Issuance policies
+    [Parameter(ParameterSetName='CertFile_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='CertFile_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='KeyContainerName_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='KeyContainerName_StandaloneSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_EnterpriseSubordinateCA')]
+    [Parameter(ParameterSetName='NewKey_StandaloneSubordinateCA')]
+    [Array]$IssuancePolicies,
 
     # Hash algorithm
     [ValidateSet('MD2', 'MD4', 'MD5', 'SHA1', 'SHA256', 'SHA384', 'SHA512')]
@@ -251,6 +247,9 @@ Param
 
     # Path length
     [String]$PathLength,
+
+    # Alternate Signature Algorithm
+    [String]$AlternateSignatureAlgorithm = 0
 
     # Directory locations
     # https://www.sysadmins.lv/blog-en/install-adcscertificationauthority-issue-when-installing-an-offline-certification-authority.aspx
@@ -921,7 +920,7 @@ Begin
         $CAPolicy +=
         @(
             "[Certsrv_Server]",
-            "AlternateSignatureAlgorithm=0",
+            "AlternateSignatureAlgorithm=$AlternateSignatureAlgorithm",
             "RenewalKeyLength=$KeyLength"
         )
 
@@ -1717,12 +1716,12 @@ Process
             # Root CA common name
             $RootCACommonName = $Using:RootCACommonName
 
-            $IssuancePolicies = $Using:IssuancePolicies
-            $CAPolicy = $Using:CAPolicy
-
             # Root CA certificate validity period
             $RootValidityPeriodUnits = $Using:RootValidityPeriodUnits
             $RootValidityPeriod = $Using:RootValidityPeriod
+
+            # Issuance policies
+            $IssuancePolicies = $Using:IssuancePolicies
 
             # Parent CA
             $ParentCAFiles = $Using:ParentCAFiles
@@ -1735,6 +1734,9 @@ Process
 
             # Path length
             $PathLength = $Using:PathLength
+
+            # Alternate Signature Algorithm
+            $AlternateSignatureAlgorithm = $Using:AlternateSignatureAlgorithm
 
             # Directory locations
             $LogDirectory = $Using:LogDirectory
@@ -1902,8 +1904,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7EQU5X6a+gs+fXT+giAKW5D1
-# QeKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxX85+mN71uc5BHgfpPGL9vLO
+# be+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -2034,34 +2036,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQSl6Fc
-# 9wmsaXSjq/w/7guUjtS9EDANBgkqhkiG9w0BAQEFAASCAgC+YXnIcS2VzDD3zpaT
-# WezcIUFn9N/Ryp2dpJxXnjri4JlRB87plgktflo2My2Jgw4T4BTdmeo0S5eIh0R5
-# vQ9fcsfrmIMlJZCQXX4ZSpAFkj89+QnnvZY0hMJvfHja3sr9QPwppstvXqBgd7IN
-# S9BJg4Kay9oDNrFHfBJLe9DEiccByDY7ByD5HOTWQ3Aee2L83jpE0Uf7505YC/Ps
-# o76ujjjb8t+06aIozLdEsW4L2dIhPRaIAJ9jLgnj8r9C7E7iQMwDLHVtVYhPQR4m
-# IrtPhoaJlLIdMXAp2Qe0QzKzYgQRH4fvDlKQEeQsvoUaOGYlnmnN3Dhp/F3EFlxK
-# bYBgiE8FL51MGA3Ag3lc6CCdBH6UnW7UlRzv5oBwiXPH337xXIc7J1ORI/8SxUzx
-# /Vq1IhvJPamYAlvOONpaTzv0+xZVKL67b8o3NDbstogbSqe78YE35Npwy/U6lFll
-# rm7jcTkbeIngZaoIRlgse8f1cl7Z/7HsUJfb7zuMhlCyaGpF6cmsXAe11udU+Svq
-# Gy5aa/qVU465Z+Z08qT7yrfdpB2CyHCIxTC/y3CXotZTgpvBjsBFfHWBq/SdSg9m
-# 7ypSMuVzmkBa6oBdzq0B5hYl7Uhy5OMq6V92wufB9rLWm/9DcXN7arNQdLGOrqOn
-# ijl7Pzj2LrziV8Wz1mMHG0N5ZaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRycjkw
+# gFOsik6QQwkBUSM8lCYkPzANBgkqhkiG9w0BAQEFAASCAgCFNpD8ULcsqdUkNoBR
+# 0yHQGmhWm8rTHRcrjTvc5PHwZFd6mrvrO85UFkKomP8Uk/U4IQTKq9bYpYIDS5t1
+# 3YGm9LcDe7D25IMbU1syNlsA3V2Kh6S48WVEBL23R5vfq6eMQYCxIucVOwE79w6/
+# QRKfFLhbmsvAR/aaLjIP3inDxLSKU8jzEByAm8CWGBt3Uo5/PMg5CLIZqS7XOyQ6
+# BhvfJBitorqL8MOdsnjRNO8gCPfnjc455nfNFIFHhjUh7+6Iap8SWImCoWrITW+6
+# QrYBOz/Akbow7VHekmEq2ZE2oFVnFV3XZJ0fHOF7xhwEfFzqrkRrx6DVlMNNyl6h
+# 3Q4XoVEBLq8um2MShR4ZD3QLVElRrey5yVPe/JSyaqD6JrTBYb/Un1uIvZzhJMM/
+# e+mUSBZGrx0Z5x+Y8tqbx//br7F2Q7CPaiAyS9+AeSsIOZZs5MX3ZP4LXZO4MSqa
+# fX2Sr3Qb/p7daQimZVPSkom/n3OSq5qT8KSVFm5OYul/AwIoxyuUVPhkBvxTtdMs
+# B2F+EQoITabXelTM/K/nPlsDeIKU/v7rc6gokyiF7C9Hii6vKTuW6WxJxY9Aj4mv
+# 7G/EtzqbjjUAKdNtblcklBSvWbQApK2br3lx6Vw22e3Pay8swZWmYkZhvbNAzDkZ
+# el+SMYX6ayPLxyOZy5bigyswAaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEwMDYxMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCAARmDxoCpMcISc5/gtOBY9Jj+eOmfIfYQFUY6+
-# 2GN/hzANBgkqhkiG9w0BAQEFAASCAgBIQyINWM6ZNnv+QcuH2dD79+IFD52VqTt5
-# JbkZ+Wg61BKsm65+jGTjxv+K7GirFIm//Wj9DrUOafuEYd06LsSUsfK/cpoNDESE
-# 6tsNUIPQwyDsJUKnY+tg1Y6DCzbhWw8pMBo92ZGXM9lCAFcZjxOUL+7oQP2YzQoR
-# nSKIqpJv+HN055nfjeO/lw778kXc5KTyGx+R8b1ooyRxUBjzx3x+MTz0zq58FHq9
-# wpRa/eZzpnUKgVTval51wJrP0+hUpj9T5OypFcRy1VDtM1X9NKnoqHrE52+Lvllv
-# LpwjCbjMCwEbu5Z0KT6bHnmb54KSmk+CfBwRrAMeJd7PRRhuxTwghYY8AexvqmVD
-# VMlKQOq0XnO8AV8Zgw1310kWvr6YTo2vhqZAL2jM3OhO5pc/+tbJbl1xgxkgg2L4
-# a+2cQdn/eDbTRwg6lmp3fRsBUapsCBlSbTpE9h2QnmcWAqB+dzkalyqBOlR2YqJC
-# p3olsb5ELwla/5Ej00bjj8soVHiLza9mtrqNRu1s8w+JVVPm/JuenRUtn7Lpn3Yr
-# bKUZt6nfiEBTGsAZfA6SOealBpUhbMaAr7vUVO/F77sgyLtlBeqF57dFo7rQ9G7j
-# cLD9EWSeqd/VsY0BIdj3tidXhB9Ca1y4lkXH2xLlh5nqE8Ya8FisN7W9NZ0vzzc0
-# FCMOlk5e+A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTAxMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDuMhLLIqdJNAGf0eoKRK0tN9Rjgw3qlxdXRldD
+# tjVclDANBgkqhkiG9w0BAQEFAASCAgBy7VLF+oGwZ32DYCEAJmWo5wXC3D8QkWLB
+# 0JvO3AR1vIqdCot3P4D2uNsaFfa8Vxm43faPT22xrve+yzZQ7rAa20u6VJDHMnCK
+# MCdq95tnrzA8zYqT13BoFJjAZ6ZeZ2fcMXH83KMiiG/Z/Kp/cdUXoezggdnC4l3J
+# Aqi3sS/cieMSBYEcm7iGjWcQTktowEnGjbYYX+R0uu6k3rUzcpbTbHt6QiBjb0jO
+# 0ZLxR32sEjeoRNKTB+p0dSRT/V5MKwRhBXpQQegU0nZ5AN0uten+lf0o1cjMJUOT
+# Fzlyug68HBdF9Glfd430UNvT7xJ4CB/vE9zSbOh5367f8mCBLF0+AN0dLiQeyqh9
+# nn7+aoQ4dUYq+mFCIRwhSGZZ8C2/DbX2+Nw3LF69GKqaP9Gt9/837q9O3tJnZaW3
+# ukLCQoGTSK2YlwfOi5IES2GN2Yzve3ZfNDrqWStuUK631CyB06wWvQ4puQIRlOt7
+# /2ipLkE+vS2XyXX7gGrj1ax9L+r6hqws71G0g5a9LfZKoxXJrE9EP2f/KfNZW+0E
+# EvjRS0bzu/gDfXt5+PiCe6SKEQwI2pBF0y97N+W0WjAgyQOEDYDkHVXTrfBh/F9w
+# nzfUcbnpZlKSEwbCSAw774lmyXDAtvVSWV8X3mX50BqrwqS20tH4wKuP6Q68Hojv
+# DKjREHZ/dg==
 # SIG # End signature block
