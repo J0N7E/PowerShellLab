@@ -107,6 +107,7 @@ Begin
             ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
             WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');  Credential = $Settings.Ac2; }
             WIN2   = @{ Name = 'WIN12';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');  Credential = $Settings.Ac2; }
+            WIN3   = @{ Name = 'WIN13';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');  Credential = $Settings.Ac2; }
         }
     }
 
@@ -605,11 +606,12 @@ Process
         .\VMSetupCA.ps1 @RootCA @Lac @VerboseSplat `
                         -Force `
                         -StandaloneRootCA `
-                        -CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
-                        -AlternateSignatureAlgorithm 1 `
                         -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
                         -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
                         -DomainName $Settings.DomainName > $null
+                        #-KeyLength 256 `
+                        #-CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
+                        #-AlternateSignatureAlgorithm 1 `
     }
 
     ################
@@ -897,8 +899,6 @@ Process
             .\VMSetupCA.ps1 @SubCA @Ac0 @VerboseSplat `
                             -Force `
                             -EnterpriseSubordinateCA `
-                            -CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
-                            -AlternateSignatureAlgorithm 1 `
                             -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)" `
                             -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
                             -PublishAdditionalPaths @("\\$($Settings.VMs.AS.Name)\wwwroot$") `
@@ -907,6 +907,9 @@ Process
                             -CRLPeriod Days `
                             -CRLOverlapUnits 14 `
                             -CRLOverlapPeriod Days
+                            #-KeyLength 256 `
+                            #-CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
+                            #-AlternateSignatureAlgorithm 1 `
         } -WendBlock {
 
             $Wend = $false
@@ -1048,8 +1051,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwvbPy/ioU7S9HHUW9GaLiGCF
-# kYKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYAehdjU1KAs7729IQvQqzly1
+# DwKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1180,34 +1183,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRXAaBQ
-# 6A1EL6oQ5J+znIfVEFWdbzANBgkqhkiG9w0BAQEFAASCAgAyPDakE1s/Y3yUEB75
-# 9dr7cz71ebtVB48h9z9bOk5LxxixgW1SF91NXZdk1RA8NiPaTJX9x81rGWg2ksLg
-# vYowlnw4hglp2tE31PRjKBng4BpE3HHJRNifsHuc7hvaQvlBwvY63CZ9wa1mgz0J
-# ns/0DkhF1K62pAlTsjgph1P2d3K6cFa2IkIhO0Mug8usQ7cuCv1fa7fwMWzLbXb8
-# bmbVYroXpfyV68/BeTlp/yfCr6SX0EksEmsGZbjV1vzsTIXhYgqUXkA0iNJS5Q9c
-# 0Rd+/NKkzXJSA2d1Zp14dZEdKgvnwBjqpJCnN8rlIBcjVvZtOC1Y4xch386HFxDL
-# jLwmCzeegYUmTDEfsD8IDHIQWok2g1LCxalQ5bog+Je5x+DwQ0Rp9uYSbJhTjIfZ
-# Uv0djR6i08oW9YU0gDWSz47ZQGBjO5nXWgLJDzTW3yYvVI52K8jonUBOClkiRSSo
-# 5KvqSvmZboKSOJj3BFcoh+NSCeUA/tXGvPczF18Fo1qzHxh7FsoZOACejfoFvcuB
-# 4hIkRXn6OcqYfvB45RpkriKM1YMV/YAiJDzq8ykOZwUj57orWa2AKdhsNpBYK4hE
-# mSqU14kmxfCManolGxZIB+MMjuz4J9W+fXi3R7zjROg8PKB2TpS88dOi/xvp4M+N
-# TCBsMUj1YXQFg2gvB4e+yieqPqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQUAe8E
+# gUn39GzDogJ+WBGtpr5/3zANBgkqhkiG9w0BAQEFAASCAgAxU+d1ylxkTU2gBi9G
+# dxLklin9kbrt23pvkbSVapryZQp7TxQxPNRkj3Tf8kdoV9VTUaI9E9PfA/fIiZxR
+# M1hXGq7iBjCZcfSRx5A9EbMkaV5gpPnoFB9eJqc9shZEuMs/SFVmxLI+IizmBvEE
+# G33gtUWqLhbI5g5S1Zm1zkmA65vg6Xp5r8uTjKsVc/SUp8GxIQiIAXhiFenH40QE
+# qKWd1y3If2DjyhA7AqvgHp7mUmfoEYgvuGRhNvzmDg2hIv6zt7bs8njz9/4dcfql
+# NlJEzsXzPss2C7vBD8tmr+qnQupvbqqBNM2FG99MdQ25laAGaARZ2kvK5FXpXk/s
+# DNAnN41bl9MvTQU4JKseO/r6Q44dHafyvjDiMMvOuEcncNDc8ZR13zum/NOMrewI
+# 6FGi/vyQNjibAHCZd9PnZASbfkGnzDUSOqg2M09mfif+N7lEueqE0qakfaQx3tfD
+# 66i4cfOc3Sxtv0RJRaMppo3WaMuqjTWeuo7WqdTcS0pqdxZ8xmyjFCd64E4T7NG8
+# QGcBSBBQtn9YePpbNccYQHGC0e1eTtazsBIUj6RKCbd1n1STttSN9sd0aTUknlrf
+# dFCv7B7IE/SPUjgHSuCvq5LIVbkAM/iVoy+nfJUDEPXN88eKplVSYt5bDDadm+35
+# Dze1Ch7ZQVyVuQF/omI4rtrtlaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTExMzAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCAtNtWIBaT9GDx7K9lphbpoWLlBilCulPGYo7Hn
-# kIuxHDANBgkqhkiG9w0BAQEFAASCAgAV9Cfv64hZZb97AxNtcY30diIppxjPW2o0
-# Ku1zJSNRngth8JgrZltQLQ+2flt5LEqynnRUG4VWhbeUd7sZM0ovTv5GayZWmRxF
-# Z53Avjue3UUy0KDkjxoZWtvI18/8dFj55klT31ZudydockTqce+JhHvdug6ybNwn
-# A5sMOFYDU4iRAMyaWZVhZhgpeFgOqvBfpEABCK+fiErtZ+WhaJzoTHd/LPWpJc94
-# 6eg5IDX8cLqJJSeQoAvU3WPdZAVCiZB1v3ftTLhNKIRAZ4i1ms1FrCWoP9lCBwMl
-# GcADkRALXell6YQaznIVD1nJGvno/UaTVA+j45/O2y4g+PYhTKSQ5XVuxTS+++cd
-# M99eFCX1V1KfBdAl0JLXPV3Td751CUvbWwROquOvU1e16ytr1bhl8nHAIODSqoFc
-# dAV+yZ1LeYECMyueqMF/XF0CP/wKmIg97fbXMuePEp4WYy7asPZ8fU6bjMnIzNyJ
-# J1hGBi3wRBv8WfY0B+DSmwmqOFfxnXHQ1hxIXU/6h0l/KyaBw/fYTOgQ3YPirFH/
-# 6ICmAE0nwaCPfVm7W6BM1esPOaEoHhVHJZlrnToIR8uvb0mbTmJAgpyDiuK7uQ9E
-# jyGgOvpkPPYXBZxFP9lHDJ9vcG6et9Tu/1V4C4bSydEmaa52zG69yU9u/hMSSiPq
-# xtEFGKbDyA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTExNDAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCBEs0+ZX6f1QmjIGBKV0b2V1vKIwHKqFST1u+qx
+# n5fDaDANBgkqhkiG9w0BAQEFAASCAgBy13oJPCFkcaULfPHFdFK5tRV+YxSWYDNV
+# 9jZS22++PJyyRnuxpHEvx3/f0fapfa7MGLvaOypArXXkv5BOdEOCR6tWWzq/O5zC
+# 7kXER5PAJpje60LGLxPIlxJ0irlDjebQ8NO0KEa17grD/HGUwK75X3Q/+jv/lqaD
+# L0WEA4RYIp6QzL1JHZ2ggl42saMLiMZ2BGKDIE4b0tYxJHIuGteYnKiwkD8lalMd
+# pznCDnUNTKM/spkYsuZy5T4spax3AVe2ejeQ47C7OGXrzlzsepb/d2fzsRzB6vpX
+# g2lW7TYpUCK2goJuOknvPvlpvhhBz267nH6ljSKy9m9NAHTVZJY0sB8uYPAyM/2c
+# DauPBZwiT9ZqxYdAXoncSyzYmCdLGCZCa0HNo5FAHMTrilPUHDjUqJH3vSIDJ+Z6
+# +mSMo+jMpEmtp9RPmCsvLbzvLmS+h3X4HC9+EdY6L3jEOi/hMvVuQa5McBB39mzj
+# XP+w9toSeCS79CfR0CIdXMtARzk5z22E1gTuO5bDjFWD4XpTOfvgzsmaCLnnOEKG
+# JUdLPRsZB9zAOS0nG6bluqGK7SoHD2mvgz8lRcTesvqIs4Jg6AyIF4BkT/mX/n2N
+# RYYf6uqHQTvGcDeqT/UMuXGOVlJ6uebo6FqejoA0ZJzXuuDhxQomkHS7Y0Og634s
+# sa7c4kT4LA==
 # SIG # End signature block
