@@ -422,6 +422,20 @@ Begin
 
     $ParameterSetName = $PsCmdlet.ParameterSetName
 
+    ################
+    # Always prompt
+    ################
+
+    # Initialize alwaysprompt
+    $AlwaysPromptSplat = @{}
+
+    # Check alwaysprompt
+    if ($AlwaysPrompt.IsPresent)
+    {
+        # Set alwaysprompt splat
+        $AlwaysPromptSplat.Add('AlwaysPrompt', $true)
+    }
+
     ######################
     # Get parent ca files
     ######################
@@ -1286,7 +1300,7 @@ Begin
 
         if (-not $CAConfigured)
         {
-
+            # FIX
             Check-Continue @AlwaysPromptSplat -Message "Proceed with CA setup?"
 
             ##########
@@ -1686,13 +1700,12 @@ Process
         Invoke-Command -Session $Session -ScriptBlock `
         {
             # Common
-            $ProgressPreference = $Using:ProgressPreference
             $VerboseSplat       = $Using:VerboseSplat
             $WhatIfSplat        = $Using:WhatIfSplat
-            $AlwaysPromptSplat  = $Using:AlwaysPromptSplat
             $Force              = $Using:Force
-            $AlwaysPrompt       = $Using:AlwaysPrompt
             $ParameterSetName   = $Using:ParameterSetName
+            $AlwaysPrompt       = $Using:AlwaysPrompt
+            $AlwaysPromptSplat  = $Using:AlwaysPromptSplat
 
             # Standalone/Root/Enterprise/Subordinate
             $CAType = $Using:CAType
@@ -1904,8 +1917,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxX85+mN71uc5BHgfpPGL9vLO
-# be+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUm+VKwRF98ftBkObGrt/VXQ6g
+# /a2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -2036,34 +2049,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRycjkw
-# gFOsik6QQwkBUSM8lCYkPzANBgkqhkiG9w0BAQEFAASCAgCFNpD8ULcsqdUkNoBR
-# 0yHQGmhWm8rTHRcrjTvc5PHwZFd6mrvrO85UFkKomP8Uk/U4IQTKq9bYpYIDS5t1
-# 3YGm9LcDe7D25IMbU1syNlsA3V2Kh6S48WVEBL23R5vfq6eMQYCxIucVOwE79w6/
-# QRKfFLhbmsvAR/aaLjIP3inDxLSKU8jzEByAm8CWGBt3Uo5/PMg5CLIZqS7XOyQ6
-# BhvfJBitorqL8MOdsnjRNO8gCPfnjc455nfNFIFHhjUh7+6Iap8SWImCoWrITW+6
-# QrYBOz/Akbow7VHekmEq2ZE2oFVnFV3XZJ0fHOF7xhwEfFzqrkRrx6DVlMNNyl6h
-# 3Q4XoVEBLq8um2MShR4ZD3QLVElRrey5yVPe/JSyaqD6JrTBYb/Un1uIvZzhJMM/
-# e+mUSBZGrx0Z5x+Y8tqbx//br7F2Q7CPaiAyS9+AeSsIOZZs5MX3ZP4LXZO4MSqa
-# fX2Sr3Qb/p7daQimZVPSkom/n3OSq5qT8KSVFm5OYul/AwIoxyuUVPhkBvxTtdMs
-# B2F+EQoITabXelTM/K/nPlsDeIKU/v7rc6gokyiF7C9Hii6vKTuW6WxJxY9Aj4mv
-# 7G/EtzqbjjUAKdNtblcklBSvWbQApK2br3lx6Vw22e3Pay8swZWmYkZhvbNAzDkZ
-# el+SMYX6ayPLxyOZy5bigyswAaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTzdNgy
+# HS3cmGjRFOMktp3MoJ3adDANBgkqhkiG9w0BAQEFAASCAgBJ8KJjIIuPy0kja6SM
+# 2JjWWEGe9jZ7MqzZlKvmnUaS/VLplJ+nnl+EFsqgJT7GDpM9d0iQJsh7g5/4UM1y
+# sT2yvve7FrVw3hJyEq3Zau5s5SYZs6iL36BbeF14GaXhgIy9N1HgfBwfgFYEGdEL
+# uIzi/HLzWFgsO/PI4Cs9rSO/smEJuIn3ImM6STrp/F1b3KIk5VOpTU1Wi0ZeJxkD
+# MC+lQAl5u+YdZBxCkT1Jmqr57ViCvhR8F0KbRKnKfZhC2oM55J0Y6sKQ0PXW/bh0
+# isWuDmi4O0XZ0ukpKtLrfDHAiaQzVh8B+wClyJDIzitv+UQNvVfNJ/hYiyuHhZhg
+# +kvpGPyXSr26vc9CTNoTqKfnZd5Zh8dbmjsMhncUV3uI1tfVtKX/8P93Agy+unBM
+# KV0dnE6p1h4GboRFmvChHrhVi/Who0H6BvGX9e4S3mld0uq24ChRgND0ysQ/UsPb
+# 1kcDXHOb74+j1IhSjvRDRm1dsmKewcz4y9gt11mfpvwzJ7VWngvfaNb1QabYp9Yu
+# Rpv5BTTCyrj6Uh49ILaXjEVyrZCR0bCO4IIPuP8XSrOc65NmejPWHZ4eJ6zp1oP9
+# j7/i8KWSAdJAiPafLapO5njeG52WsEW2k9MC5pzBnqdIPTGtMTzhltg+VY0I3Bxt
+# 9B5QRYsNUBDA4F4gMHF/YxpgJqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTAxMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDuMhLLIqdJNAGf0eoKRK0tN9Rjgw3qlxdXRldD
-# tjVclDANBgkqhkiG9w0BAQEFAASCAgBy7VLF+oGwZ32DYCEAJmWo5wXC3D8QkWLB
-# 0JvO3AR1vIqdCot3P4D2uNsaFfa8Vxm43faPT22xrve+yzZQ7rAa20u6VJDHMnCK
-# MCdq95tnrzA8zYqT13BoFJjAZ6ZeZ2fcMXH83KMiiG/Z/Kp/cdUXoezggdnC4l3J
-# Aqi3sS/cieMSBYEcm7iGjWcQTktowEnGjbYYX+R0uu6k3rUzcpbTbHt6QiBjb0jO
-# 0ZLxR32sEjeoRNKTB+p0dSRT/V5MKwRhBXpQQegU0nZ5AN0uten+lf0o1cjMJUOT
-# Fzlyug68HBdF9Glfd430UNvT7xJ4CB/vE9zSbOh5367f8mCBLF0+AN0dLiQeyqh9
-# nn7+aoQ4dUYq+mFCIRwhSGZZ8C2/DbX2+Nw3LF69GKqaP9Gt9/837q9O3tJnZaW3
-# ukLCQoGTSK2YlwfOi5IES2GN2Yzve3ZfNDrqWStuUK631CyB06wWvQ4puQIRlOt7
-# /2ipLkE+vS2XyXX7gGrj1ax9L+r6hqws71G0g5a9LfZKoxXJrE9EP2f/KfNZW+0E
-# EvjRS0bzu/gDfXt5+PiCe6SKEQwI2pBF0y97N+W0WjAgyQOEDYDkHVXTrfBh/F9w
-# nzfUcbnpZlKSEwbCSAw774lmyXDAtvVSWV8X3mX50BqrwqS20tH4wKuP6Q68Hojv
-# DKjREHZ/dg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTEwMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCA7PC+LWrZW/XzIyOVCog8rjD20Umxb3brl1Cf4
+# wT2t3TANBgkqhkiG9w0BAQEFAASCAgCell9XyBFGXPQtE2+vKWwGMSZDsChswwQb
+# x8TKsouXII+omt8VOY0om+atwsb3+5XLqgs5TdbLPqeQfRWpzuJN2BqaUub2GnuC
+# Vbw1v2zKDpFlDDFhm7i4ZsVRcYBDE9xl/6Pvy24HAz2ZOyL55lJaqtndYlytjFkq
+# DfoTswSeISshx8opLjQGfh1bjt0yrjbdJNveyJusZSGbysXqhNUTxMgPm0ktivIP
+# sIqV4QiVUDp5SD/MA3BDZ37M+awQa6hsGHhLuXodw0oodUNSA/oCxVZLTYcECSqg
+# AbEH1Z/jLn+5bdSDNx741X7/6lL7YkAuW4A7uXaSWZ1B9tRpag0hPajl4DX9kE1M
+# nspsMLoiz0LTBXA9XCT4Q/voc8v6IfRH/s4+R9Tm4+MwLxFbweYAHfYmL4nvTWe5
+# SjrbXmL1rTWMi4zLEAnsFOrIMiFUHAQXDDcB0JZ8Sq51t7FSzItQKKEn+PodgDbV
+# hNwvv5M0g0FD5cPJMs/mR4voofrp5diS8Dc52SDugXKz+qprmoFqgz53VnaFuMZ/
+# oarq2tKckiApEPfokizaK6/AmtRivEwJQBGlOwkiKG0xZbnkPjvXDPDY76lt49fn
+# tM0IDMvys8AOB3CIrVassA2Et/uLx07ktFjx2u/8fZAt8NK9cuhw+YW2M/aUA/mJ
+# gXhkZkvQug==
 # SIG # End signature block

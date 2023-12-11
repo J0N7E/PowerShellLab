@@ -106,6 +106,7 @@ Begin
             AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
             ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');  Credential = $Settings.Ac0; }
             WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');  Credential = $Settings.Ac2; }
+            WIN13  = @{ Name = 'WIN13';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');  Credential = $Settings.Ac2; }
         }
     }
 
@@ -711,34 +712,40 @@ Process
         {
             # Make sure DC is up
             Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat -Force > $null
-        }
 
-        # Remove old computer objects
-        $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+            # Remove old computer objects
+            $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-            # Get variables
-            $DC           = $Using:DC
-            $Lac          = $Using:Lac
-            $VerboseSplat = $Using:VerboseSplat
+                # Get variables
+                $DC           = $Using:DC
+                $Lac          = $Using:Lac
+                $VerboseSplat = $Using:VerboseSplat
 
-            $Result = Invoke-Command @DC @Lac -ScriptBlock { $VM = $Args[0]
+                $Result = Invoke-Command @DC @Lac -ScriptBlock { $VM = $Args[0]
 
-                $ADComputer = Get-ADComputer -Filter "Name -eq '$VM'"
+                    $ADComputer = Get-ADComputer -Filter "Name -eq '$VM'"
 
-                if ($ADComputer)
+                    if ($ADComputer)
+                    {
+                        $ADComputer | Remove-ADObject -Recursive -Confirm:$false
+                        Write-Output -InputObject @{ RemovedVM = $VM }
+                    }
+
+                } -ArgumentList $VM
+
+                if ($Result.RemovedVM)
                 {
-                    $ADComputer | Remove-ADObject -Recursive -Confirm:$false
-                    Write-Output -InputObject @{ RemovedVM = $VM }
+                    Write-Verbose -Message "Removed $($Result.RemovedVM) from domain." @VerboseSplat
                 }
-
-
-
-            } -ArgumentList $VM
-
-            if ($Result.RemovedVM)
-            {
-                Write-Verbose -Message "Removed $($Result.RemovedVM) from domain." @VerboseSplat
             }
+
+            # Domain Join
+            .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
+                            -DomainJoin $NewVMs.Keys `
+                            -DomainNetworkId $Settings.DomainNetworkId `
+                            -DomainName $Settings.DomainName `
+                            -DomainNetbiosName $Settings.DomainNetBiosName `
+                            -DomainLocalPassword $Settings.Pswd `
         }
 
         # Publish root certificate to domain
@@ -776,17 +783,11 @@ Process
                 ipconfig /renew Lab > $null
             }
 
-            $JoinDomainSplat =
-            @{
-                JoinDomain = $Settings.DomainName
-                DomainCredential = $Settings.Jc
-            }
-
             $LastOutput = $null
 
             $Result = Invoke-Wend -TryBlock {
 
-                .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat -Restart
+                .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
 
             } -CatchBlock {
 
@@ -828,14 +829,10 @@ Process
 
         if ($Settings.VMs.ADFS.Name -in $NewVMs.Keys -or $SetupAdfs -eq $true)
         {
-            Write-Verbose -Message "Adding permissions for ADFS installation." @VerboseSplat
-
             $SetupAdfsSplat = @{ SetupADFS = $true }
         }
         else
         {
-            Write-Verbose -Message "Removing permissions for ADFS installation." @VerboseSplat
-
             $SetupAdfsSplat = @{ SetupADFS = $false }
         }
 
@@ -1057,8 +1054,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6U+/ZOY5k8x7BqF7ZHHZvzL1
-# 6ySgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUuKUpO5sMAhnXIXsKe9pjZF2X
+# 96+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1189,34 +1186,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQwUTg4
-# hL36dUzlko8yec1O0iY2rjANBgkqhkiG9w0BAQEFAASCAgA23fPrK8ZpIb5cflIy
-# p4oxZCP+ExNXDIrauL5hqizjSRP4ELdc/bTTuhplxdnw2wO8473y4dZEu1frAhyG
-# 1fCQn9vY1oGzPqUP0405zxmIf+BfRCM6Fq5eYF1YluBOA+Qou9qFLyS9yb5Ne8MY
-# HSZe9t6ggIFz8DvTxKqQx5JMRtIohaSEfOyDi18MAQ9ypjybL/4WIUVtRjRwMUIN
-# r0l/qoZRgbC6oaD0U6PVY04BcpUc1DJuhPGfH6gJXJHx6QhQuBE2x6lW+BUPZvdn
-# TyUh1lcvLhjGdkZv34/z9fFuLQYy7Yxp0Gjqcw+6bd28Ejpouqd3gixiDbLVhpA6
-# Oj9aMJSyuFQEeMTW4mCkO9PLILPA+zWaY+Oa4J6Q01Hu7aw2eNYCD2Ujc1xbJJ4Y
-# rAr9057uI2lGRfEprh1oaXbUk4KUpXDOuZbrZShMVOdWgjm59SZ9wGzxnz/yDFmb
-# Yzh27d/s52r0XusZxj+Q9vzFu0bRKaimnPhefMWi1vcQw8eloB63qvBK02oncAqq
-# xJBLfMGgNm4Je7i6qv9SqRWH2qNP4Hr3E9pNEVgC8TIgZ9Wsut3PUL63UacTlJ8Q
-# IZ1X1TKMQiZu2n9c6aU3Q371eact53U6tXd+d1O5xVN1/fBu9ZJDFfw96+ihJV/t
-# EdFlULHUN+RblhQe74aPhQLi9qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSrAA+t
+# +DFFevcR9QXONAAgEAWjwDANBgkqhkiG9w0BAQEFAASCAgAcH8wMJ4fHXNkDuWOT
+# al/J8FC+JdGd4qz4epMhmzf/RSn+4GcDh8nLQ1++XTVQC9QlVsolYAKzBSMYwf5J
+# WItPG7sA/KT7qEBQfoAreE3q2o13nLqM+Pen/2A/6y25R3f0aTKTJfFL+nI61D5b
+# gKYFeWvD+uE0cqjtILZd0IEizyprY5gIR9Kwn+tX+/EvVTXnNSba4qdFSB43qTH4
+# 8pE/oMFGWAjPZAuweWaLBQrCkdNN8n1Ips+ESdZL+BhFrCdUTpnVYdpZ7+aHBm+X
+# fHGIH5GobgZwrYVb3XyvW5JO2gBvya12B0QuPjXqsQreiYdtR2SmQHLDmBZs4oQn
+# QTz9XdJTbwk7epPcq7avwEJPzlGEice1sp3OcoeI5aVsQdS3F3Gxs1WvGXUBRwVP
+# Ebu5OucbR6qARKjuni2OiI+TxrNqfeBU6a/VEW1CaxXU1acT65c3qthHjAxJKIG6
+# glgITDSm2WOVEKBmLBvZtGn8HevPFO9Nd3HWBDs/RfQry943qLdP3fSPK8Kpy6I5
+# zeD4SyywBA4YXOSj/acnXUn1lufdiUl7hy02UoNKMrR8cuQmloKo5GfwvefWZ1C5
+# 9jTXcmXRH42dk55384l2tdF90xUR0hxvyBKMPg4gnquKUAsvdD0vqIJ2+hC2lfol
+# pwrTPMaJVeIxBdQtDl4RbHp5c6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTAxMTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCBMGqd5NgXq/gYOnUV3fKAzjaGZOKMR7pauWsku
-# OGj9xTANBgkqhkiG9w0BAQEFAASCAgCIZ5+AWrlB5Ev8NdevgZKUy7DO8wrAC6Yc
-# OgwGngDbg9UGVxMLNfyxvpSC6d8YeRqGLCFemfONajilG7AvZH9TSW8uwA0z/dvx
-# WTw6GbpLGrlEhJRhvjork3+Yvlqgb/a1AOcYrauJySwg/zk1Gqm+P+GjOKeltARs
-# 45nhiaD0aLFzlZJ/YjV12L+Khri/s+KYdoX0BR6O5zNj3OvU4mnI9pQB+nS3CPbp
-# JjenF7hQediXugR40qAT6DQb02HxXPWCNo8/HNlKiSjpBPM7kcLpNwaoE/j4jtoT
-# xG5uEudEbsQ8P3LkR83YaAcruPNhA+b4J17sxTXECJbB+TtT/M5NbPhzaor4wpOX
-# R/ka+FdFF5F229o40wAFxl5Y+GNiHLHQ+BQVVAGw/XnztRK7VJBWd50ltTP/DG2l
-# vIYklmyQRvnrme1umhKAdHWaQjuslqKbbT37Pjw6NCFhAqzt0xCi+XPtrandDRI8
-# 3v1i0y0c1JZKD0I9lOmPu6YzQdpNpROxFNBMKNMaWm26Exd4UTBneAl3IaLW1GYF
-# LrpBE40XpcIuZUKOs2pW5IyhCKVVd3KL3A7vRUfggg5/ljGyuqYDuS4y57oiw+OC
-# KT3BEv8xUsl0juXbj7KGmkVcKp9wc/X8oLdBptW6oprM4FUjq7hFLwe45y/MjQkK
-# qkOI3WfYZg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTEwMDAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCA75oVRuaE3AA4uXdud2Ln5AO0PmvD5JS4BGs2b
+# Keo/iDANBgkqhkiG9w0BAQEFAASCAgBijdlutIQkMvZ4uZ4IO7tsz3KwpIcft6sj
+# QkXQPCOu8KXodWs92+BW6lD6lj+atxb1F7RTGdjXqZabE3USIyhyPttvB1B8o64b
+# CnrDfO0LgtjY3M3FvPiyKGxdkbGAB1D8YmS2ZHODlrrh3XowyTricoZN+b98gljT
+# Jw8naD8yqBWMaydnDOxbYKRGNT6+pG7raw2iOqWwt7dNP/DAttxemkRKD/lw06Wk
+# tHKne4lMrSYxauM2IrtPMbxdYZyaYHvwMzgIh1qJY3y/MSiHQmW3CePYfMIk65/w
+# LbXDSWmIEpxPitYHlAZZymZF7X/AjoK3rKre2CXZKK5ZmeM3a676AxBvMxEJE0dH
+# P5+p99kTgKZzE0PDR/KSykwCo8oK0e9iuevVXteOH7Rr4XvFyggGE7szazRSMLNR
+# 28RSaS5Ofwyg2DJnGOS6EHWT+oZbx+IsNp26lOf7W2RuL/Z6MXUKxyZu7rxeuFXX
+# 2rtnx3IR3WYPM+RWfgE96IMJO9n11pLT519Hb/574ZranlIvCR80pesltoBqvCkd
+# ZcD4RiAOfePXq1T8k6Z+Mu2r0gJgFgp6F4NuV/8h8QyrfaC6Rr8nObdE28MzNtB7
+# xt/XvOGY4Ewu86cKdjVtkhxR2QIE5cmMaJ+AmKGhx9YkoIg5w81Iy+VrOxnZeTc/
+# c0LRDd3q5g==
 # SIG # End signature block

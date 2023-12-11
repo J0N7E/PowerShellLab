@@ -117,6 +117,7 @@ Begin
             . $PSScriptRoot\s_Begin.ps1
             . $PSScriptRoot\f_CheckContinue.ps1
             . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
         }
         catch [Exception]
         {
@@ -246,6 +247,29 @@ Begin
 
         # Set friendly netbios name
         $DomainPrefix = $DomainNetbiosName.Substring(0, 1).ToUpper() + $DomainNetbiosName.Substring(1)
+
+        ##################
+        # Get/Set Content
+        ##################
+
+        if ($PSVersionTable.PSVersion.Major -ge 7)
+        {
+            $GetContentSplat =
+            @{
+                Raw = $true
+                AsByteStream = $true
+            }
+            $SetContentSplat = @{ AsByteStream = $true }
+        }
+        else
+        {
+            $GetContentSplat =
+            @{
+                Raw = $true
+                Encoding = 'Byte'
+            }
+            $SetContentSplat = @{ Encoding = 'Byte' }
+        }
 
         # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
         # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
@@ -3434,16 +3458,20 @@ Begin
         {
             foreach ($Computer in $DomainJoin)
             {
-                djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$env:temp\$Computer-Join.blob"
+                if (-not (Get-ADComputer -Filter "Name -like '$Computer' -and ObjectCategory -eq 'Computer'" -ErrorAction SilentlyContinue))
+                {
+                    djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$env:TEMP\$Computer-Join.blob" > $null
 
-                # Get blob
-                $JoinBlob = Get-Item -Path "$env:temp\$Computer-Join.blob"
+                    # Get blob
+                    $JoinBlob = Get-Item -Path "$env:TEMP\$Computer-Join.blob"
 
-                # Add blob
-                $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
+                    # Add blob
+                    $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
 
-                # Cleanup
-                Remove-Item -Path "$env:temp\$Computer-Join.blob"           }
+                    # Cleanup
+                    Remove-Item -Path "$env:TEMP\$Computer-Join.blob"
+                }
+            }
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -3491,9 +3519,9 @@ Process
         Invoke-Command -Session $Session -ScriptBlock `
         {
             # Common
-            $VerboseSplat = $Using:VerboseSplat
-            $WhatIfSplat  = $Using:WhatIfSplat
-            $Force        = $Using:Force
+            $VerboseSplat    = $Using:VerboseSplat
+            $WhatIfSplat     = $Using:WhatIfSplat
+            $Force           = $Using:Force
 
             # Mandatory parameters
             $DomainName = $Using:DomainName
@@ -3527,6 +3555,8 @@ Process
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
             $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
+
+            $DomainJoin = $Using:DomainJoin
         }
 
         # Set remote splat
@@ -3542,6 +3572,7 @@ Process
             try
             {
                 # f_ShouldProcess.ps1 loaded in Begin
+                # f_CopyDifferentItem.ps1 loaded in begin
                 . $PSScriptRoot\f_TryCatch.ps1
                 . $PSScriptRoot\f_GetBaseDN.ps1
                 . $PSScriptRoot\f_SetAce.ps1
@@ -3597,13 +3628,6 @@ Process
                             # Save in temp
                             Set-Content @SetContentSplat -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Value $Item.Value.Item('FileContent')
 
-                            # Check if certificate or crl
-                            if ($Item.Value.Item('FileObj').Extension -eq '.crt' -or $Item.Value.Item('FileObj').Extension -eq '.crl')
-                            {
-                                # Convert to pem
-                                TryCatch { certutil -f -encode "$env:TEMP\$($Item.Value.Item('FileObj').Name)" "$env:TEMP\$($Item.Value.Item('FileObj').Name)" } > $null
-                            }
-
                             # Set original timestamps
                             Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name CreationTime -Value $Item.Value.Item('FileObj').CreationTime
                             Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastWriteTime -Value $Item.Value.Item('FileObj').LastWriteTime
@@ -3638,8 +3662,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULNiuNLEytyokFGAGqr//L4Ly
-# 13agghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzeGrE+mOmeMvZmxFOyDIuhnr
+# zzagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3770,34 +3794,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQcTajv
-# h1qKuSNSfdWqX0RcApAcHzANBgkqhkiG9w0BAQEFAASCAgBfnHj8iRvv6mTkc6fL
-# jU69d89/6vHJ4DqjbZR21qcVilo0Bqxn3w7qeHOJiEpRlCFl3qfsSEfAb9LApQ4I
-# o9LmtNI5Sbqd8TRd2z4yS36VY4QIazTHdfeDKifs8t9IOpSs1Ms03IHDL2/TEgyH
-# cg72+XuJlGyVxTfQrFJsNchtYn8+RhBKji6cYyAUso9+yShbKSXCdEy9b4b18eyR
-# eXFg2m3/xYjZbSF73d8zLg+z0pOx/daGON2QUnuBEEYemQxWMobgW4RVkPHO5+p1
-# H33Tao/3N7I+c4HMwUmDRoRNJOCjQ0+dlZJuLcl+pC4zJT1JYjPNoayxuG2DNMZe
-# 7jgl8S3ANMYUDMqFs65E9qGpiJRdnOWfw3pui7o5JSFB0wM0zw2HVejGtDYQVZLw
-# vKDTlhUMiUYmSlRxVJqS53DH35oG7bV82B0szkzmxu3pE8J5F5/w6LSLdA00qvAC
-# 22AnTJUIzekz+3xmwxfVSkkgzGfVqogX8IdZGy4hsOOJaRG+s9RRZQe53lGsY7YF
-# HefgAy126WVxITi9my/iQOZ3v3OiTbaedAPM4HEA/dkrebLmHXFUjR7enaUrBvEs
-# 6UaBQr23X34EO8mUhOaCMhG8wX/6E0ZFlhbqP37VjtYtNlen/qcT7Xt06rb24t1I
-# wXkNT8qIQj1sXgHkHJ3QW4KdzKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQxhoRM
+# s/PQnBANradBjW5ZeZgCbzANBgkqhkiG9w0BAQEFAASCAgDGrW1oBeoUIkb3C2GB
+# gRvIPIk9/my44yQ7v6wV2ySfZaRtNrL7JRELwhE0I+Vnqm7a3TCwIicZ56iBMxGi
+# 6jvp1KlEl84YYLArk2iGGvkZKi2ImwQO7rjM5EzHNIE8i96nlYIjZIRWtrroNI+b
+# hnM8Ey/yWlDHpjxAEa/GRUGx4BHB3iqQvz2Smwg16kPz2qnUsOF51mZSK0LNb533
+# 2bUnu61oA+U0dQhvqorgulO2BSskMxHehVVtBwxmsCruWEczcTV1UP8Y6tPF06GN
+# LtYYEjB7w9oqhItVB68sfmukTSAzBlbGClfSFVRNdnAdmRKQGdaboGHWicLly2X3
+# Vj5VEr513VyKGk+aaDY6VTUecP9nPY7ZiIUSHbwrhPswkCgg91O+LQajLE2keiJ1
+# Zgc1Llq3Gsf25OvCHxQ8mdwlJC3a/ElBfp8CW9ZSZETEhkEe26tHhTL05CUq4Tg9
+# 7hd5wh8eSy5vYXsTampMsoo7c2L/M8fhtpvEb0ZMlEER5uYKpECzVXsEuCo8o+Xs
+# 5GDlXybHH+CIKqFqXoMChdk4gtKFEfNif6XhJqqsw6pk+zF6X+bTammQhykhvHdA
+# uL1Yyw460NpTZxY5EOnp2qjAxviRIgP3GhBUyEzf5yLBPmPR+K/iRVLWSyAX+g2a
+# bxTffL230T3E4bToxCgU0FfkdaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTAyMzAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCAQFWKkRYr4NC3Nul8QAKQD0JrDiZT6P/yL1aGk
-# l8yPkTANBgkqhkiG9w0BAQEFAASCAgBz7codg4Ez2A4Q4H6P5ZZ7xRAbUyzow4Ij
-# oFK34PBHsaGXAxC4rjvEV80eFFRLn186FW5V6efPndR7d3oR52TwkE3o07jkkkSc
-# L338Etj0i8a8t+GMX1sQ7Egwq2UKSz8998UyBQEhlCkJcSGJiEPvDneksnLgMozL
-# D9iOpFSAK1zH+/ZgoBgtM+F0X43ucpGF6qEOLTZ8FUv2Mj5Nt4GoauP84WftFmoC
-# uobQmeCvFi4GSwQgTA1KpYjq2WK+yX+coMXi1sPpNzt3UaSVrmum5laCxS2ZmhoG
-# y+hOVPtSlsmtqhmcNpFGtFWd8SAqCYDv7Z9jru2xx/MNIXCAGGhxoBpw71UkvLU2
-# FS9efNPs7OPr7/yF+FiB4E4j7l5hxqmHpm/sD5RVgyAp/0it4QORopk7IsRhZiWU
-# 0TznjnUAL59sgfqzzdFJl0QIuUZE8fzGo6Fxdjxai2Mc/uDa8S2bkpQPb11ORRVL
-# oNa0+ySO5bn5dqSHBqvFVJ8u0drqwqvChl/R8MhsBeg8Nw+CTa1jbEQ9e+1SkzNH
-# 2pb2+TtD+ig6fWx8QkPnfNUS86oW/VlWjgZE2Gm5pA2TJBLNyD3WdywhrhNUUie8
-# CIsmFcqpIpWqE745MMiJTldojl6SZGNe2fbqrdc5hn76MPdIZ6+7JvfjLj8nKtE/
-# lwg6Zud7bQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTEwMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAvzLBetOdC8GNj8CXOBNU9gYoB1AIIsfCHnbRu
+# 5FGE8jANBgkqhkiG9w0BAQEFAASCAgB2gaSS9sPAl5fhuuclLeymeKMLghDGWy9r
+# nFjWVuhZDl0P7JH7m40W91JTJmdLA8uz2J6XOAQKbLCkMLaT68mmAFpDDkMuAGRc
+# 5i7oy2Ez5sVUhOqUTtUxK3hYN/XQ7AshUmxGNEY1E/zMebtKoMpgB1YW7oZTRQcL
+# RemrO9Ezd8qPQRxR+gkAhCL8eY22QKIuy86+XFxnjcApmWVWiUF9mxXqnTCvWCOB
+# AKNyhen6RGoyqSeCu9NoK6mxBJ/e4h0Uygz7kVdgvFaDJHhFikS8e2vy87RaPHKB
+# GcxevAknb05GcxmAiAHBRZUznRAntrvAh50xz/oApxNnojtxeu34Jo58L4vi33m8
+# rhGm9EK+BsXAxNfdNajUL4QPVJn8VR58gPp+4W4IazIv/dEjlpP+Or2cPSVkmnOo
+# XMwQqUzqxHmO0aD8IMB1Al1ztVWPQbE223gsp2U7YOJmriZo5uSgghScLLTJ3Kmv
+# qmc8QTC9KxjFOKe5cRJ0TsryF2/OuaffrFN3xArHT1ITI7hAPsfiKw1MyhrCyqDv
+# uRjoetWa076hMg13RxmOchqymAtv1FCuSrg8yGlwW7XIjM82jUfjPJ254d3Ctfh+
+# 8WbPOkDs+cTURfaYEIrJRq5HDg7UVlq3ZeAm3HAQPVLXFnzirg1Mha+RAadfX+3/
+# G9pWQgAzRQ==
 # SIG # End signature block
