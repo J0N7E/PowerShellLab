@@ -1482,37 +1482,6 @@ Begin
             )
         }
 
-        ##############
-        # Join domain
-        ##############
-
-        $DomainGroups +=
-        @(
-            @{
-                Name                = "Delegate Create Child Computer"
-                Scope               = 'DomainLocal'
-                Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                Members             =
-                @(
-                    @{
-                        Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        SearchScope = 'OneLevel'
-                    },
-                    @{
-                        Filter      = "Name -eq 'Tier 1 - Admins' -and ObjectCategory -eq 'group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        SearchScope = 'OneLevel'
-                    },
-                    @{
-                        Filter      = "Name -eq 'Tier 2 - Admins' -and ObjectCategory -eq 'group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        SearchScope = 'OneLevel'
-                    }
-                )
-            }
-        )
-
         ######
         # Pki
         ######
@@ -2130,32 +2099,7 @@ Begin
         $SchemaID = @{}
         Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
 
-        ########################
-        # Create Child Computer
-        ########################
-
-        $CreateChildComputer =
-        @(
-            @{
-                ActiveDirectoryRights = 'CreateChild';
-                InheritanceType       = 'All';
-                ObjectType            = $SchemaID['Computer'];
-                InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
-                AccessControlType     = 'Allow';
-                IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-            }
-
-            @{
-                ActiveDirectoryRights = 'ReadProperty';
-                InheritanceType       = 'Descendents';
-                ObjectType            = '00000000-0000-0000-0000-000000000000';
-                InheritedObjectType   = $SchemaID['Computer'];
-                AccessControlType     = 'Allow';
-                IdentityReference     = "$DomainNetbiosName\Delegate Create Child Computer";
-            }
-        )
-
-        Set-Ace -DistinguishedName "OU=$RedirCmp,OU=$DomainName,$BaseDN" -AceList $CreateChildComputer
+        #https://learn.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryrights
 
         ################################
         # Install Certificate Authority
@@ -2164,7 +2108,7 @@ Begin
         $InstallCertificateAuthority =
         @(
             @{
-                ActiveDirectoryRights = 'GenericAll';
+                ActiveDirectoryRights = 'CreateChild', 'GenericRead', 'GenericWrite';
                 InheritanceType       = 'All';
                 ObjectType            = '00000000-0000-0000-0000-000000000000';
                 InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
@@ -3662,8 +3606,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUg7WtUIzntuR9YO7dkxXEmSXd
-# e+egghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYs7Uln7/QJMYTBrPh85KOLWj
+# HqCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3794,34 +3738,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSf73rH
-# aj3gqPgNk7JuFJgHeWk+yjANBgkqhkiG9w0BAQEFAASCAgBmBmXGVeLyC2o58yjE
-# hSqcobyaHWooJQNy3RijWfVmD7cna9u4MgP1jb37muySguZtq68qjgYsIF9vx3B1
-# cgJqXoH7jQTdeuQL41eD9VRWWBJ1xikNHEgIIBLEl6uvk9aOLnZEIgr5qU37Iu1i
-# lIaiYR3JYFFoEmXQYAuDrQSy/GTOsewiTsPUViUEUI533Hs81kHx8eu6TQlZPPlk
-# PxG1gcXkgFoSr+KQbK1ZT0U2BuswbmKvCFG/1PxpnWQ50F/YBTXV+yKWJjR5c0g+
-# zPAj5VgiO6VZW4Cga14rISa5LPfi04OWZ61oCvvzQdFp7fA47C9/oPQ0ZS9wxe63
-# sHGk1fRe2QK9mtnxrWR+jloq0HX+XS2GuR1KCtI3gR45qvmz9P1v/LO5tE27vdSz
-# u721fLdgguLq491YDeFQIhjHltgsKasdp0ffMF95kSvUoBHA4bfWDYtutnN82Ak1
-# m7MJ09FMmqYTyCecQSHbTCZacUeBxL5SF/3vu8GRLktAS80PhXA8XcagvUzdGsOn
-# GQYELooMaulG+3Hqnx2x0nSP5LT4CbYkUODcPFJXWNHACl7b7eaOZH4EReF5MyzS
-# liPq/niTzWpJBXRRu9suZ07OulCS9zCyeyfDU1S0sEUWgVeOSvxU0OqKRu8yXhqu
-# XEG5q/IDMkJtnUY6fOm4AhiKEaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRrj7OV
+# 0xsTUFMFdPrc6KejExFl9TANBgkqhkiG9w0BAQEFAASCAgB1/OyPC9QdqtrDW2t/
+# 3/8V6a/sQA8dwK8Vf/bw6Y5LJX56ubqLGShdINC6gzSrnq6ZLmRF1q9E7qt/iffg
+# 1s8/dtfv5xRmQYZEVgKBpVx3K/xjb/QpoN95UxC2CzPvYuR4J7JtrVTRT++gHkbv
+# tabWStxaLw3e2NCue0pJUMNWJTG4JriE2NtbtScKHGjAEgRA+n6gY5zoWB8GqEeS
+# X+VrCQsaq2+lHpynXFSciTc+rdeRKR7Nf+FTcaGgwgX5fEodHo/V9sVKrHDS7m2S
+# 9GZRVCto0UZJLVCOSTOqR6DQ0l1WpoN1ccc6qFDJr9ROSrw8K+vSMRZGH5y+q3xe
+# 2bCENhfyEH4yb4ituNzamUvYem4+7rUyP/qQNzf42pe/h+prQTnyG3NhzIEMN7fV
+# BMmcT95H8EQD0H4XqY2vs/xrSZVdpfV5h7UdA0QwNeDtMUugI1ektBpo3JrvQXwf
+# ts2JRpuo42/3tszf+AKnXyM2v+CDalvXXKJy8r0hTXGQhuSfdTKzkDuB7Uad6KGc
+# 4TJqxbSKcTK4y5HDh44ZSNJwbWRLUi08BwI95+e2qOI/DTCS2QYrRIiocMdevvfd
+# PZoi4Bm5+fhPqdGqvbXoBAP5orrNQ6vI+QFLn4ZieFzy7Fx0fUXAVHL++AwRv0lV
+# zm4Uc8IP2r0UlGda8yMVkreSiqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIxMjAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCA6CyLf7lKxS+tRtudaLh4oinN6I0ORB6SU+NfW
-# Oc4LZTANBgkqhkiG9w0BAQEFAASCAgAsuAmMfc6hcAwasD8Vw+dg2UM36JX89j+h
-# GEVTCDIWhzuuBi05pzy/LH9GuclRW0AJcWHuh5IGyWwp/dayqL433x9+IXfPuP2R
-# 4G7prscq8rJljEa331feuq7M1b8bLkioW5fQGZJrvjS/Cc4dUVMIWBab1MjeUTT4
-# uwFSJXNBZxvKSli4u30hLX8bhp7sIMpv4sr3B0fZQqKtKuVgJToslVKujYRJRARv
-# LeEn3pQPMqhnWMHHQHZgNlU+q9pICOyOKNncMBx7PzrF8jaWTFiAaU2eDSXSgiKO
-# LCM5TetWho2ChJIn8JNLVFrdb05eMF6U3fTXBXfBx/tKTKRr3VKp/FdVJL7vdTAk
-# 2E1DbIF4+SSjZDjpL02SezMvdlxCpdJL2KpJsvk2teVJHMj+L+bKpPE6isyPojga
-# FVDlpsKlZV4VD+IZtpbh4fLs5kdmfy3W/cTkBexe0Y0UJbnIuGJcXy9NPhFxZSb6
-# kAQu9YpjLsTLaAFm5rFdBNWyxenlmlsU4OL3EUcg8z4ZopD8rpaWkADCbhtqDQ+R
-# iMUlOcQHfuG4G8fVeSWVxslkskoUOQgOreRC2yK9pMMiMdD8H7aAonTLHeJGQDa0
-# pkoAkC1FoB1bKxiPaqvZxuEK1hscYpoU2bk6G+Sfdmr7MGCQbBu7ZBvD++J9EH7W
-# o1UbGw+seA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIxNzAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCAaYMc1T+1PYUMY4+T2OE+xQQZY8HBO02x9W1NC
+# Xvky5TANBgkqhkiG9w0BAQEFAASCAgAIW2VfyHvYLYZtrQizjs92WwIlkeccayyj
+# qKZgkFOIelHK+tYKJeNaJqxqYxqdU+Cr+ediWeQaBLluT2DIDMdBO6HhU9wD/ycu
+# nMKOSmAOJrrHvubPj6l9KE1CN3qSfpl8VdZ4moXalkv/q+GsFv5dJ0ZZVZwh4j2H
+# oHcANQHH53PVDkQqjAeihS6SUnEjjS3Nwwhx4suZbZcBeEEMmxskGBYDELkYJAG6
+# 3m7DjHLTIGVKMPT3bfJ80oae2470+T6DXz3jBr88w29xkuquNXSb06Y7Jk4APkxd
+# sTEftEa8CMsbyUKI6QwNQ+LGVJFXfGpZD9tcjttQiFAFPynqkB+OSBV8CuFdBfr/
+# +oFInU7goFuiVYtucLxQBgon0g8II01VyqBpljJ3W1UThahWY6/s5y0LPOWPFBaE
+# zZtjbqvLIo3zzxCshwhRhiq+lsgT/b1hGwyb1Kuoo0OIyvIlJAXdcaJWehOCEa4f
+# zhwL75bxrWjS3149ENsXq6Oi/qIo3pohKDpr6i/Wpu102hErTWOiabYazSLuskg3
+# frzndcKHH8OzMUF8ULPqycHfyzokWBHL7RTQHTZlLCOiej50273bLKNLBsrdYDR0
+# ylD4z72awusArsA6Hbxi2ZVvK46uDclvAsJCptIGlNt0a+NEecw3MfvGd6MfxCty
+# p8X9UULzDQ==
 # SIG # End signature block
