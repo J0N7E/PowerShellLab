@@ -86,7 +86,6 @@ Begin
         Ac0    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
         Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
         Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
-        Jc     = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\JoinDomain')", $Settings.Pswd
     }
 
     $Settings +=
@@ -178,7 +177,7 @@ Begin
 
             [Switch]$Force,
 
-            [Hashtable]$Queue = @{},
+            [Hashtable]$WaitQueue = @{},
             [Ref]$TimeWaited
         )
 
@@ -211,7 +210,7 @@ Begin
                 Write-Output -InputObject $false
             }
             # Wait if vm in queue or forced
-            elseif ($Queue.ContainsKey($VMName) -or $Force.IsPresent)
+            elseif ($WaitQueue.ContainsKey($VMName) -or $Force.IsPresent)
             {
                 # Enable resource metering
                 Enable-VMResourceMetering -VMName $VMName
@@ -296,7 +295,7 @@ Begin
                 $TotalDuration.Stop()
 
                 # Remove VM from queue
-                $Queue.Remove($VMName)
+                $WaitQueue.Remove($VMName)
 
                 # Set time waited
                 if ($TimeWaited)
@@ -388,9 +387,10 @@ Begin
     # Initialize
     #############
 
-    $Global:NewVMs = @{}
-    $Global:Joined = @{}
-    $Global:Queue  = @{}
+    $Global:NewVMs     = @{}
+    $Global:StartedVMs = @{}
+    $Global:Joined     = @{}
+
     [Ref]$TimeWaited = 0
 
     if(-not $ThrottleLimit)
@@ -430,9 +430,9 @@ Begin
         $false { $SetupAdfsSplat = @{ SetupAdfs = $false } }
     }
 
-    $QueueSplat = @{ Queue = $Queue }
-    $ThrottleSplat = @{ ThrottleLimit = $ThrottleLimit }
+    $StartedVMsSplat  = @{ WaitQueue = $StartedVMs }
     $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
+    $ThrottleSplat    = @{ ThrottleLimit = $ThrottleLimit }
 
 
     #####################
@@ -493,12 +493,12 @@ Process
     $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
-        $OsdPath = $Using:OsdPath
-        $HvDrive = $Using:HvDrive
+        $OsdPath      = $Using:OsdPath
+        $HvDrive      = $Using:HvDrive
         $VerboseSplat = $Using:VerboseSplat
-        $Settings  = $Using:Settings
-        $NewVMs  = $Using:NewVMs
-        $Queue = $Using:Queue
+        $Settings     = $Using:Settings
+        $NewVMs       = $Using:NewVMs
+        $StartedVMs   = $Using:StartedVMs
 
         # Get functions
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
@@ -528,7 +528,7 @@ Process
                 }
             }
 
-            $Result = .\LabNewVM.ps1 @NewVMSplat -Start -VMName $VM.Name -Vhdx $OSVhdx @VerboseSplat
+            $Result = .\LabNewVM.ps1 @NewVMSplat -StartNewVM -VMName $VM.Name -Vhdx $OSVhdx @VerboseSplat
 
             if ($Result.NewVM -and $Result.NewVM -notin @($Settings.VMs.RootCA.Name, $Settings.VMs.DC.Name))
             {
@@ -537,15 +537,8 @@ Process
 
             if ($Result.StartedVM)
             {
-               $Queue.Add($Result.StartedVM, $true)
+               $StartedVMs.Add($Result.StartedVM, $true)
             }
-
-            <#
-            if ($VM.Name -ne $Settings.VMs.DC.Name -and -not $Queue.ContainsKey($VM.Name) -and (Check-Heartbeat -VMName $VM.Name))
-            {
-                $Queue.Add($VM.Name, $true)
-            }
-            #>
         }
     }
 
@@ -554,7 +547,7 @@ Process
     # Step 1
     #########
 
-    if (Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         # Rename
         $DCResult = .\VMRename.ps1 @DC @Lac @VerboseSplat -Restart
@@ -591,7 +584,7 @@ Process
     # Root CA
     ##########
 
-    if (Wait-For @RootCA @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @RootCA @Lac @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         $RootCAResult = .\VMRename.ps1 @RootCA @Lac @VerboseSplat -Restart
 
@@ -624,15 +617,15 @@ Process
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
         $TimeWaitedSplat = $Using:TimeWaitedSplat
-        $Queue           = $Using:Queue
-        $QueueSplat      = $Using:QueueSplat
+        $StartedVMs      = $Using:StartedVMs
+        $StartedVMsSplat = $Using:StartedVMsSplat
         $Settings        = $Using:Settings
 
         # Get functions
         ${function:Wait-For} = $Using:WaitFor
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
+        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
         {
             .\VMSetupNetwork.ps1 -VMName $VM @Lac @VerboseSplat `
                                  -AdapterName Lab `
@@ -712,9 +705,6 @@ Process
         # Check if new computer objects
         if ($NewVMs.Count)
         {
-            # Make sure DC is up
-            Wait-For @DC @Lac @VerboseSplat @TimeWaitedSplat -Force > $null
-
             # Remove old computer objects
             $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
@@ -767,35 +757,19 @@ Process
         # Get variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
-        $TimeWaitedSplat = $Using:TimeWaitedSplat
         $Joined          = $Using:Joined
-        $Queue           = $Using:Queue
-        $QueueSplat      = $Using:QueueSplat
-        $Settings        = $Using:Settings
 
-        # Get functions
-        ${function:Check-Heartbeat} = $Using:CheckHeartbeat
-        ${function:Wait-For}        = $Using:WaitFor
-        ${function:Invoke-Wend}     = $Using:InvokeWend
+        Write-Verbose -Message "Renew IP-address $VM..." @VerboseSplat
+        Invoke-Command -VMName $VM @Lac -ScriptBlock {
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @QueueSplat)
+            ipconfig /renew Lab > $null
+        }
+
+        $Result = .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
+
+        if ($Result.Joined)
         {
-            Write-Verbose -Message "Renew IP-address $VM..." @VerboseSplat
-            Invoke-Command -VMName $VM @Lac -ScriptBlock {
-
-                ipconfig /renew Lab > $null
-            }
-
-            Write-Verbose -Message "1" @VerboseSplat
-
-            $Result = .\VMRename.ps1 -VMName $VM @Lac @VerboseSplat -Restart
-
-            Write-Verbose -Message "2" @VerboseSplat
-
-            if ($Result.Joined)
-            {
-               $Joined.Add($Result.Joined, $true)
-            }
+           $Joined.Add($Result.Joined, $true)
         }
     }
 
@@ -854,7 +828,7 @@ Process
 
             # Get variables
             $VerboseSplat    = $Using:VerboseSplat
-            $Queue           = $Using:Queue
+            $StartedVMs      = $Using:StartedVMs
 
             # Get functions
             ${function:Check-Heartbeat} = $Using:CheckHeartbeat
@@ -864,9 +838,9 @@ Process
                 Write-Verbose -Message "Restarting $VM..." @VerboseSplat
                 Restart-VM -VMName $VM -Force
 
-                if (-not $Queue.ContainsKey($VM))
+                if (-not $StartedVMs.ContainsKey($VM))
                 {
-                    $Queue.Add($VM, $true)
+                    $StartedVMs.Add($VM, $true)
                 }
             }
         }
@@ -878,7 +852,7 @@ Process
     #########
 
     # Root cdp
-    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
@@ -891,7 +865,7 @@ Process
     # Sub CA
     #########
 
-    if (Wait-For @SubCA @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @SubCA @Ac0 @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         $SubCaResult = Invoke-Wend -TryBlock {
 
@@ -944,7 +918,7 @@ Process
     #########
 
     # Issuing cdp & ocsp
-    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @AS @Ac0 @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
@@ -974,7 +948,7 @@ Process
     # ADFS
     #######
 
-    if (Wait-For @ADFS @Ac0 @VerboseSplat @TimeWaitedSplat @QueueSplat)
+    if (Wait-For @ADFS @Ac0 @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
         if ($DcConfigResult.AdfsDkmGuid)
         {
@@ -1021,8 +995,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUISD6sA632dfzXm9+oBFMYPp5
-# XamgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURAIopKWkN4NrAuCK1m98U5DP
+# NcSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1153,34 +1127,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSjibb6
-# KtQVcekl/zfykPMiEP+ksTANBgkqhkiG9w0BAQEFAASCAgBMuwM9Hc4lYtdfPKfL
-# JLaEMDJ6k10KEaPI0wh9uGKAmzFNk+YasZM7YclkxGCokDkv5pFHJHCmuyCrVwTx
-# 0mn4Rn6y6sE9EAWeWFKgkG7YGzzWX+r6Md/ZfVreYgPSb2FjKPejAWMcc4awMYuB
-# 4/fAHiskso14Q3UHFmsXYr044ljYFtCM/iQ4UN1r9bIB8u3l2BbNpEifh4d14zwg
-# 46/KkopJcFaA2lgwwxf0wwYU53bYjKc+EndNaI7rnhEOsjMNfp1GU00SuBR93JHp
-# C71MYUaAAsHJ8LtBKbu7+r056csv6NNZJKroVBomXfXEmB8CD10QavDodHOmjGD7
-# v/yO1m7vDGcK5qGdOqysmM+bJ2QdwWw5jV3elMcSx5zcU6lB/IW3kvbgHr7Espa9
-# dHFThJOhtYF0msjqwks6CB9r61Z1Y+x/gUTmHtTFzmtN5SlP0QIPhM72TSJLVo0X
-# jEDlZxGc0NN5oVV8bcbzO/OrLHNNiTcI9uH0Haj1b65V+N3Y63THUfewTwpw9mw7
-# 06oNFSJwf1rLo945UBINxGA9KxyYqmPsFvjnosJU4KLYX168UP1VzVZLliVefkE8
-# lZ7m4Ng/mZ+aJwWAMnfCZ6Mp89B/AcigbvU52fDrq63MH1U5W/tc3avF88KcCFiz
-# eecADLpEQfnmLquEhXp53SY8aaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSiYZ4A
+# tEe9qKwJFdwDCM1SU/cMXDANBgkqhkiG9w0BAQEFAASCAgCm28VBZqv9f+UaGQYN
+# /gY1cRD5T1HtaVQJwRMwDKkIK5z67ztVxQUSqxrxo+jve+afqil6kDTmAoq+AlR4
+# YNTRUGdAA9A7EWzNHQjc1DRg5LHb99STKhBAWbI0fOY5Xttt0qLCeQW0m2oKk0uY
+# mLUYf2fI3FZPOWdJUcUOnqUaj6GQLj4adp8DgxOa4oGvHeiScl5+4llfIUu291XK
+# q1vRKsH6WSkWCIvJum0Qy8LmOEyYRWceIaKzg2LVgJhhhhPopgQdUq5jnWvsSWz+
+# wVF+LhuLUhNYAde7AWptuEEvdm7C0LS0bRykM5pL4HDT+4DAFuP6x/KlA4DBE5yl
+# fPGzqbg9KIvMsXVWxMiLXUJFwu1QeyzIQ2GPfX567h0kBkL+uOFImYqx/EHPdZWP
+# eb55WlPjYRgUFcNf5gKD8ff2EvUpKFZjsRVG1YEUHKs19suGuTTvb2sfmmGZPWBI
+# xD5KOmM4ouLzhDhkROYqReMByR82DamtE/RH5pmFQl2fYzbXbPA/YpvPDOcxzyGV
+# yAUnFHcLmGcNRFZPv4rvRpZbxCqAhbQ5cANiX0cQ5sV1ZDSfxGzUi/jl7Ww6dX92
+# KKBlq5+NQ9FWTJ/pohaEOEcB3aaEcuWIpsPyk6i96MgmqOrWpFo7NQ7WMm27/73J
+# 4oocqT43sjRyJTjcUNt8YUw8bqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTEyMjAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCDeyG9jzi5mNOe7drOlPPOsKXwBKgVYwM+Zopiw
-# ZcucWzANBgkqhkiG9w0BAQEFAASCAgCCV2KUABzWYxlv3X2krjjmBoQCLwHgRNBL
-# eWOwwSzcMhM6uVUDnbvbIc301CJEThSAxbnfZNm2XsqJEQWU5pSftTrdbVFOztFg
-# qcIalB0SvxymZ+/lNNFw0WLQszimK9Ug3tucT95xEIHKtbyJa0OtpGuqgpY+AOcV
-# SAsvpCftPdLue7oREzmc+47X4snAHkosSh69izsybvL8DouodLU1Zm96KKz0a7sn
-# As8O3kvJa4z3LYWEs6MUEbpJ6Z6l5gsvz31+Wh5SxyUrPbFKxWYU34UTPM7yVfpH
-# CYqsZCi9RYXbfDZmsENVN99fovUc5/Uc7HTqjXdfSLOCb25ojQwFplhzgPORR0lY
-# IiHaGszOXKRPa21Z8fCpF9jIVB2oVC+aUZ/v72G0+9bwMJeaTTJbqyktgxHiHhMT
-# 1oGYmBFf5g0dDq/AZFOqLnqUqix47kxVGGeyIL3AOksjqfccqnqUDpr4qBDBTeX0
-# GnrDJnkcS/C6g8WcvhhwTKt1QRtakIrfEiu3QVIZ9OR1k3g0Rdp5L1bd7V7YIuWX
-# mYah+zbXmOh5nwfkn1uq+2/DABPfTgvlLQZV0/SY6/rnAZWw49poTRQp4P1xfpWW
-# uD7niCVYtgolUor5wau04rKNk/z/Z8ekxXRQEewR5/C5yasIduNS/RbjwyWVHJOA
-# 9XNtla6INA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIwMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBXlJjnzsUC3+k41qLJpV4sUQy8EOYgNXzeYo/k
+# br/jLDANBgkqhkiG9w0BAQEFAASCAgBF0i+O9d3/3D8U8vyv4d1c6NQeYoU+t1nP
+# S8WOkoYyV4LZ8uXM6JW0njKi16ZfooWhln+Zav14y5KsjCFQEvpPXLQZd6qxHbVZ
+# mpim+MtU8j8Qt2d8YGFo4QB7mugc2qZblylqgQYYOsMjsPc5M4hQgPAh3GAMc/+w
+# eaoqp5mo+ybtPQ9Tb21dZ2f92BoVGUWkvW/KHKod9uId5F+Btvuc9KBcbqiKlpdc
+# 4fOZ+nsxI+ffpIYOcrcs+b3t0B8qI8OwlZGL7PQPu1DEs0CDjMnkfamn/xLevT7J
+# qqm5RL9KrZBZZfmM+qFgOx6/zEk7BXSQWWjmm3ZpAfwZAeDlK6cYS2GEo4ee0ME3
+# rNxAazP1PMm4ttjt1Nv4ylAFer1Nt+xLx7gAxcnlsAGPymFZc+Q9W4gPlzfwIU5h
+# 2UIwdsXovFHNptp1mOkplo3jEDS+rBkS3o8ZE3KHamtvZ9As1swpIi0i7Om9kUae
+# WXEVvPUacHswv5wTI1g//sDzadaeGg6gnZmXxqtSj1GkYpvRgdHa+HoEZOjVFppH
+# iIQ2fJjJUGSr5Bo78XeXuSa9q10h+KDqwviKwR+hhuB740GI+bCuWaVaCizwSN/8
+# jUQ+ZoT43nBK9oD48YJC3RXYC3UFfKGSJprFrYO7xu9ep5Sj6IkmBCFUxRsUR/4U
+# py2DKdQeqA==
 # SIG # End signature block

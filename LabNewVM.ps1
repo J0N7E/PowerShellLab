@@ -27,7 +27,7 @@ Param
     $VMAdapters,
 
     # Start new virtual machine
-    [Switch]$Start,
+    [Switch]$StartNewVM,
 
     # Start virtual machine
     [Switch]$ForceStart,
@@ -118,7 +118,7 @@ Process
     # ██║     ██║  ██║╚██████╔╝╚██████╗███████╗███████║███████║
     # ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚══════╝╚══════╝╚══════╝
 
-    $StartVm = $false
+    $Result = @()
 
     # Check if vm exist
     if (-not (Get-VM -Name $VMName -ErrorAction SilentlyContinue))
@@ -149,9 +149,6 @@ Process
             Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes $MemoryStartupBytes -ProcessorCount $ProcessorCount
             Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $false
         }
-
-        # Return
-        Write-Output -InputObject @{ NewVM = $VMName }
     }
 
     # Adapters
@@ -195,21 +192,23 @@ Process
         Add-VMHardDiskDrive -VMName $VMName -Path "$LabFolder\$VMName\Virtual Hard Disks\$VMName.vhdx"
         Set-VMFirmware -VMName $VMName -FirstBootDevice (Get-VMHardDiskDrive -VMName $VMName | Where-Object { $_.Path -match "$VMName.vhdx" })
 
-        $StartVm = $true
+        $Result += @{ NewVM = $VMName }
     }
 
     # Start vm
     if ((Get-VM -Name $VMName).State -eq 'Off')
     {
-        if (($StartVm -and $Start.IsPresent) -or $ForceStart.IsPresent)
+        if (($Result.NewVM -and $StartNewVM.IsPresent) -or $ForceStart.IsPresent)
         {
             Write-Verbose -Message "Starting $VMName..." @VerboseSplat
             Start-VM -VMName $VMName > $null
 
-            # Return
-            Write-Output -InputObject @{ StartedVM = $VMName }
+            $Result += @{ StartedVM = $VMName }
         }
     }
+
+    # Return
+    Write-Output -InputObject $Result
 }
 
 End
@@ -219,8 +218,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUimZDDocUAwquMsUbUteHwfoh
-# +d+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUL3+yltiL/YcKqeDxVgXg5NnG
+# FASgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -351,34 +350,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTs6XOa
-# sRb95Pk5ZxPFQH7W7vuOHjANBgkqhkiG9w0BAQEFAASCAgCbJQa+a0Y8WbyXqGRO
-# yf/s4NDtWhnay2ueTOXcbFIuhzDsdQxHzCVmLQm1LIHwMZGz19SK9K91424QVC54
-# kOqnUm8cVZX+nWF5VZeSzO5b3bDoTy3kVEnDopTp5eaqwu9o1xtHTT8Aj8QP9ZHe
-# LSROWQwdE10tg5hxhquhCXZRUuZuVXKW1ixRVU8FiTmtTD/RRYXtctXSe+fB52wi
-# uZAPLj3CAyGivkFTs+/48aAWmDvmrbHo2YRZrfTINDn6OYSNnxdX3ZawrMN3q6FI
-# voE/paeK7OpZFTDYE2PHb4qmE0qcIAXOHe+LTgs5JSC3plSNVZ378NL+u9NF6tV7
-# M5cCH6KsQao98lyn9/NLVq6nj4qeaJ9JS5KeygtbTna4PaujCl8Y+XfFgyfgz9S7
-# LdETbvI7anIz8ApS7xV2I8notEhQAYtGmD7YdSjwkHEaoT5Z6vcdOvW4PuvJQmnU
-# S3GfxKmsblP9m1DBhtOSbiWInp9YVsmrBtPVI/I9XntBesyG6OSCF5SGSkG3Sfp1
-# c4TGPxMdJJORvXPFJTC/BnY3eVLGgJVI5HFazMkxp8vfU5h0N/2a3NChEx/RFFvQ
-# YUmMeyOwDBgIl92M3zNldV2Wljm69mMj9OEiT+Hfgx0LZlItZNfEKww57MBNInAQ
-# 20c++lXGfHNjoxqxGEZrUfVz2KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTnevpK
+# scLmoDN4KTkX0HzI7Rb/7DANBgkqhkiG9w0BAQEFAASCAgAnhunID1To2hqoX4Sv
+# 4aXN9ngQz2ZA75TEY6jbrbyE5Gl82KTRE1aJjrTEc10JHeFYkluLA4aXp4xikc+z
+# k7OEANvvaLNaKbf0e2Nyc5ptq+BLR4sXcDIVCrhWqbPby3oArcUt5xr8IDZ4iAHh
+# W3ktKHgH7AYS2h5gAs9OrYHPig8VKOXT2dqyHH+3Z+lBdS5W+fqQIZ4c4N0PYryh
+# aO4lWPywE4LCBOXji99ZBlXkPKlmK+NMfjSTEk5a/Md19cYcFgjIQ4TEe/hmC60T
+# 3S0RB0Gi5Wh3OV4Cz3+hKpuODKYaBsV52K4VD2dBhfDWvO/AqSCXCwFRmt8hnLZP
+# B67+Ct+dutKahE/Ez489obDdJE736FCiZZSEMyIi5CPRRtvl+cMgf+HpQ7+H6JfF
+# m793O/TlrulJD085hVjwhnmwsZDoxEXBcTtVFd/vEuov9nqZ0szF/qtGpqVCnt8g
+# MtYNzkBfb6ziQRrDOpBuzXcz24Cb+qgPqpDqMsAJz45HWETGBEiWIUHn+CBm21Lk
+# 38dapNYj8Lbkx585J/A1eHZsqDrIVvhb5752ub3SFQQIH3zjtgebX4NDcYX+zoSd
+# ThnpTt28ICHjGyZDQxboFpY7HlvZ39MT8X3Q//JO0sBWq6KpN8JanT1RmgUudjHp
+# wtjH1WSAiqWzXlKJ3L8l3J4LfqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgxNTU5
-# NTVaMC8GCSqGSIb3DQEJBDEiBCBhCg+CJwvJ+GeAM1b9E9Ca8AnkIdMihcQl2ntO
-# kWLE2DANBgkqhkiG9w0BAQEFAASCAgCLqAbufAO+vYsgS6Dvz4g9d2K/YuSNMfbj
-# QGIC0GCpa+rMRBWXMdTXOOtbvG8G9CfB35vovb2ik47Z6PkMMiN+0qNxQ6bZ+Goi
-# BjvxTd9MGhMAbuRT5QLTpcsgzJJI2mmx/lwMuZy07/QeBrUCANAymP469kvImmM5
-# 6JcfH2FsWK0f4zL2u6cIzHOKkDota5av6MwhjgXnmMNv2TJ3MCS7bG4pgKrIYSep
-# EB59gGmme+Gh0Umd2BF0T7rZw5GtD5q95hS1MnwIo0SQO6Ia0icCFH0mnoSwiIpm
-# s5ib2/yzHqmXdyehifQojmmW3I1ztVme7Zq1p1LXbuW0DCJunN9Xin47oTNTBnW4
-# PQYb1B7YJoC/4WPivIYLCp68CNz9yK3CX6Ge2pGitZAw/UpeHJOUZmpEH+Hf6DW3
-# Q3Qj0htpueJAEf9X1YXyZzUE/4ZGnoe/eX2jphOVLCrIcr8ibSer5Jn1k0cxCV52
-# XfeTd9jj1dFrkRjZmB+tbEsuj8YBwEPbdt0s2hvH+LdJgdCPPLw3vJ4q2LgEAank
-# 15SgW2nxoCXS5g2RHu6zDEbZYdYoYRU4F2sSfiFowo7yGgpLpF+FrsdLgRZ1fy9M
-# tbwEqUje8qXr9rZI3+90wcTcma2VWpfvPhdlo+NPC/lv6OodP/WdJzalAme1ewpe
-# gAIXpp6rKw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIwMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAstApzyPlO/m27/VKEDjnaOnUFRV3mtio6cWgA
+# 3qMbLDANBgkqhkiG9w0BAQEFAASCAgB7po4LZmjwjf30XUjaDULFLBR+IJ7xNflN
+# N+u7xfOCTIhQWHXLK3Z3EsezPRURfCjBDSAO6ZGPUu+GY7fbVbC6CKxXbT63pfU8
+# 96ci3REjL0000jZRCv+kWd8wxcuuZ2ASSKeKZ5OO9RasLM1k483JXOBcifytEbSJ
+# c2kYGIVTdcafWhP7wnOqPAw3nlYPTvxS3GWGOxHT6oNQd/YWviAqrtD9AEUmIOo7
+# l8MolWpalXf/MjTYMmUkjKGpX8vNwjctnUfiYxRKnyHlYriJ1543NC4/oUA2m0Yh
+# x7XJHb7Ehy+daWgXXnoKZlNk00Gu6y9WnudDhxMJH9LgxYA6kFOs6/6oTVFSZLxR
+# GDjTj7pUDyQLKlFcbNukPWesI90HbyLizpFSDZ8zj2gw++LAULzLyclRvFsYncoN
+# NokW9NV9WYjpjCzoXF5oEEXtG5/oq0zRavLvqiHknkhk/5JP/Q02gCD7mPgDv4tl
+# 2meMhctafOa+KahWhmDSFyfuNAaQ6BfLezscmr4beFPIf6tv8pmkVFojlQp0K6pm
+# s+7/cT1yhtYczaQO8IV3OAODuwCuSYFAbksITsQaDV4foVWgUwELY/F89NyN65Rp
+# T/k1KoojHQ2sFjRXLE/MfqKrHbZGhWLG+YCjSzVGMRDioHL4RMaAbR+M/OyvQjfZ
+# BsuZ5m+oXA==
 # SIG # End signature block
