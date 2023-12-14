@@ -100,130 +100,137 @@ Begin
 
     $MainScriptBlock =
     {
-        # Initialize
-        [ref]$Output = @()
-        $WhatIfSplat.Add('Output', $Output)
-
-        $Result = @()
-        $StopRestart = $false
-
-        ##################
-        # Get/Set Content
-        ##################
-
-        if ($PSVersionTable.PSVersion.Major -ge 7)
+        try
         {
-            $GetContentSplat =
-            @{
-                Raw = $true
-                AsByteStream = $true
-            }
-            $SetContentSplat = @{ AsByteStream = $true }
-        }
-        else
-        {
-            $GetContentSplat =
-            @{
-                Raw = $true
-                Encoding = 'Byte'
-            }
-            $SetContentSplat = @{ Encoding = 'Byte' }
-        }
+            # Initialize
+            [ref]$Output = @()
+            $WhatIfSplat.Add('Output', $Output)
 
-        #########
-        # Rename
-        #########
+            $Result = @()
+            $StopRestart = $false
 
-        # Get registry values
-        $RegActiveComputerName = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName -Name ComputerName
-        $RegComputerName       = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName -Name ComputerName
+            ##################
+            # Get/Set Content
+            ##################
 
-        # Check ComputerName (pending name)
-        if ($NewName -and
-            $NewName -ne $RegComputerName -and
-           (ShouldProcess @WhatIfSplat -Message "Renaming $RegActiveComputerName to $NewName" @VerboseSplat))
-        {
-            try
+            if ($PSVersionTable.PSVersion.Major -ge 7)
             {
-                Rename-Computer -NewName $NewName -WarningAction SilentlyContinue
-                $RegComputerName = $NewName
+                $GetContentSplat =
+                @{
+                    Raw = $true
+                    AsByteStream = $true
+                }
+                $SetContentSplat = @{ AsByteStream = $true }
             }
-            catch [Exception]
+            else
             {
-                $StopRestart = $true
-                throw $_
+                $GetContentSplat =
+                @{
+                    Raw = $true
+                    Encoding = 'Byte'
+                }
+                $SetContentSplat = @{ Encoding = 'Byte' }
             }
-        }
 
-        # Check if pending name change
-        if ($RegActiveComputerName -ne $RegComputerName)
-        {
-            # Set result
-            $Result += @{ Renamed = $NewName }
-        }
+            #########
+            # Rename
+            #########
 
-        ##############
-        # Domain join
-        ##############
+            # Get registry values
+            $RegActiveComputerName = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName -Name ComputerName
+            $RegComputerName       = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName -Name ComputerName
 
-        if ($JoinBlob.Count)
-        {
-            $Win32ComputerSystem   = Get-CimInstance -ClassName Win32_ComputerSystem
-            $Win32Domain           = $Win32ComputerSystem.Domain
-            $Win32PartOfDomain     = $Win32ComputerSystem.PartOfDomain
-
-            if (-not $Win32PartOfDomain -and
-                (ShouldProcess @WhatIfSplat -Message "Joining $NewName to domain..." @VerboseSplat))
+            # Check ComputerName (pending name)
+            if ($NewName -and
+                $NewName -ne $RegComputerName -and
+               (ShouldProcess @WhatIfSplat -Message "Renaming $RegActiveComputerName to $NewName" @VerboseSplat))
             {
-                # Itterate all files
-                foreach($file in $JoinBlob.GetEnumerator())
+                try
                 {
-                    # Save file to temp
-                    Set-Content @SetContentSplat -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
-
-                    if (Test-Path -Path "$env:TEMP\$($file.Key.Name)")
-                    {
-                        try
-                        {
-                            djoin /requestodj /loadfile "$env:TEMP\$($file.Key.Name)" /windowspath C:\Windows /localos > $null
-
-                            $Result += @{ Joined = $NewName }
-                        }
-                        catch [Exception]
-                        {
-                            $StopRestart = $true
-                            throw $_
-                        }
-                    }
-
-                    # Remove temp file
-                    Remove-Item -Path "$env:TEMP\$($file.Key.Name)" -Force
+                    Rename-Computer -NewName $NewName -WarningAction SilentlyContinue
+                    $RegComputerName = $NewName
+                }
+                catch [Exception]
+                {
+                    $StopRestart = $true
+                    throw $_
                 }
             }
+
+            # Check if pending name change
+            if ($RegActiveComputerName -ne $RegComputerName)
+            {
+                # Set result
+                $Result += @{ Renamed = $NewName }
+            }
+
+            ##############
+            # Domain join
+            ##############
+
+            if ($JoinBlob.Count)
+            {
+                $Win32ComputerSystem   = Get-CimInstance -ClassName Win32_ComputerSystem
+                $Win32Domain           = $Win32ComputerSystem.Domain
+                $Win32PartOfDomain     = $Win32ComputerSystem.PartOfDomain
+
+                if (-not $Win32PartOfDomain -and
+                    (ShouldProcess @WhatIfSplat -Message "Joining $NewName to domain..." @VerboseSplat))
+                {
+                    # Itterate all files
+                    foreach($file in $JoinBlob.GetEnumerator())
+                    {
+                        # Save file to temp
+                        Set-Content @SetContentSplat -Path "$env:TEMP\$($file.Key.Name)" -Value $file.Value -Force
+
+                        if (Test-Path -Path "$env:TEMP\$($file.Key.Name)")
+                        {
+                            try
+                            {
+                                djoin /requestodj /loadfile "$env:TEMP\$($file.Key.Name)" /windowspath C:\Windows /localos > $null
+
+                                $Result += @{ Joined = $NewName }
+                            }
+                            catch [Exception]
+                            {
+                                $StopRestart = $true
+                                throw $_
+                            }
+                        }
+
+                        # Remove temp file
+                        Remove-Item -Path "$env:TEMP\$($file.Key.Name)" -Force
+                    }
+                }
+            }
+
+            # Check if to restart
+            if ($Restart.IsPresent -and -not $StopRestart -and $Result.Count -gt 0 -and
+               (ShouldProcess @WhatIfSplat -Message "Restarting $NewName..." @VerboseSplat))
+            {
+                Restart-Computer -Force
+            }
+
+            # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
+            # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
+            # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
+            # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
+            # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
+            # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+
+            if ($Output.Value.Count -gt 0)
+            {
+                Write-Output -InputObject $Output.Value
+            }
+
+            if ($Result.Count -gt 0)
+            {
+                Write-Output -InputObject $Result
+            }
         }
-
-        # Check if to restart
-        if ($Restart.IsPresent -and -not $StopRestart -and $Result.Count -gt 0 -and
-           (ShouldProcess @WhatIfSplat -Message "Restarting $NewName..." @VerboseSplat))
+        catch [Exception]
         {
-            Restart-Computer -Force
-        }
-
-        # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
-        # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
-        # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
-        # ██╔══██╗██╔══╝     ██║   ██║   ██║██╔══██╗██║╚██╗██║
-        # ██║  ██║███████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║
-        # ╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
-
-        if ($Output.Value.Count -gt 0)
-        {
-            Write-Output -InputObject $Output.Value
-        }
-
-        if ($Result.Count -gt 0)
-        {
-            Write-Output -InputObject $Result
+            throw "$_ $($_.ScriptStackTrace)"
         }
     }
 }
@@ -345,8 +352,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNs99De0XHKM1MoAuHUTL0FyU
-# 5VygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOGFOY1bG+A+3j6HuvTbDnb1S
+# e/2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -477,34 +484,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQE7ggu
-# b0R0HbkEnfi7FZvoR2fNjTANBgkqhkiG9w0BAQEFAASCAgCvSOFL8bsV1aJinY/j
-# bZtWtI+rjMyZ2wYE/7UvsYSzLHYVGXFbVSJxj5QyE17OjC5VgnTGi8bVK5GEn6vy
-# Pf6Fur3FDmOrax5eABMMknn2Wi3jSdr33ffCJyVGVh1BwW34FefcwxPMOp2GqP9y
-# WS63DMFB77kqGhrbNIoE7MxA5mP/VP4if3nd0mNR+NZwRvmP26M8zGfoeDq30DMt
-# ag/pYx5TN3FYK0YpO1ADbwtM6cm2GhvwwZoTFafPmSpOD/Nqat2R/ul32arQVhhe
-# 7zpGI7dUJT7esEa4QV5pasyEhcKdw6XMMEcZwNsbgJIRTE1CTY37bV/qUnlSjDAI
-# hkWkS2tFeOy0Wpv/6Hctmo9+5l4GI8rDNROwGUrPgPbXsTUapgBrRkABy/PYVRuh
-# xfdCTNz5sGEoWEQ7a/9JLCiMii/GKvL0fuGO0vhmgeLK7/N35XZIhTVU4S9SBbOJ
-# nw1ArTyKHD/LueTnGngFM0BIp7a9/KOb320/nopenPinzm2BNgOQpu8A371IGDdT
-# sqNRuOoWZ/pOojtSUvBR4EROu7/NzsVw2WC7c0cuzHScjMnaM03lqgjCzgqTc9Td
-# HtFA2pUeLc/covNCOzDd4FL4tVmEfWo79XkzpdUASNNU+8LVssxZQOdcj21sOlnr
-# 6xUOx8E/DkFFqXc7t8RuGF0OLKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRjCSKZ
+# QzKkjIXmq8f5U7Nf5lf7tDANBgkqhkiG9w0BAQEFAASCAgApH0h7lZzI4UHg2u/D
+# wCfbk5Mllid7NfsRjYWawC3JcnFcpa3Wy0ADC14TEtdP57udwQd8X7uV0MkHHpyM
+# IDe6kClfphNob+iPOHyoTPgmvGySw11ZjZQEYbjdybQbgvRRuv3R4mgKmVBhqJzf
+# 9SuFuiaIGCoTxUcuklWGGAOlkvFc+et1iV0kIyROTa3HDxmwv3U0tX4dBHoBq/PR
+# 1DZCQW4IzIQlgSW8zT2gCWi9SqjvA2ApbtPb9WT+mtQYxtnW3A1CzAf11u3/f8zc
+# /GwwrrBwc8uo/yKYloSbccNKexziPnT7IqHiZ7B9bZ5+I9lxy2WnJVPXmqhgwg51
+# MfvbzyUx5PKKP+8gkgnioELdkUlBv3ReTrMS0X9NJDtNVul/pF1waZeFImTszYh1
+# sj6qDRGX8XNqK/OUY3qeVuWn/ij5b1FsV7MqRF6BeEqPfBQzWIp/F9D3a61hgE0n
+# A23VWK5kdHKYUP8XTGWKZud5EKc/v/YENWhQAY61fRHGtLaxJWclSLAy9OlAT8z9
+# ip+ZKrUwbggrdBSaENTR059i7TbKdhXtPuBywPMrZt8Eznjy/TqBX68GZ4DKP+W6
+# SzhYMAe8qvA4wbMn0A2ojh2si29A2b8o0v6ZGlywuBYNJ9HsS+MVuUF7XVNoBCE8
+# hdFykL3lYLnjD13m6EUMDxTwHaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIwOTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCBa1I5HnztaJETChxK5EpH01Hg97YuIJqJFAw03
-# leiy8jANBgkqhkiG9w0BAQEFAASCAgBzdaUaR82fvoguoDZnpfn6uR27h6YZfQek
-# E8lrWhNaSkK00rmQHypgFXVRdSDKeja0O3yBwOyvFGxgU9xQsK/Nwa8chpTPoFOq
-# LxN+ZngsHU73VjoEyEpbOn6u6IjXFrvrhil11p3Ser+YKjjQy7KuwMedP3Ze6cW3
-# //bZ0XN8xlb6wn1UZpSAFi9R3kCI37LCFrv5wRu3eRyeINMb3ykqcm764HzLFq6r
-# P538JFKNwLGjeV5aawHjR2eNwSqGhPYLE70CdJS3LYSCi4jjSexuNEEEr5g8ywam
-# Z7oyx98NUGaG6/FqiRb0sqRPN92iYFg7eKR3ozdUmVRVL6Ouj2xNRfGrWqesgWY4
-# n+P57SWEon4EiTOgYw+BJA0kwqo7jSAWwEHkojs/kLPgE/tOITyxdmSvqNP2VWVP
-# hKBflcvEs80476u4Fca4z32fiUKCwuFwKkRoaLSTaUeWpbfo7ycC/QAvokixMJSR
-# bs4va86mpsAXcHsqStWlPVSrqEPpsb6mWgkEpWSWPT5nuJOUWOBfnaJjgxNlNYxV
-# W4nS6bAgnE3kypXdWzF0S2KdFIr0ZKDXFIwZw8xVn5mcFzJgy+lL+G9BMCQBKey1
-# eU3ZPuF15e3WRJm7nRqPBUvpj6iasVmxv8HnaSABtGcWNqgV4Vy7Y2r2uip0KPnH
-# ZC4lvJa4Pw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTQxMDU5
+# NThaMC8GCSqGSIb3DQEJBDEiBCCb2QauiJrZP4vF9Zy9E+M5qEBcODGi5CLcO7kS
+# kWzasTANBgkqhkiG9w0BAQEFAASCAgBm/evLOKhiZRoie5L6UJxtyQ5opqxaEWMg
+# +WHbMeJyVFXQHarWTe866BetS+ZAiidJvdPhasqhaz15ILJ8VOP+i7BrSzh26UYh
+# UnK5pnPYnyliqffpC7uzmLMNm3Buk1ZGB3EIB4TjKxju0/HEV68ptsbdKwyCP7M9
+# XWxRue6rWz6a0ie9Xk6s6UmoKU0dpNysUC9g7bKLOUKNKdAj5s1eMFEqxAJVy0Lz
+# mWlJcqGWHurb7+JYQ02Olmqi7Y749LQbIaaJP+rsIBgsL5ikCNrFFviO+P2GCzSI
+# oNBPekTvChmK3zVT8R8tHLWvdoF+NgCM3+U41YEEuxIJaz/c9ZimhEAjyWS/utzK
+# DW9fUu9C50Cw9TwPlOpAVDDclbfWRF0b/Clv41ne2DuDQqVLC39EnO8f5G40VIdw
+# IaYli2/OPxR7xQh/I0K123xin7RrgIz/5jL7Wd2XI162/xwvzWlH39Ktk5k3Uzli
+# m8GYfR0r1I2Q+yZTpSCUmQf0ExEl8fPBgSL8GRv1YKlmM362Ycc6S8JKd7an9ber
+# p3YkiPZ2pbOGNED1RoEnp3EWNky4l/1tuGkoICH1oo4lghbW6FSjb0fOsOmWjyqw
+# xliHifszvaLjx1NUWNo4jkO9MboEagzSWX7CynMJ+vtMowzN1hR/smZ/domiLqqA
+# OYv4bSvfDQ==
 # SIG # End signature block
