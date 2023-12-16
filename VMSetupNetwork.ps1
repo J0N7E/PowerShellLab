@@ -107,6 +107,8 @@ Begin
         # Get adapter
         ##############
 
+        write-host 'INLINE asd'
+
         try
         {
             $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction SilentlyContinue
@@ -125,15 +127,23 @@ Begin
 
         $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
 
+        write-host $Win32NetAdapterConfig
+
+        write-host 'INLINE after asd'
+
         ##################
         # Disable Netbios
         ##################
+
+        write-host 'INLINE qwe'
 
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty TcpipNetbiosOptions) -ne 2 -and
             (ShouldProcess @WhatIfSplat -Message "Disabling $env:ComputerName Netbios on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
             $Win32NetAdapterConfig.SetTcpipNetbios('2') > $null
         }
+
+        write-host 'INLINE AFTER qwe'
 
         ########################
         # Disable LMHost Lookup
@@ -345,8 +355,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+uNTBI15ozCNTiLvA29iuZgZ
-# 6lmgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdmbqyq3BWN11k6kFgdSTtlO0
+# a22gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -477,34 +487,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJyroO
-# 6Q06AxejDty0fD8IEdlf/jANBgkqhkiG9w0BAQEFAASCAgBv9cB0NpOZjv3xT4fn
-# CpQS1c4zO0mhBA7RZtO0i2P8BRKAI6K/hA3gtRR2AlRtBJuBIknmVw97bGmP5iBq
-# 5Fd0HtU9Q5sjAQpLHSYOEHv9R3h+qLRcfuOuWfrlROMw/aPN4hpMsUmN8XdnFqlW
-# hzN3Fk4HxWZh6JnMmC/aAgrMNuR6qpVn9g0Gj6dwz1QR0goan9IELn+fiz84GenS
-# KEsae8RqO+H3FeHIfBk6shWTJDBmtlcCz5+pMnycAEyb0MVNrN72yHqRoV5y84Hf
-# DLXVhaDzRGBBP08Cv0NAEsUAAQWd5f1dOsEogCNnEmmV8HyjM164PaM+YK7yY0ok
-# WQUfGWsib7WMDC3bqDtj5p/u0f7eLdN3jMszmZJcX1CLTpkG6V/gryhe2+kGwjKJ
-# K0W3/9Mx7RvxAZM9fReX2DZU84yyLPTlj1JyZ1YL0dyzoplCBYEC8WrrqYqWhdZW
-# pWOE/qbNUA27Q7m00pUs+kK+Nwfx2pmIbvQUyy5SuOaIlbZYyDnpBQCQHZ5tkWZD
-# YjBmeaibvIFm4M6UrFm6uIGgwcRqDH93U1EBwaSwY2bxglvlZgzH1Is2htEGbtUW
-# erTukW4y4sXXvBN8uVy/A17M5AoE7jnFT59LGTrDNtLorHrBbX93MzwEuXFQBLAD
-# 3EN5KhW37mNq7hyfq+Z3snSEM6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTwgsdJ
+# vQpsPnN89N1MKMXVT8h8jTANBgkqhkiG9w0BAQEFAASCAgCNY5AscIyk3aOcAtRJ
+# jTKGOf8DNiEMiqDwkgdjq3AgiJBpfDe3OMe0BI5j5OqSvolhtXCFcGTn6FZusGrv
+# HnzgJts/SYy3uv9D8SGhJKjaaEWwMjjQiNHZjHEd50LvqSj4yk9IRlhIBQhX4uXS
+# t6LROadk8Ywh2Lv8XY5GUytjM5Qk9YxKWYHQYoH0MyCYqIP+qkMga4Uy5/T3skIx
+# CtDQmZL7LNpIpqOepu9xU471xfnjizEfdFCzSfMY73R/tVsuk7ra/TwBaUqJdqsg
+# OYrblA1F1KqI5aIk23qbjerc8CBHb5cYT/Dto8DXGSZHD2gH2t4bJL9NN42LTdPL
+# CPFBTG4GvqN8bZCmezfVJGIGgu0dxkENUDPTS9N3yOS3PUj00gdp1srTCpp674p/
+# aeai8/WPlgcWcbLmUp0w2nlH/0FSOCi5duOkVJ5xNDyuy52CGtQa/VVK6RmMfBV6
+# JXfJY1rII8iaHLKiVx2ax7y62y/8h0zOC0076uxQCU5vy9YszU5FfSPjTN6KU+Ek
+# sXlOiJ+qOeYaR9uMH3bfUvQ+qA0uhJLDPnRiettjYw+mxBU/ngWaKg+r+T7DRj2X
+# tFo4jSslETtq8ipITZF+rsTbu/3umfCKOFTnmiXbFaKUXha1wg6U5nFUR5MSAREt
+# 0co8XKUgQPlT6rvS4S0djrBQfqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTQyMTU5
-# NTlaMC8GCSqGSIb3DQEJBDEiBCAerwa8ungqs9d768zNwEOaK9MZBC3IBbFFFulN
-# Mpd0bzANBgkqhkiG9w0BAQEFAASCAgCFDdoXWbdzWeqxiFUnQGsFGsVtAFCMg8yv
-# GBuNzp5e+tPy4OIvbGORqIavoCj6YnUufOu8YN0vUnAoG4LIK1pJkXuZ97WmPNvr
-# wxxISaSBfh24m1IrgV+PNCwUln+plDjfH7818V+0k0y7mZzqzU7vBV17BbH0duU+
-# URhj4Of9aXB59HTElQK5YbHPiU7t+HbeLcjJDkrtD6flKUitKBoNEkLgVSdRX4Gb
-# 2r4Go2lVR1yyYmwMpe9FasLhXODdfpF6MJQoVD93fl2YohCUZx22tqFi7VxoKByx
-# 8PNZOQjIjSdEkfJemsiMnSaPccf6FDQq0IbsZ9ZlpTCCsHe5PBVfK6wJf3lfglI+
-# 8hrF+/4yAlIbYuX9FvYNS+eqhv2bJP0+6jkz1VvnB4C+JBY1BiFjHLaf/VrKKIU3
-# AkgS5z8RbrCxBpS555MfTNvtmuzoKQt1jvRYZaR1jPZsQyMBvF5Nc+qpfdXBLrwg
-# rm5c4uqklIuBFx0sYXpKBiVFvzQd44k3TkNABMYn3gIYHvWeoPEBCuOvUg6TLCAh
-# zGxX9lwE5+cKYeGyEgaFDh1CCVQFLZ4+cjRDlfsGSMkHitdMGizeL7vTB6kKwm7O
-# yCqqUFykhEb9S1HXaLNhRCGh9i63wsuDqHEdXbT/p/xoikK/1m9OWfye+pi6gBvO
-# lX/Jdmp7xA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTYxNTAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCA3BzCznV2TiQmpq8NOwlH7cxgxCk1pXU33PV0+
+# gUmopzANBgkqhkiG9w0BAQEFAASCAgAhBDDHa3HZCD4HpwXjXMANpAdFZILtfVkO
+# S/sCMJmbpL7dRD1lM945NhVyNU88xS6D2ZfpsCP91V3cmi2mzznwuaNsbcGBP7BF
+# UWxptvoj4NhiD1L1F7tzKOkP2MHyTLdK84JYEXeLwQC/baJQT6uCdwm9MzGH9XM7
+# 2jSASrAN549FSI2FCW0+kj90kqMC6uX1KYMxuu9gGcNMLHbiYkh1TyT/N0ylaRav
+# oNF8L2x4jiwOSyEAFKueOdeKqHNikMSBZAZql/0x0Fy1a1BhjejVwJqTUd/srrFa
+# wP48zsBV9abY0/BhznXUgVYrlFgETmRRy26MN2eAATx+pbVaVO4RXq71MmXOdAgK
+# WVagaDlrtVP7g0I1JenkkUIMpzxW50CuTGkEoQ/Yr++SqO+YJGDsgsJZ2iI3ThRP
+# 8EdicjVUY76A5PQblES3c3LwQAHI5ClY7iMEOfxb3DJEsdRyN8DewF35Tk9+VPS5
+# iExLh44wMQM0aUeXqGXA3yYS7BMqHhuuc795kyJN0gHE7iPTtySWdHQgR5rQ4d+m
+# /+X3ClcAqAJEjsC25bGsIrk5zwnEyGgWNcgEwGFa75oDE+C/HtqSnsbop3llz3sE
+# drCZBWM5Chv1r9kbXPs3HoRInZVYU+gsFkqfkcT9tLAAYkAd9E+8sj7DTQlVKEIe
+# 9iy8kwJHUQ==
 # SIG # End signature block
