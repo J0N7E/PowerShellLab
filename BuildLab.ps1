@@ -109,7 +109,9 @@ Begin
             RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Ac0; }
             NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Ac0; }
             WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');     Credential = $Settings.Ac2; }
-            WIN2   = @{ Name = 'WIN12';   Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Lac; }
+            AS2    = @{ Name = 'AS02';    Domain = $true;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Ac0; }
+            AS3    = @{ Name = 'AS03';    Domain = $true;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Ac0; }
+            AS4    = @{ Name = 'AS04';    Domain = $true;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');     Credential = $Settings.Ac0; }
         }
     }
 
@@ -394,7 +396,6 @@ Begin
 
     $Global:NewVMs     = @{}
     $Global:StartedVMs = @{}
-    $Global:Joined     = @{}
 
     [Ref]$TimeWaited = 0
 
@@ -715,29 +716,37 @@ Process
                             -TemplatePath "$LabPath\Templates" > $null
         }
 
+        $JoinDomain = @()
+
         # Check if new computer objects
         if ($NewVMs.Count)
         {
             # Remove old computer objects
-            $NewVMs.Keys | ForEach-Object @VerboseSplat {
+            $NewVMs.Keys | ForEach-Object @VerboseSplat { $VM = $_
 
-                Invoke-Command @DC @Lac -ScriptBlock { $VerboseSplat = $Args[0]
+                # Check if domain joined vm
+                if ($Settings.VMs.Values | Where-Object { $_.Name -eq $VM -and $_.Domain } | ForEach-Object { $_.Name })
+                {
+                    $JoinDomain += $VM
 
-                    $ADComputer = Get-ADComputer -Filter "Name -eq '$($Args[1])'"
+                    Invoke-Command @DC @Lac -ScriptBlock { $VerboseSplat = $Args[0]
 
-                    if ($ADComputer)
-                    {
-                        $ADComputer | Remove-ADObject -Recursive -Confirm:$false
+                        $ADComputer = Get-ADComputer -Filter "Name -eq '$($Args[1])'"
 
-                        Write-Verbose -Message "Removed $($ADComputer.Name) from domain." @VerboseSplat
-                    }
+                        if ($ADComputer)
+                        {
+                            $ADComputer | Remove-ADObject -Recursive -Confirm:$false
 
-                } -ArgumentList $VerboseSplat, $_
+                            Write-Verbose -Message "Removed $($ADComputer.Name) from domain." @VerboseSplat
+                        }
+
+                    } -ArgumentList $VerboseSplat, $VM
+                }
             }
 
             # Domain Join
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
-                            -DomainJoin $NewVMs.Keys `
+                            -DomainJoin $JoinDomain `
                             -DomainNetworkId $Settings.DomainNetworkId `
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
@@ -756,12 +765,14 @@ Process
     # Join domain -> Reboot
     ########################
 
+    $Global:JoinedDomain = @()
+
     $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
-        $Joined          = $Using:Joined
+        $JoinedDomain    = $Using:JoinedDomain
 
         # Get functions
         ${function:Invoke-Wend} = $Using:InvokeWend
@@ -791,11 +802,14 @@ Process
 
         if ($Result.Joined)
         {
-           $Joined.Add($Result.Joined, $true)
+           $JoinedDomain += $Result.Joined
         }
     }
 
-    $Joined.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    Write-Host "Joined:"
+    $JoinedDomain
+
+    $JoinedDomain | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
         # Get variables
         $Lac             = $Using:Lac
@@ -1031,8 +1045,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdPRmTRoidcXz9Re76ai/+2WZ
-# aH2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbtQ1kc1zgAEmeiGpsNKxWMSC
+# 84egghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1163,34 +1177,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS21Oli
-# Tq319XI+Cga/O5N3eIQuCzANBgkqhkiG9w0BAQEFAASCAgCxkv0L6MAXSZrdzTkq
-# BKkZ1QPMqLVSqRu3f9kuZpq4wjkoCI1uN/0Km7hXLn+fN437fA+rEnrp0gnhGCCo
-# uUgJC4QM0eNSeoHzS5bkmvnJ88cgUAWsLnpAz8TDqF5ZzTjF6DfQzTDYIJe2ZU9q
-# sViC/YydQJDTKG7lniG9Q2fPXbqmCeb8CX27O7aCb+IJCuZKwaTkHyGpc1xrPKsq
-# Jz4lsnzGjTFqhbwEUdvIvOrW/uz2K4iSj2/2cj7aYkLn+DCimOWnk/a9/lXfEywS
-# fLk//mJgFDfXGBnEv61zoqh/D7AMBBecxB4RD5hqPBkaK46s8rDFbqwLDkaStolB
-# fjx1P/Tg3R0YBIt05VemHrFJ4UuwVsqyckJHNhZbCa5wHZx0aMRe47QefsBp//BH
-# g6dvuKJT/lWUrFAutPGXNhT1xThE7jINuWRxJmq/gYVbjVbBQg7NadvMjGVRpa6l
-# K+dPSBn13hDlVCmnF9oqgohraXEjaSv02Wmnqjs64oqEf/T8lx845B1EFrznpbNk
-# 5kZkWho5OFiKF2F9j9noCci9TeltqVrqtG6BfdBXNTbb5ixTQy/rf0FM+LMCMIii
-# z7A09oQOVga8dHhvWg+fVi8nlfXXg46frGfgfl98SFeX9zydFwZN2dOIMngxN90k
-# ASkMrPMkA+frQIhtJ2+Ike1XLaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT4FZxr
+# J4z6P5HZze8YuwWJ3r80yTANBgkqhkiG9w0BAQEFAASCAgAGbLKiiUithMBIyN+W
+# VS7G5LsvlTe1POh0bO42Xg9Qu8zbXnBNexHBjOzg5AExg4hhw8ffI1JAxNcGmAHb
+# 2sob4YWcN5IHrA/iUk0m2tf4I9vXK7ot1Rgs0+6oiHMslfASRJdFEzAGSL3czTv7
+# 0sDuP1tgHZQgW9fUHQMwVB3hiCQ7OvY+JhCNBcorC2gcIOL3N/kVhC4ZNBdQQJFn
+# q4HN+28ZBHicwxtRYP6l2wvS11iGbtzVVhy0q+BYXhIB4yAAgrforEb/y6aZP+iv
+# m0GuJ3af3PJlUV3jMnntSUYyvtNIGbpuawTIKm20zzhSOA6NxRxztPNHG1XGCgEx
+# b3drbg0/oO058dT2E0GHopVPlpQYdAMVmaREfGDXgmn3O9T4ZgfvlRZDty8itsje
+# s1VZq1SmFQ6W4gXk5mtMhtnE44hh4cMVmbRR3lPxAFTnxaP938ThneL1MVeTC/sj
+# PhgLTmK+GZuuUIdsHY7zjXiiGptl+fokGeivIdnuqPTbuq7Dt6ZZhOJDwAQZrb38
+# 2+x/VpRWjLKZRe6iAEOGzuvUXfhUWkX3S10hXwHn4ib/kLYKrr4ZSSyjRcRvTwkO
+# AqtpRJVoiO5QmgKn0OCJdelRRJL9k1g2p+nbiFFCFw0Ds6vdlGMhwi75HJddeFYR
+# 0wQgLa/rrb7AJFOmgmO7mIrvaaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTYxMjAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCCbFvQXAL8BF1J+LPujeiTa9abUmaXb/IfZUuxw
-# cMqAWjANBgkqhkiG9w0BAQEFAASCAgB0ko9rvo96k/7/3IJkqVP2uNEPZFWW/N2N
-# qObMCa2/cJlNkElmLgA0hKCRwUYGNgGcRkJmL0T3OUgIYJ2/p2XjPMTpdas087qI
-# uw0PFUyB+RZivdUHbQLVqr0+ygGjWmx5fMCvrztMHJuRoeIpLQSuLCUf+anGQs8N
-# IMxTL+5GGhM0V5wQxk7nI9rl7X2yf1CETrpHVh7TSNvioNDJF4EQ0JwY428N6OpO
-# X6MrHX2nvxo7eIpqQRc9Fqvg6DFxEyOcA7jDRNrS3VHVVpXGRjcEn+QeLfnRKwHY
-# fdxCGhrlQi9kutEWs3LYc79xxzTMTrFy0gvaCiWKe2Nw+S65PEYXQUCUn9BR1kC7
-# 06qN4MzakVoH67eFM9kwQCXOJ5nrqGBE5NK4fkdpkzo41oQKNbecFzThnK8mIDBE
-# t9okucNaVJRZVQ6h/d/9ThtpCPqfkpnrK1+7llCyahy6yW91YrU8F7DojAdbbye1
-# Y5G8hwjO7I1mABtjDDWfa89YUXHaOkmnTN6QGlTOZ6Peu0ovtkTsLGdukPa/nK+J
-# SEcb8h0wO8uhk7H8BSdiSS1A7tBn0BtpyMrDFBGyjlhOD/uor7F+zFxywt3vU+Z4
-# mKKpAMq+DebTO95kzbEqGxaBUXDk60eVmbrewLWAE/WPy0Xo6aAgoAo8IKCgfGRy
-# mvj0U/zu7A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTYxMzAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCDJScQlUiuAyHAigAM35LHGQPsFf3uCIKb6PJLe
+# FkqBrDANBgkqhkiG9w0BAQEFAASCAgBuq9jJZG/H4741CLOsqbvtt2lx6jCkkn+1
+# MidF+g/8RSkftpHrtI8cU+benrPnxqZMPkDvNj/OcZhHouOyaVTboAQkzLUfScvq
+# acm9u7ycRPW1nUt0w2FLfte+0xQu+WU5X+s6VDYSvG1N+9CYOIEZ/feMQKXJ11fU
+# /9gICCvnhc8pT4wIJ6r4NWmVsCvieZ3ARBp2fbRIBcG2CFup5n5Mvm5ZkQbo5gru
+# hdc3JUGdboW/FG5dCE0ypllD9CC/mRQzWm4pgxAF6vsOLnc5FhxHCjPW+aKVQYUv
+# BgW8ub99/a7TCqT/OJdf727MH0Rg0JhWTbSgtsEniF5gBy2D7+vo43VfovfzgL3p
+# JnH/KEHMG3QqYqZGQy23RplruuAu5MKUHsNLo2zaL7m19Jtcz4cgZFkqX2Lkuf8D
+# ZKJa/feTsoEykrn+zhLhYVJjwoMyEQ1pWSRUpC+LaZmWVRu9b2n3+feiLs3lXZhp
+# miYRyu3srWKR4s38sPtiQU7TnVKGsSFh+rH9paZHfrIYyfHTNycvvHsygkN3gaWJ
+# DSg6JOIRoINqYREWT0jLI11tFJN5t+17l9k34+a1jRhQoDLRAMf5xHZ2h6YxZk78
+# ItuIx51m8b/NNLBZrEBUlCfzkqU1khwasEJ6amDm1gSqrhnbBMGUSfTuoOVR02LF
+# qHPBmrhXaA==
 # SIG # End signature block
