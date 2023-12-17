@@ -107,8 +107,6 @@ Begin
         # Get adapter
         ##############
 
-        write-host 'INLINE asd'
-
         try
         {
             $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction SilentlyContinue
@@ -125,25 +123,17 @@ Begin
         $IfIndex = $Adapter | Select-Object -ExpandProperty InterfaceIndex
         $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
 
-        $Win32NetAdapterConfig = Get-WmiObject -Class Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
-
-        write-host $Win32NetAdapterConfig
-
-        write-host 'INLINE after asd'
+        $Win32NetAdapterConfig = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
 
         ##################
         # Disable Netbios
         ##################
 
-        write-host 'INLINE qwe'
-
         if (($Win32NetAdapterConfig | Select-Object -ExpandProperty TcpipNetbiosOptions) -ne 2 -and
             (ShouldProcess @WhatIfSplat -Message "Disabling $env:ComputerName Netbios on if $IfIndex `"$IfAlias`"." @VerboseSplat))
         {
-            $Win32NetAdapterConfig.SetTcpipNetbios('2') > $null
+            Invoke-CimMethod -Query "Select * From Win32_NetworkAdapterConfiguration Where InterfaceIndex=$IfIndex" -Namespace Root/CIMV2 -MethodName SetTcpipNetbios -Arguments @{ TcpipNetbiosOptions = [UInt32]2 }
         }
-
-        write-host 'INLINE AFTER qwe'
 
         ########################
         # Disable LMHost Lookup
@@ -325,8 +315,7 @@ Process
                 {
                     switch ($Item.Key)
                     {
-                        'Host'    { Write-Host    -Object  $Item.Value }
-                        'Verbose' { Write-Verbose -Message $Item.Value @VerboseSplat }
+                    'Verbose' { Write-Verbose -Message $Item.Value @VerboseSplat }
                         'Warning' { Write-Warning -Message $Item.Value }
                         'Error'   { Write-Error   -Message $Item.Value }
 
@@ -340,8 +329,7 @@ Process
             else
             {
                 Write-Warning -Message 'Unexpected result:'
-                Write-Host -Object $Row
-            }
+        }
         }
 
         Write-Output -InputObject $ResultParsed
@@ -355,8 +343,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdmbqyq3BWN11k6kFgdSTtlO0
-# a22gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUc05Bt81fRYNMlFkC37GzlNUv
+# ja6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -487,34 +475,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTwgsdJ
-# vQpsPnN89N1MKMXVT8h8jTANBgkqhkiG9w0BAQEFAASCAgCNY5AscIyk3aOcAtRJ
-# jTKGOf8DNiEMiqDwkgdjq3AgiJBpfDe3OMe0BI5j5OqSvolhtXCFcGTn6FZusGrv
-# HnzgJts/SYy3uv9D8SGhJKjaaEWwMjjQiNHZjHEd50LvqSj4yk9IRlhIBQhX4uXS
-# t6LROadk8Ywh2Lv8XY5GUytjM5Qk9YxKWYHQYoH0MyCYqIP+qkMga4Uy5/T3skIx
-# CtDQmZL7LNpIpqOepu9xU471xfnjizEfdFCzSfMY73R/tVsuk7ra/TwBaUqJdqsg
-# OYrblA1F1KqI5aIk23qbjerc8CBHb5cYT/Dto8DXGSZHD2gH2t4bJL9NN42LTdPL
-# CPFBTG4GvqN8bZCmezfVJGIGgu0dxkENUDPTS9N3yOS3PUj00gdp1srTCpp674p/
-# aeai8/WPlgcWcbLmUp0w2nlH/0FSOCi5duOkVJ5xNDyuy52CGtQa/VVK6RmMfBV6
-# JXfJY1rII8iaHLKiVx2ax7y62y/8h0zOC0076uxQCU5vy9YszU5FfSPjTN6KU+Ek
-# sXlOiJ+qOeYaR9uMH3bfUvQ+qA0uhJLDPnRiettjYw+mxBU/ngWaKg+r+T7DRj2X
-# tFo4jSslETtq8ipITZF+rsTbu/3umfCKOFTnmiXbFaKUXha1wg6U5nFUR5MSAREt
-# 0co8XKUgQPlT6rvS4S0djrBQfqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS+WRHm
+# 8mnzkx/TF8OnXM/cv+vXzjANBgkqhkiG9w0BAQEFAASCAgAWSjVAMr35UAUPoBzU
+# rMiq+CPwh6INcYKR+jAELVL1AOpmVWmTDvDo6jzsEOl5ML6Y2igmmrJKT+oWdaC8
+# UVJEzGwJRIt2xm+999zCi+KY4OnxLa7jhdhwyCAQ8StwCpjVzltZz3m3B708dL8D
+# r+bNNPnlKtJ0EPhMYnqYwEcL+2Ucj1KoK+qjq6brzYZEEAMgx0Fp0MUF7C7uO6EC
+# 85lP9Ocza1JupixIx2ifo2zfE6BkPXVSAg8p+9yRviZaGJqxTGYZj0wkKCNmNtMG
+# IZJ9pO2faqhktz/IXMIMeFaIdAnNQ6URcpdhIr7Fyo9CrWtmUoXIiajJK0s6pGDU
+# Rrqqdh91BUGFkdg3mbRSyjvKwLXQJZzGDZXBP/Ow34V3sMhs+0RzWNAYXf8SBpYO
+# hgE6SRi6Y+4U3p03OtXkcll4dOGXnFPbPnW695GG5xF646TI+yaR8smHPqcO2A19
+# Qv2wPNLCwUoRmngyd8s3M1yxuqgLZfpRktkBERsm0XR/RHzU+pRbRvh36zZ2TE2x
+# vP+KzvDrqdmXOpLDpps0P2bSBiWuQyBdor7MLQp0hQ8boLNbMfULkxzc8nu44byW
+# HSo6K9xW+FBQI1vl4nO0I6AGjDwyAADMZ9u2J7nW8huFcFX4qo/eLfjl7j8X6hgx
+# Vro6mUr1eSQpebjz8tTwDVBz5qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTYxNTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCA3BzCznV2TiQmpq8NOwlH7cxgxCk1pXU33PV0+
-# gUmopzANBgkqhkiG9w0BAQEFAASCAgAhBDDHa3HZCD4HpwXjXMANpAdFZILtfVkO
-# S/sCMJmbpL7dRD1lM945NhVyNU88xS6D2ZfpsCP91V3cmi2mzznwuaNsbcGBP7BF
-# UWxptvoj4NhiD1L1F7tzKOkP2MHyTLdK84JYEXeLwQC/baJQT6uCdwm9MzGH9XM7
-# 2jSASrAN549FSI2FCW0+kj90kqMC6uX1KYMxuu9gGcNMLHbiYkh1TyT/N0ylaRav
-# oNF8L2x4jiwOSyEAFKueOdeKqHNikMSBZAZql/0x0Fy1a1BhjejVwJqTUd/srrFa
-# wP48zsBV9abY0/BhznXUgVYrlFgETmRRy26MN2eAATx+pbVaVO4RXq71MmXOdAgK
-# WVagaDlrtVP7g0I1JenkkUIMpzxW50CuTGkEoQ/Yr++SqO+YJGDsgsJZ2iI3ThRP
-# 8EdicjVUY76A5PQblES3c3LwQAHI5ClY7iMEOfxb3DJEsdRyN8DewF35Tk9+VPS5
-# iExLh44wMQM0aUeXqGXA3yYS7BMqHhuuc795kyJN0gHE7iPTtySWdHQgR5rQ4d+m
-# /+X3ClcAqAJEjsC25bGsIrk5zwnEyGgWNcgEwGFa75oDE+C/HtqSnsbop3llz3sE
-# drCZBWM5Chv1r9kbXPs3HoRInZVYU+gsFkqfkcT9tLAAYkAd9E+8sj7DTQlVKEIe
-# 9iy8kwJHUQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTcxMzAw
+# MTRaMC8GCSqGSIb3DQEJBDEiBCAcVoCU8VZt6sTxK1yUr0NCS4VIwEy1TXP5PEGs
+# FyMDrTANBgkqhkiG9w0BAQEFAASCAgBCm001MtDRaTrSbtiP2PfHsCebfxl0saaM
+# TL0NjllTSbCDE/x7c4zRbNlSgQxY3rrM6ErCMC0rm+rrFmjM+jQcEG4HCrPQ8eZr
+# DkN4ZY+AFTfuy0eus5y20DxrWkexHTPuwL5NEtYmt/ltrUw6HRsN1NYcmL66J/A8
+# abH0D01fORqNZfToIOhf+LagbvCVy0NfUNPx8Lw0/iTHScktrBTsuFVJKuIFc0mA
+# VEpgJe7ptGC2wRG05qiKYGbqWPQsxutdFw7KdJQNHloB8MAGJ2qAW0a284Oie6Xc
+# yHb1/m4S5/RJOvXH28kTZOxT2XI7tdMLNx6FCudWKiAzusPlU4IyDfybVCwgM6/g
+# b5kReajBUVrm/ZCIHP83k71zLyLipMKIkcHfXQput4zpMcMbwoSvDPE6xHvJaxdA
+# jPlJXLfxF01dcwI0MiTY2a29GLnqjZ9oWpjaYGVx/2XtFmqAqDhagw/P/yNeOP69
+# 9vvkAXe4IoPcnNGwg8OeONfXs3QaJhg9yZldM8Bio5KwxVE5Iew+r4oIxNV8MnYg
+# DY3pvOyGYCqhKTHCBUh1IEC8XJ1ZL17WD+W9qJuUaqLaeNqD77Zg8n4TbqiGIAvL
+# /4mQkcbdPMB1knvW4IExZGWWc36tZuDwRXMx0F24W1FDOqt+sUfr4Egdj8/W1zHM
+# Bv5OR5S5gg==
 # SIG # End signature block
