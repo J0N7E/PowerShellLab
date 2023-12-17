@@ -72,8 +72,6 @@ Param
     [Object]$RestrictDomain,
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
-    [ValidateSet($true, $false, $null)]
-    [Object]$EnableLAPS,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
@@ -2492,7 +2490,7 @@ Begin
             @(
                 @{ Name = "$DomainPrefix - Firewall - Block SMB In";         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Security - Enable LAPS";          Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Security - Enable LAPS";          Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - IPSec - Permit General Mgmt";     Enabled = 'No';   Enforced = 'Yes';  }
             )
         }
@@ -2797,14 +2795,6 @@ Begin
                     $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec -eq $true]
                 }
 
-                $IsLAPSGpo = $Gpo.Name -match 'Enable LAPS'
-                $DoChangeLAPS = $IsLAPSGpo -and $EnableLAPS -notlike $null
-
-                if ($DoChangeLAPS)
-                {
-                    $Gpo.Enabled = ('No', 'Yes')[$EnableLAPS -eq $true]
-                }
-
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
 
@@ -2825,8 +2815,8 @@ Begin
 
                             $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
 
-                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo -and -not $IsLAPSGpo) -or
-                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec -or $DoChangeLAPS))) -and
+                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec))) -and
                                 (ShouldProcess @WhatIfSplat -Message "Link `"$($Gpo.Name)`" ($Order) [Enabled=$($Gpo.Enabled)] -> `"$TargetShort`"" @VerboseSplat))
                             {
                                 Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
@@ -3263,7 +3253,7 @@ Begin
         # ███████╗██║  ██║██║     ███████║
         # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝
 
-        # Check msLAPS-Password
+        # Check ms#-Password
         if (-not (TryCatch { Get-ADComputer -Filter "Name -eq '$ENV:ComputerName'" -SearchBase "OU=Domain Controllers,$BaseDN" -SearchScope OneLevel -Properties 'msLAPS-Password' } -Boolean -ErrorAction SilentlyContinue) -and
             (ShouldProcess @WhatIfSplat -Message "Updating LAPS schema." @VerboseSplat))
         {
@@ -3491,7 +3481,6 @@ Process
             $SetupADFS = $Using:SetupADFS
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
-            $EnableLAPS = $Using:EnableLAPS
 
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
@@ -3603,8 +3592,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5z0YHX6WynH/P6pT9oLPZ+Tj
-# vAqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU09SY4t++mAH2r4Ohf11xfRUH
+# 0ZSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3735,34 +3724,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSICbmE
-# H9dC7fVmh2cNwjMEaJuNJTANBgkqhkiG9w0BAQEFAASCAgCOAp5j3lVrVJO8GU9V
-# bOWMXgHgtl6fYWjiAotv0khzPOP6N8Suiythc73RoxG2dodAne6zFX2l4zIkbLiM
-# VpXMvf5jUbQx9KnW/XTNhB7N3+N8oX3QMwWvN1Oc5f4/mzAWLQtPqo8Um/IyKipf
-# OcH1ogTv9eieCyTdkJNZaGCP+X9JXeY+133hI4Td7/kdfi8FT4FCe4BqxcQDI6Gz
-# DnfyTAoUDkuH3/oMfogQk+qlE58uIkv91TaguFe7jDZzComfEgSdlQ4pUfdMrPEF
-# EJXJbQybsYaLAb38tOpeR7opoq+L9l+zuvMF/BVLwizhzjU/kbVl3vlLLV1J40EB
-# vLayYcsGMB/LEK8ebm3Wn7ZlvpLeEgRu4Irg7kzinE6drU6jkiEsAuDeNcoEeEJH
-# 7DH0q13r3/bZzbwd7jkLyshGLeCCKMpPcf/UE9XcBqqfG9Yu7YSuIffJzZXL0IVa
-# NN9IpAHZRNVCM+Rk7NkLih8VpnqGXFbKLVuRBmSh1QSyYo3tFnHCtDG+chXwW1Xq
-# tLAhi+I4/fBfloitJR+TufV6XLhdxJKx2sPmoxVFXVAOEktbiEf7WMONsVxfW2YY
-# 2mqYxzxMXKBq4dIP1mhiii6+NqyHgOKYv9AzPDfT50ATbxJJCmjyOSqdO18ZoQzz
-# 5gSRRguEpw1xx1ZhbN9EZisdg6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTdLiE+
+# KUxI36cOJIv/UzQK6mdT4zANBgkqhkiG9w0BAQEFAASCAgBM0H+QYnOJONRfU7Af
+# pY1h0xX16QGPklAKa+8DR2ftyUKw1BqaJE5s/7pkWtARoczDdSZbgSLthXNZzY9E
+# rEgNTxEOHI6EjYzn5i6zGAod20p57EYOyayF4+4RnWIoj5bMx6k+uogcchZnlB/3
+# UH9DpycZnGRhQiRsjKnctkiNMN9C2yo2jWsfnS7UCLx7C2kuUyWjOjcuouchb/o9
+# 6DptYsO89zHnEeBaaJ5o5oKSucGdhodwoozA8fZ2PErA8gEZv2mU1bBA3BIVJjIT
+# 7NFCG2VwD5uKqCbRIBhSESjSX72LUIosy+ihyXqXiCQA/1HFGuuwNcVfI0YjRnM5
+# z78H8ViMrJcWQPzCEOsNB2fFZ/cOtemUo4iQNxYvt3Afq8bmsVRaHQdDomW9JAHA
+# x6GYUONAZHjHtwqBg/FUjocRyxDAt4oJ/ROLiqfrnY+XST2F+5YV6dN4k0njvYmm
+# OQFIjs98M8xpdjipU5VU4uzEs67kioOuxkJ3pJXFAQ33yp+QPfgQ/e4rhHafqKI8
+# jMppIMImUhMnEPoaYDiTUTCyrJZwH08eSQ6hpVuayV5zL9ni1HwLqoQnhy9fHRYA
+# GpYWO61szb24+/4T5xE2g86aWYC+rNNbz0JuqF+noFyQPA6zXT9nMX/NWsacVyX2
+# +QkeY5FAgpECwR9i4AC8cwLSQ6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTcxMjAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCAPwtpnZ6G/r0j7EFFAhCVVjCEhAb8h0Sc2qqFa
-# Orn1hzANBgkqhkiG9w0BAQEFAASCAgBhy7BBU7gPNV6aHcGZbIXL7LOJqFYCzktv
-# KwQytd5fbC6fwQsNwo69w8UTF9xSZub4vR3iJKwJFOkkQy3DnQIuZGsaoxvZS7cR
-# mJxDnZrmKnYkScDXwGcsMSigL/we22nXfLySRBX3UBnv34mZM3V7UGmBGUBj/vrO
-# QuIhd0/W5cN+hy+osF1tgprOzfQpt6ajxTHavfReBPTmVnbYLAD+rpk+MaxKJ52T
-# EX+v8tcMfti4gr4zxcEs5J/PklktQGgnGgEDwbkLRctSrMmj8fcL5LTyPbCtCfEE
-# UvSuiY0AgYNU6MGMYrlpNslsyDR9VHQ1BwTTDyd8jhSOtFD1FHln6wNUxJvZ/wRR
-# WD6TmksuqOyHaosCfTNh+XmhDLybaPHUcygOKLSQgvg7zVHlezl7HDFe0y6Zn6Du
-# Jou5PZ8cn9N7nZQeqjsul9gkoSiIxLQCtOakYjwTPPoa8KbNX5KsQINYLL5N7O46
-# lcwo+JjWjwmbNU18YdYgjsRVo4S29FxSDdDrxNmrZ1lTYvZ18z36bjSZuiCdPTBB
-# LBfa7i6rGzMuzJ+Cv8H0XyfzIS4hGqApiczrBWd0riuaTtM75TDFfshe8eGnoLR7
-# J9RmrhSuX+gukJmHDaNkKHsbrKyGSn/9ALd+BHPbRtq4qrmw85xZCbaCawO0/4hr
-# gNjljoKxfQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTcxODAw
+# MTVaMC8GCSqGSIb3DQEJBDEiBCAtZFjkm77LXddrbII7qXxqBz347DvIYXQ2ySt/
+# LXQW1jANBgkqhkiG9w0BAQEFAASCAgCO4A/Y95dqgZZfvKLL0LRUO14TxuCs9mPN
+# uyRuMuw8S/fmNROzzjZWsRtvKgX2r5Nq02yK1il5c47ZHJh2NdS2OQKrfAJ7LkJx
+# /pdfRhvXb7JXpYU8VQzBZTxCX/KRgqI597nzv02c5qVQAtO187XeIrjWCD/n7LWX
+# UpOGal2tZl4JtZkTC2KJPejPJShip/ocSncvZTKzLDGIFLaa1BurdyvBnLD1cakk
+# VOjN4BMabebNoPVu23ab5O1ZYm4AdEayNtM2NugcUmaOyDb77fSgwooe2vAhaIdz
+# CfbViEOVM4Dwu9eIaWqrgqyxT0EdFvk3Y7R6OgqO8ARFJlScr+o+Ri1W+xP2bAV/
+# rAV85zPaPdaT0AcFHmQOnD8R5DLUsUKp9/KUgEAz5t/uN7gsSSXS8ZbkxJxr1qRA
+# r2458UfuOq1aHGj6PLxCr8I2z5rQyIqfSnkztjlR7Raq5TJ2yKjo+SlAnR7d3eXB
+# +/FX2eMn/0hiFd/az9fA+cZm92ywgOK+gyaWg1ELLenpw75xawiCZncDnkE1Ro7W
+# eQmNLGxjTgfTfZm7Izv7dfekB68brZHbXjc3v221bTii8HyGqqmzWO4ohY/IjM+S
+# HraNCcwAJ7MCsSyYwFozvGqMVmoLdyAe3WkCVwLU+gkHN+SmjAPiZaNvatUrqIHg
+# AIPu0rHG6Q==
 # SIG # End signature block
