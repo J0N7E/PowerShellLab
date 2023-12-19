@@ -140,8 +140,8 @@ Begin
 
             # DHCP
             DHCPScope = "$DomainNetworkId.0"
-            DHCPScopeStartRange = "$DomainNetworkId.50"
-            DHCPScopeEndRange = "$DomainNetworkId.79"
+            DHCPScopeStartRange = "$DomainNetworkId.100"
+            DHCPScopeEndRange = "$DomainNetworkId.254"
             DHCPScopeSubnetMask = '255.255.255.0'
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
             #DHCPScopeDNSServer defaults to domain controll ip address
@@ -480,13 +480,12 @@ Begin
             # Initialize
             $DnsRecords =
             @(
+                @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.20" }
+                @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.20" }
+                @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.20" }
+                @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.30" }
                 @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
-                @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.100" }
-                @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.100" }
-                @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.100" }
-                @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.150" }
-                @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.200" }
-                @{ Name = 'wap';                     Type = 'A';      Data = "$DomainNetworkId.250" }
+                @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.90" }
             )
 
             foreach($Rec in $DnsRecords)
@@ -619,11 +618,10 @@ Begin
 
             $DhcpReservations =
             @(
+                @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.20"; }
+                @{ Host = 'NPS01';   Name = "NPS01.$DomainName";   IPAddress = "$DomainNetworkId.30"; }
                 @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.50"; }
-                @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.100"; }
-                @{ Host = 'NPS01';   Name = "NPS01.$DomainName";   IPAddress = "$DomainNetworkId.150"; }
-                @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.200"; }
-                @{ Host = 'WAP01';   Name = "WAP01.$DomainName";   IPAddress = "$DomainNetworkId.250"; }
+                @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.90"; }
             )
 
             foreach($Reservation in $DhcpReservations)
@@ -903,7 +901,6 @@ Begin
 
                 $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{ Name = 'Application Servers';       Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Web Application Proxy';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{ Name = 'Remote Access Servers';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
             }
@@ -1119,12 +1116,6 @@ Begin
             @{
                 Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'"
                 TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN"
-            }
-
-            # Computers
-            @{
-                Filter = "Name -like 'WAP*' -and ObjectCategory -eq 'Computer'"
-                TargetPath = "OU=Web Application Proxy,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
             }
 
             @{
@@ -2617,16 +2608,7 @@ Begin
                 # Remote Access Servers
                 $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
 
-                        @{ Name= "$DomainPrefix - IPSec - Remote Access Server";  Enabled = 'No';   Enforced = 'Yes';  }
                         @{ Name= "$DomainPrefix - Remote Access Server";          Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
-
-                # Web Application Proxy
-                $GPOLinks.Add("OU=Web Application Proxy,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name= "$DomainPrefix - IPSec - Web Application Proxy"; Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name= "$DomainPrefix - Web Server";                    Enabled = 'Yes';  Enforced = 'Yes';  }
                     )
                 )
 
@@ -3592,8 +3574,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUM+9yc6xHxsquEftOP+qWmC00
-# M3CgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXpedMNW53WokUAuJJwLoCKDp
+# n3ugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3724,34 +3706,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ8R1RY
-# 7cx26B1LUh0aXpjq0q867TANBgkqhkiG9w0BAQEFAASCAgBoX//WiRNgWbwx+cmU
-# 8yl8Ltj8xfPS3I1CDBDV9QIMLbxeJ4AuNAlIqDlF5p7DfKpsSE1G5sAqmuMMCxja
-# fVwCo1/uzsd3dBiDTRHs0xrbaOKqdEDzkXBahhLCAOi97KbOs6Qeqv/cDZTnNG39
-# DhQrt9ncuVqryoXZUWybyPYJEqtbWbftqSuBMKZxNza9Lv7zQ1xGnJMQESW9/yGJ
-# OPKvNdOBdnWHF3TsMPnc2pCO9QM0OJNQ1jzQi0Vx2NBomB/AoQDgouz4Fl4tEYAk
-# v5h+5drJwxOF2Yl46K1iJpu64NMCTrmWswEKnoNQ6njvE4sCPOf+VgJ6G1udkZB2
-# aIvkNcf16zZ/wMg07r6RDGR8smrm7JT4QG2w/fkfFtoONoZ0QTTHIIOwNgno6U8u
-# uV4oulmHjPXS8uyZcxfJ4XeqqP86J+vA4o7F61zno0aDNU2XfufkE3Zdq9+1r4uq
-# 8ZgtqOtCdWH01fJLCK4iT9in7NSZn5gO/JWMHQ8LPYdOmjA1iZUV4e5SH5O9Z+lA
-# MdXUBzzvfdWFlrb1gEjWifxG1D++ptre7nSZEHuPcPZh7ybCvGaab2ed8jHpAfV9
-# yIKM5v7u3RqzOvie6Pcs0FiO0nSDTdoDjwU6zTo4yiI2aFrRP0biqyuzH3VF47ZC
-# Ilx3RXsLrQa95ojAwIEGf5+6YaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSLwMer
+# Y09EgJeu51IsSsbc/uMnvjANBgkqhkiG9w0BAQEFAASCAgBXjyHE5Q1cH82vM3mq
+# Ua8HHCBBS0sv4WMLj71qcvqcrsS/G70NeJZm/QOLyBuIWsW+zAfwC4ej3hGwc1Gs
+# hPUtzVDmY0d+FBK+R7ajZ5bV/L6LXHUkf0kqQtwmGZ0lDfA/bxttQK0F3lCEAqMb
+# VMtx/BYW3ZOo4EFdqwDXCLNihH3QZXpolEn0NqGlEUewpq3eO/UXHA7/fUx1zTqy
+# oEVFpRFuRfqtabO01/9ekYvYgOaR8ECZo9EqwQe3AE90Je14utVvg04SFgLMsAjO
+# VGXzmKJvC7t7ke7dzM9bnIc5Pzwxxk8LkBJiWPA9fWTqrCX1FDB/XUfkTeGKjSas
+# ffvzyveXTuQuFZ/12ZO3Nr+ToPOxagdiVgGMDCLtNRn8QMj14x6SZXj1Vipu26qi
+# aLZxw1KdTP179j6aQEO7glWr6yAm+TPDpeWLWIxbWOgLEqYOO0SoL/udvY8XdMlG
+# tQOYljF5VsCA8l4u2XlJnr1Pmx0JnSbAfK0WtTZOT7RHHqjrAeXxfLlAFWRZjZO4
+# sdIKQENzxth8Tsv1RIFeuiJbs+rSMT73jw5BXeGdMLjYoXiSTGh2f4scUKl/KHVG
+# NTeAyc4lYQyvt8f6LQM9DuUTPiR9rls0E51AW8VaRdUFrp0ihrTehaeYTsLY43hK
+# vFQxu3kOatOOFdYyo9z6kihIiaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTgxMjAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCOiHkn+fUq+LhEeO3Du9JMwP9HBo2bM4VSTvxI
-# ajNcXzANBgkqhkiG9w0BAQEFAASCAgBviIWl92SQ+fYvmOQdHulg33NIvnLhhpQ5
-# uyjBmAGm9CJaN3Ezdtqsz/Xwe1/0FcPzGRZ68ZQCSP+H6xmwi02GzrKCNm0RRX2Y
-# LD9jQj7UJeSKBln0P7S0BTQJIcaUzQq0L6akX2JFVEgDbSjWdfJzBosv/iCczvne
-# l+xWbNsm2aNLWjYZ1zkUVN9cGQdZTc9nFN7vPFLAbxvW4LEZlhwuz6za/LO+GFku
-# iXAg74/NtAmVN2afAFrMvtSRdjSg1/K6UcXlP1Qv29YyJXB5c6AOMT8N3lEkZ/CQ
-# hJi2tfpUaRhc/vB2YuZoYAZtzw6EcIi7ey3TVF55T9BFWtJHYdU9nMZW1lLE/uDo
-# CnQmxIMo4ctwaW6EcFDQ/EU59ZCf2jcokgkwsWw3YEHLk/Ps9uZVd7uAropQKOm/
-# s7+4C3c2Cf876Fw4l1VN0f4IEUwu5t9Fn4H4kXZj6Lvf7bOwGX1tQiuFksnqu1hB
-# +4q2/DZNajRvCb6Gn2Gc7qn7tSC0NM3BAIj1fOJmesXS5H6NCl16DLugdAbfLUoN
-# 6LZ5xGt+Dz4eBi2wE7VjDq0DBy9ReQEL/2lCzNY1iQ1f/gl8n9CrIfpX2JJmk4ue
-# AYelGOjjqW9NxdMdXsEQlUCZzBrAUvMARaTkL3hyPftwpe3cZ9C0UbaTcY4uY9vi
-# Shb9g2yCfA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTkxNDAw
+# MTNaMC8GCSqGSIb3DQEJBDEiBCDsRKoCa3rpNobrC0hcgYi/G+4zh0R0exmOAsr5
+# 7wPfHDANBgkqhkiG9w0BAQEFAASCAgB1VfaJKkfuf9uMqrOIeBu584FzRj8yjxXg
+# ejaa3Rj6aco7C9tTWWU8KQfH/XauSkUH8Sut+gz1fiXyLclMZBaSjum7rGURH6EE
+# YFf1LkVpoKSBspONSsr2kWU/LGZdgpvddxj/h3ZhStUYZPaKroW7KSQE48Dmdf5S
+# gsYU7pu0ZLsTl4PszN3Vu/DNJswcodoVbg5Q6nX5ukdo6joA0A9sMKlRDmbYxvsu
+# CPm8M/vn8nZBQzbQLWw8HLHtt1GdU4N64JM487tEUypnykKK/TfAogH/H4LHWU9H
+# 5a42Ncw7IyOCQOzTXjkMW9zhX+1e704OpoPzvXF29j+Q4OtqivsmJqDjw7ffv9p6
+# fHE2eRZCmCuZu5Khf+3oCa93Drgl4f8ysuRxLGvn+fpalNUhfKqq0u2/xofehMSL
+# VRLiM4X1etdU/Il59zeizFp3ld4oMfEhdX8phRsxQqQPVGAs5dV26oqQ+jaIsUGC
+# 28GjkBoawnE6LhAWUhm7i4p4EsUghN4TSWLWpyh6X8nuab6SOjCEjHeg5eSNmHtG
+# ZmT/Upq3euCqbLiCZdMHPtZ0sCbvWUAcFSgb5YHoMmjv1qvGHy2mp2bVM2jHdsse
+# DARKri0r1IsOXoWtObxD2HgQLOjIEnkuwpIJR+k7e1x+pO93wxaaAmZ4x6/CmJ9/
+# XHSn7DFCfg==
 # SIG # End signature block
