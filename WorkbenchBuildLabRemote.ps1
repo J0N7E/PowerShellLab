@@ -62,12 +62,10 @@ $Settings +=
 
 $Settings +=
 @{
-    DomainNetworkId   = '192.168.0'
-    DmzNetworkId      = '10.1.1'
     Switches          =
     @(
-        @{ Name = 'LabDmz';  Type = 'Internal' }
-        @{ Name = 'Lab';     Type = 'Private'  }
+            @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.169.0.1';  DNS = '192.168.0.10' }
+            @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
     )
     VMs               =
     [ordered]@{
@@ -76,9 +74,9 @@ $Settings +=
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
         #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');           Credential = $Settings.Ac0; }
-        RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac0; }
-        NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
-        WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');            Credential = $Settings.Ac2; }
+        #NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
+        #RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac0; }
+        WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac2; }
     }
 }
 
@@ -180,7 +178,7 @@ function Setup-VMs
                     "$NoExitStr-File $LabPath\VMSetupNetwork.ps1 $Lac -Verbose",
                     "-VMName $($VM.Value.Name)",
                     "-AdapterName Lab",
-                    "-DNSServerAddresses $(Serialize @(`"$($Settings.DomainNetworkId).10`"))"
+                    "-DNSServerAddresses $(Serialize @(`"$($Lab.DNS)`"))"
                 )
             }
             elseif ($Rename.IsPresent)
@@ -203,7 +201,7 @@ function Setup-DC
         [Switch]$CopyGpo,
         [Switch]$CopyBaseline,
         [Switch]$CopyTemplates,
-        
+
         [Switch]$SetupDhcpDnsOnly,
 
         [ValidateSet($true, $false, $null)]
@@ -281,7 +279,7 @@ function Setup-DC
     $Argumentlist =
     @(
         "$NoExitStr-File $LabPath\VMSetupDC.ps1 $Lac -VMName $VMName -Verbose",
-        "-DomainNetworkId $($Settings.DomainNetworkId)",
+        "-DomainNetworkId $($Lab.NetworkId)",
         "-DomainName $($Settings.DomainName)",
         "-DomainNetbiosName $($Settings.DomainNetBiosName)",
         "-DomainLocalPassword $(Serialize $Settings.Pswd)"
@@ -347,6 +345,8 @@ function Setup-DC
 # Switches
 foreach ($Switch in $Settings.Switches)
 {
+    New-Variable -Name $Switch.Name -Value $Switch -Force
+
     if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
     {
         New-VMSwitch -Name $Switch.Name -SwitchType $Switch.Type > $null
@@ -393,9 +393,9 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
     "-AdapterName Lab",
-    "-IPAddress `"$($Settings.DomainNetworkId).10`"",
-    "-DefaultGateway `"$($Settings.DomainNetworkId).1`"",
-    "-DNSServerAddresses $(Serialize @(`"$($Settings.DmzNetworkId).1`"))"
+    "-IPAddress `"$($Lab.DNS)`"",
+    "-DefaultGateway `"$($Lab.GW)`"",
+    "-DNSServerAddresses $(Serialize @(`"$($Lab.DNS)`"))"
 )
 
 # Setup DC Step 1
@@ -449,16 +449,16 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $DC $Lac -Verbose",
     "-AdapterName Lab",
-    "-IPAddress `"$($Settings.DomainNetworkId).10`"",
-    "-DefaultGateway `"$($Settings.DomainNetworkId).1`"",
-    "-DNSServerAddresses $(Serialize @(`"$($Settings.DomainNetworkId).10`", '127.0.0.1'))"
+    "-IPAddress `"$($Lab.DNS)`"",
+    "-DefaultGateway `"$($Lab.GW)`"",
+    "-DNSServerAddresses $(Serialize @(`"$($Lab.DNS)`", '127.0.0.1'))"
 )
 
 # Setup DC Step 2
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
-    "-DomainNetworkId $($Settings.DomainNetworkId)",
+    "-DomainNetworkId $($Lab.NetworkId)",
     "-DomainName $($Settings.DomainName)",
     "-DomainNetbiosName $($Settings.DomainNetBiosName)",
     "-DomainLocalPassword $(Serialize $Settings.Pswd)",
@@ -613,16 +613,16 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $RAS $Ac1 -Verbose",
     "-AdapterName LabDmz",
-    "-IPAddress `"$($Settings.DmzNetworkId).200`"",
-    "-DefaultGateway `"$($Settings.DmzNetworkId).1`"",
-    "-DNSServerAddresses $(Serialize @(`"$($Settings.DmzNetworkId).1`"))"
+    "-IPAddress `"$($LabDms.NetworkId).200`"",
+    "-DefaultGateway `"$($LabDmz.GW)`"",
+    "-DNSServerAddresses $(Serialize @(`"$($LabDmz.DNS)`"))"
 )
 
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUr3/Ux9lkRcTAZcHyTZKRqVZ4
-# 7uigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUM76FCdl5629Ph6LqAjN23jpF
+# lTugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -753,34 +753,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSjxCd9
-# 6biA74WwKb0acLALndYgmzANBgkqhkiG9w0BAQEFAASCAgBs5CML/rcLcZXLwc/1
-# NM/v3kwUbCyjwJRbgJl7RTxZD72dXdVZpdyhFok6uuu6I3f6FNehtKbDs+aBZ75B
-# laAyxIhYYgWcW5DFR65O4lXjbTFY207LOKLwHCbsEX1t386m8Ji9bog1WPToOShn
-# DQ6SqqMd4S2Xf40U3I3NlJl/tLjUbBp2UmRrx9x4tG8UPUFvKlECMZySEqaZSJEJ
-# yOYKtiUfALgDwQLT+jlcXP4/KhPbVCfPuEMnvumGMtUEbYdUkDtrz0nCheE3PQwA
-# z7FSkDzNPVsGBZ7Y4Tah+j88qoX+a9c5wokENDt7vEmW1HUihEIx6CSvo3j151Q3
-# SoWEnDtJSVPQZ93eOsLgWbaYwf7Ep2zwS79QRMySAekUUuXnlEac4QLTUCvwpIa9
-# NLlS/pFv0Sol6E6rYU0ZHxlesjZhlALW3l2DP7jS8Zcf+ud6JV+F7XirF4+9fYC0
-# rbyKeMYG27hWeme43QhEqLBOop9GkjMTjfUJCbLgk2Yjz0F+zahP5tBFAhzdY2Iv
-# 0NOKLZ4z3uKOz63xp1f4+WPl4irwr7ngCN3aLHOUUYfHas/BDKzbVEowrAvqEMmF
-# UlKZ7SzRNPNoVXhmMp87rQt/eTSU8l1mAOvcQGqOisxQ7JjVEJe08V+2jr2nAb0A
-# 7ZLYiYlPmnOatqfXFZQ+1iarwqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRV7F0n
+# N89Tn4fFi4XqZlCGcUlQIjANBgkqhkiG9w0BAQEFAASCAgA6W/ByvtVe2vF/zeGn
+# 6O/nllNnnWvwNxv9yAVNEvdWWqnlc7UoSfXVDtHVSOtvWY4/0bfOppXXG6eHkN6z
+# P42EqRyFP+LDJCVqO1MA73ENLVUtmW7rqpj6Q4uN+JR81e74FOZMPWzuuuQHYiEE
+# Ka3ClVIBg3wYKnHx8c3GzSNXqVokfqGwwCh3qCUN+5iXYvEgTgtWh7CPQSGjj6fR
+# FNV+WMT4C9FhQrkzXTmbpv6+UKD5br7dQB7DcUmkv+h3mqqCnjyjJbtSSpfVBP7E
+# /NgS55axkcsHxV2Z+gkdDsGqY81+5TdpYFEcPOXvA9dB/ncHbr88lSfs4JDuZBuX
+# Bf3Z7MhjT6bxWKFrcIOZ77SI9BnpkOPGlpbWjjvmmrQYf67CRYUxRrx+Yuk9Yhbp
+# 11jbr2KGBrNxcjks5mByK1s1yif300VESiFtxST7yohCk5vyTqS3K67Y5cZ6GmkZ
+# 0bPItP+GASRi/PncZULx6vvX1ECCssNc54TwYAAE4CjJvcX1lLKMZMXjftm38sLl
+# 7rGbpwAeZDG8JYV5JwcJu1+HZvd+CTO6F8wlkYUGwaKJTsGyfGGmfT08tg0I61+f
+# No9OszaTact+bKXOFG72yC3DrCeQa+AUEp3/WS+2tJf0SNQONri5KJgmjj1zRVK6
+# ZfnzduyvQwfOE3YNjrDJnd2ihaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTcxMzAw
-# MTRaMC8GCSqGSIb3DQEJBDEiBCCHkq2r/wcQdlAL1OTLTaoTmrtpc1aEUZa5rKdW
-# KTM1ajANBgkqhkiG9w0BAQEFAASCAgAeGN87fg2U5G/n/Fn2bs2j9XDfJkFJtifN
-# 4LehN/VUMGY2j0KMBTsskKV74inRVI3q5C0wLLq4Ug90Z5fWm2sWmSktvP364+xO
-# lIR8IKenPW0h/+BkQ5rkGdB0LVNaJ/qMJLWwuuYfhkE/h/T+iGuXj6nzui2FxUNG
-# vY7DePtMDIxH+4FhPeCdu03sLNM/WWBXotxPnzsphvsN2Tymu7TKG8U2fW5vZ1q6
-# EumzwHHL8cU94oxtwEkOy69aNGFaiPVfD95UJkHe3jhgIoppXR7lp74QeGfufmr2
-# mqTV8hyrWw9WUb48R/X/RYHk4fMYGA96mni1wjdOTNFgUp9SYSw7iiZvvME+WvKl
-# 2YTmo8z4D+TBjEsiNsZD7Tdea9M6tscyTWJI9oU6dIeqHqNifaEDQ6SFrYq9tJAT
-# HVN3FTcnIUcVpM2ILdAO7R4Ps0WmEWxhkF4rjvnkl8Mbg4rFS0Lq+xDTaHBFA28V
-# iH3t0mIebZfvCHjPTKWuA+Uu+TRtU1QB2fAmIQNK3vymhnnmMlSHyyfjyJY0gxNR
-# dakj5bkFCufQuyx3/iO0+VMsx9B7266mn6rZzbpBxn68cX+57lDQW9meMeuGN+JH
-# /s3DKA2PqeVEh9rgY8tzNiQl1RIiBPplSoEu3oq1R7XOGldLNnPbEnNsSWPJqQCw
-# C7VHWDsQDg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTkxMzAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCBz5+5ohoACuIls/+sR+DWUOX3/Ns3GT83reDGc
+# bc8lYjANBgkqhkiG9w0BAQEFAASCAgCbgsM2oQNWqsyY4z/08mqel3TSx76PIRdy
+# wPaJQKw2eOz+ekZthIwt4tweNP5kgA9lrjDTLgPHyVtx0e8p6lu0vDaR+VK8mUBE
+# WI+NTOk/C08382ClIJc1O9jHnXw4WGdMFmuTgrqZeNrPlKo/O9rg7SXVPkewRBvn
+# wOB0zWaxVVRvEzjWQic+BOOBpSv8Tcr2a23Bp+EAjXLKCkDNDaZHBapDj9TnImUI
+# 5x8lOSI+u15B/wCBtzUwIs47INYgszaWuprCwFEflcCsnPYB/Ez6IcFY4Z/RUs+a
+# M6TjXitbhBeIIH3BXbbuwGgli5mJsJrhVoy1gpem5N7n21/IYuIiXIVde2EaN3k3
+# 0OYO5OM6ZySKogNWoFTOT35sShK7qZhXsQSAAxbh4m5XfGzQjOnmUYnpMYL9/C6h
+# Li/Cpq0N9Z6rfpVrXSat7IHn8gqC2QfmXay7OLMuga56VhUgi32+rpSpuiiaYLMx
+# MBXRRZTJyFcODRyr2MAE6prq1LeJ1s/aNS8d41kna2qYX2DERheiSEMblloGQPbU
+# WsrjvVon6J5AzddzKUF3/cPGo0W6VDacDoQnH026lTYtx1FW668ATwkL3lEBvues
+# RSbUNuR3K/8nbGxDMCV7eNjZHuDd1kwmv+MOSTYEI8W8ONltawf98LJ7ln+MIy7u
+# KLtqsewe7A==
 # SIG # End signature block

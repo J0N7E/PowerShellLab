@@ -92,12 +92,10 @@ Begin
 
     $Settings +=
     @{
-        DomainNetworkId   = '192.168.0'
-        DmzNetworkId      = '10.1.1'
         Switches          =
         @(
-            @{ Name = 'LabDmz';  Type = 'Internal' }
-            @{ Name = 'Lab';     Type = 'Private'  }
+            @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.169.0.1';  DNS = '192.168.0.10' }
+            @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
         )
         VMs               =
         [ordered]@{
@@ -448,7 +446,6 @@ Begin
     $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
     $ThrottleSplat    = @{ ThrottleLimit = $ThrottleLimit }
 
-
     #####################
     # Verbose Preference
     #####################
@@ -490,6 +487,8 @@ Process
 
     foreach ($Switch in $Settings.Switches)
     {
+        New-Variable -Name $Switch.Name -Value $Switch -Force
+
         if (-not (Get-VMSwitch -Name $Switch.Name -ErrorAction SilentlyContinue))
         {
             Write-Verbose -Message "Adding $($Switch.Type) switch $($Switch.Name)..." @VerboseSplat
@@ -577,9 +576,9 @@ Process
             # Setup network
             .\VMSetupNetwork.ps1 @DC @Lac @VerboseSplat `
                                  -AdapterName Lab `
-                                 -IPAddress "$($Settings.DomainNetworkId).10" `
-                                 -DefaultGateway "$($Settings.DomainNetworkId).1" `
-                                 -DNSServerAddresses @("$($Settings.DmzNetworkId).1")
+                                 -IPAddress "$($Lab.DNS)" `
+                                 -DefaultGateway "$($Lab.GW)" `
+                                 -DNSServerAddresses @("$($Lab.DNS)")
 
             ###########
             # Setup DC
@@ -587,7 +586,7 @@ Process
             ###########
 
             $DCStep1Result = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
-                                             -DomainNetworkId $Settings.DomainNetworkId `
+                                             -DomainNetworkId $Lab.NetworkId `
                                              -DomainName $Settings.DomainName `
                                              -DomainNetbiosName $Settings.DomainNetBiosName `
                                              -DomainLocalPassword $Settings.Pswd
@@ -625,10 +624,8 @@ Process
     # Setup network
     ################
 
-    $NewVMs.Keys | ForEach-Object { $VM = $_; $Settings.VMs.Values }
-                 | Where-Object { $_.Name -eq $VM -and $_.Domain }
-                 | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_.Name
-
+    $Settings.VMs.Values | Where-Object { $_.Name -in $NewVMs.Keys }
+                         | Foreach-Object @VerboseSplat @ThrottleSplat -Parallel {
         # Get variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
@@ -641,11 +638,14 @@ Process
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
         ${function:Wait-For} = $Using:WaitFor
 
-        if (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
+        if (Wait-For -VMName $_.Name @Lac @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
         {
-            .\VMSetupNetwork.ps1 -VMName $VM @Lac @VerboseSplat `
-                                 -AdapterName Lab `
-                                 -DNSServerAddresses @("$($Settings.DomainNetworkId).10")
+            foreach($Adapter in $_.Switch)
+            {
+                .\VMSetupNetwork.ps1 -VMName $VM @Lac @VerboseSplat `
+                                     -AdapterName $Adapter `
+                                     -DNSServerAddresses @("$($Lab.DNS)")
+            }
         }
     }
 
@@ -699,9 +699,9 @@ Process
             # Setup network
             .\VMSetupNetwork.ps1 @DC @Lac @VerboseSplat `
                                  -AdapterName Lab `
-                                 -IPAddress "$($Settings.DomainNetworkId).10" `
-                                 -DefaultGateway "$($Settings.DomainNetworkId).1" `
-                                 -DNSServerAddresses @("$($Settings.DomainNetworkId).10", '127.0.0.1')
+                                 -IPAddress "$($Lab.DNS)" `
+                                 -DefaultGateway "$($Lab.GW)" `
+                                 -DNSServerAddresses @("$($Lab.DNS)", '127.0.0.1')
 
             ###########
             # Setup DC
@@ -709,7 +709,7 @@ Process
             ###########
 
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
-                            -DomainNetworkId $Settings.DomainNetworkId `
+                            -DomainNetworkId $Lab.NetworkId `
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
                             -DomainLocalPassword $Settings.Pswd `
@@ -750,7 +750,7 @@ Process
             # Domain Join
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
                             -DomainJoin $DomainJoin `
-                            -DomainNetworkId $Settings.DomainNetworkId `
+                            -DomainNetworkId $Lab.NetworkId `
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
                             -DomainLocalPassword $Settings.Pswd > $null
@@ -827,7 +827,7 @@ Process
 
         # Run DC setup to configure new ad objects
         $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
-                                          -DomainNetworkId $Settings.DomainNetworkId `
+                                          -DomainNetworkId $Lab.NetworkId `
                                           -DomainName $Settings.DomainName `
                                           -DomainNetbiosName $Settings.DomainNetBiosName `
                                           -DomainLocalPassword $Settings.Pswd
@@ -1024,8 +1024,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9ZD2uAbLrDPCSqFW4rRTsrVY
-# 6lagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQW9sM+e0nEBjjiqOTZF5zGHx
+# ldigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1156,34 +1156,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQS0iLa
-# OuIrwXc5Pribxa20zEsrITANBgkqhkiG9w0BAQEFAASCAgBb9O2INM/2nvZNdeAK
-# N1cp2q32bU81soHBUMHDTx96oYXBilFneVh/Jxw/3zIRdhzrIKf0ovhvDuLZhOaH
-# amC9GK6CdXI/tfs/e+f/LQVJsu3INSS5ShsYLvWnWJxjOBY7f6RQmVC16UX+KDmg
-# Sr+Dh1OCUfHDouLjs0ztN8MFJIE/iJShebhDQrY5s1e2QVK26UQBjns1eHkLN+ll
-# 50hc1yR49iq1279CSOrxBCWW35JYgJ4k4P3NX/eFdrrE+JilwQFOz4ZTQ10a5Ki9
-# ccjl1mwyQXNwLoLuUN/P0Hgc//zUsAS9FwGVmktJ9WVH/gBQwlWJunMmRVt4lFxY
-# iHgOXHGQIZZEN/AqYS611OSklLyJNeDjlj2XmlkbAekec3W9S4UTZUr+phFprgFT
-# ktbWA+d5r+0gUknPstj6Itd85R49YUqt7rwfxBCTQvAhfr7/gtPwGlE6cY5DknEG
-# pEjI4XGyZySSEyzMsBCWgP+008EfBsesVD76RluZwlt8na9PNWbZirjuJtVu8g3E
-# YBPf/xX01CXSbZDHIef+IW60J4GNjihUbkBTLUyChI8jtIRlqkNGwYGSiTnYpK/b
-# r4IcPOjHofmZa7a2suDQGiq+jbzLbDXwdmhB6GgynKKHZpsYofGe64Jnp5YfAPc/
-# UGpOYCc9Jnu1WsOiwqLgpQpNzqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRmMt3E
+# 3ffE8Sl+Ao8dMnm8azDeTzANBgkqhkiG9w0BAQEFAASCAgCPZRdcVLleTIbsS19D
+# 6nuwoXIAx9cTzm9WtaWvsVnJjHR1A6wm7DbiByNhViRbOs/CTo2UhuKKyLh/dg+9
+# CpX1VXIFMApToZ1TtKRtCTJq5UKn3MxbRWyRErPuTcS+uKkCwn9jjNxT1eRfRIN9
+# rV2IYG8tlfCbYR8sDIFDIoQbgRiTBKy/787GxE8/I3taV0Dzgk7hdKKm8lH+hCvg
+# 1o7GnlqsIADj2zeLfVe6MzGivgDfuILO4t7uiuOIBhSTy6IgF2VoRklXDYpp2qJ5
+# i5A7nSrcJ/5huHm9FwL0Yw8Za7CT3lwVmUrAxiokvRrbpJOhLfj/ik93E7JkYJZG
+# Z6afY6UNjsAFyrBVM1hXoFHYPqNwe7Z4dXvc/TLJ6eSjl3UzOT5yGbBBr+r/TSQu
+# VbdY4xDy5skTVi1ePdo3QCrPjrlm7kCe5dTrh0N3iH7p69yodKwLCyAgN7SIrOoN
+# ksy5tHXMPuvVxR+oWJqF5mXdDJ5wp7lgBUoMz8daLo62LrrOSl4v3Fx4zGlyPhth
+# q3Y9PRJxzo0KWhMgLaylMu0EbVEQ6b/TWpAr++cqqR2KGBy/uC8lO0U9i4cxu7tK
+# 1Rjyw1BhUswVCYAeAVOl6J/bvH6IimVJuHz/e8rAw4NuLZ4son3qQV8y25mfW0x3
+# H3BUkARfveJo2X2RcZXaNMFu96GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTkxMDAw
-# MTRaMC8GCSqGSIb3DQEJBDEiBCCORMMHhiQId9t7ZtMgLSXI9zpxyTnkRD/2FJei
-# 1BOr0DANBgkqhkiG9w0BAQEFAASCAgAc/r38oq310QmWR2u+YKhzhh/RNTqdCxdS
-# g/+x/JJOEaxjMQpZy2AUUCW97Sji0yusDSXyfQoH7s3plmfC98oBLoD5OKuKTAj4
-# x2uKWCQDpds6RQ0gfPx3fSoz3H7V6kRNm/8+1pnjeNH7zRlfD7SLMo66sucPHR7V
-# HV3QJGwQFmPWDjNqOCpyl2zt7jJAfG6uqjBlwp8Pz2v4ND22IdnbGWYEuLsXPdve
-# PvdrhSPWqOgTeItN6oQerCKtdwxfXLRQYB4rmrQA/PIJIyyPvsQwlqGWtox9oRhb
-# NGoBmpn2UCcLCPP8mlYyO/6M9elKd0E9LPMkyk73VS0jhzTN2PujcjNmLBgpIeO+
-# 4Vci0C3huz9RJCV3YCbFzCHiydwHUVgamjBTsLfnzzDutxfy34AooQMlVGY2+Zi3
-# 50QR7dTt6hCwVXMy5fgrfca/so04lojhlPj9OoFS+vf2qBKRLBs5jEW0mOisr7YE
-# tyNzcC6x6JcG0/EIeW//NfwSpzOSbtMp7NIJ36nXmmuzCXogsgW5LDAT03tlmLC7
-# TtRsYmCpEBH7Z3W/SOfPVmtyZZ3OABK1m3dH/c4O25U5cSMroaTa6pO+J97Gwqen
-# eDcf3l3hzwncZ+R1MDzQdXm3joWS0X+7ipaDnOdPb14fAzpHbz7uepDTHrq+a/YP
-# kj4VP0lFZQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTkxMzAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCCyOO4zEYqu+plhA7A9u0HGYVm1TZdDatBP7+dN
+# B4qpvzANBgkqhkiG9w0BAQEFAASCAgA3fSJz2WKAG31gP5TcodRaAWi6rcEq4SeG
+# GZOGT1GwoqGl8J/O9LCWFu3OvKTya2XB5Nh763NIQhJJkF10HtdLFwgc4AoEiGp+
+# B8W3LdQ+Wv7wb8unlgN+qvNNoU6zLPAfweXS7o8V1agUQI/cL+HwqH7bCbjdvs87
+# nnoBobQ44fUjU6er4GLC17faeTe5pXVy4KYB5b6H8onyN1/pZxSzbHd1L1HnLLEq
+# x5iSoRJm2vI6rRbYLY4sO3zElTTmUL8DeufAU5F88Y81ti49gfSvAGHQazABqSLH
+# M1c2gfeeMUnYspMKKkHcsWlf4lWbhzTwtYn5Fwiae4tLKY2EJuWvbrbLE1lWpYCy
+# DGw5zWrmyh+Rdrq24/tBEixgTUuncbTJLWLNo/gRkixYu6t15jkgQsdgaaYsKjSq
+# CF400kDf0dU5Frjaj99cz3LQ/4er3PBLS5GIBvOuCoyf94m1geqLAlZ0DLOVO2vy
+# gX83DwvDR/kINqqolE4Up29QQVMUIru6rJ4n1Jm4qJ8Gq//Zp/yyZ10g7xl+TqW1
+# chxYQcBuA6nhzpNnu0QXf9CeFuZCFcpdDDluPA7rF4lYwFTV1WHvl+gfNXVzM2k8
+# lThmycz43yk79w8oZxPZbRHfbjZTnQBw3dwHAf6j9NlbeFEPqogaboX/V5ng3T2m
+# 5OjnxknzMg==
 # SIG # End signature block
