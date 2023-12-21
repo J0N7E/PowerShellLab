@@ -103,11 +103,10 @@ Begin
             DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Dac; }
             SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
             AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
-            #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');           Credential = $Settings.Ac0; }
+            #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
             #NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
             #RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac0; }
             WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac2; }
-            WIN2   = @{ Name = 'WIN12';   Domain = $false;  OSVersion = '*Windows 11 Enterprise x64*';    Switch = @('Lab');            Credential = $Settings.Lac; }
         }
     }
 
@@ -628,6 +627,7 @@ Process
         # Get variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
+        $TimeWaited      = $Using:TimeWaited
         $TimeWaitedSplat = $Using:TimeWaitedSplat
         $StartedVMs      = $Using:StartedVMs
         $StartedVMsSplat = $Using:StartedVMsSplat
@@ -792,7 +792,7 @@ Process
 
         if ($Settings.VMs.Values.Where({$_.Name -eq $VM}).Domain)
         {
-            $JoinedDomainSplat.Add('JoinDomain', $true)
+            $JoinDomainSplat.Add('JoinDomain', $true)
         }
 
         $Result = .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat -Restart
@@ -813,6 +813,7 @@ Process
         # Get variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
+        $TimeWaited      = $Using:TimeWaited
         $TimeWaitedSplat = $Using:TimeWaitedSplat
 
         # Get functions
@@ -967,20 +968,21 @@ Process
     #############
 
     $Settings.VMs.Values | Where-Object { $_.Name -in $NewVMs.Keys -and $_.Domain }
-                         | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+                         | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
         # Get variables
-        $VerboseSplat = $Using:VerboseSplat
-        $Credential   = $Using:Settings.VMs.Values | Where-Object { $_.Name -eq $VM } | Select-Object -ExpandProperty Credential
+        $VerboseSplat    = $Using:VerboseSplat
+        $TimeWaited      = $Using:TimeWaited
+        $TimeWaitedSplat = $Using:TimeWaitedSplat
 
         # Get functions
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
         ${function:Wait-For}        = $Using:WaitFor
 
-        if (Wait-For -VMName $VM -Credential $Credential @VerboseSplat @TimeWaitedSplat -Force)
+        if (Wait-For -VMName $_.Name -Credential $_.Credential @VerboseSplat @TimeWaitedSplat -Force)
         {
-            Write-Verbose -Message "Certutil pulse $VM..." @VerboseSplat
-            Invoke-Command -VMName $VM -Credential $Credential -ScriptBlock {
+            Write-Verbose -Message "Certutil pulse $($_.Name)..." @VerboseSplat
+            Invoke-Command -VMName $_.Name -Credential $_.Credential -ScriptBlock {
 
                 certutil -pulse > $null
             }
@@ -1040,8 +1042,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZ7paPN5GflWjthbTxbtq5vQ4
-# 47qgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZLWRnKtj18jy3J5zdCBdcseI
+# 8MGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1172,34 +1174,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRipvMh
-# wQBmodhpa4Spzxh4oDa3FzANBgkqhkiG9w0BAQEFAASCAgBFHKGUiKG0Ez1R8g1K
-# luTLl9LTUr1uOPEks8bNq78BXaNlQEMcPPGsdJqwkOWr/dwI3L4wt9EdirpK5MvM
-# wPEIdsUpc6yiVSNBN2biHzRTzajCevtqImKfE5mevOuUbNdu26KAhN1+H7l7ARwR
-# jyI9Ws0hTuokNlo4GFJq6uRQPg37UHs7hSCS6PB9RO9j+NjNuPbGpjpVRKhhFP9M
-# FTs3+XiDTU99eCta/FxWl5IS6tXvhablLIQyZS9iL4cEYMJB3jwqB574/oeSng0L
-# nsoQafitUlQkY9kB7GOAgLec0ina/quNLywoszVRwdeu7A1951maxj5DpewAHskT
-# HoWhRJTpBHaQnFNd/ER3QffVCQH1W36ngYVZaQ4LqLw7dEspaNjKHnw8E53acPR+
-# 85FI7C+ceyXmoDmJdMSd0HMUpu0TEYCrlDYsEPIAnNV0mSpTLObrQQwcQ5MmTeV3
-# 6RetftiQfcITqCNf/fn/jSeMLMCMFUHvZCqTc9BGz3fyl2O/CeRfbxN8AJIsl9kV
-# 8+3RFAHvMfGbr7DA0pQ/L5qU1HZaDN+6pRI2IA8hsv3UpwJBzAsWLb4NPh8ygdgA
-# 04jWNHJ9VdrzH3XaCNEjzegiuPMuMuGza+Fx74bmp22Hkdlos5qc9pZYQTEGxcF4
-# 2cQD/U1eYT8h/oqDH7Sy0eqRQaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTxC2qr
+# HV/06/ythbJoZk2LpuUESzANBgkqhkiG9w0BAQEFAASCAgBEIKhs8X/XqhTVQjew
+# mwdZgdXnlhkjHq604m7WypOSKj2+wt1pMFtJyDpnzqLQQoGGPnSgtx4NgOuJyElv
+# FXupvLul44cY6kHBuVKWWHArUqFmFXNEkw//UX8f4EEHBBtsL+YHjWzTj+7mRiNF
+# syukUSOs1GyDGqehhdcxIQs+sPSCwjvYWL3pNs2y+VPqWrutlgcQ16eF+VFa8v/e
+# v4Va7R3EhbMRE7FhwzXzAlQ/eTapMIKokzFp8hs7Qq1xgYEdmGOunvE91LZZ726Z
+# hilaMd7Gvxo1TW8Yvt/t4DI6wOdFys+wugv9aaqllQqJw8504tzk3kHTrYoPXCAN
+# b2clN8JMZGH2R34ObEdp2yoH8fLgrIGfH92xTYgfmdBOQVFzCPynrREEmveMXLbY
+# YD5IX+GDZgaX1Z2TaFeQl0eI2E5r3BEknIXMfuHE/TkmEFYohqKRDT0PMY5NYuWS
+# xQ+MPMd1F2LSLGBt5pfhp7wOPeduo0ygH4oGUbL5fzg4rrfmpsIGlB91u/q9vlvn
+# uFz78Ckc1Pv+OqXTpGNBgOZPah/c2McYuCgTL2IGJYNX7H7b1am9jafxfwO0RkPF
+# 6SI7iF+w1Kz+hGI8U5FwgODzpzH7b9IUeCE+YcOEhw0N7vZqlRfqvWGAJivQi36T
+# 3q0SREAgrmIEayZpFvlPoi4WKaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTkxOTAw
-# MTdaMC8GCSqGSIb3DQEJBDEiBCBg9HcX/pVetFTu9oYW2u6nWCPS3LqdJ1a35Qq+
-# 4vnA2DANBgkqhkiG9w0BAQEFAASCAgAXdgDfw49xLiK6a0MDs+e08sCK2/xW/Ner
-# m8wFm/Q8zMyPxrHYx+DHVRuxFiW/WDdC+rAW3YbpxvL/xvBRLI1XF5PdiH75/UTx
-# 1yzLg9UGtQlRip8iSudk+ulPlXrY42Rfm0kJ8FYXDAHkUeB6oXuZ61qN6gsut+/i
-# nSQ3eGPg8pY8+EYf9iqlMuUUFO16fI0eM/Ce7/FmTVyZzMT5yqyS2vZKZGIY6zuO
-# 0BaUMHk0LXx+181HI2u++88CC5Aax8SEq3kT01YTiKSuVXYsd3Sh35+Sc4AVo4W9
-# MheKtaOiwq56HB3sBHLgA18oOU0e59l93yz8g+FplBwIjFhrsFYOZXKtuOrCzVJr
-# o0b9seV7LGJnkmEnsO7M0RnudkD5T/ircn13vyYgz7gTcUSSmBpvNrvH8N7HmDUr
-# kvYH5FjgbUEUYDLFrYI1g0pAMrQrOCGGZ600oLaMdrfRTE1h6261q02MzUgr/HAk
-# 3ooEuZLFIr/w2jK1+7+UZeCceonlWefK9kMyx0++WulXCOEpd2HlDA5COI60ay+m
-# IKhwh506jyshT+SQKQEWMd3ktmSJNe03oENS2itNbMsEFffLa64HvwEbY91H78XF
-# r2l1w3kSgL2M3cQUcAfg7/LMInFvshEAKNI4H8o3DqkuGj3jF3jSZ2Q0V3t4UWvU
-# 69qpl6o9EA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExMTAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCD4wdiKgIk0EowmxioGKmDdNgYJS+4OUBdvA7pQ
+# wEcwbzANBgkqhkiG9w0BAQEFAASCAgBqylUszz/YQ94CeSY3qB3zhjlRSF+12fgp
+# PLBZGADRS9CAnlXSZWol6AK2kKgt4h0+QP63DvaYweIC1Gov1yTs3sPGfPrxZ0cI
+# kUvE6nkZ1IaYq5BEh3wAgonJncd5m4IkXV7Sgl9WpO2TDi/ISmwH8Ub2kXMEsdTL
+# Epc53hbwvgZCSKD5rRgQlbxP9h/3n1HC54qqkHcL7bmLSedbJKV6CotZZ1NZfXhE
+# VZNs3FjBBciHU1AVK2vYczL918P7YKL9xEhPAv5Cs5rUfUNE2SmLgclpMAtj1SWw
+# w/j67AJBuYDLSk8IFVQud6kG2rE8QxgxD1KXPMoxEVDXsIeSGCTpmbscZdF8bGCe
+# FqxEi23K9hzt0BY1NrMaVrBOyu8JZpXhwQy9gZrT2O0wYGY3E6eI9Mz/zblBnmyc
+# 0iVn4oOAe622bouF3mZlmFvdbvb0rx7Dx2dxpNH4qzO4PnCXEFOJckoDcofAe6uN
+# kse+GM0OgIzh/AJWlnMd4Uthu7UEAUsp5fLZ9iIpzIIbZdGBsRj3qZdm8Hc5qJj0
+# 0wDvavB91wMrfvWK9WnesxdlO1uBCXOIiNaZtfqvQqlLSS9LZD+lqoOJIXtQcDA5
+# U/0MONOJZGt0e2SSYVQJqWH4rD5uYIjZlyKfKNuQfzsys9trSiPPJxdX3wqBFUJx
+# 46781iXeDA==
 # SIG # End signature block
