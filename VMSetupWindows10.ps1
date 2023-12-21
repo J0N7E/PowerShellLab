@@ -274,10 +274,10 @@ Begin
             @{ FriendlyName = 'Sleep after';               Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "238c9fa8-0aad-41ed-83f4-97be242c8f20 29f6c1db-86da-48c5-9fdb-f2b67b1f44da" },
             @{ FriendlyName = 'Hibernate after';           Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "238c9fa8-0aad-41ed-83f4-97be242c8f20 9d7815a6-7ee4-497e-8888-515a05f02364" },
             @{ FriendlyName = 'Turn off display after';    Value = '0x0000012c';  Type = 'AC';  SubgroupSetting = "7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e" }
-            #@{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
-            #@{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'DC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
-            #@{ FriendlyName = 'Power button action';       Value = '0x00000003';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280" }, # 3 = Shut down
-            #@{ FriendlyName = 'Power button action';       Value = '0x00000003';  Type = 'DC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280" }  # 3 = Shut down
+            @{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
+            @{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'DC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
+            @{ FriendlyName = 'Power button action';       Value = '0x00000003';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280" }, # 3 = Shut down
+            @{ FriendlyName = 'Power button action';       Value = '0x00000003';  Type = 'DC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280" }  # 3 = Shut down
         )
 
         # Itterate scheme
@@ -285,14 +285,19 @@ Begin
         {
             foreach ($Setting in $PowerSetting)
             {
-                $ValueDec = [Convert]::ToInt64($Setting.Value, 16)
+                $OldValue = Invoke-Expression -Command "cmd /c 'powercfg -query $Scheme $($Setting.SubgroupSetting)'" | Where-Object {
+                                $_ -match "Current $($Setting.Type.ToUpper()) Power Setting Index: (.*)$"
+                            } | ForEach-Object { "$($Matches[1])" })
 
-                if ($Setting.Value -ne (Invoke-Expression -Command "cmd /c 'powercfg -query $Scheme $($Setting.SubgroupSetting)'" | Where-Object {
-                                            $_ -match "Current $($Setting.Type.ToUpper()) Power Setting Index: (.*)$"
-                                        } | ForEach-Object { "$($Matches[1])" }) -and
-                   (ShouldProcess @WhatIfSplat -Message "Setting `"$($Setting.FriendlyName)`" $($Setting.Type) to `"$ValueDec`"" @VerboseSplat))
+                if ($OldValue)
                 {
-                    Invoke-Expression -Command "cmd /c 'powercfg -set$($Setting.Type.ToLower())valueindex $Scheme $($Setting.SubgroupSetting) $ValueDec' 2>&1" > $null
+                    $NewValueDec = [Convert]::ToInt64($Setting.Value, 16)
+
+                    if ($Setting.Value -ne $OldValue -and
+                       (ShouldProcess @WhatIfSplat -Message "Setting `"$($Setting.FriendlyName)`" $($Setting.Type) to `"$NewValueDec`"" @VerboseSplat))
+                    {
+                        Invoke-Expression -Command "cmd /c 'powercfg -set$($Setting.Type.ToLower())valueindex $Scheme $($Setting.SubgroupSetting) $NewValueDec' 2>&1" > $null
+                    }
                 }
             }
         }
@@ -351,19 +356,20 @@ Begin
             @{ Name = 'Flags';                  Value = 506;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys' },
             @{ Name = 'Flags';                  Value = 58;          PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys' },
 
+            # Hide search icon
+            @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
+
             # Hide recently used files in quick access
             @{ Name = 'ShowRecent';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer' },
 
             # Hide frequently used folders in quick access
             @{ Name = 'ShowFrequent';           Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer' },
 
-            # Hide recently opened items in jump lists
-            @{ Name = 'Start_TrackDocs';        Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+            # Open file explorer to this pc
+            @{ Name = 'LaunchTo';               Value = 1;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Set accent color
-            @{ Name = 'AccentPalette';      Value = $AccentPalette;  PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'StartColorMenu';     Value = 0xff333536;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'AccentColorMenu';    Value = 0xff484a4c;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            # Hide recently usewd files
+            @{ Name = 'Start_TrackDocs';        Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Show hidden files
             @{ Name = 'Hidden';                 Value = 1;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
@@ -371,26 +377,25 @@ Begin
             # Show file extensions
             @{ Name = 'HideFileExt';            Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Open file explorer to this pc
-            @{ Name = 'LaunchTo';               Value = 1;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
-
             # Disable snap assist
             @{ Name = 'SnapAssist';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Hide task view button
             @{ Name = 'ShowTaskViewButton';     Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Hide chat button
-            @{ Name = 'TaskbarMn';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
-
             # Hide widgets button
             @{ Name = 'TaskbarDa';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Hide search icon
-            @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
+            # Hide chat button
+            @{ Name = 'TaskbarMn';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Show taskbar buttons where window is open
             @{ Name = 'MMTaskbarMode';          Value = 2;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            # Set accent color
+            @{ Name = 'AccentPalette';      Value = $AccentPalette;  PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'StartColorMenu';     Value = 0xff333536;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'AccentColorMenu';    Value = 0xff484a4c;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
 
             # Use dark theme
             @{ Name = 'SystemUsesLightTheme';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
@@ -489,8 +494,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvc8p6TKvWU+cBQLyrJJ5+V2+
-# abagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtaLRIS4vVRmhUWJ/BED1EGZc
+# EoKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -621,34 +626,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQrZlPy
-# uBuUWVaKV7Qbr6llaGMLGzANBgkqhkiG9w0BAQEFAASCAgBMO4/QoKISBSTFH8Qi
-# paDM9asp/shiwpmnVg6TQaYFBe3M8KCbmYCzpuvpMza1xUVCNdCoWhZQwRt2s4cX
-# rki5O93k6WwNtDqcnZYqIWQwR5EWn9zfT08FmeoPo3pVdugCQ3zih2H0eRoNAR+O
-# ZE2Kkc1HFSn7r2M0S0N5B2WVALjTpMORouL/6WBN9dHRavHyzpi9+HCKheyGDtdL
-# c5LPWGtOJw/4kji+oGksZPg9ZqsHs8nqwwX0ma0zZ9lfP9pSlh7CAqidddJVMzEA
-# B37e8GQDTOvAKd0LR+jBadTOyxaG8i81pPCmJltN1v7ZqaCUEkQZ7l9MBOFhFJ7u
-# IieYTBrLue2S8nSayTTE6X+wovXUndMeA3KUpDPJvfV/YvuYLAihYjaP2OViPI7x
-# togfDkyE/GYvOc9eC73JkXG575Clq2BXz5IE5COpa1qrv8QvidTwuWtlTGvKZh87
-# igf/Up3lYPheYqN4rKDbe5MaYGU3M+Ad+19y291MIKi27RzRNWJkhSns4y5sVpui
-# MhKIigOO1xZgeJHa4yNIFWycz89rNje/B/Hp/z1b605tCIGZVeoA/TS85qCOIQtv
-# mahAtENbE1okjeO4SjMM64NzXfzi7zuz72jiGlT5yTRCxgNpx4mgFliuwxHrQptr
-# tWRsWNRkr3RkzgbOLBh+97aXuaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRNOjtV
+# 3wlQZ3WajY2+BBZ7lWSmEzANBgkqhkiG9w0BAQEFAASCAgB4cca+B78wR9Y64bac
+# QlqvkS7pl3Xto0U2jlVtBBv0BufTRw1g2YeMzTdXYzy0KqYYPppXx9+VV8tRLK5h
+# 4MJBJjqxf8jl0ZvO+s62BRtJsWqr4DcaZ3gyW+SBY8TzKYrapCNMdAyhwoh9k4WU
+# gwy2mcAbTm/BU0mvFza/Y/HwfHGDFhsLh7PIWxn7JyTBKOz83R1s6Amam70aIuju
+# y3kStwLHnXU4twKlc5IJ08BAJFyqgFN1Ze5Te4+HoAD3dkjiUjv+cu2aKik9xqhh
+# 3wbxbGG+2+PioHbdKphGDdphwoOOTEPLVcI38FX0l6LDxJxmUxJOVFv1WEvzus40
+# +CyU5rAY3kHu7k3ScjCVBNYY6uKjxqfVVPWnyveFYRJWEl9nZBxWlqG63JHPiHcZ
+# C9148gL8xCf7Kofi5PYmNaDBzlPxQkDtfxRrHWd4PcoGkxafDPEOXg/umU5m8ZpO
+# b/EUmSyHr4RBCQwjXrEZv67dfU4OvumRw4uXkd63lADeMg9nNKQP0wNpEfYmWImh
+# iPlHf6Kh4Ac1zX2ZCspMbaosGYCNC/w8YOLwJnhyD8IYkLsgMBqQSIshvW6ZZmhh
+# sG+72ECanJeFFbcJpeuJpvcvrFg1qw/eqbGHKX47HynnsiuR1JmS5ZBSxo8m/rZQ
+# dShgZsbzXOAo/skmWWEDErBL96GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExNjAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCBLCuVH1qNoQ7JHRKIvJXqFpVPKoKNr95GG0Vds
-# r6ZBgzANBgkqhkiG9w0BAQEFAASCAgCGeC2la+GP2xRi4CS0QVxqP/zk+9+PodBV
-# krpmQA8D/lLsTyybYgnkOkjA/rWZDjsMjZnyZzyAqcqQbxdb5o30oQ38ZqnArQTM
-# vv2yqvSsHTrwMb/+J7m4wSwMahWc7xhxo90Hjz/AmHu13WL0orqTYA4lqozgFHw/
-# mrc/38fVT7wfKERfc7zzsrucYUkDa+keBFPoOi5K0HuBmTSFD7HVXVu/hFtPOWwn
-# O5EA/2nECaeg7nsNTQ5krt6T/cpL/tYGVo5Rdh+ZIR9+1ZRAIlmT+lWLejW1e6ap
-# fzUkYk2YIasUS5CZ2yYcwEMytXCtCQjE4Z8UAODK7VN51HnAz/c1L0Dn0fhyvpVe
-# 1lFpbq/WAJ28F+SE6p4Tjl6/t+i5fKZk+RWHMXBMkFEDCG0IteQBqVFyVpUJdAXJ
-# yDw1n2/HIn41IUpAfc8+RcrMuPugwDugBARo4YuiOCjgaDVco3czWySX1OUZ+flk
-# KXBpdc96zj7oncorMJF6LgxRjI6GkqGjsLd/cyN8OrPEnF9X7srqYTqyzzSooUOO
-# jv41pHGjohMfCTBkj+WAi2L8iMJgequ6UY6kj8YQmQbT2QsiVK14mtWHjCiNbs+f
-# k5SM637HOwcA36uVq/GLjLTiW5GSPgyEz0v6oGxx2NJ5368dUXUDdbasIdUywKn4
-# 9qXu29rvgA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExNzAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCC4nbKK53yTnSMZMDfr/W7jA0gNaYkQq/3Zwqos
+# i5iATzANBgkqhkiG9w0BAQEFAASCAgAdTJkKxq75yObwwv8DsU03RPaTY8d/oi5M
+# zfSVSJaqIvEMjNpKI28qDL8lSBjK5qweLQitp2ImNVyGnrEkROBl/NKVbr8BdPJt
+# EijPfbeuw/j2mgPxMN2Q4uikyT4dTMcg1mfIyLDzxjXgnwHvW5p6Vv0SBEs6HAEy
+# DBLWpuEgZGET6SOFXtWLKfjOQ7sFdZYTH67lLOjNzJQjgnG2Vf/8TZILNlRheqp6
+# Oa8LVkxpTzv59ghFg/YcQCLjchX2C7c7jCkbRidN0FxzdSpZe9t39b9vlmlIsiY4
+# xDyvHwIAUFh8u0AhFqMKgfQmdwdWQhDhQLNWd4csVvupXOdYzSx7tQclyyYZ0Dkl
+# JeqSFQ/LvrQUFOSuYSk8A76SFqgKHOesa0WyL+oECo8TyNmrzk6/IFTr5FsqjfJq
+# I7J1Dr3evSB/irukmpiKCF8vEoc55LGhIx84IbGpGyiRNVRt1sbdNeQ9Ms+Cb4LX
+# T4fNs0jP+AS/U8XaWXNAcpQRIUftCpL5EqlUKuG/HZZsozTXQx7zd0CuzM/Y+aQo
+# VNufG6iG/rcU57NGmgZQtiBHUFb75spHFvJnvAPTvGfeWtcrPvJ5gKVJnvm5pWkq
+# HTEdFzDe36CrmvLqX7dtFJ5uBqy3uC8MuefyqbaoomHdAAXh4D+Ppwp76I1Xm5s3
+# SDrHTPpzGg==
 # SIG # End signature block
