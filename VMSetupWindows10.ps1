@@ -365,11 +365,14 @@ Begin
             # Hide frequently used folders in quick access
             @{ Name = 'ShowFrequent';           Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer' },
 
+            # Hide files from Office.com in quick access
+            @{ Name = 'ShowCloudFilesInQuickAccess';  Value = 0;     PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer' },
+
+            # Hide recently opened items in Jump Lists
+            @{ Name = 'Start_TrackDocs';        Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
             # Open file explorer to this pc
             @{ Name = 'LaunchTo';               Value = 1;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
-
-            # Hide recently usewd files
-            @{ Name = 'Start_TrackDocs';        Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Show hidden files
             @{ Name = 'Hidden';                 Value = 1;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
@@ -494,8 +497,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtaLRIS4vVRmhUWJ/BED1EGZc
-# EoKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUK2j6bH+9W6teuDsfrHEJ/3pF
+# wFWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -626,34 +629,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRNOjtV
-# 3wlQZ3WajY2+BBZ7lWSmEzANBgkqhkiG9w0BAQEFAASCAgB4cca+B78wR9Y64bac
-# QlqvkS7pl3Xto0U2jlVtBBv0BufTRw1g2YeMzTdXYzy0KqYYPppXx9+VV8tRLK5h
-# 4MJBJjqxf8jl0ZvO+s62BRtJsWqr4DcaZ3gyW+SBY8TzKYrapCNMdAyhwoh9k4WU
-# gwy2mcAbTm/BU0mvFza/Y/HwfHGDFhsLh7PIWxn7JyTBKOz83R1s6Amam70aIuju
-# y3kStwLHnXU4twKlc5IJ08BAJFyqgFN1Ze5Te4+HoAD3dkjiUjv+cu2aKik9xqhh
-# 3wbxbGG+2+PioHbdKphGDdphwoOOTEPLVcI38FX0l6LDxJxmUxJOVFv1WEvzus40
-# +CyU5rAY3kHu7k3ScjCVBNYY6uKjxqfVVPWnyveFYRJWEl9nZBxWlqG63JHPiHcZ
-# C9148gL8xCf7Kofi5PYmNaDBzlPxQkDtfxRrHWd4PcoGkxafDPEOXg/umU5m8ZpO
-# b/EUmSyHr4RBCQwjXrEZv67dfU4OvumRw4uXkd63lADeMg9nNKQP0wNpEfYmWImh
-# iPlHf6Kh4Ac1zX2ZCspMbaosGYCNC/w8YOLwJnhyD8IYkLsgMBqQSIshvW6ZZmhh
-# sG+72ECanJeFFbcJpeuJpvcvrFg1qw/eqbGHKX47HynnsiuR1JmS5ZBSxo8m/rZQ
-# dShgZsbzXOAo/skmWWEDErBL96GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTm0QFC
+# UNWw6klAeloP6gog2CFXvDANBgkqhkiG9w0BAQEFAASCAgCjzDopR2A5adEcWSoG
+# jqNdeWZIufvfmg2JZP/vStr68RmcwEEB7DBRhILQ2ZRLS8hwWTvnSCpDKw5rTjjZ
+# Bu9R4CyFxvM2CN+4Y0Uk1QG5hTxUOoLFZokIwOoded0spR+ow0IzWkIrGS/BMCRF
+# 4IYBJheYe90HearmaRTJ99vROtyE0aTNjXGrlc7kwfaPyKWrPB7MBsKouXeDQmME
+# /8Hr9TMb4+n1l7V160CTR84QoU2KSjxlMM6BCkmNHfakG9xOVk8jkJ91WWxkkTZh
+# K8GTR/6glPYk0aTL9FQUdkt6NdLC7IAI8yuKcg292TslG0czORRvXIKDebQ7ggEH
+# yg626SbNYBU332nXIWajBcWODgasiKIwy2CBDZSD7FUaGxK1LXv9/b/K85PZ0OpB
+# JIzhkyFB3/2U1+pGEx7kCb3JdOfnHzUroNsMgJVXvKANKw4jeDe+jvJ9l+WzzWXj
+# ayh1y7uxVifRjuSdiwWSitXn6pn1R8MMyXww8ZwsGm1JkHUm7nbpxxLTDvTOUng/
+# tF5mm39Jc3bNRRwALeIlUoV4XVrtPoJkWDbzsupVs7c3199I6y0L3awLDGHnZvZy
+# E3f0BygWfuHcVmSWU5f4IwO0aOgzd3LhfPguJ70Drzjdi6aYwsYqHwnGZ2eRS6gc
+# f6mm9UPcQBP/tKbu5hDNbQxE66GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExNzAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCC4nbKK53yTnSMZMDfr/W7jA0gNaYkQq/3Zwqos
-# i5iATzANBgkqhkiG9w0BAQEFAASCAgAdTJkKxq75yObwwv8DsU03RPaTY8d/oi5M
-# zfSVSJaqIvEMjNpKI28qDL8lSBjK5qweLQitp2ImNVyGnrEkROBl/NKVbr8BdPJt
-# EijPfbeuw/j2mgPxMN2Q4uikyT4dTMcg1mfIyLDzxjXgnwHvW5p6Vv0SBEs6HAEy
-# DBLWpuEgZGET6SOFXtWLKfjOQ7sFdZYTH67lLOjNzJQjgnG2Vf/8TZILNlRheqp6
-# Oa8LVkxpTzv59ghFg/YcQCLjchX2C7c7jCkbRidN0FxzdSpZe9t39b9vlmlIsiY4
-# xDyvHwIAUFh8u0AhFqMKgfQmdwdWQhDhQLNWd4csVvupXOdYzSx7tQclyyYZ0Dkl
-# JeqSFQ/LvrQUFOSuYSk8A76SFqgKHOesa0WyL+oECo8TyNmrzk6/IFTr5FsqjfJq
-# I7J1Dr3evSB/irukmpiKCF8vEoc55LGhIx84IbGpGyiRNVRt1sbdNeQ9Ms+Cb4LX
-# T4fNs0jP+AS/U8XaWXNAcpQRIUftCpL5EqlUKuG/HZZsozTXQx7zd0CuzM/Y+aQo
-# VNufG6iG/rcU57NGmgZQtiBHUFb75spHFvJnvAPTvGfeWtcrPvJ5gKVJnvm5pWkq
-# HTEdFzDe36CrmvLqX7dtFJ5uBqy3uC8MuefyqbaoomHdAAXh4D+Ppwp76I1Xm5s3
-# SDrHTPpzGg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExNzU5
+# NTlaMC8GCSqGSIb3DQEJBDEiBCCmyr713DsyNRV1OWe1Cl2+Y4tOZs9lUqTV2i3S
+# LU351TANBgkqhkiG9w0BAQEFAASCAgAB5LU1v0cEh4/RegRPIGNgYO0y8FzM9Jkf
+# KuoCxgOWDt0Pony5S46HCUV+w/Xlj/PUtlim5hPfjiOQFjSW3WFJ51h+kUaQaPA8
+# 14Z2ajgNGppDu4RHLhoqjF2jyRv7cv8r2AQ80W8TKePG0k7hechDOR7LppSc+jLx
+# 6yrXlMw96wGBMp2oKnE7M3+aN9GHgFod5VyeHvxzDQJsBVVVu+aiBWNzCg3Yhzq3
+# FJN/JRP5sVrDt+CX2I1FWUni0gD37VqsZDgj8C4UimAL01sGM91j7/Cor0lTfzej
+# Ez0B10/ANc1okFdjGqaTrs2S+J8eT2z94tsRHwzgyET7Gpas91cuUJUBqf3SRsqE
+# 020oHSTToYN1xVGSd5hWT3R5Zb3jS/JiheYTx8w63uHv/mHKoXp474eIH9RU9Yvv
+# 046pc0pJeUb6BS+jUi/LobXUrwe1TzUnJ9KJXElUdRCHQjJ438RnnYmkeDYsjndF
+# mQr7S68ceec48JFYRJPt6p8BEzD0zg68AgYQaBegHr4L+4KlcDnY7DYZvi/c4Rxl
+# vDLo47iH//8FK65ZdNmXLzb5p6Xk3RrxHVzixN0GZ6IXiJx7VwGiHHHCVTZvd6XB
+# /GilE40kVJiqC2u+2k2dbADG2KZLNwRtoWWfqw7ifyuyqubU5mbazo6NnTltdeKF
+# 2v3inkcSKQ==
 # SIG # End signature block
