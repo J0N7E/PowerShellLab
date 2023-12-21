@@ -287,7 +287,7 @@ Begin
             {
                 $OldValue = Invoke-Expression -Command "cmd /c 'powercfg -query $Scheme $($Setting.SubgroupSetting)'" | Where-Object {
                                 $_ -match "Current $($Setting.Type.ToUpper()) Power Setting Index: (.*)$"
-                            } | ForEach-Object { "$($Matches[1])" })
+                            } | ForEach-Object { "$($Matches[1])" }
 
                 if ($OldValue)
                 {
@@ -380,9 +380,6 @@ Begin
             # Show file extensions
             @{ Name = 'HideFileExt';            Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Disable snap assist
-            @{ Name = 'SnapAssist';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
-
             # Hide task view button
             @{ Name = 'ShowTaskViewButton';     Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
@@ -395,14 +392,17 @@ Begin
             # Show taskbar buttons where window is open
             @{ Name = 'MMTaskbarMode';          Value = 2;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
-            # Set accent color
-            @{ Name = 'AccentPalette';      Value = $AccentPalette;  PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'StartColorMenu';     Value = 0xff333536;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'AccentColorMenu';    Value = 0xff484a4c;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            # Disable snap assist
+            @{ Name = 'SnapAssist';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Use dark theme
             @{ Name = 'SystemUsesLightTheme';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
             @{ Name = 'AppsUseLightTheme';      Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
+
+            # Set accent color
+            @{ Name = 'AccentPalette';      Value = $AccentPalette;  PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'StartColorMenu';     Value = 0xff333536;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'AccentColorMenu';    Value = 0xff484a4c;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
 
             # Set accent color
             @{ Name = 'AccentColor';            Value = 0xff484a4c;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' },
@@ -497,8 +497,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUK2j6bH+9W6teuDsfrHEJ/3pF
-# wFWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+Xpq/m85pQ4QLwA39P1ASePy
+# O0SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -629,34 +629,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTm0QFC
-# UNWw6klAeloP6gog2CFXvDANBgkqhkiG9w0BAQEFAASCAgCjzDopR2A5adEcWSoG
-# jqNdeWZIufvfmg2JZP/vStr68RmcwEEB7DBRhILQ2ZRLS8hwWTvnSCpDKw5rTjjZ
-# Bu9R4CyFxvM2CN+4Y0Uk1QG5hTxUOoLFZokIwOoded0spR+ow0IzWkIrGS/BMCRF
-# 4IYBJheYe90HearmaRTJ99vROtyE0aTNjXGrlc7kwfaPyKWrPB7MBsKouXeDQmME
-# /8Hr9TMb4+n1l7V160CTR84QoU2KSjxlMM6BCkmNHfakG9xOVk8jkJ91WWxkkTZh
-# K8GTR/6glPYk0aTL9FQUdkt6NdLC7IAI8yuKcg292TslG0czORRvXIKDebQ7ggEH
-# yg626SbNYBU332nXIWajBcWODgasiKIwy2CBDZSD7FUaGxK1LXv9/b/K85PZ0OpB
-# JIzhkyFB3/2U1+pGEx7kCb3JdOfnHzUroNsMgJVXvKANKw4jeDe+jvJ9l+WzzWXj
-# ayh1y7uxVifRjuSdiwWSitXn6pn1R8MMyXww8ZwsGm1JkHUm7nbpxxLTDvTOUng/
-# tF5mm39Jc3bNRRwALeIlUoV4XVrtPoJkWDbzsupVs7c3199I6y0L3awLDGHnZvZy
-# E3f0BygWfuHcVmSWU5f4IwO0aOgzd3LhfPguJ70Drzjdi6aYwsYqHwnGZ2eRS6gc
-# f6mm9UPcQBP/tKbu5hDNbQxE66GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ1UV8g
+# urFiFzTaNJwEphIaHJgf0TANBgkqhkiG9w0BAQEFAASCAgBSTDpmRRxGOwIA+H/A
+# kRvZ0LPDwk4dTJvY9dzZoRJmDekO1J4fhl8qYquQMl1PZj0xVI2+j0saqTkDWo8O
+# rtVd3CTRwYahliB0Dnh1WhK9jD7IUwGHR4uQwuNbBneuxgFvLYcmr9PoA1jhQnCK
+# bAGkgegTVVOwu8eMWPr4Xb7+T6/MqXKxXR2D3eEpZgVx8TEo1VBiiZENXaEjUMfJ
+# ysVL/jjb53oF9bk45epzQOP8cDY2lsvxYB7zxsLQOsj2jKpRbFdtti8h5zciW9/c
+# QO7a5SToGcV0BeLhApfhkfdhO8f82vkhCBCr+Q+6lrUx3Obb/xZkEe2WqMFJzngi
+# AWANd5bFPR8XtyrnQ4APDK0a3StyvYtPmOT6NLwlo2slsHW3qFGJJTLXVSzpZ+hW
+# cm3HDG+7+vMrJbQf813/0NzlG7vJl3sJOX3RgDHjuRXhTDTpNJwc6ARW18HDgC+O
+# v6cKX8Noc3F1FwGOZ4wSH5JFuaGuultJdSA3us13G7jtq/gg+wWsAE96w7Yaomth
+# sbDT0w4YETWv477yjVckJTYaMupIXOaBAz7hB9o7HWtc3dhAzNnZ7MBlP6r/mw6/
+# wcEN85A4xah2E/5Ed4DrwxZObwRPH7dFa2wXuuHoBlb+CEQ8xM63tbxcv0/xp5jf
+# p5eshawEU/+vsZzher58pD24qqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExNzU5
-# NTlaMC8GCSqGSIb3DQEJBDEiBCCmyr713DsyNRV1OWe1Cl2+Y4tOZs9lUqTV2i3S
-# LU351TANBgkqhkiG9w0BAQEFAASCAgAB5LU1v0cEh4/RegRPIGNgYO0y8FzM9Jkf
-# KuoCxgOWDt0Pony5S46HCUV+w/Xlj/PUtlim5hPfjiOQFjSW3WFJ51h+kUaQaPA8
-# 14Z2ajgNGppDu4RHLhoqjF2jyRv7cv8r2AQ80W8TKePG0k7hechDOR7LppSc+jLx
-# 6yrXlMw96wGBMp2oKnE7M3+aN9GHgFod5VyeHvxzDQJsBVVVu+aiBWNzCg3Yhzq3
-# FJN/JRP5sVrDt+CX2I1FWUni0gD37VqsZDgj8C4UimAL01sGM91j7/Cor0lTfzej
-# Ez0B10/ANc1okFdjGqaTrs2S+J8eT2z94tsRHwzgyET7Gpas91cuUJUBqf3SRsqE
-# 020oHSTToYN1xVGSd5hWT3R5Zb3jS/JiheYTx8w63uHv/mHKoXp474eIH9RU9Yvv
-# 046pc0pJeUb6BS+jUi/LobXUrwe1TzUnJ9KJXElUdRCHQjJ438RnnYmkeDYsjndF
-# mQr7S68ceec48JFYRJPt6p8BEzD0zg68AgYQaBegHr4L+4KlcDnY7DYZvi/c4Rxl
-# vDLo47iH//8FK65ZdNmXLzb5p6Xk3RrxHVzixN0GZ6IXiJx7VwGiHHHCVTZvd6XB
-# /GilE40kVJiqC2u+2k2dbADG2KZLNwRtoWWfqw7ifyuyqubU5mbazo6NnTltdeKF
-# 2v3inkcSKQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExOTAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCBzrtM5kNsCJqQ5l5Y2S75C/ZLxjkr0zt1m4Vj5
+# Qf9rSDANBgkqhkiG9w0BAQEFAASCAgAkthTBfWrPD+nTN55Lr+TuAhKuQiU1tFfV
+# 9flkX/mmKOXS+2XnE+k44B7Kyt1YvGHz+3xV0Aq+ydMS+3RC4sEzBTwlwVTSqxFC
+# sap67LvKmSIg0mvCN+F9HaHMvDPmAja3sD7TKRzhExAJDaT/qC/3PQFnTKnwJbKj
+# L0/qb6Bz6MTyh3C5QNGmg6yOLzwy9Ri3EVLjhKgeiiOkrq5vowOiNWEMaCesNPH2
+# 3wiy01i23gTbC4TwQXzo3dIMMavCCVYFT6T/UYOGFhWQf/V/yAIRAcgn2EwUgvHZ
+# cpfDnfTREdltZf3q1ZQ40ceWULRV+i96VHP4Fbb44IcilUrzjwJF2x1S5bji60kM
+# DdHRGTYcB+epGPnBIYHHyUSOh9Vwl9Rfjecdx1Pznzx72jIG2sLHb+EklRkCOZcQ
+# FEDC4ctutPtvE5elDr5sObCZ6pE2RxN9prHMrHj6w8Sc5RJN1A0ossFhpQmhwysA
+# pl7M0etB/wR7NCDqV8WP6RE9iFPHTX57GAYj7nHq7lGFIqVSXKY4htbCFkwKsz1Z
+# 1eG9/9BD3s0/+zZaHe9ywIvBvjo+ZY/mOcR8mCBEpJbUfa1EGvojCGwV1tRzmQua
+# 0DZL73B474/yBjeS0LO7TV+yTpWECH6Wqo6FR0n5U4Id/zH6P1VjP+tGYpLV6hkr
+# t9WPUscdQQ==
 # SIG # End signature block
