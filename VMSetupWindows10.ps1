@@ -238,7 +238,7 @@ Begin
             # Add all paths under bin
             foreach($Dir in $Bin)
             {
-                $UserPaths += -join("$env:Dropbox\Bat\bin\", $Dir.ToString())
+                $UserPaths += $Dir.FullName
             }
 
             # Add lib
@@ -273,7 +273,7 @@ Begin
             @{ FriendlyName = 'Turn off hard disk after';  Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "0012ee47-9041-4b5d-9b77-535fba8b1442 6738e2c4-e8a5-4a42-b16a-e040e769756e" },
             @{ FriendlyName = 'Sleep after';               Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "238c9fa8-0aad-41ed-83f4-97be242c8f20 29f6c1db-86da-48c5-9fdb-f2b67b1f44da" },
             @{ FriendlyName = 'Hibernate after';           Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "238c9fa8-0aad-41ed-83f4-97be242c8f20 9d7815a6-7ee4-497e-8888-515a05f02364" },
-            @{ FriendlyName = 'Turn off display after';    Value = '0x0000012c';  Type = 'AC';  SubgroupSetting = "7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e" }
+            @{ FriendlyName = 'Turn off display after';    Value = '0x00000258';  Type = 'AC';  SubgroupSetting = "7516b95f-f776-4464-8c53-06167f40cc99 3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e" }
             @{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
             @{ FriendlyName = 'Lid close action';          Value = '0x00000000';  Type = 'DC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 5ca83367-6e45-459f-a27b-476b1d01c936" }, # 0 = None
             @{ FriendlyName = 'Power button action';       Value = '0x00000003';  Type = 'AC';  SubgroupSetting = "4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280" }, # 3 = Shut down
@@ -395,6 +395,15 @@ Begin
             # Disable snap assist
             @{ Name = 'SnapAssist';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
+            # Disable snap bar
+            @{ Name = 'EnableSnapBar';          Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            # Disable edge snap
+            @{ Name = 'DITest';                 Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            # Disable snap flyout
+            @{ Name = 'EnableSnapAssistFlyout';  Value = 0;          PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
             # Use dark theme
             @{ Name = 'SystemUsesLightTheme';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
             @{ Name = 'AppsUseLightTheme';      Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
@@ -497,8 +506,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+Xpq/m85pQ4QLwA39P1ASePy
-# O0SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEIvCnKzZzOZoE2/BUgikWcX5
+# tkOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -629,34 +638,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ1UV8g
-# urFiFzTaNJwEphIaHJgf0TANBgkqhkiG9w0BAQEFAASCAgBSTDpmRRxGOwIA+H/A
-# kRvZ0LPDwk4dTJvY9dzZoRJmDekO1J4fhl8qYquQMl1PZj0xVI2+j0saqTkDWo8O
-# rtVd3CTRwYahliB0Dnh1WhK9jD7IUwGHR4uQwuNbBneuxgFvLYcmr9PoA1jhQnCK
-# bAGkgegTVVOwu8eMWPr4Xb7+T6/MqXKxXR2D3eEpZgVx8TEo1VBiiZENXaEjUMfJ
-# ysVL/jjb53oF9bk45epzQOP8cDY2lsvxYB7zxsLQOsj2jKpRbFdtti8h5zciW9/c
-# QO7a5SToGcV0BeLhApfhkfdhO8f82vkhCBCr+Q+6lrUx3Obb/xZkEe2WqMFJzngi
-# AWANd5bFPR8XtyrnQ4APDK0a3StyvYtPmOT6NLwlo2slsHW3qFGJJTLXVSzpZ+hW
-# cm3HDG+7+vMrJbQf813/0NzlG7vJl3sJOX3RgDHjuRXhTDTpNJwc6ARW18HDgC+O
-# v6cKX8Noc3F1FwGOZ4wSH5JFuaGuultJdSA3us13G7jtq/gg+wWsAE96w7Yaomth
-# sbDT0w4YETWv477yjVckJTYaMupIXOaBAz7hB9o7HWtc3dhAzNnZ7MBlP6r/mw6/
-# wcEN85A4xah2E/5Ed4DrwxZObwRPH7dFa2wXuuHoBlb+CEQ8xM63tbxcv0/xp5jf
-# p5eshawEU/+vsZzher58pD24qqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSd3jPs
+# Lv0YU+dnrrRqGenyfDcqcTANBgkqhkiG9w0BAQEFAASCAgCRXTKqBO6dd2eI4B2e
+# cguidXi6iXWbljjLSgLBEaGYPTUz9lJwUyOFwAGspBw72pMp6PrkYXviDO9thQkT
+# W5zCiwJ2s+ArCZNB2dujEoM3T/d/l7xE20BU4odq+Gf7QDIpvX1p3WOQmneNgSD1
+# wNufn6VwPhrRKoSGzq1dd5CP0ZnUVuL5mZMftatQcl10XDjvQqXWPFU3kxrKJfeN
+# /NU7Sy/RnUUGVFDvPitSeLqshIBvLXLc5jscAEZimp3+9Ovfj+VIwaUi4E3Dmy6t
+# BnO/hV1kInw4OMSiGaM8pPcHx4v++rT2bQpliTP4FQmOXlkWk7DUEzRG72XrE75r
+# +HAqM8tcp5h0nnbsb8Cn49LhR1dFsSlLFSn3HLFAnHHakJ+0mIIrZdyZdPfYCge/
+# afs4EAwGgiUxVE8jN0MySpDXssmKnf4iVNKL+95TJBqh8RYitRMWApoZUBdCziGf
+# zPWouXZQyqfFV5EaF2f3bWUen5E1UImTxqIQPTTsWuhNgXgIm5b0Km6UdGBV5T9x
+# s780zDAGH/TQcgHXFjUzQzyBCLT6KlhpudXga/vpNF5cKNyXEuj5c/7FIR9VQHwe
+# gjIe4NA+GkfWA9+mDDs6KI0kIyQughbzOjHIb1GeFyJrs3iZBAWmdIVgVg6JrWj+
+# fVuatCtiBj7bfjtZaowizi90IqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjExOTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCBzrtM5kNsCJqQ5l5Y2S75C/ZLxjkr0zt1m4Vj5
-# Qf9rSDANBgkqhkiG9w0BAQEFAASCAgAkthTBfWrPD+nTN55Lr+TuAhKuQiU1tFfV
-# 9flkX/mmKOXS+2XnE+k44B7Kyt1YvGHz+3xV0Aq+ydMS+3RC4sEzBTwlwVTSqxFC
-# sap67LvKmSIg0mvCN+F9HaHMvDPmAja3sD7TKRzhExAJDaT/qC/3PQFnTKnwJbKj
-# L0/qb6Bz6MTyh3C5QNGmg6yOLzwy9Ri3EVLjhKgeiiOkrq5vowOiNWEMaCesNPH2
-# 3wiy01i23gTbC4TwQXzo3dIMMavCCVYFT6T/UYOGFhWQf/V/yAIRAcgn2EwUgvHZ
-# cpfDnfTREdltZf3q1ZQ40ceWULRV+i96VHP4Fbb44IcilUrzjwJF2x1S5bji60kM
-# DdHRGTYcB+epGPnBIYHHyUSOh9Vwl9Rfjecdx1Pznzx72jIG2sLHb+EklRkCOZcQ
-# FEDC4ctutPtvE5elDr5sObCZ6pE2RxN9prHMrHj6w8Sc5RJN1A0ossFhpQmhwysA
-# pl7M0etB/wR7NCDqV8WP6RE9iFPHTX57GAYj7nHq7lGFIqVSXKY4htbCFkwKsz1Z
-# 1eG9/9BD3s0/+zZaHe9ywIvBvjo+ZY/mOcR8mCBEpJbUfa1EGvojCGwV1tRzmQua
-# 0DZL73B474/yBjeS0LO7TV+yTpWECH6Wqo6FR0n5U4Id/zH6P1VjP+tGYpLV6hkr
-# t9WPUscdQQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjIxMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCC87HFqZBRoarGP+YUpEp3ISCLLFdNB1qyZKMVQ
+# dnu6dDANBgkqhkiG9w0BAQEFAASCAgAiulqQhey0GCBt4F6rbSuvDjMwGdt5AZsA
+# AC7H5zPDblxXu8No61lSGYRzlBD5RyKoHK7f9hZ6MawN2esUt/zTvbFf12EJElFM
+# 17G6G+1ys+dO2UV4uImZELiOyCL0lGjr8R+4hV9B3EH5flEPwjU0/Wg8OMN0qOZL
+# 7oqyfUOyipB9LeZrB2lpO4zAsQi8WpwqmMTStaAIEB8w3sl/pKyKvrSEDXMPAJO/
+# U0hojyRb84BmqHGRrxkjT6ivSTzwrUMzr39BjCAoXn980q7DIfzHkQ03qm/PkmzM
+# gNr3Bw6n9wF1kBkQf36dXODPy+nP92XnEnfXzpJ9dQtiOk6THlU+ijNt4FYuaVhj
+# TsQG9jX34T/eBLztuot/qBfk0fpTao42Ykvp13zctFzh6cvL0yhibItUyaw1ibW8
+# FDjIgD0MSwZWQLVyvJ1sZJacmL3C4noBAQPP8gZC8owVVrkGk3F795O5y26cKUFm
+# jkDcWpvs1pP6ZsDRZh2bNeqjdDOWjj0yLkbmI+flX0Gt9jskXfdfhxqgXkX02Quz
+# /ah3smcjmVFcavIqdRFDh38JEmnvvSJdAw/D32GkP17tEnch8Hc356TkV/mREeKN
+# CJssr11dPkuV2Ddr6yTwd7t2/QRwSh3G9oZ2AJPWJqSrg3jqihgyDb0pm+sD6s2Y
+# AoyyqcCaug==
 # SIG # End signature block
