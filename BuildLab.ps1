@@ -842,7 +842,7 @@ Process
         Invoke-Wend -TryBlock {
 
             # Run DC setup to configure new ad objects
-            $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
+            $Result = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
                                               -DomainNetworkId $Lab.NetworkId `
                                               -DomainName $Settings.DomainName `
                                               -DomainNetbiosName $Settings.DomainNetBiosName `
@@ -851,41 +851,52 @@ Process
 
             $Wend = $false
 
-            if ($DcConfigResult.BuildNotFound)
+            switch ($Result.Keys)
             {
-                $DcConfigResult.BuildNotFound.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+                'BuildNotFound'
+                {
+                    $Result.BuildNotFound.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-                    # Get variables
-                    $Lac             = $Using:Lac
-                    $VerboseSplat    = $Using:VerboseSplat
-                    $TimeWaited      = $Using:TimeWaited
-                    $TimeWaitedSplat = $Using:TimeWaitedSplat
+                        # Get variables
+                        $Lac             = $Using:Lac
+                        $VerboseSplat    = $Using:VerboseSplat
+                        $TimeWaited      = $Using:TimeWaited
+                        $TimeWaitedSplat = $Using:TimeWaitedSplat
 
-                    # Get functions
-                    ${function:Check-Heartbeat} = $Using:CheckHeartbeat
-                    ${function:Wait-For}        = $Using:WaitFor
+                        # Get functions
+                        ${function:Check-Heartbeat} = $Using:CheckHeartbeat
+                        ${function:Wait-For}        = $Using:WaitFor
 
-                    Write-Verbose -Message "Waiting for $VM..." @VerboseSplat
-                    Wait-For -VMName $VM @Lac @TimeWaitedSplat -Force > $null
+                        Write-Verbose -Message "Waiting for $VM..." @VerboseSplat
+                        Wait-For -VMName $VM @Lac @TimeWaitedSplat -Force > $null
+                    }
+
+                    $Wend = $true
                 }
 
-                $Wend = $true
+                default
+                {
+                    if (-not $DcUpdateResult.ContainsKey($_))
+                    {
+                        $DcUpdateResult.Add($_, $Result.Item($_))
+                    }
+                }
             }
         }
     }
 
-    if ($DcConfigResult.RestrictDomain)
+    if ($DcUpdateResult.RestrictDomain)
     {
-        $Settings.VMs.Values | Where-Object { $_.Domain -and -not $DcConfigResult.ComputersAddedToGroup.ContainsKey($_.Name) } | ForEach-Object { $DcConfigResult.ComputersAddedToGroup.Add($_.Name, $true) }
+        $Settings.VMs.Values | Where-Object { $_.Domain -and -not $DcUpdateResult.ComputersAddedToGroup.ContainsKey($_.Name) } | ForEach-Object { $DcUpdateResult.ComputersAddedToGroup.Add($_.Name, $true) }
     }
 
     #########
     # Reboot
     #########
 
-    if ($DcConfigResult.ComputersAddedToGroup)
+    if ($DcUpdateResult.ComputersAddedToGroup)
     {
-        $DcConfigResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+        $DcUpdateResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
             # Get variables
             $VerboseSplat = $Using:VerboseSplat
@@ -1020,15 +1031,15 @@ Process
     <#
     if (Wait-For @ADFS @Ac0 @VerboseSplat @TimeWaitedSplat @StartedVMsSplat)
     {
-        if ($DcConfigResult.AdfsDkmGuid)
+        if ($DcUpdateResult.AdfsDkmGuid)
         {
-            Write-Verbose -Message "ADFS Dkm Guid: $($DcConfigResult.AdfsDkmGuid)" @VerboseSplat
+            Write-Verbose -Message "ADFS Dkm Guid: $($DcUpdateResult.AdfsDkmGuid)" @VerboseSplat
 
             Invoke-Wend -TryBlock {
 
                 .\VMSetupADFS.ps1 @ADFS @Ac0 @VerboseSplat `
                                   -CATemplate "$($Settings.DomainPrefix)ADFSServiceCommunication" `
-                                  -AdminConfigurationGuid "$($DcConfigResult.AdfsDkmGuid)" `
+                                  -AdminConfigurationGuid "$($DcUpdateResult.AdfsDkmGuid)" `
                                   -ExportCertificate
             } -WendBlock {
 
@@ -1066,8 +1077,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs9Ysyr76zpKFiCvQ1IOz+Phw
-# NkCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9mMBaYwaARvtM5qug7Wpwjlu
+# QXKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1198,34 +1209,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQxSVj1
-# kWPQYvmkcx1Zs64V9qqUNjANBgkqhkiG9w0BAQEFAASCAgBBzPRi014a58yRfwbs
-# NGwgrRWFZy1g/anFnnxcwwt3cLaiZfXm2XYBXr0TA5ldOjSz1fpnjNMNxgKTZufi
-# a+7RtOlRSuTGjfsabcNye8msguYCtMJaOJGIntXeDfIOzOQR5AkioqVRLtM/rKVZ
-# XDCcEnEoipzevLr9ToyM663j/I0cYQ/APmZYI1ILkvfs/qauIswbDm16K28zhQqN
-# diT3XyzEQaNRE6EQCMBjlUUpqAya/i4pRc6sVBBP3DjoKHPIVJfBhp+XPYMyrWGK
-# ZYNOG0eCP3lUrzuSYo+PRE+yLDO7eFGTTmyFAnXCZd0B/o71lhV6guL4EmS3nzUe
-# jrqlBznR3YeAuYtYTM5P7Tsog1VIkR7uMumZlMfrG/4Z1VARIHV/pCFeyGs6qPfU
-# 1LB4DAphTY1w//Mp62nfGiqcuL/LiWpXrMnTXJwqVmyT1qy1qZzl9rqUOCbMPp4K
-# dZ+ISX80SajTH4tpp/+9zIQ7lGynv2YzHgFdAit2HUVkygct5HIDp3LNx9KuXoTT
-# LIlyTv20Yn69N1ALOSQQWiGEy+9r39e/p0Y77EfTMELgoSB0hi0h5hSoOoVn61F/
-# lSh8y8NzdeUPnCEwyYLWLovHt7VZLnJsWL7jXAqYxedvjLpEGAVNQoGYLxfMfHJa
-# 4epRREajvEWVLuwXCE0yPLNjQqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQGan0n
+# UNsFSojvNkponMXi41p3tzANBgkqhkiG9w0BAQEFAASCAgC2otNkPz4ru0/P38fH
+# i/exgwekd1rydPcurz2BkIpooH6S/5tzyExlGGPyfcFXCBZxzf9CulW96J0YIy7Q
+# w7CkJetK4mJN50DECj0ZesWb+s0p9falLiEUk39rLGFed+5O39ZYSaLCPOxWQ5SE
+# APPwHpFkNI1PeZs5A8jfdzzyoS52N1qmA2+XdZeKtr/MCOOIT28+0vo3ccNmDQkK
+# K54BW3glCQNr0ESx9aeph4eDO6Wo24Sgt1yhfDsj8z7ivBo9QbtyHJbfbW3pfhzS
+# MRZ8rmqSw/mx54m8OvvyTLHog+iFrtqmK48DQItqTIP0TcK2TEUdcu9rLwllc4IT
+# m0FLAKk5NuXwSSk9ijtI2btmPWSiap0BYu5vjnS9QCUr364jZVWeKap6GxjUVQ4V
+# 1JbuH23uAaVTNDLZDeeB+YjSsGM/JLSnjoWu9rbKvKJ0gErPVomwaJ1FxHayN/ND
+# hrsABfCBEfPCwhn8bPT6d3dTuT29YV81dg6jVrk4zOohOO57off+vF9Qfd/gvzJs
+# gG/wdPyXc7GArM45MrjHYkv+z06vD1mn2lEC5ShAVCrBj2ZhXSngjJGYQADG7jhs
+# frgqG8DipOmacBgJnS9+BRPObSQP1BlcUS3NcSBAttPlQ7ry0eONsusNPL8cxhtF
+# hs5CBCEzE8EpxG/KCZ8H9PjTY6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxODAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCAMugTAaJDwiIC+uT3/7sCzjzuDyBB3Sag/1Rpe
-# 6QSbODANBgkqhkiG9w0BAQEFAASCAgBfs4OBYvHVqJUuDl2s/WPTDGR2NxiDg/fg
-# qcqgIjudL19AgneqmS/aO4ofPUo257cOdphFF0akhtL3P6TXmDXEYDO+sOwWSJL6
-# XuHusu2XceFRIppxqxRd0ZbYSvZQ85T9Q4YQpRRbQa50RIDmGzw18g3ku/bV3w5D
-# e2uBDRgH+n3wzWKahv741vzAXY84L9z8VspRT87ANWZXmwwPH1Q4dwf62bHRF09+
-# Bd2AO8uLNASYX2mnc9K6yg1E+uhd95KANutV6VVIqEZeZ+6y2vhrznyd30Ca29mA
-# IPGQqOZEG+1o45TRx17jdFNHDCRvuLh70Z3z+X+CqY5o8hpI+y2cbVL9lz/Bz3NK
-# 0EQpSzL1HkiaGFfpCCViTyVyBVpqO0FZBFPXQPYTpEkxTfoSfPt/s7QQYrf26iLU
-# DE6V94cTNPEHxAz/NRSIxDrkkupLyNLvqsuR7icudQpJCybfC9SLfk4yJRVV9nbH
-# OiQtmP+emmkZKJNCqsJunkmLuf3wPI2ojfEk2WbOkwnykk6oFnS5j+aOs1aw3Uzk
-# ZljpRgnMf3sd7KYH2AYaqTSNXwHYdw9CnRoi3TA1Ejq9jbHQ40NTl73EJpGwRNoG
-# h8+qZeq6M6P0Fsv2r0VYCFdYJDv7aaIEfmxGZvKOcxTVFTE5cGVklgLvDMfjjjtP
-# nSXNqFQI7A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUyMDAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCBK1WXKX3Hf1H/rK+vG+OcKx0GbrRKGlgzLKrHY
+# KXNwPDANBgkqhkiG9w0BAQEFAASCAgBlmLkK5TbFELAlFfDewtFVAxe3Ws2kRyvC
+# Iiu3oR8h+3BWLq0nRY502pC/WRTYtA1B+NwtI3gbUn94ybMWyUYHZ4hLY6SVL5fs
+# Ulghtbs/SfVHEW7SUPYNPUqmbIHctBZ5CRHlZtwvjXhbqkrWGemVpwCL3NDr9tmI
+# 5QjG1TcuZBRBKYhh3JqyGKKhC4hpW55yuj1siAAj77lzK28kH0Fx4+oxwzLaZBE4
+# wIXdKzGkG/3fiEtZ44qP7EGZxdMyRBkOoilsiHhr0UKBRKPbgW458p+rptBb4WYE
+# 5R6RhYM+hfp+KkeQF/5qvekSAt/bM8O2FuaJqGIUDgWTaCLvlcgjLgBWtbIVBVuK
+# aSZi1urPHIO8+Nh3aLav3jDU3MTQAIZ+bcPdPRuTC8WYIZ8nrDjTOjlUmKwy9Xdt
+# 9j6mjHRUA4CFM2elTmbXihA4xmtrV1jZ6wCi9V+Ia1fvD1eMwohwl73TYUVVTzbB
+# BadRNSJDIy6/Zr9zeoNHC9friYltIYsh4kCWuDFDu6LbfBxG367h1hkeuEyGXyme
+# f3qiK7hBBLNj1TWxWTI9rPFHEfwWcpufT6kFH++qZ1YrFDIYENhW808vb8X/bO7g
+# 8zn9EwOTx5pobJ5pDpgMA2HlZA8jSsNZ1p1yxjlyOF5RzjnBGijPIHD4Y8olxCnD
+# Mt3lQjLAJQ==
 # SIG # End signature block
