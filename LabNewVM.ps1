@@ -151,38 +151,40 @@ Process
         }
     }
 
-    # Adapters
-    if ($VMAdapters)
-    {
-        foreach($Adapter in $VMAdapters)
-        {
-            # Check if adapter exist
-            if (-not (Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}))
-            {
-                Write-Verbose -Message "Adding network adapter `"$Adapter`" to $VMName..." @VerboseSplat
-                Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter -Name $Adapter
-            }
-
-            if ($Cluster.IsPresent)
-            {
-                Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On -DeviceNaming On
-            }
-            else
-            {
-                Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off -DeviceNaming On
-            }
-        }
-    }
-    else
-    {
-        Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
-    }
-
     # Copy vhdx
     if (-not (Test-Path -Path "$LabFolder\$VMName\Virtual Hard Disks\$VMName.vhdx" -PathType Leaf))
     {
         Write-Verbose -Message "Copying vhdx to $VMName folder..." @VerboseSplat
         Copy-Item -Path $Vhdx -Destination "$LabFolder\$VMName\Virtual Hard Disks\$VMName.vhdx"
+
+        # Adapters
+        if ($VMAdapters)
+        {
+            foreach($Adapter in $VMAdapters)
+            {
+                # Check if adapter exist
+                if (-not (Get-VMNetworkAdapter -VMName $VMName | Where-Object { $_.SwitchName -eq $Adapter}))
+                {
+                    Write-Verbose -Message "Adding network adapter `"$Adapter`" to $VMName..." @VerboseSplat
+                    Add-VMNetworkAdapter -VMName $VMName -SwitchName $Adapter -Name $Adapter
+                }
+
+                if ($Cluster.IsPresent)
+                {
+                    Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing On -AllowTeaming On -DeviceNaming On
+                }
+                else
+                {
+                    Get-VMNetworkAdapter -VMName $VMName | Set-VMNetworkAdapter -MacAddressSpoofing Off -AllowTeaming Off -DeviceNaming On
+                }
+            }
+        }
+        else
+        {
+            Get-VMNetworkAdapter -VMName $VMName | Remove-VMNetworkAdapter
+        }
+
+        $Result += @{ NewVM = $VMName }
     }
 
     # Add vhdx to vm
@@ -191,8 +193,6 @@ Process
         Write-Verbose -Message "Adding vhdx to $VMName..." @VerboseSplat
         Add-VMHardDiskDrive -VMName $VMName -Path "$LabFolder\$VMName\Virtual Hard Disks\$VMName.vhdx"
         Set-VMFirmware -VMName $VMName -FirstBootDevice (Get-VMHardDiskDrive -VMName $VMName | Where-Object { $_.Path -match "$VMName.vhdx" })
-
-        $Result += @{ NewVM = $VMName }
     }
 
     # Start vm
@@ -218,8 +218,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlpRHRSSfiTztIYH1QVwjIX3P
-# A8qgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFue8xC/OQa1LvUsLaGeppzGx
+# NlegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -350,34 +350,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR3ygGA
-# uvCMFNl9tcVz2K/Bjgp4xjANBgkqhkiG9w0BAQEFAASCAgCKDVx3bSBejDkpW+NY
-# kjuGKwc9wjopX9KECGapXhFAqHZz6Okrml+T+GBYnCJIeCAINshEI3wEIqJVZo9m
-# 7jgT+k2qlNfD0G3kGlEt3kQmOhyv5Wix3DtEds+4296QnpB2eWGQtHyqPgevBaWO
-# hYza6X7BILNB4yMluxrM3X90+4NiHRudVS3KNHk+PTiTqFAX0+ZX4fY08XTyx9JA
-# OzYeRewGuC3e37xWD3ONKCgbi/FFtTa01L1eZIxgbzDlIXnP4Hhap2EMezdTNiUn
-# XKfbb3HWTfjmmj2CKCvwQ4bVq+LLG9zcG28PP8Sdd4FwusXrqpG9NMJWb0sn68Ni
-# HP+7f44V/nKsnZjezQPOLpn60KNzB3F7I28bfaJZeeLnoeAuo78R8MsQyHln52BM
-# 2Oazy796QR382B5AoGuXaI+D1KxfQ2tou45AYYvshxXQkpplGOnl0J+L6iHWufre
-# cLg2fY2ZLMRLxWOW+qdOoCukSyR37p+5bve/xIgg5r9akGvK8wW5vzdUk8PbPRMz
-# 8MocxD9AvXhfl46fDyWWLeh1SC3xtMCp8DiMOUDXYeEMa+1ra3XkFIUXJEprj43t
-# P5zvPJP/lbAGASB7Z35X0oxN/K+aG9lBV/DR1V2bDiuVVpbclcHNUlOSSgTRZyVx
-# 08ULGcoAxGFTUAf/9e09V44XzqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSyMfOT
+# 9Q+aE4giVqpEFFjgn5vxmzANBgkqhkiG9w0BAQEFAASCAgCtzXIIoz6VbW9mf869
+# b8EmHu3fYIfI0JYhwAKE6zEcPiuAUJyljRqhPZtRgleU1LEHOVH9verxc4xWRSby
+# p21wdGQscAcQDG3IIx696qmJwtYjWN6P1CC+AdPHdCBEh2im9da0JrvOXBLVdTHn
+# UG5HAZ+YZa5Uz4Bp4Fq99FBMo79xZ/uR+MNxdSVhbP+0dJIEkh8TUt4ehh8COK5k
+# 0AG6QgjwBL5xnz7Ji0TWqBFioahapCsUl2JCQvW0RvhS/QQGx7wQrnf+Qg+SCnpl
+# 0HQtIkKeDvuD7bdtwvQOWElO72/ASj3s7JVhBO2Uch5YQuGu1SYUnxTGdBaz8SoZ
+# PfJt6FhKyP/8hgNuZBE1kpjRG7lOfPWEC4hUoQ5VrMAC7nbGGYldPeOfM9ikFCK7
+# 5xYIkK9jpj1syKnkKvr4Yi5Oqecm55G+k9fMrqF0Jm62vVhz75RCpOlkB90LNWMx
+# SkJq2Ns1TIRmYyWc7gqIk0XI7CIlZTPsbUyEy/0v0T2ZZsqJElcyAJDPOd5myL9g
+# VIZbjg+UwCjfu4oH3ZFJ7IxPxy6CdJglt3hEthA28L4M7OKIaWEdES3py/YCqDEu
+# mmEwbyApnOvKDs2MieGDwTehOkHoPv9EaM1Ta0TgcVkhi7oHEloyICVGg9/FPunC
+# eb+H7JB0zxKWhn69OBObOE5j96GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjQxMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCAuGP5d6UtUQWN5z6ruLe7BdRunrNLFQ1Jwet0m
-# ujVZjzANBgkqhkiG9w0BAQEFAASCAgAxPoPhYXF9s1d38ki1F9EU6BlLkvoLaSV4
-# ItGAi6Cxl+YafySna6gpQLaeEGT3w782A2T2yP44ojX644rKZv19scsZYM0MtX/E
-# UJwCgsn/RSYAvL3G/MsJqBT4jr6S6RBOpEy288RzCwj2D/G++KH0Gw53DYU1ca9Z
-# TlwlJQJ0bQ8aKwTd0NG8JbAmi7y6+6+gB9TzWf3i1FsESjPAXvXA7zfGauZ7NuQt
-# fHYUKNfZzDy18YnDPhTbesKKFw7kiug3/AJQwiPPnYTYYI3JLQ4N3DD9VUhkTWUY
-# uYyF4Sc7zxWtvZpTCgpPdQ9yUXjgTqXwEQpK9cKXqpJbxKMLFFKs3SAx3IxksQKv
-# qFWmGK0R2zrVQd9YjDiDu7tWCfssxowkSL5Pqjgtw2g1Wmfx+7qKh18dSQ6itF/W
-# b6u9BadDJS8u1zcdV8BUNmviI5ur1LzKQ6EZZJ724LQr44cQat/QNpZmxc2DYwSr
-# R9ey+v5F2lxKYT3N6vJrxbuY3LnlBrAjxz9oOHco/TcxmafarPHb9w4DMWYeZ3Wz
-# q7YmR+ka5WeYWE4kYI9oAidXnYMCzRw9dojCOT3h0JUEASqBaOjN2bim+DwbjH1+
-# /NBkM+L+I8mA5v6hTBV5Jn/A8TRVFsRbO4FioqiQip3bccVzOiZ8daQzDHZxvDW5
-# nkrfHyS48Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxNjAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCD4Ak488HySFuLE/DuKJXge0Kr/S+IsXXe17Ega
+# iHGc6DANBgkqhkiG9w0BAQEFAASCAgBtGkc4qIYl3tTztrsd1sQAa6oOp1AwYClH
+# EAAMsBg9UwQLpSFCT+rEGrYS4RBrojXhfi/P2LLosJK8I1/QMLfsyx/ldqucIHXS
+# CUb9FgX9PZz6HJeyTTLmqdCWKIV1GzNVDjTGEdAf2wtCAkyagBH+WJENB4XB/5wI
+# JGlPz+oKV+Zi0psSohuvK5e4cITQP/TC+dvTa7nmLXznxSrlHDrs2BpfOoAAKAlw
+# uKVbfUmgD1SkfZyzmPAqMX59B8Aavx590ObF82cGhjVEYRjOrXJ7t3waEYnfwNBV
+# j3PFOYQQifa5Ig5z1x1f+U1qkAR+6EwHBf8t9ry5guedCrx4HKpvIRyU/fFFQkHL
+# xeHf02QnzRN96FRJI3PeZFe8w5+5btr8mE7IoMlkIx2Ltpd+iFHd64H0rF5ajzY2
+# SV6qXru0fv1f2zB2IBLBO+NtIjPH0vZJOGwjwCduIWdUtV9dvXQc6OefWIuC99+o
+# Q+JgfpBoMTMDSVb7fwvPGlGOtl0llCNqd3tgEnxm2LH0z7S/6+hVCVvKKK1xRqcK
+# Yhg33oTpeZylwxuxFS1CqkoU2Ut4YbcpLtsVSdFUEZ39FzhbBU/lpNSBgmEA1lLd
+# YZkHFJgECwHgDNSWMl5h/7Ep1+UOkbT54t/WAUyVpZRUO7rITKVs33OV2YyRkaCp
+# Snn3RzK2ug==
 # SIG # End signature block

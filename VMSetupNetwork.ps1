@@ -94,28 +94,25 @@ Begin
         # Rename network adapters
         ##########################
 
-write-host 1
         foreach ($Adapter in (Get-NetAdapterAdvancedProperty -DisplayName "Hyper-V Network Adapter Name" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayValue -notlike $null }))
         {
             if ($Adapter.Name -ne $Adapter.DisplayValue -and
                 (ShouldProcess @WhatIfSplat -Message "Renaming $env:ComputerName adapter `"$($Adapter.Name)`" to `"$($Adapter.DisplayValue)`"." @VerboseSplat))
             {
-                Rename-NetAdapter -Name $Adapter.Name -NewName $Adapter.DisplayValue
+                Rename-NetAdapter -Name $Adapter.Name -NewName $Adapter.DisplayValue -ErrorAction SilentlyContinue
             }
         }
-write-host 2
+
         ##############
         # Get adapter
         ##############
 
-        try
-        {
-            $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction SilentlyContinue
-        }
-        catch
-        {
-            ShouldProcess @WhatIfSplat -Message "Cannot get net adapter `"$AdapterName`" on $env:ComputerName." -WriteWarning > $null
+        $Adapter = Get-NetAdapter -Name $AdapterName -ErrorAction SilentlyContinue
 
+        if (-not $Adapter -and
+            (ShouldProcess @WhatIfSplat -Message "Cannot get net adapter `"$AdapterName`" on $env:ComputerName." -WriteWarning))
+        {
+            Write-Output -InputObject $Output.Value
             return
         }
 
@@ -123,7 +120,7 @@ write-host 2
         $IfAlias = $Adapter | Select-Object -ExpandProperty InterfaceAlias
 
         $Win32NetAdapterConfig = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter "InterfaceIndex='$IfIndex'"
-write-host 3
+
         ##################
         # Disable Netbios
         ##################
@@ -342,8 +339,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0OvaIamIdeDBKrQRgjySi7zb
-# OFygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo/UHGqW0vQYf8EeHQNSK/ij8
+# 7n+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -474,34 +471,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBReycJ4
-# ccrLd0aFHwfDixxS4hlEbTANBgkqhkiG9w0BAQEFAASCAgAwawixhKVvl1zrd+5E
-# 99r60jQvow5IJmo/ijc6Z/QrNfn9XdSluI7amCDl/MzlCDe0fSQJKdkNSVDc4H13
-# wd/EXo2NJlsz3EhPakbiFNHrOiETe0fyfmR3Al311SwNK6Gvjn7s4s3Ad2iOi2iR
-# mpXjepBImpVqlZ7BO4GW0lPOoujXkgGZ+hPB0ZUPW7ToqT34KMjmSkzNgneP0vnO
-# GIYCi5vwzR0q/Zu97Bx7AF/r7GzPllEBaHi15WjSjMPMeOuYdmjI6SKnUARi6whi
-# 0bARj80idsPunukmszVaTXw04GjoPN7nVJ94Jr/RZ08lLfckLWUlx7tInnIG4zBT
-# z/BiINyUJpFQClQHadKAYgCQe5d/kJ8EFA238rGh65qXG0t6hO4xCCjnt2nUXHAW
-# Rpq90xRf0uw+JS5YaTTbxpTB4cD1dfgMG1rKk46AQkVeoIzSi4JWI7RUgsYuW/wD
-# kDmAHZjLtn1gItwqrYhGYNgBspgq5JcCTBggOxJeUy9bbKSfLb3tei2wAszw/fNz
-# DHhb7Hoxk0iIHvMp5k3t65q7+vcmRUg+ECrNnV8oVsqaJ9mtd9dwDnwlBaUh5goZ
-# WoFhHlJxg+sgYC5B8BRb3XGVQE3/KXMkM2NDP/62Ct10aDXcDD1ELB2rXiYceAsK
-# 5bBO0bJelik4MPpvYtYZpyP5J6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBStsJtd
+# QjczJKJ7NrtZ0d2b1YzziDANBgkqhkiG9w0BAQEFAASCAgDOGjsmsvGm7EgSphUf
+# EEuy91d6sWPriaPE86OLdthEUMeMKXke/2jD5XmfjOlanvQKRmSdMVKqHCmxg9XC
+# P9anHAQbaOFqS8VNrNB1vADh9/EuXJ+p50T0DvvTQLHgJzsI89HWM2PtzQgYfC9S
+# JZeX4cUCD9OQkLMI0JM8lZyuJFCcouz9tI8jwZrZvpkvsrZZqdUqLBhA0HHmbD2B
+# G2eBcAq1vAm4kV5BhBgDU8RJePkjRst7OQb9/Xykvr4g4qDVfRlDLoLbXWlQaiG5
+# CbnocDb4SntpUuKkmcz+xYZhD8tq+jQe1leiJZeiJgJbWTnN01E6a94rCGiVNOH3
+# 9w1ns9Huy6nn+IC9t7h7Q236HpZUy4NRxQSj+4Dwbao2XIgVUzbrmh02q1EDIX0F
+# M5tsBOw/W657bV+qb6bvgisaUPnd0SOuUnAwAmYu6x+bYFTEheCZMuo3JmvGSW0r
+# y1AQZijjRfbG6KklgMPFG0KayDdCSo5EVRW1vpCRdtp+DUwV0ZyQ+0T/zIe6acrC
+# wOnbBUZ2Z5L1QHusVlqE0OhjnQ7cTRRL969YWUw/R4OjdRv1xNKKdFQRmvOl4eJA
+# 0okwf6QOveAj5pGRJ9v9xMUoARyYiJxrmsZXUM5kNlUnWk4VO68VqbhWwR5jswue
+# XZ/zNce1Y8YKJ86wnTluiF20gKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxNTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCBIK49pQB5zOkzMeOkn0q++aYt2jAwpodcgG/RJ
-# svgxKDANBgkqhkiG9w0BAQEFAASCAgAouYdcX+Pi/yEMwzpHynfPYXAKXG6dQyvt
-# iw/uEdoFJRiGQN4YddKNpyFUuCsLVK+XHleURO+WsTi7C+fo8h2FqwRpGORlGMgP
-# lj480J+Hv17lpSjVZ64ya0NzblmPL0bn/Ow2rlsS/Wu8KHbPLYCZAAj02lmqvGAE
-# rv3iyK9YpY3ojKf4+1R9L24JOCNf7p1VWonDcFulkcYnEkOrWT/u0LA/Mf85n/Ga
-# ybdxX2mIOscWR+Mjh6/3OlQGDVdITbf2aOBX996U4qgZNhqhfFH4nYYkiXAfK5iK
-# bucn3U8haggAob5hraLrPJZpQuD4GG6PHb1B9HdE9F+hClbKJl12OMyKmyMzFocZ
-# zpbEvowhHkFmNGZL5wzoo9hU5ZVgtbh4HPyLNLSZm5pDNoZIyJ1u1yG/GITd0tob
-# +dr6BlL5ZRXFEKRauzKt0lV1w/eIoViHdPuszCQqV5ZZ8mBOzs49SmFo6ceVgghC
-# 77SmNr2VyJt8eYaT0R/ASbmE3D/GhlV9ez/zw60TdzIrAb4bGhfSSVXBJXYLuXgJ
-# srfhGIMRxDFcPxQnjAN1Km8WmgGLoyMor26j+6n2xMTYa98XacX/Y47ilnQZBqFU
-# daR3S063rVdvhbq8CoR6E9o7DraADpnr+L694FzNJgUVrTYKei0wCgs/85HkzdnE
-# OvEaSdFkyw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxNjAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCDgU0JJuAe+vzkdRkkaLpVPV4jZFQA+6N4jP6NE
+# n7Ef1DANBgkqhkiG9w0BAQEFAASCAgB+3rs1oI3TtEMhKePpWmhNNkRB9AzPvMbM
+# VGVXbXDdacRbmsXCfybJVlELBytovrIysG1wE8D3qedC2fQ+pjh32AJI6fuWGe9W
+# hDAGE4Hp4uylOJNGs9Ffvnu1vo71NKdCVtSjsojhktihaL54B1ovswIqOlcdver1
+# zVJe/9tLNgJwNEexSJ6935FO18vwer7VfxiNHrfyiTl3hqttHmZDk3bzPjDe+Fvi
+# 6UM+/OaaumJJO3tybrxQvjiyVQH1FqeJRxXzpg/ov9quJa0cOMHqHQXCEx9K8YZB
+# 0tF9j0w4RiaHc6d1gWcEpR+XhUTS/MyXcF8xjCi6aClC9ku1EakFrmsPDzCr5qou
+# Zgn8wxsEeWFQVAL7p7fzirocOC/9U3XZCawmqNi403cu785pTXSaUsQmZw3EX9tI
+# iGftdQoZwzg5azzery93s8t4+t4KMFMd9fzn4Ik646zA395kP9PhPtOIs9lQbTXT
+# 4+V0Oy7tPPrJb2T4Nopa81EkU4/M5mbQVP8MGLmlRKDKObE/pEqEgm2Qjuy2EgRK
+# bQ5rZH1/wmsSwuS7MfJ/P2mxO11BHuyNoeQJNxtBtVhk9FjtwE/bBRehGYU+cqXu
+# iu2Yzxf37PpNqgbeVQpSxSrosC7Y/pqeCzh8OAPwWCPnzQ9OltkERru0ur8KHCXi
+# dlzbeRry9w==
 # SIG # End signature block
