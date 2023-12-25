@@ -539,7 +539,7 @@ Process
                 }
             }
 
-            $Result = .\LabNewVM.ps1 @NewVMSplat -StartNewVM -VMName $VM.Name -Vhdx $OSVhdx @VerboseSplat
+            $Result = .\LabNewVM.ps1 @NewVMSplat -VMName $VM.Name -Vhdx $OSVhdx @VerboseSplat
 
             if ($Result.NewVM -and $Result.NewVM -notin @($Settings.VMs.RootCA.Name, $Settings.VMs.DC.Name))
             {
@@ -779,7 +779,6 @@ Process
     ########################
     # Renew lease
     # Join domain -> Reboot
-    # Wait
     ########################
 
     $Global:JoinedDomain = @{}
@@ -822,21 +821,6 @@ Process
         }
     }
 
-    $JoinedDomain.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
-
-        # Get variables
-        $Lac             = $Using:Lac
-        $VerboseSplat    = $Using:VerboseSplat
-        $TimeWaited      = $Using:TimeWaited
-        $TimeWaitedSplat = $Using:TimeWaitedSplat
-
-        # Get functions
-        ${function:Check-Heartbeat} = $Using:CheckHeartbeat
-        ${function:Wait-For}        = $Using:WaitFor
-
-        Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat -DefaultThreshold 12500 -Force > $null
-    }
-
     ###################
     # DC
     # Updating objects
@@ -855,12 +839,39 @@ Process
             $SetupAdfsSplat = @{ SetupADFS = $false }
         }
 
-        # Run DC setup to configure new ad objects
-        $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
-                                          -DomainNetworkId $Lab.NetworkId `
-                                          -DomainName $Settings.DomainName `
-                                          -DomainNetbiosName $Settings.DomainNetBiosName `
-                                          -DomainLocalPassword $Settings.Pswd
+        Invoke-Wend -TryBlock {
+
+            # Run DC setup to configure new ad objects
+            $DcConfigResult = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
+                                              -DomainNetworkId $Lab.NetworkId `
+                                              -DomainName $Settings.DomainName `
+                                              -DomainNetbiosName $Settings.DomainNetBiosName `
+                                              -DomainLocalPassword $Settings.Pswd
+        } -WendBlock {
+
+            $Wend = $false
+
+            if ($DcConfigResult.BuildNotFound)
+            {
+                $DcConfigResult.BuildNotFound | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+
+                    # Get variables
+                    $Lac             = $Using:Lac
+                    $VerboseSplat    = $Using:VerboseSplat
+                    $TimeWaited      = $Using:TimeWaited
+                    $TimeWaitedSplat = $Using:TimeWaitedSplat
+
+                    # Get functions
+                    ${function:Check-Heartbeat} = $Using:CheckHeartbeat
+                    ${function:Wait-For}        = $Using:WaitFor
+
+                    Write-Verbose -Message "Waiting for $VM..." @VerboseSplat
+                    Wait-For -VMName $VM @Lac @TimeWaitedSplat -Force > $null
+                }
+
+                $Wend = $true
+            }
+        }
     }
 
     if ($DcConfigResult.RestrictDomain)
@@ -877,8 +888,8 @@ Process
         $DcConfigResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
             # Get variables
-            $VerboseSplat    = $Using:VerboseSplat
-            $StartedVMs      = $Using:StartedVMs
+            $VerboseSplat = $Using:VerboseSplat
+            $StartedVMs   = $Using:StartedVMs
 
             # Get functions
             ${function:Check-Heartbeat} = $Using:CheckHeartbeat
@@ -1055,8 +1066,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU81FZC9HSFP+aTyvB/nA4obL5
-# dJ+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbp60ImWn8qadmoRctPC6H6lU
+# MTWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1187,34 +1198,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQAeMqn
-# 4JBT4oSfqODWqj8IcKh2CjANBgkqhkiG9w0BAQEFAASCAgBHwgejN3iyqQKSVu8N
-# OKFJ0Kb+Ag94GSOfV0ZuYAYRmpySUU8h88rRFNXsXHeDLicOXtxt3qolTPy2XN6N
-# /M/kl13N4wxr1MIdPnx79/0PzpTTjoudyuGWpJikuV0cpS4VEmrc3/Qbl2SlmedU
-# KgNEORqJ7Hzv1XpMw10nK6NbYE94qYxnBMRpGd6PHJDIyO0Yt5DJnWtfnyrpEiOc
-# lS5rIipHXXFcr2IAuz0uaXOY5M9ZrIXdc+8O9rFtCHHJP9fICmdNAd645MtkQeGQ
-# 63zEocXuRXdKjlX63dfrCiQgiV9WQ0C9vJTQMkJ0U0AQ9/auN+BQ3ngVAvJTB7oM
-# bn7Nesi44Gs5ESt7FiZvYXa29m8xW23j1o5eFYUj6Q2BD2HvZh4egNOLpRseGXD3
-# 5lekxBALk5GAN5EOUs7uCVcEDFt0Zq8i1OT6rXhNEfb1QTKkMTNLWYQm9d93A2YA
-# 4UAb/XSLf/A0zlmac55QVvv+foCvdemIqfIvoHP4PeeDZxJVFCcDyqjrvqAyKhBt
-# KwgGmO+ci7OWE4MM+8SNrEU8vh8lWvnnSj91dYb3/64P3sbkZBZjqNcIJyv7AnZ0
-# y8lh7EnIeKyV9tM0zrvn3IxC2sknkR0ENqlipm2F6M5iWzz5mKw72318NxabbOL1
-# dXqgKtcTKFsxbsW4/oNoplLZI6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTPgr8n
+# lJNt5E1b2/MRzshh2FGkdDANBgkqhkiG9w0BAQEFAASCAgBTBzzN6fHlvWfehRf1
+# XKxABY8ZUyHHcsXueSMbo4jv7bT04xYHe0SPLtwqSsCoVp02rk+d9KjzccXelW0k
+# iWs3iqmQLHGbEKJ2paWj2JPU8d5sBLdd9cLmxGq2uQn8HRqHPsrV1KlG+ngay+H4
+# NZm50S0mnUlZ6zBB3ZLSXpqSt0GGC3CyeBSxqhiUCs3ho4tc30La/QHab4LDWMWN
+# jRj3IYvIsCrB32+fvJ1raO+m5UxRHd4EuvX2RX/z/THegNi3yC0hkH2ciRXOdILp
+# GpcIfXS+R9YBta5rWO2MB9Ff8GzY0lnhz7fO57lyS515n+iMkLa6M3BZAn0RSSyl
+# /G+UrcjoE97hgYU80KP5vbZYSXmAR/6qFkt54Bxmd/KQyIp27eaipetgHe2gMMTd
+# Azw/vzbQA2iqzOkuc0w3/2Vur8gxbmp79ONVbtJlXsc0/KKhd96UTyVVuTeyfCZG
+# M9R2nbzWJDuNmSFDjMHnKzahQITAbxhwMa3zpN3mx75VDo0d8Ght1t+bp9kQdtoA
+# VBIVHSZ2KT/DBGaZXNKOwhohASdxTCHNT5VCUx5srdAHsDGEp8xqlfwMcZ9AgR/s
+# 9PTY3a9hd7ooeTsVJpWGeb8PvjRR9TMTIUoQlQ23bSk0+p+QembgRoubCodXHa1e
+# 1QQLxLqerlySXIhCxijicGe/LaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxNDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCC+aalRhp+Hi//FforIkjsbETXINwGLIcGqSMBJ
-# Kue2LDANBgkqhkiG9w0BAQEFAASCAgAD5XBBXYdAng5jQBeqbKOSeGt2DO0J+UYu
-# wrLxbsX6pIolB3bwDo+pUUZ4I9YvY8/UA5nSCFAvHmBpbtNcOLg2Z+3Lqn/y9wQO
-# tHA8tNihiP80DZoHCt+WljN9xpSDS5APeMAe9LIL6Qdsdy6ncX8588HWGBOI5uj0
-# r9pxUGpMXXXm7SYJ/oVfbXCyhdMSvyMPYJSzU+QU/AmvncxuA4CkyXK2R1kW+3FH
-# JfrFdSDBeQIMr+BVMYs7xWTI34Kilt29TyxxcT9NljdgePwdqnzgQvQz2O8KENto
-# uDpNy6AwabJaEFWTh0QZPr91rkh6fnVab+qCOoOntDAxx6q15/kcI9UUADoM/4bg
-# xippA0lC6JOuhxMBs0YJqD48Kvfvx4i3nbOAUfeBQUAKPPqtnFlH6IlykNUvjTF8
-# zLeZPCtKjcXh+UKanCDgH7a8X8LkGdHootJk84HPr2f18FmeeIPBa5MBlEUXWAwV
-# xD5E0KPLvO8OUopIpq5L5rrgiBugks4gMflNY2mycoqWyIIBsIBKcb9RicYKv/XL
-# dN3m27cfB4lg76goPi/Ls9zGJuvneWP1IA55mv5aot8DOXVwSNa+guQjh6W+odHH
-# bRnjpbFd5E3cLOGPN2FA8YLyuM1c3BdDK/doiViqkCaA4NTrtJYrR99lLj97/Q5f
-# xEN+CsCsjA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUxNzAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCAXA7HtbDcKprCxIh5/mGO4aQJ5Ss+BEBimkOSJ
+# 83Z1qDANBgkqhkiG9w0BAQEFAASCAgAwHd2wPNJ5nE5DAFuhxz+GYANLye+exxYS
+# NlGmMWtXg/6TSVwJ/mRPlr1si8MyIMjS7VcHzgWo2A7nu4IBdiW79DylL4da4SQ5
+# BuGfidsHC+DaVmjrXymqVyHL1rRBZhmmGKgTMzhAWqwNOom5ROfxXpEkuMKFeTVn
+# YVhAym12UfYgcnxJP70fPGhNzL9eHA1fY7OA+FYZk2TXxRwxIFKCzLvFxj5jDS9E
+# exONPicasp9zn4I8dExQFUDCd07Eoh+bOwbCYewtuCN00rq+WF560QrUokcZWBQk
+# fqy8qh/ZKFOzASMTQp/RF93F4gkO0MzixykAYp7V381SF8cZaaLPBMnuHzLx5gYk
+# Mt/+tlYAVM1R4sY84guRRFn2RDxFDfEKpGGcN0Gp+/BRNmMqzNrb20v3mBNJPcG6
+# CXC9JRC/oiVQDiIVfX+9Nvi+iNyqHkOwdicqhtZchEY/1QQyXCN/W/aSQ5vEmCmk
+# YyS8AR2rgMhvzcOAvCYPswMYxYC4IrJZCnPr8eXKPsO2Wnzmop+ASDpndM4CK/Kc
+# GYCE1o4LRpVJiaK1Tq44hiNIaFBJT4FAfISGFRlqkVnTTgLNzMyW+8nFUL4r4/r3
+# JoKq/9zo/kOwsVhOnTMLAJSW9dVldEJiiril+RnpOocojwPmm5GM+fsLQpVuqgpM
+# +ihxQcVsyg==
 # SIG # End signature block
