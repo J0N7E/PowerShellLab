@@ -33,6 +33,40 @@ Param
 
 Begin
 {
+    #########
+    # Invoke
+    #########
+
+    Invoke-Command -ScriptBlock `
+    {
+        try
+        {
+            . $PSScriptRoot\f_ShouldProcess.ps1
+            . $PSScriptRoot\f_CopyDifferentItem.ps1 #### Depends on Should-Process ####
+        }
+        catch [Exception]
+        {
+            throw "$_ $( $_.ScriptStackTrace)"
+        }
+    } -NoNewScope
+
+    #####################
+    # Verbose Preference
+    #####################
+
+    # Initialize verbose
+    $VerboseSplat = @{}
+
+    # Check verbose
+    if ($VerbosePreference -ne 'SilentlyContinue')
+    {
+        # Reset verbose preference
+        $VerbosePreference = 'SilentlyContinue'
+
+        # Set verbose splat
+        $VerboseSplat.Add('Verbose', $true)
+    }
+
     ########
     # Paths
     ########
@@ -118,8 +152,8 @@ Begin
     # Initialize
     #############
 
-    $Global:NewVMs       = @{}
-    $Global:StartedVMs   = @{}
+    $Global:NewVMs     = @{}
+    $Global:StartedVMs = @{}
 
     [Ref]$TimeWaited = 0
 
@@ -172,23 +206,6 @@ Begin
     $StartedVMsSplat  = @{ WaitQueue = $StartedVMs }
     $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
     $ThrottleSplat    = @{ ThrottleLimit = $ThrottleLimit }
-
-    #####################
-    # Verbose Preference
-    #####################
-
-    # Initialize verbose
-    $VerboseSplat = @{}
-
-    # Check verbose
-    if ($VerbosePreference -ne 'SilentlyContinue')
-    {
-        # Reset verbose preference
-        $VerbosePreference = 'SilentlyContinue'
-
-        # Set verbose splat
-        $VerboseSplat.Add('Verbose', $true)
-    }
 
     ############
     # Functions
@@ -766,9 +783,10 @@ Process
             $Result = Invoke-Command @DC @Lac -ScriptBlock {
 
                 # Set variables
-                $Result       = @{}
-                $DomainJoin   = $Args[0]
-                $VerboseSplat = $Args[1]
+                $DomainJoin      = $Using:DomainJoin
+                $DomainName      = $Using:DomainName
+                $VerboseSplat    = $Using:VerboseSplat
+                $Result          = @()
 
                 foreach ($Computer in $DomainJoin)
                 {
@@ -777,7 +795,7 @@ Process
                         # Set joinblob path
                         $JoinBlobFullName = "$env:TEMP\Join-$Computer.blob"
 
-                        Write-Verbose -Message "Djoin $VM on DC..."
+                        Write-Verbose -Message "Djoin $Computer to $DomainName..." @VerboseSplat
 
                         djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$($JoinBlobFullName)" > $null
 
@@ -785,16 +803,44 @@ Process
                         $JoinBlob = Get-Item -Path "$($JoinBlobFullName)"
 
                         # Return blob
-                        $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
+                        $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content -Raw -Encoding Byte -Path $JoinBlob.FullName); }}
 
                         # Cleanup
                         Remove-Item -Path "$($JoinBlob.FullName)"
                     }
                 }
 
-                Write-Output -InputObject $Return
+                Write-Output -InputObject $Result
+            }
 
-            } -ArgumentList $DomainJoin, $VerboseSplat
+            # Handle result
+            if ($Result)
+            {
+                foreach($Row in $Result)
+                {
+                    if ($Row -is [Hashtable])
+                    {
+                        foreach($Item in $Row.GetEnumerator())
+                        {
+                            # Save in temp
+                            Set-Content -AsByteStream -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Value $Item.Value.Item('FileContent')
+
+                            # Set original timestamps
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name CreationTime -Value $Item.Value.Item('FileObj').CreationTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastWriteTime -Value $Item.Value.Item('FileObj').LastWriteTime
+                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastAccessTime -Value $Item.Value.Item('FileObj').LastAccessTime
+
+                            # Move to script root if different
+                            Copy-DifferentItem -SourcePath "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -RemoveSourceFile -TargetPath "$PSScriptRoot\$($Item.Value.Item('FileObj').Name)" @VerboseSplat
+                        }
+                    }
+                    else
+                    {
+                        Write-Warning -Message 'Unexpected result:'
+                        Write-Host -Object $Row
+                    }
+                }
+            }
         }
 
         # Publish root certificate to domain
@@ -839,11 +885,13 @@ Process
         if ($Result.Joined)
         {
            $JoinedDomain.Add($Result.Joined, $true)
+           $StartedVMs.Add($Result.Joined, $true)
         }
 
-        if ($Result.Joined -or $Result.Renamed)
+        #FIX
+        if ($Result.Renamed)
         {
-           $StartedVMs.Add($Result.Renamed, $true)
+            $StartedVMs.Add($Result.Renamed, $true)
         }
     }
 
@@ -1109,8 +1157,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMUoqr2r7zLvz2aubWffMXdSL
-# t3KgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8OIs2C9uSGG6hPANL8Q3mvRp
+# J1WgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1241,34 +1289,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8GtlI
-# NvDKAc/c5yEPutJIZ+wlZDANBgkqhkiG9w0BAQEFAASCAgAk4Ut7pSVi7J4jSl5i
-# /PYemmFLodYFkhk77HAMeABGpa9cdMoAzGjrbEDpLq8zhfQPwipcbCvTTDDP4CCv
-# etEgfNcvXgyawj2yZ07CBikhErgtoCfmzW8NA4PDwwiM8ih71muMfZGWMfRqStYx
-# P5XD4Ceol27tyji4eq88aRQBmxmlV6xyP6ooKyHObLinBhxcFh9yiRcXeXF1tVFi
-# 7qoHohSdJJOX6uZtM8XDZePRR3KuStgIACcP4oZs0K5Qpp7DURLqHVJKrJTmk18Y
-# AXQwr97t7iXrVV5PnnC92KHv2kj86jMDjp9To5xAkNpEr1ol0maNYj/65R6AChQG
-# 0/QcNyLPbTuQYuMZRUincWD0udZlVIs3El3C9hRgCYviqf5Bfr+XIGddeAATVY/O
-# vGxtvG8slGdrIFjaeQS1q42EDgZj29mJWS5tMav6Xzaq4bKtwSh4M7X4cG7l3N5p
-# xM9oiO4a80FMzfMTIuOJKa8lyapg6+ROMmLZWUc7uxImgaDg8P+ywNfSOrLS4URq
-# yeMtK4lORHXywfmPpQI3cYe7DJNfSiiQm/bEqtbDxJW03RiokThQvvFqHDkZtZQn
-# 0iWUVtCcQc0DgrXidwemCI19mUWJ4XClQ5tnpON+R/i8PSEgnBy0bKWD7Rnmdu+Y
-# ghTz5Gu81TobOGIC7+SBMyAAMaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQyu9Ib
+# SJNc09hw6zoHpg4LiLxFTTANBgkqhkiG9w0BAQEFAASCAgAcL3odSu0JAT1DedYj
+# VnWjeZNMrzTatKQSjpKaLO95AknBiI/0fuyzwAjueSADmyP23hMJh17OFApUIDtM
+# A8VmmYLipWz1FhoYOaAr6+L9r1u7XgPg/wMSJp+Hjoqpv0Aq+TySIsMvOxaewHg1
+# rVXDrROoUxACW3QQlVsJ77BerrMwHYe/7bynVbnEDdgf/fzYTZ7jv+PZinosFnsA
+# mZFg02w7xkXDU4gn4Y+4NClueYcuRiXCLu+Vbm8ayTGzh+wFvSAbzEz2trXimzW2
+# VYQY7UuqsZ4HtUW9n5UOOGPI9l9a0d7YcT2zZYeoerFD8xchQdjsfwdzvghXij7s
+# xkQu0z4a/B2ZeJSV5KWRhtECpK3VDlMsvw3Dcd/2rtr1ShOLEj5+D58bC57yoCYp
+# zh4WEuB+3/J5dLPEm5v9FC1tO++TiT9xt0tN7b/YkpDMqN2CS0wBBkhCkpOnK4m6
+# Czd6hg7i+OrcQwTOCpWzQovSOIze4SsYeqazDpAPcgMpXOBwWJn3GHmFDFLeLl7y
+# oyKQApt0UOfHnjpEMr3BIkrsSLBLa7/VHjD13Pa6pF8uxJqYEXdSzJ2mU2jlNHQK
+# TKLH6jyJChTkivoMFJA4orJbzPzIWAZbCig+VQEq/QVe6ol7drnrpbAJH3Er1/ds
+# cvw4E/sQJsnV/LjGsdXVX+fI66GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjYxMTAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCCgX0F5kvoo7wyngR2sdaw9tFVy8sPauybGDJlk
-# wU3fCjANBgkqhkiG9w0BAQEFAASCAgCNTb9L+xBH1MpqZ0HaAt0H7eXxpTnwC9Ay
-# OfcEfzcMjz9F4RhaBKyn3AC6p3fWarAFLECtTG+3ScaZvcjdwzWpALw91rKHerF8
-# 9XqZwjebaSgmOLYBw9VEE0HE+iWyba2US+jEs5Xs4n7EPx12QDy6SulxJPwOm3Pz
-# PYCQV8OXCzgVwHqwk3pIVSwReKVCFeGr7e0Nv1LkQ4Jc0CjZU5d8sAwZQj/s2n9Z
-# +Cscvotmlzvh27XklsE6Ze4iQjh7lZ2dBGfB7//dwohnXIyRC2o+MyOL6ah5cC0+
-# 0rEr92VxctfgYm80nlKoz+kJaHpHg3gg8VFl8qZ6HaeTdsH1ZLEwFdaaxaFwhYU/
-# rVDJcUTY+CjbxAGnYEAfta/PSAYcuce0k360vAx9iscTX/xaJUoTJ2ejAgR2fzI2
-# uOG6Ae3AVSnc4VoCwJBBLv32UFO+FsL3GXwQFhn2chAdhWByiMtsEw21i5LEL7lJ
-# NE3tcEaiYREhEan252cpV9ytDA7CAoJy1jOhHJuQQJoN/dr8f6QuEuEcOMqewvQ4
-# 8u6Zp/Jdi2tIK4j6IiD4K8bF7KMHO/pDzEF4FequRg6+jwfVHEE5Cf04M9Ow+fV/
-# o4cya/I06NZnhe96z0WYf0Xp1D2F1rgbtPirW2lGm4CBW2OaZrK3Lz8pUP/KrbN9
-# KU2UG9vLPw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjYyMDU5
+# NTlaMC8GCSqGSIb3DQEJBDEiBCBzEq5K7xqT1IzqDi47isRiPAErB/WFilAks/rp
+# V2LJXzANBgkqhkiG9w0BAQEFAASCAgAmIHrsQOzZQOEeASL6AR79d/0TRtjGkbjW
+# /VFUtG/5JeBZoSIm3MhTM8DG1VSHN8IteqK7sw8xRiZG2MrJqDONd2h6S7x2oep6
+# XNypJW90X4wbP4+DCzx1cSACaCMUIwu12l7BRV3LJtJ1c9J2YG2lP1Roe7mpxM19
+# CP0uh8ZBL10qTsmc4alEQMFqDnDzqlVGwCkSwpHhkbTDBYx9Rx1ZGw95VstM3Jq0
+# HUBMkFFIFRu27a09hStd2+GJqk/IzOeKq0gSJYJulfy5r4xxvvH3Jz+I5JVfqJM3
+# ur8WMlATX/h/11Z9BASvu/L6wyolCRjof/ELZJ9FhOzkKAHb727vcaFTwBJaisRc
+# n5Kz1pJIKtNunR040QpBAvRv8EkV1Kk7iXIhrcIahdcPDqk5xaOJRLAJ0D6PyjWH
+# 0hcqM27BQhRYSxflwBt+RuFrdQm8MVTX/QdXOXzekRr081y5867KRVvdcEbfSU2w
+# 7BblPuUS6BKiTUMVWWG3sWdQbimOq/VbeX2cogVeAWKntC42TDkjDygXnYFY6DvN
+# EsUDfK603bJ3oiOIgeuhswIRE55xQGzgiAlHcgxTSqi0bwg9t4bgRiePhgNJrCZP
+# Xf1cy6yxI4ujKZdjiDdbAIKsEKp/kB+L5PK1pDT/Wzc9pHXavhSw3dD+Xj6aHoA1
+# /nqkqys5pw==
 # SIG # End signature block

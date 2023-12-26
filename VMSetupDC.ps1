@@ -270,6 +270,37 @@ Begin
             $SetContentSplat = @{ Encoding = 'Byte' }
         }
 
+        # ██████╗  ██████╗ ███╗   ███╗ █████╗ ██╗███╗   ██╗         ██╗ ██████╗ ██╗███╗   ██╗
+        # ██╔══██╗██╔═══██╗████╗ ████║██╔══██╗██║████╗  ██║         ██║██╔═══██╗██║████╗  ██║
+        # ██║  ██║██║   ██║██╔████╔██║███████║██║██╔██╗ ██║         ██║██║   ██║██║██╔██╗ ██║
+        # ██║  ██║██║   ██║██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██   ██║██║   ██║██║██║╚██╗██║
+        # ██████╔╝╚██████╔╝██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ╚█████╔╝╚██████╔╝██║██║ ╚████║
+        # ╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝     ╚════╝  ╚═════╝ ╚═╝╚═╝  ╚═══╝
+
+        if ($DomainJoin)
+        {
+            foreach ($Computer in $DomainJoin)
+            {
+                if (-not (Get-ADComputer -Filter "Name -like '$Computer' -and ObjectCategory -eq 'Computer'" -ErrorAction SilentlyContinue))
+                {
+                    # Set joinblob path
+                    $JoinBlobFullName = "$env:TEMP\Join-$Computer.blob"
+
+                    # Join domain
+                    djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$($JoinBlobFullName)" > $null
+
+                    # Get blob
+                    $JoinBlob = Get-Item -Path "$($JoinBlobFullName)"
+
+                    # Return blob
+                    $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
+
+                    # Cleanup
+                    Remove-Item -Path "$($JoinBlob.FullName)"
+                }
+            }
+        }
+
         # ██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗      ██████╗ ██████╗  ██████╗
         # ██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗    ██╔════╝ ██╔══██╗██╔═══██╗
         # ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝    ██║  ███╗██████╔╝██║   ██║
@@ -3361,37 +3392,6 @@ Begin
             Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
         }
 
-        # ██████╗  ██████╗ ███╗   ███╗ █████╗ ██╗███╗   ██╗         ██╗ ██████╗ ██╗███╗   ██╗
-        # ██╔══██╗██╔═══██╗████╗ ████║██╔══██╗██║████╗  ██║         ██║██╔═══██╗██║████╗  ██║
-        # ██║  ██║██║   ██║██╔████╔██║███████║██║██╔██╗ ██║         ██║██║   ██║██║██╔██╗ ██║
-        # ██║  ██║██║   ██║██║╚██╔╝██║██╔══██║██║██║╚██╗██║    ██   ██║██║   ██║██║██║╚██╗██║
-        # ██████╔╝╚██████╔╝██║ ╚═╝ ██║██║  ██║██║██║ ╚████║    ╚█████╔╝╚██████╔╝██║██║ ╚████║
-        # ╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝     ╚════╝  ╚═════╝ ╚═╝╚═╝  ╚═══╝
-
-        if ($DomainJoin)
-        {
-            foreach ($Computer in $DomainJoin)
-            {
-                if (-not (Get-ADComputer -Filter "Name -like '$Computer' -and ObjectCategory -eq 'Computer'" -ErrorAction SilentlyContinue))
-                {
-                    # Set joinblob path
-                    $JoinBlobFullName = "$env:TEMP\Join-$Computer.blob"
-
-                    # Join domain
-                    djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$($JoinBlobFullName)" > $null
-
-                    # Get blob
-                    $JoinBlob = Get-Item -Path "$($JoinBlobFullName)"
-
-                    # Return blob
-                    $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
-
-                    # Cleanup
-                    Remove-Item -Path "$($JoinBlob.FullName)"
-                }
-            }
-        }
-
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
         # ██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗████╗  ██║
         # ██████╔╝█████╗     ██║   ██║   ██║██████╔╝██╔██╗ ██║
@@ -3583,8 +3583,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxS7tnIq/DCMI0LGCHlV5C+rI
-# 7TygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUst+5vo/jUt5EbvFgsTHLcTQ+
+# +JGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3715,34 +3715,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSjJD8B
-# w+hTLZys2iYcDa8ccvaNDzANBgkqhkiG9w0BAQEFAASCAgDDlwQgXtmuDSVc1QIk
-# eLtF1vpAAuzVqhKibOHYAkhjvDlo0rOewnW3ntqwoaCCjbOmbXQ926z+Pt+WbBBG
-# mIcL0gN1j3mq/Sx9dwl2fFga8ISKJVDwAzQM24V2UXNZVTQUpHyQk09PBniPJJuu
-# s/uKqseP9A3Juz2c16TtuVj5X8A2KUnUonlyzgbD1r5ucm4cPbLSVXkB3fla8yGB
-# PhxVEeMwqmP5yJp9UgNCWinA1aJ9xxSfOYrDC2Cjzn+PVMEbgBwGRAKIohhmcWbl
-# UqakzAlQNWgoasLo2YsWOxNFyXttPfA+kLyDYhIPh8kpyiXYL++EcHMScLbhtrZB
-# YGc+iopoGVM3WBaeiWpNSX1tjGSK+6sFb6afbq3v1euGqGPX0tf9b2FaTKBaR67w
-# EnC7FE4XqmCz/eHgqJxx0MudqrgfPeCHNg5TMfQtY+8AL6ZNtfpfI/cKg4XARfz3
-# l3s0IF/0TMP1yWNKqJCErZNjswQeQrbSX4fqpQ99R6k1eNmseyKaQxvRwzLXOGvq
-# mtsHWbOYEthC7J/xbglv6sl3/uH2psGD2dH6RMyZzfYAqAgTJGR2gLH+fmgHgnYW
-# WTe0a1UXxQN+7CLd1IZwVxFNnOk+TGhO0t76qKTaMgrUTSctoXc7Vnu/1ZmMJ1hD
-# uIWCMzaiAKZBnqPlmjWDMfskaaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTGvR52
+# d1V/UK/VOXj41BPPW65RIDANBgkqhkiG9w0BAQEFAASCAgDHI37hurLaDm89Lx3w
+# qX9fptmGLLxdlzLq3QWb+VZH3bQZ1VHCYjlCQjt8dI2DsZay80C8FuPMtcEnIyof
+# 5sxXVhRguWlAqQszQajv2BAhjCyxYN5XUGf9jb2Wuc2cSXHu+XWRLj85rh+ONBSC
+# ibeSF06P2UjMyYhG4r1J6+lIsRiMGK14ZhrClyrzEE0Ii7MKSfDYUVB6h8rOxg35
+# +fjZ24WO9B3WAMy10ppqQixXtp7lGs/iSkBsVxkvG4Ln9GQkwh0tAwGDhnYhK06u
+# ND8t+zYZ7C58HDU+d+FIgNNYH5u+oBNJV7s2HxlaVtEngckSqSGRs7qlVdL4wBFz
+# SmsADl67YWYmhdguhMHKGy0vslSwo/FR+A02jo4sgsFPg3RfUqSiKhUKUdVYiIZ7
+# 1+XQfI3WzJGanayCEiDZQaZix5vnVJxgliXjiDpUtnKvNls7bJsNx8+KUun4eY7W
+# Sx9C9fU3d2n62bqo2FKaCPU8nIG7Rqn1QxWVIRHl4kstLFw4Qe5NSxbtZ1V1XvQj
+# iiz9L6L6duOI7AOXMKH0Q2nHtJCLCYBrN3QKxAU/wxFm64wN5RVQH4H4GhX5CkXX
+# /US+Oyn5GeCYbVLL6fU5oJEE0jqUwGbAGZm71V29dCVil5t5AfShfYzNKBIpTgu6
+# W0k00uoR+HOcDFCy6eIil73QX6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjYxMTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCClzhu11lUQ0X2H3pY1SVqmEhZ8KY5Yz+mS2ueK
-# A8UzCzANBgkqhkiG9w0BAQEFAASCAgCFoRRd9yL43pDpzLU9Tat97GEvitt+Zuil
-# cvleisTfkOKPMtrxqXfBDS1QoYTYciGc2SevIpxmTSV9RoIVFozpX0O54RKv7osF
-# 9GrKpRCeL+gJ4eYcXbLxYQ9WTMxBP+5v28Jk5caLQsKe6Yp+ZsMEba/zRlftBgkP
-# qqP2UNC4+tJKJRbKj/xKb61XavQ7GJQWT94qLMZQ3zdrHyACBpoP7gduTAnKoaFZ
-# RDGYzi90w3VJH1GeZAcZG8XC3isn8IXYlBxzXjoYa1fgPQ0wLu5FDMYYnLqgmBaq
-# Sk490AqRjm4kVHJBU3aQf7xjRrIJq1hEzv2uzysLNK/bp769qY94tuU8/VPdu04/
-# /5qyQN1o7IXkuYjABD6DEgUhkgjjv+/Ki3JZjni5KPgCQ69Fa/ewnVuxXs8yAZak
-# gFmWe5oTY/uN0pLFp01jlpnjwTwCIu7rvauzY4+UK2E0dNR3VPE+kZlbmBuYgQ60
-# 7+8nr0w9xkjoBp/TJNTdWqP4AICqY2JIo/Szlv9IrL/YY4Es6dgOPCKVCsiSanEn
-# 8R+jVog9MQXUQpxuAu1ELtZslGGsrWt2j1DiRUokXGyJBlL6iD88j5HFB1VDb3Uc
-# IRIxmCRbhjmnOUWlV5Q45VrbFAymt+18+4ol7IYeGcS4Wa8tIj84DX8MCcAhf/xV
-# vkK9zReNyg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjYyMTAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCC8H6V2YxcjSNUmBvaWFWjW8wp46N5hNkti4goa
+# vzQ9pjANBgkqhkiG9w0BAQEFAASCAgA7spB6kuHMSurMJ3jiIAvaPpS70E6x2DXK
+# drcHl0wzCzifr5oAFO842FFPAKPBZwW2jpsE73Tav8XcxW6xYwQpaVth72wu7YEh
+# qtwByQ4/lZ+n18hRDB5hYppXy2GLpUwrNy9jbtrT8/7/FzzjXYtRlUoMWsAjdWgH
+# dCkXKgO0RzDFiuC/u+dkuaW2g3nmQHkM5kLpyHwwIV8Jw2EqBQpHnbjraB16mHtu
+# bZ3t8XhnZJfBI0TWYsiMlSqAmqMWT2PZGHvxZwC67KMXfoaZSPtgrniXm+At3T8n
+# 4ivAimbavh68V46iLVpyrtbQtxrZ7j2LoUM/Ul4Z8KVAk2HlVFRshDrZqPQV8qKi
+# 6C9Lf4YFVD+RK6C4GsGfcuLz5PmbLRIrwFWTx6KRosHM0Gy7kBUtz0ZzdOruTW4y
+# 68+nWiVIknl+/C0098n2qZ0KnX5+HGscbUw2xTxhXqiirp/QHVTW4w6lKGatCEoB
+# RPfj0pjtoiLNDsA5kO9nNu1tGNQW0T//IVzDYYjryQNemxpMP1V7E9iGKHgO2cGB
+# +LJw+yD+ihrhtHTV71H6EWNS/7Drf6fOmT0daJ1KPLbA0UUsfJ52/ikIwx1kpSFx
+# EALfYCdGW6Csa1qZHzd4bRTR2ma1u1kT7mjF+28E1e/cWvVezKCQFxbjiKjb4e8V
+# If7CY2HN5Q==
 # SIG # End signature block
