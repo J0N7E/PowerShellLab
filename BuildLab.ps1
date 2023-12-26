@@ -114,6 +114,82 @@ Begin
         $Settings.VMs += @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Desktop Experience x64 21H2*';  Switch = @('Lab');            Credential = $Settings.Ac0; }
     }
 
+    #############
+    # Initialize
+    #############
+
+    $Global:NewVMs       = @{}
+    $Global:StartedVMs   = @{}
+
+    [Ref]$TimeWaited = 0
+
+    if(-not $ThrottleLimit)
+    {
+        $ThrottleLimit = $Settings.VMs.Count
+    }
+
+    if($AddVMs)
+    {
+        foreach($VM in $AddVMs)
+        {
+            $NewVMs.Add($VM, $true)
+            $StartedVMs.Add($VM, $true)
+        }
+    }
+
+    #########
+    # Splats
+    #########
+
+    # Credentials
+    $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
+
+        New-Variable -Name $_.Name -Value @{ Credential = $_.Value } -Force
+    }
+
+    # Virtual machines
+    $Settings.VMs.GetEnumerator() | ForEach-Object {
+
+        New-Variable -Name $_.Name -Value @{ VMName = $_.Value.Name } -Force
+    }
+
+    # Restrict domain
+    switch ($RestrictDomain)
+    {
+        $null  { $RestrictDomainSplat = @{} }
+        $true  { $RestrictDomainSplat = @{ RestrictDomain = $true  } }
+        $false { $RestrictDomainSplat = @{ RestrictDomain = $false } }
+    }
+
+    # Setup Adfs
+    switch ($SetupAdfs)
+    {
+        $null  { $SetupAdfsSplat = @{} }
+        $true  { $SetupAdfsSplat = @{ SetupAdfs = $true  } }
+        $false { $SetupAdfsSplat = @{ SetupAdfs = $false } }
+    }
+
+    $StartedVMsSplat  = @{ WaitQueue = $StartedVMs }
+    $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
+    $ThrottleSplat    = @{ ThrottleLimit = $ThrottleLimit }
+
+    #####################
+    # Verbose Preference
+    #####################
+
+    # Initialize verbose
+    $VerboseSplat = @{}
+
+    # Check verbose
+    if ($VerbosePreference -ne 'SilentlyContinue')
+    {
+        # Reset verbose preference
+        $VerbosePreference = 'SilentlyContinue'
+
+        # Set verbose splat
+        $VerboseSplat.Add('Verbose', $true)
+    }
+
     ############
     # Functions
     ############
@@ -338,7 +414,6 @@ Begin
     {
         param
         (
-            [String]$Message,
             [Scriptblock]$Tryblock,
             [Scriptblock]$Wendblock = { $Wend = $false },
             [Scriptblock]$Catchblock = {
@@ -356,11 +431,6 @@ Begin
 
         process
         {
-            if ($Message)
-            {
-                Write-Verbose @VerboseSplat -Message $Message
-            }
-
             do
             {
                 $Wend = $true
@@ -388,82 +458,6 @@ Begin
         }
     }
     $InvokeWend = ${function:Invoke-Wend}.ToString()
-
-    #############
-    # Initialize
-    #############
-
-    $Global:NewVMs       = @{}
-    $Global:StartedVMs   = @{}
-
-    [Ref]$TimeWaited = 0
-
-    if(-not $ThrottleLimit)
-    {
-        $ThrottleLimit = $Settings.VMs.Count
-    }
-
-    if($AddVMs)
-    {
-        foreach($VM in $AddVMs)
-        {
-            $NewVMs.Add($VM, $true)
-            $StartedVMs.Add($VM, $true)
-        }
-    }
-
-    #########
-    # Splats
-    #########
-
-    # Credentials
-    $Settings.GetEnumerator() | Where-Object { $_.Value -is [PSCredential] } | ForEach-Object {
-
-        New-Variable -Name $_.Name -Value @{ Credential = $_.Value } -Force
-    }
-
-    # Virtual machines
-    $Settings.VMs.GetEnumerator() | ForEach-Object {
-
-        New-Variable -Name $_.Name -Value @{ VMName = $_.Value.Name } -Force
-    }
-
-    # Restrict domain
-    switch ($RestrictDomain)
-    {
-        $null  { $RestrictDomainSplat = @{} }
-        $true  { $RestrictDomainSplat = @{ RestrictDomain = $true  } }
-        $false { $RestrictDomainSplat = @{ RestrictDomain = $false } }
-    }
-
-    # Setup Adfs
-    switch ($SetupAdfs)
-    {
-        $null  { $SetupAdfsSplat = @{} }
-        $true  { $SetupAdfsSplat = @{ SetupAdfs = $true  } }
-        $false { $SetupAdfsSplat = @{ SetupAdfs = $false } }
-    }
-
-    $StartedVMsSplat  = @{ WaitQueue = $StartedVMs }
-    $TimeWaitedSplat  = @{ TimeWaited = $TimeWaited }
-    $ThrottleSplat    = @{ ThrottleLimit = $ThrottleLimit }
-
-    #####################
-    # Verbose Preference
-    #####################
-
-    # Initialize verbose
-    $VerboseSplat = @{}
-
-    # Check verbose
-    if ($VerbosePreference -ne 'SilentlyContinue')
-    {
-        # Reset verbose preference
-        $VerbosePreference = 'SilentlyContinue'
-
-        # Set verbose splat
-        $VerboseSplat.Add('Verbose', $true)
-    }
 
     ##########
     # Counter
@@ -507,7 +501,7 @@ Process
 
     $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-        # Get variables
+        # Set variables
         $OsdPath      = $Using:OsdPath
         $HvDrive      = $Using:HvDrive
         $VerboseSplat = $Using:VerboseSplat
@@ -515,7 +509,7 @@ Process
         $NewVMs       = $Using:NewVMs
         $StartedVMs   = $Using:StartedVMs
 
-        # Get functions
+        # Set functions
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
         # Get latest os media
@@ -628,7 +622,7 @@ Process
 
     $Settings.VMs.Values | Where-Object { $_.Name -in $NewVMs.Keys }
                          | Foreach-Object @VerboseSplat @ThrottleSplat -Parallel {
-        # Get variables
+        # Set variables
         $Lac             = $Using:Lac
         $VerboseSplat    = $Using:VerboseSplat
         $TimeWaited      = $Using:TimeWaited
@@ -738,20 +732,21 @@ Process
         # Initialize
         $DomainJoin = @()
 
-        # Check if new computer objects
         if ($NewVMs.Count)
         {
-            # Remove old computer objects
             $NewVMs.Keys | ForEach-Object @VerboseSplat { $VM = $_
 
                 # Check if domain joined vm
                 if ($Settings.VMs.Values | Where-Object { $_.Name -eq $VM -and $_.Domain })
                 {
-                    $DomainJoin += $VM
+                    # Remove old computer object
+                    Invoke-Command @DC @Lac -ScriptBlock {
 
-                    Invoke-Command @DC @Lac -ScriptBlock { $VerboseSplat = $Args[0]
+                        # Set variables
+                        $VM           = $Args[0]
+                        $VerboseSplat = $Args[1]
 
-                        $ADComputer = Get-ADComputer -Filter "Name -eq '$($Args[1])'"
+                        $ADComputer = Get-ADComputer -Filter "Name -eq '$VM'"
 
                         if ($ADComputer)
                         {
@@ -760,17 +755,46 @@ Process
                             Write-Verbose -Message "Removed $($ADComputer.Name) from domain." @VerboseSplat
                         }
 
-                    } -ArgumentList $VerboseSplat, $VM
+                    } -ArgumentList $VM, $VerboseSplat
+
+                    # Set to domainjoin vm
+                    $DomainJoin += $VM
                 }
             }
 
-            # Domain Join
-            .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
-                            -DomainJoin $DomainJoin `
-                            -DomainNetworkId $Lab.NetworkId `
-                            -DomainName $Settings.DomainName `
-                            -DomainNetbiosName $Settings.DomainNetBiosName `
-                            -DomainLocalPassword $Settings.Pswd > $null
+            # Add new computer object
+            $Result = Invoke-Command @DC @Lac -ScriptBlock {
+
+                # Set variables
+                $Result       = @{}
+                $DomainJoin   = $Args[0]
+                $VerboseSplat = $Args[1]
+
+                foreach ($Computer in $DomainJoin)
+                {
+                    if (-not (Get-ADComputer -Filter "Name -like '$Computer' -and ObjectCategory -eq 'Computer'" -ErrorAction SilentlyContinue))
+                    {
+                        # Set joinblob path
+                        $JoinBlobFullName = "$env:TEMP\Join-$Computer.blob"
+
+                        Write-Verbose -Message "Djoin $VM on DC..."
+
+                        djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$($JoinBlobFullName)" > $null
+
+                        # Get blob
+                        $JoinBlob = Get-Item -Path "$($JoinBlobFullName)"
+
+                        # Return blob
+                        $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content @GetContentSplat -Path $JoinBlob.FullName); }}
+
+                        # Cleanup
+                        Remove-Item -Path "$($JoinBlob.FullName)"
+                    }
+                }
+
+                Write-Output -InputObject $Return
+
+            } -ArgumentList $DomainJoin, $VerboseSplat
         }
 
         # Publish root certificate to domain
@@ -780,16 +804,17 @@ Process
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)"
     }
 
-    ########################
+    ##############
     # Renew lease
-    # Join domain -> Reboot
-    ########################
+    # Join domain
+    # Reboot
+    ##############
 
     $Global:JoinedDomain = @{}
 
     $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-        # Get variables
+        # Set variables
         $VerboseSplat = $Using:VerboseSplat
         $Lac          = $Using:Lac
         $Settings     = $Using:Settings
@@ -816,7 +841,7 @@ Process
            $JoinedDomain.Add($Result.Joined, $true)
         }
 
-        if ($Result.Renamed)
+        if ($Result.Joined -or $Result.Renamed)
         {
            $StartedVMs.Add($Result.Renamed, $true)
         }
@@ -860,13 +885,13 @@ Process
                 {
                     $Result.BuildNotFound.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-                        # Get variables
+                        # Set variables
                         $Lac             = $Using:Lac
                         $VerboseSplat    = $Using:VerboseSplat
                         $TimeWaited      = $Using:TimeWaited
                         $TimeWaitedSplat = $Using:TimeWaitedSplat
 
-                        # Get functions
+                        # Set functions
                         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
                         ${function:Wait-For}        = $Using:WaitFor
 
@@ -891,8 +916,10 @@ Process
         }
     }
 
+    # Check if restricting domain
     if ($DcUpdateResult.RestrictDomain)
     {
+        # Add all domainjoined computers
         $Settings.VMs.Values | Where-Object { $_.Domain -and -not $DcUpdateResult.ComputersAddedToGroup.ContainsKey($_.Name) } | ForEach-Object { $DcUpdateResult.ComputersAddedToGroup.Add($_.Name, $true) }
     }
 
@@ -904,11 +931,11 @@ Process
     {
         $DcUpdateResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
 
-            # Get variables
+            # Set variables
             $VerboseSplat = $Using:VerboseSplat
             $StartedVMs   = $Using:StartedVMs
 
-            # Get functions
+            # Set functions
             ${function:Check-Heartbeat} = $Using:CheckHeartbeat
 
             if (Check-Heartbeat -VMName $VM)
@@ -1011,12 +1038,12 @@ Process
     $Settings.VMs.Values | Where-Object { $_.Name -in $NewVMs.Keys -and $_.Domain }
                          | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
-        # Get variables
+        # Set variables
         $VerboseSplat    = $Using:VerboseSplat
         $TimeWaited      = $Using:TimeWaited
         $TimeWaitedSplat = $Using:TimeWaitedSplat
 
-        # Get functions
+        # Set functions
         ${function:Check-Heartbeat} = $Using:CheckHeartbeat
         ${function:Wait-For}        = $Using:WaitFor
 
@@ -1082,8 +1109,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpMNyl4W3NgiOlRYQ6EIGv2f/
-# 1/ygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMUoqr2r7zLvz2aubWffMXdSL
+# t3KgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1214,34 +1241,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSmPJYL
-# OzPuUCkLLDDeEoJUd8zFQjANBgkqhkiG9w0BAQEFAASCAgBA2cBN8Hypcb68xnKN
-# zhaO8LyviJHjPYoZ3b4a95zMXgZb3orjYgkw5KBwFtNUlCX6WmeBjoGYxZ1Lh2bR
-# 5JaOJgmu6aZYIKW5HnXIZZd8i840/fpQNow8DR8akkIwyyrh/MgiixbZ1XnbWZKJ
-# uLQav+QOqS3GnS9M63JbZ125b2q7y7v3pl2bBO3bHSHUAKJGj8Pkoo4ab6Kn7xcR
-# ps8M+ZSNUVEl7Nx3FQNo8pI9eQuozQBXMaBLr/qlgClbtT5NUO+iCQ02wc9QPGAv
-# F+akDuInw7l5yg6RFlb3m4xp8rhf3J61hYAG5J5FYYYdpGvYmXLV4TvZ+BhaYwwM
-# Tlc2XflSfRIeUtyh0e+gzX+ZYMCl6B1ewFzfAfeWaFmcAhVsKMnvHDQeBrMrOeRm
-# k7u1ZaZGf0Ipq4lfcBuUTl9UbpthKDSoIgnpMT1K1CFztvPQ1eosenrHiAr5Djdn
-# LVcxh7PDgQkMQxC9P2ORx3jkYmHUe0vjm1v1GcUWHIj/GKXwZGck6VfZW8cQ5kEH
-# DdEAtWneSLC9jDeanE1n7ZunBXWCW3BFsLueh08ncvaUr5PDOQ/kmB83tqMAopCZ
-# UwRyHEG5vF5h3Wu8HpvCS1pHslm83L8+i4uL+lpFBF/9a+jcuxtrSvWtF7LUHy6G
-# zStFgeyxsm0llvk+fvMqYVM786GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8GtlI
+# NvDKAc/c5yEPutJIZ+wlZDANBgkqhkiG9w0BAQEFAASCAgAk4Ut7pSVi7J4jSl5i
+# /PYemmFLodYFkhk77HAMeABGpa9cdMoAzGjrbEDpLq8zhfQPwipcbCvTTDDP4CCv
+# etEgfNcvXgyawj2yZ07CBikhErgtoCfmzW8NA4PDwwiM8ih71muMfZGWMfRqStYx
+# P5XD4Ceol27tyji4eq88aRQBmxmlV6xyP6ooKyHObLinBhxcFh9yiRcXeXF1tVFi
+# 7qoHohSdJJOX6uZtM8XDZePRR3KuStgIACcP4oZs0K5Qpp7DURLqHVJKrJTmk18Y
+# AXQwr97t7iXrVV5PnnC92KHv2kj86jMDjp9To5xAkNpEr1ol0maNYj/65R6AChQG
+# 0/QcNyLPbTuQYuMZRUincWD0udZlVIs3El3C9hRgCYviqf5Bfr+XIGddeAATVY/O
+# vGxtvG8slGdrIFjaeQS1q42EDgZj29mJWS5tMav6Xzaq4bKtwSh4M7X4cG7l3N5p
+# xM9oiO4a80FMzfMTIuOJKa8lyapg6+ROMmLZWUc7uxImgaDg8P+ywNfSOrLS4URq
+# yeMtK4lORHXywfmPpQI3cYe7DJNfSiiQm/bEqtbDxJW03RiokThQvvFqHDkZtZQn
+# 0iWUVtCcQc0DgrXidwemCI19mUWJ4XClQ5tnpON+R/i8PSEgnBy0bKWD7Rnmdu+Y
+# ghTz5Gu81TobOGIC7+SBMyAAMaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjUyMzAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCCYCW1/iwLipdwm/NHexF9zKCyN4x5lSYxPoVvU
-# avqrBDANBgkqhkiG9w0BAQEFAASCAgAtCZ8M0BmH/vCyR7h+p0V0O/19WQXlc41M
-# BCxReBpeb4ldNqUrfeJ2msEFLWh53FpiYamqiiCz7N+UgyunHCSc9LjKy49epKoR
-# TXqOr8ph8pTV6BXALHUIgXfUKRGznDoDpYnkYVpqRLvBVajuNxwwSbZS7zNyyRkG
-# MAaTvyJsT7zeSXtLLrXtrmWHUzdVxMLjUVVhxkAhfXZGyEeUTW2FnOW97VL0qMvf
-# JgsyKmHMFqUHPZ83bsJgEfUKA9+pSrKRVnUuqr/HoHOu1XMWjk3MHX/2Bqo13MP7
-# F6oSne0nBGKIfGCICRCtoXuH4LMMpPsl5hAsDPTB8tfuMxYarTEpIv3TTt38dnFK
-# M6rkmjIMTNdKnXLFJ5d7tyZDTyJgPH7N4hxxdE2iHvsPLGxPmygz4XHwNw/MPQnW
-# BLTyRzFpBhZyc+38KZxMSxIdDYbGD0Xd7vNgbFHUmZOzlm8IH2FqXVfRTq3byNH8
-# rnh4XEy9PKhQBp++S98RFLJQ5kAGsZIyWpk6c7vhT/40YRx582HatSiDgBevhAV1
-# FvlwfoPkptLzMK+2V0UIt0meRSahZvJ/y/pP+hnhb7lThdlTwCh81+1SlDQM572x
-# BF5SXTBbBsgQGVWp2EeiePSVKyUGBjWso5w8lm8DN+rUXwAZLb8QIk544FcVCvd2
-# s6C4/lWplA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjYxMTAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCCgX0F5kvoo7wyngR2sdaw9tFVy8sPauybGDJlk
+# wU3fCjANBgkqhkiG9w0BAQEFAASCAgCNTb9L+xBH1MpqZ0HaAt0H7eXxpTnwC9Ay
+# OfcEfzcMjz9F4RhaBKyn3AC6p3fWarAFLECtTG+3ScaZvcjdwzWpALw91rKHerF8
+# 9XqZwjebaSgmOLYBw9VEE0HE+iWyba2US+jEs5Xs4n7EPx12QDy6SulxJPwOm3Pz
+# PYCQV8OXCzgVwHqwk3pIVSwReKVCFeGr7e0Nv1LkQ4Jc0CjZU5d8sAwZQj/s2n9Z
+# +Cscvotmlzvh27XklsE6Ze4iQjh7lZ2dBGfB7//dwohnXIyRC2o+MyOL6ah5cC0+
+# 0rEr92VxctfgYm80nlKoz+kJaHpHg3gg8VFl8qZ6HaeTdsH1ZLEwFdaaxaFwhYU/
+# rVDJcUTY+CjbxAGnYEAfta/PSAYcuce0k360vAx9iscTX/xaJUoTJ2ejAgR2fzI2
+# uOG6Ae3AVSnc4VoCwJBBLv32UFO+FsL3GXwQFhn2chAdhWByiMtsEw21i5LEL7lJ
+# NE3tcEaiYREhEan252cpV9ytDA7CAoJy1jOhHJuQQJoN/dr8f6QuEuEcOMqewvQ4
+# 8u6Zp/Jdi2tIK4j6IiD4K8bF7KMHO/pDzEF4FequRg6+jwfVHEE5Cf04M9Ow+fV/
+# o4cya/I06NZnhe96z0WYf0Xp1D2F1rgbtPirW2lGm4CBW2OaZrK3Lz8pUP/KrbN9
+# KU2UG9vLPw==
 # SIG # End signature block
