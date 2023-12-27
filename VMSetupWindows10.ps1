@@ -211,7 +211,7 @@ Begin
         {
             if (Test-Path -Path $Folder.Value)
             {
-                Set-Registry -Settings $ShellFolders
+                Set-Registry -Settings $ShellFolders > $null
             }
             else
             {
@@ -351,7 +351,7 @@ Begin
         # Settings
         ###########
 
-        Set-Registry -Settings @(
+        $Result = Set-Registry -Settings @(
 
             # Set no sound scheme
             @{ Name = '(Default)';              Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
@@ -424,18 +424,60 @@ Begin
             @{ Name = 'ColorizationAfterglow';  Value = 0xc44c4a48;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' }
         )
 
-        #########
-        # Tweaks
-        #########
+        if ($Result)
+        {
+            # Stop explorer
+            Stop-Process -Name "Explorer" -Force -ErrorAction SilentlyContinue
+        }
+
+        ###########
+        # Computer
+        # Settings
+        ###########
+
 
         if ($Admin)
         {
+            $InterfaceGuid = Get-NetRoute -AddressFamily IPv4 | Where-Object { $_.NextHop -ne '0.0.0.0' } | Get-NetAdapter | Select-Object -ExpandProperty InterfaceGuid
+
             Set-Registry -Settings @(
 
                 # Disable metadata signing
                 @{ Name = 'PreventDeviceMetadataFromNetwork';  Value = '1';  PropertyType = 'DWord';  Path = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata' }
-            )
+
+            ) > $null
         }
+
+        # ████████╗ █████╗ ███████╗██╗  ██╗███████╗
+        # ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝
+        #    ██║   ███████║███████╗█████╔╝ ███████╗
+        #    ██║   ██╔══██║╚════██║██╔═██╗ ╚════██║
+        #    ██║   ██║  ██║███████║██║  ██╗███████║
+        #    ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝
+
+        $Tasks =
+        @(
+            @{ Name = 'Automatic-Device-Join';  Admin = $true; }
+        )
+
+        foreach ($Task in $Tasks)
+        {
+            $ScheduledTask = Get-ScheduledTask -TaskName $Task.Name
+
+            if (-not $Task.Admin -or $Admin -and
+                ($ScheduledTask.State -ne 'Disabled') -and
+                (ShouldProcess @WhatIfSplat -Message "Disabling Scheduled Task `"$($Task.Name)`"" @VerboseSplat))
+            {
+                $ScheduledTask | Disable-ScheduledTask > $null
+            }
+        }
+
+        # ███╗   ███╗██╗███████╗ ██████╗
+        # ████╗ ████║██║██╔════╝██╔════╝
+        # ██╔████╔██║██║███████╗██║
+        # ██║╚██╔╝██║██║╚════██║██║
+        # ██║ ╚═╝ ██║██║███████║╚██████╗
+        # ╚═╝     ╚═╝╚═╝╚══════╝ ╚═════╝
 
         <#
         # Clear recent
@@ -445,9 +487,6 @@ Begin
             Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Force -Recurse
         }
         #>
-
-        # Stop explorer
-        Stop-Process -Name "Explorer" -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -526,8 +565,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU55yePQ9VaTx/s5YbloQRHzdE
-# EBqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURtwZ8ADXehZn9zS3IoI+NGBL
+# qvegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -658,34 +697,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSfWZbh
-# nAEdO76iYWYrW/Xmskk6lTANBgkqhkiG9w0BAQEFAASCAgBVqhwVd4VPsmHBGQdi
-# vPwE8i4w6Hu5zZPaVbZ4DZM/jrPWvpAqqBQ1he063gYv5n35HNSnt7D+4H9ZJMu1
-# iBgoBcBddJ3UZM9SYg31ydbbLU+6lXTGtIDwuVO0aMut6kK4WkuvjU5RP+HngM3a
-# rlDLvTNes3qwhok0xKvVNESt9cmxZAJ4+WP7HS0e+rs9+iZk8UBusvPdgPUhPgu/
-# Z6ylqs1Zdrmb2SpnOgWNomiQCnmT/+xS49IZGbCi2z+WubNKZlENW2iW4wjOrH8Z
-# SEUhT4AaXsBRm6R499rNtW+1vAvGc0ImkAVYA9fb7NMwNQnvIjQuzcZNs0KWOxvr
-# GFzqnUffNhhxHb5rXEKCaXsqu9PQ4rLhuyryW/UzpG6mpLix3KZ947Uim9EFou+a
-# U2ogHGlcRAv00dDo37ucGG5AeOs0+rbdZccJixZqR3eQQSEoSBnXOQ3BpAOObcO+
-# MytUDX2RCuzipXbZ1baTvcecehkAPirx6NlLNW6j4DiM8NtMpReu/XjoiQ8MWFYp
-# cnzRDYj3Ro8Mg0JHpCglFyTel9HdhxCcxJgX3WI2eoOecEcfMA537EMjVuO6+wZi
-# rjRw1dx4InjeUiCpTfywVRzihJNfQNeATuH6qN/sEcytE7UuROyRnuybluEjHcDk
-# LZX6QdUK+3NxOVg/UmpGwt6NFqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRBBvzi
+# RYDleUh8HmfYm0fsDZlfszANBgkqhkiG9w0BAQEFAASCAgCN4mYhVUQrGFk0fDLe
+# zFuxj+zrKmAvO1OrPuFpD2A2Wda4PTfiKe4sg9tW6I3xo2eoz67xudau96hMuTw6
+# GFtDIY6yHdbR7D1etm3uvHTvVVBiBOmHuKvqh0WRB5Fn0YXYZKeLPKOpiFmaU0Cj
+# yq/0qCMB5H3RDQUwjKwFPvQZU1hDQrE8RUOpeHMbot045voPt8PdButXa1UC5+F+
+# M2MBQZaKYUlQvbFDCV2v3sexIP7adinll8lNrnvRBfHd6d1CS3W539K+lO0hU5F/
+# GU2o2FmWdqVxEOKQrLAdDwgeoDQz5f0BItfwFWkqU9KR/2hzJycDv90mcLpzpVRA
+# jOGi9d0oGs0wLSkb1vfha6DjpO7g8l+oZ0QzO3EogdiPgHgGXpcLTsCgfLW1bjNG
+# JcWeUPfxpq50ZAm0kp9EyjoXWDsCFpaJjqzOIVTnx4kPF9yg7p1Mf3kO/BCDIKu/
+# xbP6J3/FZUGXYr9MCyPnU4q5bfk5vj8BknNsy8x+KxCtq1uE7jdsAVN/+79F4FIA
+# I9xsfTKM2Gm0ImvL2khT9LutVmKMxEBNS9WBYT7dMADIQ2HyiQ8/kLAMXc9vw6rW
+# TNSEyvSdxRGyObHlLQZJOQ2u650pIVzKCLyo2HsT2yFvOXwRjqgAGafDlbTpmrqC
+# zVBqQFBvLAxeX9PFjjXLwREh36GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxNjAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCD/HUBvJaWZQFAE2oiw1eqNLG/3QrZeEIvcrXbQ
-# t0nJdDANBgkqhkiG9w0BAQEFAASCAgCDnuL7LCoX0X1PgNPZ2caNgZsqVaCqBczJ
-# e81U1gpWjE9XsUcHqkCicZx4PXksXZU/bATZ1dY0gzSoumBasbF80QSgN651Tlx2
-# W4FnBPX2CKkjbrC+Z2ezPwUK3EtNK/brCI/LfPCesBHCfkAp/5vDsrT63ULzzucG
-# ZRfUI3FGEwIgMbsJCfEHVeK2Fpox2ZOIQ5PhiXNX/nFvWn7iOhtfWYlKoRVkNH1S
-# cFrdaC7hGgKhTjGFjEUEk4x3dtnF4j8fRHO7d12wbOHgpbHdIErOAjMsQh7nYYYQ
-# 6zNBUSPk1/TJN1iQdWQd6Sv7FjQp3QenyddzjuQnCnEVpXLweS1KHTFikcQy3z47
-# SdiJlhDbH5TqXWG/JY6Rr4MOEUvCpTZjGIwjY9Aovj11u5s7St2PP5l2HYpUNJfl
-# b2KJDkTx/sW9RbMy3Ebkd+LAIHQB0I/1Zp1ulL2frGvYWLbcXy1cUTjKZRqvzJCI
-# G8sD0qn4P9OVFDhTPD69wTI9IerrzvTWP0xs+TydJJRFz8WxvqbK+82V++I6aTJZ
-# +Y21jpWgvvn6ZyJTVql2ncgvW/v+VeRTbmoYhAyPE/lUFTgo+6tgHvfLn6aXcBTq
-# t7+DFcDjxRP3AK53O0HpDwkVZXbkdMqHLwd/eayVxFtSJNWB2JHUQG0vAVmqCpTP
-# Gw3GI4lA2Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxOTAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCBIhgPo8G/JGPYv/sVs4lmlAOsoRwKfAi5cddWM
+# xq2GLzANBgkqhkiG9w0BAQEFAASCAgAC19KKBu4q7K03wr0QeXjHXJW7lef6KyKK
+# u6DGLpi0MCSLv0s4JMPvAexrOpzahtQZ5hJj+F37kdu4xhb7RQ2o4893vIlRtltb
+# d9TJjDuygF2PVp6zts+tsR2EVAxdQDSvrd0Bvnmz4PI6DQiFmKT36bUMAAZR6UOC
+# 0Rwx9RZhdPfdFdfZ1oIvTGOJqzY4qVLMA18fmbj1dToNY0Mb+27aFhwK83ORAaQT
+# HU7AaciBVpDSl7kwHendS5CpO/FePszIGg917nVFzey8yZpJ0fMtewwgUE1HJ9St
+# loT7cqxHP9M1r6L2CxfkIb3E55VWZjN0mfjdkmHgCfSiLeVx5rVe6pwXDM5V70Gu
+# xZCETa9I3ZGG1mIyQefHjjz3kdL/SH0IpvTWuXwKFEpMDJ9DrDNaYgS0Vufgby+X
+# xXY6/OfxXtBCB+o+S9B7wzQn6m2P/ILeD5dE6UgjFrNRd1JUMtlAcbW/uKMY5IQ8
+# y68Ln+grbcgNSWwQPm7XeYQEGSPJoHpyHs5F+arV5hChU3XKKDqI8537OweQJ5K+
+# kTnnjcTBC7+S9DHjoC8S9/OzewbCjMTSBhtyHnO0daa9BuTJHL2FqWGLjdlWdOFV
+# O0P1/wwqFK6hicLzWgmZ6xpBT11Two61PTdGU+B6EFG1lvTx+O2dpDNwi6PBWein
+# 3pqu1Z2Jqg==
 # SIG # End signature block
