@@ -516,9 +516,10 @@ Process
     # Install VMs
     ##############
 
-    $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
         # Set variables
+        $VM           = $_
         $OsdPath      = $Using:OsdPath
         $HvDrive      = $Using:HvDrive
         $VerboseSplat = $Using:VerboseSplat
@@ -850,22 +851,28 @@ Process
                                    -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)"
     }
 
-    ##############
+    #################
     # Renew lease
     # Join domain
-    # Reboot
-    ##############
+    # Reboot -> Wait
+    #################
 
     $Global:JoinedDomain = @{}
 
-    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+    $NewVMs.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
         # Set variables
-        $VerboseSplat = $Using:VerboseSplat
-        $Lac          = $Using:Lac
-        $Settings     = $Using:Settings
-        $JoinedDomain = $Using:JoinedDomain
-        $StartedVMs   = $Using:StartedVMs
+        $VM              = $_
+        $Lac             = $Using:Lac
+        $VerboseSplat    = $Using:VerboseSplat
+        $Settings        = $Using:Settings
+        $JoinedDomain    = $Using:JoinedDomain
+        $TimeWaited      = $Using:TimeWaited
+        $TimeWaitedSplat = $Using:TimeWaitedSplat
+
+        # Set functions
+        ${function:Check-Heartbeat} = $Using:CheckHeartbeat
+        ${function:Wait-For}        = $Using:WaitFor
 
         Write-Verbose -Message "Renew IP-address $VM..." @VerboseSplat
         Invoke-Command -VMName $VM @Lac -ScriptBlock {
@@ -882,19 +889,10 @@ Process
 
         $Result = .\VMRename.ps1 -VMName $VM @Lac @JoinDomainSplat @VerboseSplat -Restart
 
-        if ($Result.Joined)
+        if ($Result.Joined -and
+           (Wait-For -VMName $VM @Lac @VerboseSplat @TimeWaitedSplat -Force))
         {
            $JoinedDomain.Add($Result.Joined, $true)
-
-            if (-not $StartedVMs.ContainsKey($Result.Joined))
-            {
-                $StartedVMs.Add($Result.Joined, $true)
-            }
-        }
-
-        if ($Result.Renamed -and -not $StartedVMs.ContainsKey($Result.Joined))
-        {
-            $StartedVMs.Add($Result.Renamed, $true)
         }
     }
 
@@ -934,9 +932,10 @@ Process
             {
                 'BuildNotFound'
                 {
-                    $Result.BuildNotFound.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+                    $Result.BuildNotFound.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
                         # Set variables
+                        $VM              = $_
                         $Lac             = $Using:Lac
                         $VerboseSplat    = $Using:VerboseSplat
                         $TimeWaited      = $Using:TimeWaited
@@ -980,9 +979,10 @@ Process
 
     if ($DcUpdateResult.ComputersAddedToGroup)
     {
-        $DcUpdateResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel { $VM = $_
+        $DcUpdateResult.ComputersAddedToGroup.Keys | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
             # Set variables
+            $VM           = $_
             $VerboseSplat = $Using:VerboseSplat
             $StartedVMs   = $Using:StartedVMs
 
@@ -1160,8 +1160,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmkFvYFV6bDGozLu0+AV9Jv8e
-# DMKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUePlMlFKzvT1Y+uV67Ktlxj09
+# FMqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1292,34 +1292,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTEN9OB
-# FWIfMwahWYauz+gM+kBRpDANBgkqhkiG9w0BAQEFAASCAgBs7dT35Vj/0Jzz+urE
-# Cxlp1ImjRXoRkfWs2GdtGJdM89E00XuOIzqjZip0yzXE0dPciwARmycWEOHLxLeV
-# U5p2LhNMeK3hZqdfsnLk39Ie8jodJp8TKulspgHrIRb35GF8K2rtIVvvpYp5dA8w
-# RH6AwqNqb0u57TnCpxH38AOt94bTlIRlyqosBcxKH0cZ6EoL07hy2AEFUZNhEF5i
-# C1qBEE3w+QuthC+n7t+OiDKmsIMcRKVqcjuFzu6rJJ8n7D4x3JrZ1wGnsJBe9mg5
-# DUAyRF+zyRXL6L+XO+JVmajX/oEAYC31zKoh0UIXgZDTRL0qW4RSViRysi77ebrG
-# dCQVaMuQxgSYZzMOQs0HbtUW23t9MZX6AVNrlR7kdj+VRHfyoiZNl5Yt89eXbOgA
-# 04S8FBsH8RAbVVyqMuML9vW6i5u4ja8avMF0rinjU2PiK3APEScFsisicEtSFBlM
-# 8Cps+0PN0+t0n9nqZdeYMzs2qe3zk35uYTZZ5CDgsMEH6EOOS+V2IEISeFbUXH/Z
-# aAuzOEjGvAMaOqYZ1G6UW79cH5l8TtLqFa8wBbz354eHnMlDEnzxxbwamlOz4g3U
-# quL9g9PPHezYXAjLPkmEZTGyq+Gl29DPE4IXY/wBVYk+Sejsf0qHEakPQsZnbKK5
-# TNP33zYYT9ppgVjwotbjnC2VGaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSL5D3k
+# UX5WWFsG7+Ts007Un+FuuzANBgkqhkiG9w0BAQEFAASCAgCTKzNT55/P0HXP68qs
+# 6TYIIb0VgK462cZKkFzfggTuneMKUn3sDpI2HQbFI5OH3uZ6qgI6OArsSpgpIcdO
+# 3Toczjr549rHGDY+V3ymBy5HtQl7kaOqFpRqDbo/2yawSxehCgrRfOaQ7M5Yav+i
+# Se3WECUsuFyslpLqfZ3ynI6HuNyMsd3lEK/a0n2fmK9GS0l87srWjclTIcMyEXMQ
+# +4aJtyB+LMAUId80ToG51gmuDxGlOR/IV2iEynU6MEMJzE8O1YxiGTCdbgWj+37V
+# 8b5TVqXjB0naKhuiQsmph/kQxO9HWbSOsGnLtFP73+f/iedj3TUtAJ467PkynlJQ
+# DVgbo0/qfVYf/ntvDg4rAWTE8NNp4q8tSRPyrjvO5XYxMJZLPltmvueNeyTbwcUL
+# e4djrs8ZgAB8TNcOl7a2nc9rYE41t2etfM1YYiZj/K2mUqM1JGUeWhLfCd40Tpj9
+# F5cToqoo8n++E7YGEW/WWxYW/Oa9jUrwosc3CU9EbZpdbSnUzg9IQf+rxEMVEMku
+# yqEUwN7wNMxySOYQjdDaHRiMDH6NN2ycmH0AzS2MmkKPibVQF0kZ3RI7fE0RzIlz
+# 4BNfAEmFaUxXb5nod6MW6Nh8bt1n35JlCk3sV/jwkRaZSnUROV4Gs9l03V7oz5oW
+# yf9SMu6WuK3PPj8gdQYtIjXGSKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxMDU5
-# NTlaMC8GCSqGSIb3DQEJBDEiBCBwdCbL22Ww5QXHyTAZYjdAIBn3mhjLDiE7DL5R
-# kKfjEjANBgkqhkiG9w0BAQEFAASCAgBvv53fXtCOhka7VhAGBZm9Sy7sVhAn2KZ9
-# 0r79y6YZRyWTmYfgf6vTwdi+SymzgDdZSiaDzOUKJryjOJevgbP3qao0dS6DL55l
-# eyIg3cfMFSpKf00/tZfydjA0X8n/DiF45E8yy92SOf526mOXxrR+8qJskPOOz9/f
-# TQlFUsI5gIFBXih68U0WDS95IqrFqu/ssOsMOgO9K1/tYCuUG4ZXs4WR0wLjzn/U
-# jbHQQTnb3x6zEZqEHhRU8p8WkGQLe1m8zYxBfsTRXMeqMdYXvg0pAYOma5+7OjC6
-# M3NvPdyRFU3UJuQDyM5D/kN6Blk8w0Hyg4NlabqgX6TDjf0L6g+xBLMoqPqntJVU
-# bVn8AdEN9FruhCNFMyMGhd4XetN/P7L8jhnI8qcYM6LHTVcv5XZinSRq+iI7+qlZ
-# KEQ8kF4VQEH6BGQMb1F4bBdBE0YFVajr8hSbxP4tzt2aJCvV1PxwJr636e/+9K15
-# Xan+MqN9Pyg5CM5w0eNo5BiIVw3s2DFaXvsQ4YYS3QPeJAny6tXZhYr+9phYG9B4
-# 9DiLiPBsufS8FcLwxGsoQC+LELVa4bXOYvSALxCPq5aUfJSIlb3vicKMdWi4XywF
-# K5oIPRhGId1tc+xXAYqzZU8F3Pgt2Wz7Vv1osPXbSaopxHpVyEU5bJaFfME5Aets
-# XKMcQNyDFw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxMTU5
+# NTlaMC8GCSqGSIb3DQEJBDEiBCAOXPKaUXuGOhxo5zzUZHNRjUtb6oc9NpOuSaFx
+# ISJ/UTANBgkqhkiG9w0BAQEFAASCAgAf7nS1rFzhNm9pyBoTEnvXhLBkzUF39EEP
+# OymJW/ph0DdzbiqXHGyi1FL9J7qpGyjY8glZVq3sdQoX5IyUGcnkCuu1C8PPb8K1
+# E0nY/pGqGm/AcpLrhW+rIQPtXVGfdM3WAe+y11bxAfmH29Sd4/WS5rYQMl1BwnfN
+# ZGA6UYw7nirTQRz/pjGjv3AJdQauksTGy7LaWFoKs3TVtfTdKDlmVJ8s/kjo6lEw
+# AhziKBmcI5uGaxYLqVfwxlkDzwzyoTKkkiBpW5wUPd0G/Zq3pnbPFDpswGaScuUA
+# fdSscK+YO489Ny/U6v8vGuW1kgog9ny99s2WAKPXH7LOn+PNDrGrFlSJfiYbUin2
+# GT2t/uqkTf5ZwjTBKFjWN69obhsESly9i5zsf47yvEprVo8QygNI76Zp9XpdUiFD
+# 5yOyX4OqX/hg0KBVAnYBADZJqkqeDoNzzvaU0gmg0jObiw+WL1wdOR04801I1/js
+# IuM5ggXE4vv9Lf0WvtxKsSYjeuoFHbfwSmfmgqK8wnIGzdUY5DJOqZbPudQGp9RQ
+# vrVX9TQ8h5bgaxUzxee56MIWYu/D4l+1TUZTCml9w4deVziHksVT7hxS9IUxXLcx
+# vgpgwMn7xfyTcT+3Qfuk3Zk8p6b8L2DidPSY663xwnhn+x8dWwQKcfmXcnRHr2xY
+# UNFaixgi8w==
 # SIG # End signature block
