@@ -337,14 +337,19 @@ Begin
             Set-TimeZone -Name "W. Europe Standard Time"
         }
 
-        # ███████╗██╗  ██╗██████╗ ██╗      ██████╗ ██████╗ ███████╗██████╗
-        # ██╔════╝╚██╗██╔╝██╔══██╗██║     ██╔═══██╗██╔══██╗██╔════╝██╔══██╗
-        # █████╗   ╚███╔╝ ██████╔╝██║     ██║   ██║██████╔╝█████╗  ██████╔╝
-        # ██╔══╝   ██╔██╗ ██╔═══╝ ██║     ██║   ██║██╔══██╗██╔══╝  ██╔══██╗
-        # ███████╗██╔╝ ██╗██║     ███████╗╚██████╔╝██║  ██║███████╗██║  ██║
-        # ╚══════╝╚═╝  ╚═╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+        # ██████╗ ███████╗ ██████╗ ██╗███████╗████████╗██████╗ ██╗   ██╗
+        # ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
+        # ██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   ██████╔╝ ╚████╔╝
+        # ██╔══██╗██╔══╝  ██║   ██║██║╚════██║   ██║   ██╔══██╗  ╚██╔╝
+        # ██║  ██║███████╗╚██████╔╝██║███████║   ██║   ██║  ██║   ██║
+        # ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝
 
         $AccentPalette = [byte[]](0x9b,0x9a,0x99,0x00,0x84,0x83,0x81,0x00,0x6d,0x6b,0x6a,0x00,0x4c,0x4a,0x48,0x00,0x36,0x35,0x33,0x00,0x26,0x25,0x24,0x00,0x19,0x19,0x19,0x00,0x10,0x7c,0x10,0x00)
+
+        ###########
+        # Display
+        # Settings
+        ###########
 
         Set-Registry -Settings @(
 
@@ -419,12 +424,27 @@ Begin
             @{ Name = 'ColorizationAfterglow';  Value = 0xc44c4a48;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' }
         )
 
+        #########
+        # Tweaks
+        #########
+
+        if ($Admin)
+        {
+            Set-Registry -Settings @(
+
+                # Disable metadata signing
+                @{ Name = 'PreventDeviceMetadataFromNetwork';  Value = '1';  PropertyType = 'DWord';  Path = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata' }
+            )
+        }
+
+        <#
         # Clear recent
         if ((Get-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*") -and
             (ShouldProcess @WhatIfSplat -Message "Clearing recent." @VerboseSplat))
         {
             Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Recent\*" -Force -Recurse
         }
+        #>
 
         # Stop explorer
         Stop-Process -Name "Explorer" -Force -ErrorAction SilentlyContinue
@@ -506,8 +526,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEIvCnKzZzOZoE2/BUgikWcX5
-# tkOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU55yePQ9VaTx/s5YbloQRHzdE
+# EBqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -638,34 +658,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSd3jPs
-# Lv0YU+dnrrRqGenyfDcqcTANBgkqhkiG9w0BAQEFAASCAgCRXTKqBO6dd2eI4B2e
-# cguidXi6iXWbljjLSgLBEaGYPTUz9lJwUyOFwAGspBw72pMp6PrkYXviDO9thQkT
-# W5zCiwJ2s+ArCZNB2dujEoM3T/d/l7xE20BU4odq+Gf7QDIpvX1p3WOQmneNgSD1
-# wNufn6VwPhrRKoSGzq1dd5CP0ZnUVuL5mZMftatQcl10XDjvQqXWPFU3kxrKJfeN
-# /NU7Sy/RnUUGVFDvPitSeLqshIBvLXLc5jscAEZimp3+9Ovfj+VIwaUi4E3Dmy6t
-# BnO/hV1kInw4OMSiGaM8pPcHx4v++rT2bQpliTP4FQmOXlkWk7DUEzRG72XrE75r
-# +HAqM8tcp5h0nnbsb8Cn49LhR1dFsSlLFSn3HLFAnHHakJ+0mIIrZdyZdPfYCge/
-# afs4EAwGgiUxVE8jN0MySpDXssmKnf4iVNKL+95TJBqh8RYitRMWApoZUBdCziGf
-# zPWouXZQyqfFV5EaF2f3bWUen5E1UImTxqIQPTTsWuhNgXgIm5b0Km6UdGBV5T9x
-# s780zDAGH/TQcgHXFjUzQzyBCLT6KlhpudXga/vpNF5cKNyXEuj5c/7FIR9VQHwe
-# gjIe4NA+GkfWA9+mDDs6KI0kIyQughbzOjHIb1GeFyJrs3iZBAWmdIVgVg6JrWj+
-# fVuatCtiBj7bfjtZaowizi90IqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSfWZbh
+# nAEdO76iYWYrW/Xmskk6lTANBgkqhkiG9w0BAQEFAASCAgBVqhwVd4VPsmHBGQdi
+# vPwE8i4w6Hu5zZPaVbZ4DZM/jrPWvpAqqBQ1he063gYv5n35HNSnt7D+4H9ZJMu1
+# iBgoBcBddJ3UZM9SYg31ydbbLU+6lXTGtIDwuVO0aMut6kK4WkuvjU5RP+HngM3a
+# rlDLvTNes3qwhok0xKvVNESt9cmxZAJ4+WP7HS0e+rs9+iZk8UBusvPdgPUhPgu/
+# Z6ylqs1Zdrmb2SpnOgWNomiQCnmT/+xS49IZGbCi2z+WubNKZlENW2iW4wjOrH8Z
+# SEUhT4AaXsBRm6R499rNtW+1vAvGc0ImkAVYA9fb7NMwNQnvIjQuzcZNs0KWOxvr
+# GFzqnUffNhhxHb5rXEKCaXsqu9PQ4rLhuyryW/UzpG6mpLix3KZ947Uim9EFou+a
+# U2ogHGlcRAv00dDo37ucGG5AeOs0+rbdZccJixZqR3eQQSEoSBnXOQ3BpAOObcO+
+# MytUDX2RCuzipXbZ1baTvcecehkAPirx6NlLNW6j4DiM8NtMpReu/XjoiQ8MWFYp
+# cnzRDYj3Ro8Mg0JHpCglFyTel9HdhxCcxJgX3WI2eoOecEcfMA537EMjVuO6+wZi
+# rjRw1dx4InjeUiCpTfywVRzihJNfQNeATuH6qN/sEcytE7UuROyRnuybluEjHcDk
+# LZX6QdUK+3NxOVg/UmpGwt6NFqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjIxMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCC87HFqZBRoarGP+YUpEp3ISCLLFdNB1qyZKMVQ
-# dnu6dDANBgkqhkiG9w0BAQEFAASCAgAiulqQhey0GCBt4F6rbSuvDjMwGdt5AZsA
-# AC7H5zPDblxXu8No61lSGYRzlBD5RyKoHK7f9hZ6MawN2esUt/zTvbFf12EJElFM
-# 17G6G+1ys+dO2UV4uImZELiOyCL0lGjr8R+4hV9B3EH5flEPwjU0/Wg8OMN0qOZL
-# 7oqyfUOyipB9LeZrB2lpO4zAsQi8WpwqmMTStaAIEB8w3sl/pKyKvrSEDXMPAJO/
-# U0hojyRb84BmqHGRrxkjT6ivSTzwrUMzr39BjCAoXn980q7DIfzHkQ03qm/PkmzM
-# gNr3Bw6n9wF1kBkQf36dXODPy+nP92XnEnfXzpJ9dQtiOk6THlU+ijNt4FYuaVhj
-# TsQG9jX34T/eBLztuot/qBfk0fpTao42Ykvp13zctFzh6cvL0yhibItUyaw1ibW8
-# FDjIgD0MSwZWQLVyvJ1sZJacmL3C4noBAQPP8gZC8owVVrkGk3F795O5y26cKUFm
-# jkDcWpvs1pP6ZsDRZh2bNeqjdDOWjj0yLkbmI+flX0Gt9jskXfdfhxqgXkX02Quz
-# /ah3smcjmVFcavIqdRFDh38JEmnvvSJdAw/D32GkP17tEnch8Hc356TkV/mREeKN
-# CJssr11dPkuV2Ddr6yTwd7t2/QRwSh3G9oZ2AJPWJqSrg3jqihgyDb0pm+sD6s2Y
-# AoyyqcCaug==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxNjAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCD/HUBvJaWZQFAE2oiw1eqNLG/3QrZeEIvcrXbQ
+# t0nJdDANBgkqhkiG9w0BAQEFAASCAgCDnuL7LCoX0X1PgNPZ2caNgZsqVaCqBczJ
+# e81U1gpWjE9XsUcHqkCicZx4PXksXZU/bATZ1dY0gzSoumBasbF80QSgN651Tlx2
+# W4FnBPX2CKkjbrC+Z2ezPwUK3EtNK/brCI/LfPCesBHCfkAp/5vDsrT63ULzzucG
+# ZRfUI3FGEwIgMbsJCfEHVeK2Fpox2ZOIQ5PhiXNX/nFvWn7iOhtfWYlKoRVkNH1S
+# cFrdaC7hGgKhTjGFjEUEk4x3dtnF4j8fRHO7d12wbOHgpbHdIErOAjMsQh7nYYYQ
+# 6zNBUSPk1/TJN1iQdWQd6Sv7FjQp3QenyddzjuQnCnEVpXLweS1KHTFikcQy3z47
+# SdiJlhDbH5TqXWG/JY6Rr4MOEUvCpTZjGIwjY9Aovj11u5s7St2PP5l2HYpUNJfl
+# b2KJDkTx/sW9RbMy3Ebkd+LAIHQB0I/1Zp1ulL2frGvYWLbcXy1cUTjKZRqvzJCI
+# G8sD0qn4P9OVFDhTPD69wTI9IerrzvTWP0xs+TydJJRFz8WxvqbK+82V++I6aTJZ
+# +Y21jpWgvvn6ZyJTVql2ncgvW/v+VeRTbmoYhAyPE/lUFTgo+6tgHvfLn6aXcBTq
+# t7+DFcDjxRP3AK53O0HpDwkVZXbkdMqHLwd/eayVxFtSJNWB2JHUQG0vAVmqCpTP
+# Gw3GI4lA2Q==
 # SIG # End signature block

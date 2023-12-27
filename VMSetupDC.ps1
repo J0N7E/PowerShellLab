@@ -241,7 +241,7 @@ Begin
         $BuildNotFound = @{}
         $UpdatedObjects = @{}
 
-        # Get domain distinguished name
+        # Set domain distinguished name
         $BaseDN = Get-BaseDn -DomainName $DomainName
 
         # Set friendly netbios name
@@ -2440,7 +2440,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict Remote Desktop";               Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
         )
@@ -2739,7 +2739,7 @@ Begin
                 $UserPolicy +=
                 @(
                     @{ Name = "$DomainPrefix - User - Disable WPAD";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                    @{ Name = "$DomainPrefix - User - Disable WSH";   Enabled = 'Yes';  Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - User - Disable WSH";   Enabled = 'No';   Enforced = 'Yes';  }
                 )
 
                 $UserPolicy += $UserWorkstationBaseline
@@ -3583,8 +3583,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY0sFb92triQDkrjWi3HALUS7
-# R4CgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcONXmNlNWaz7oUz67CNBbWel
+# b/egghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3715,34 +3715,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQeaKs+
-# E2R2STDMyJAKQyVcGoBn6jANBgkqhkiG9w0BAQEFAASCAgCEh21K1i+khQRn+CDO
-# aVnMbeCwwn0DFHCWJe2NkU3zv9aJHby6yBmipVwTMbsd1Fyd9RJN/ew67dlLROms
-# 6qZiN9XlF89JZSxwZlGlGi+UspQtFVjPL6fybxQMqF6cjfP2Zwaq9ZMHVRAyM+l9
-# JUAZwhIwv3WcLRaFMHDqn2pJNkWgsrD07SVY9HtMkmZpI8V2E64wAx6JUx4wQuLR
-# cTXlm0B18MTuD1JjnuDjUUWTZwJsD4kc3H34tioqWsHQ/c0xzCFYmeNuBHUo7uLD
-# mr6ykXGbzNiVts6x1Vb7Jwup1LFbjHBbeV/oGUYNIXNXKjFv3g1F+QzhBeNzcOPT
-# nVs0lwiW5mlFGmkmx1X9bIcFnmuJqXHOpoe7GR5JcTi9z7U3+QiKJNgPk7NqVQiz
-# fIaSHScgdFCgdUhGgOXVI4it/ADQlifhD8zSAChF4XDh2COIK6xvgvZ6WThPTfaf
-# FjXcvlr5lAzEFZROrXEgF9vDLaDsfVt2o7eNoI+Sq4fetkLs2lc3m2CQkNPRD63l
-# FgylyxInTRzaIIDRGYyT4hSqjsZ5FcqWvgBK5iZ5mkoFCDBNgDhaiAj8XnuNZFUr
-# ziZzhKfi/7R4uCp4LXYaXyG0rNcN2nTiNURbQkHs6mytvlNQ1Bh4taw3zMMNDk8d
-# NdlrRN8yOkQQmjUdW80t+XpV1qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSfIyti
+# Rfh0ZH71gAjwJOEJDeF9kTANBgkqhkiG9w0BAQEFAASCAgBTalFLt+Y6gtodH9Ad
+# JOhL5cwyfnjM4bw9YGvJ+eVFc7V5lTP4eglesdZyGIMw6W6zinGkvuWRWOui4+FN
+# fCuXC7LqO02SceuwludcPIRxpRD04kFtVa6BVcniK3dzirAl6a3Vzep5j18J24UZ
+# +gqvkG9x60uB+7gnX5UyV5mxhmEAp9HffLXyOfzWZus86qTszDOOAmWD/xama4Iq
+# znuQlAwf9gzdGPNOoOTHEM+BS+5w0BFXv+iB93gmGIkPDhKxU9n8NRJ4PMg1fi5M
+# q3lYGRT9j+6x7cNzi3HqxhYiZaEHq4fOB2iK75M5RNIf8BfTBVqluTjkNOYmvDia
+# UgUvzl9G3/563t2PJdcyP0VLI7FFqO2VknR70BKhhZgdSp0gVYkmWRayTm5EgmBO
+# zJD4CTjAxvDvCNnlHyebGg33+NfxsJu7NibxfXluqgIhAuFBC3PILuD1JirlPCus
+# 8jQXI0EuqT7AS9E0FoZYqXcudHFgs/3fnowaMCfnxYnVtbKLJUuiaZk8YbSH+waJ
+# e2UvTe5Oq1L6aPt6ez8lenpNImJsoCES4dauKJwN5jN5SHrGP1P+J/Gj7FGg/s/F
+# xB72/hHshNTduHppT/IRRnunoXoTdUI6SXjeH1eL5odyuB8pz2of5fwYPxRmUsgX
+# tqtTPl6sC0Ky9aZ1OHSRzKCkhaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxMjU5
-# NTlaMC8GCSqGSIb3DQEJBDEiBCCDYtymySo3ycDCI9toDzvrVikRzt9T/Zckc/Do
-# rMBW6zANBgkqhkiG9w0BAQEFAASCAgCcNSu34XN7djoGDa8lLbDbFYnPqjPDj5FA
-# hWbXWZ2GrvKZoEP555wtc3mZsFz+5KjwWvnHaw4FbT492gHa9bO+Zzefu67Vn62u
-# 3aVDuzLqjEjMJ+gi/LV9zPqOqEBpAw1C1oUehCQddSArlQ6JE2rxuXzmdLa3fx4g
-# Czvoku7ls3Ob8Ze6D2fPMFLK+9C8g0ugCjJhCENaIi3aX9cOKw6bDP96vVYqEK8A
-# OCZ9S34+XYfOBIvrEEOmKjZ9ufTb4m8HGi5vJGfKL6EHQt1rnXN8QXJxA9gFYGcQ
-# pddYWIq893FzccrSgKKVtZm58rNfPNQ/LiUGTohWpz38RJm3LpPhncpdl0UqPa6B
-# iqSaMMdFb4yY6YxqLqnKbcR1VyMTSxCmLiZ4qC98g2e0rt6DPORDACrK6rVvpxDD
-# qIjYFoPIl8sp5bhuw/gGhl8NVvlNhoAln98s9pPIgdfzsMFPDdQIp1rLRmnhWFT6
-# 71PyoY7a4eFufE9OteoQVkr00qsVxI0fgxvBx2m8QnYrRyr+HRwuOs8YUHgVfb10
-# GaKh1Z6XGYOclnQmZ5TbxKlfbG2xlMHrDbIBB5dNdFNvG1g4Dfb/mP0IlafD2RiE
-# mR1Ry2euLn07RBkXfXjGppXsrvP/XlobdIcqdVEM+Z0n4YXl48BJXk9tq75aAq4b
-# YOy+FZ6eKQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxNjAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCBzVfmBozgytrSEmmqPzDdYCrvCLKq8X74tGVvM
+# TQ6TlzANBgkqhkiG9w0BAQEFAASCAgCJDuGgN/g0VaZ058ClPcqw6QgBykwsqCsD
+# bC/Zky39LPa9jRov2ABqqlM4ZOKcRs5iV9wP+9nFbvB5GRR3ib19bTgjPiR9B9Ot
+# Ohip/2zyatnaSEYkgO828VybE3vkftYmcNUuiseTgYbGBZ+28lVa6OQPXWn+i2ou
+# 1/i0ZrKXe5c+WlEaBJ/qnzZoe4P6HJFrgtGx9jYtULXri9dBoij21R14HnRO6wTo
+# U2hdF2QxHpczkZk4UmFJSZFdfA7Z+S91adgTKVjdewZ53zdC+Dd4oPj0eigEwpko
+# 5xvastuwBeSrG3Z9q/WmzkQbA0mJnNn2VxM1PTKn773/Nrbg1GIt3ytDlEKa4kst
+# Wkl6YY1GEO28bfKxHddEOSbubWf+wYHOsLtTzlKzO6GPgvR/hZuscRiciuwXZQ7C
+# oqj0xXL66qRAm7xOg9kBAKcV0KLwBv1rQuYDN69a59sqQ4nYiYIRkFevke4BtF9G
+# SmOIYeK1ffx45m4tEb9q53+OeYlgy2i5pZ7bcTRJwELd1WhNUdZpEvwoas93+OtO
+# DFGTn0JZVSDcvzbB4m6b2krTGBuzz13DycZ13dzj9HjPQl5B9ipQwjjQkY3yRliU
+# 1riIrc9+8k44JrER4zdnc4hMjkNT4MSVV4AWnc/jh/cXhU7N8idw6xRDXDf/Wwch
+# PZ7VCF3Ydg==
 # SIG # End signature block
