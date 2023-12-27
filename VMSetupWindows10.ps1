@@ -455,21 +455,139 @@ Begin
         #    ██║   ██║  ██║███████║██║  ██╗███████║
         #    ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝
 
-        $Tasks =
+        if ($Admin)
+        {
+            $Tasks =
+            @(
+                'Automatic-Device-Join'
+                'Cellular'
+                'Consolidator'
+                'CreateObjectTask'
+                'DmClient'
+                'DmClientOnScenarioDownload'
+                'FODCleanupTask'
+                'MapsToastTask'
+                'MapsUpdateTask'
+                'Microsoft Compatibility Appraiser'
+                'Microsoft-Windows-DiskDiagnosticDataCollector'
+                'MNO Metadata Parser'
+                'MobilityManager'
+                'Notifications'
+                'QueueReporting'
+                'RemoteAssistanceTask'
+                'Scheduled'
+                'ScheduledDefrag'
+                'SilentCleanup'
+                'SpeechModelDownloadTask'
+                'StartComponentCleanup'
+                'StartupAppTask'
+                'UpdateLibrary'
+                'UsbCeip'
+                'WindowsActionDialog'
+                'XblGameSaveTask'
+            )
+
+            foreach ($Task in $Tasks)
+            {
+                $ScheduledTask = Get-ScheduledTask -TaskName $Task
+
+                if ($ScheduledTask.State -ne 'Disabled' -and
+                   (ShouldProcess @WhatIfSplat -Message "Disabling Scheduled Task `"$Task`"" @VerboseSplat))
+                {
+                    $ScheduledTask | Disable-ScheduledTask > $null
+                }
+            }
+        }
+
+        # ███████╗███████╗██████╗ ██╗   ██╗██╗ ██████╗███████╗███████╗
+        # ██╔════╝██╔════╝██╔══██╗██║   ██║██║██╔════╝██╔════╝██╔════╝
+        # ███████╗█████╗  ██████╔╝██║   ██║██║██║     █████╗  ███████╗
+        # ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██║██║     ██╔══╝  ╚════██║
+        # ███████║███████╗██║  ██║ ╚████╔╝ ██║╚██████╗███████╗███████║
+        # ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚═╝ ╚═════╝╚══════╝╚══════╝
+
+        $Services =
         @(
-            @{ Name = 'Automatic-Device-Join';  Admin = $true; }
+            @{ Name = 'CertPropSvc'; StartType = 'Manual'; }
+            @{ Name = 'LanmanServer'; StartType = 'Manual'; }
+            @{ Name = 'LanmanWorkstation'; StartType = 'Manual'; }
+            @{ Name = 'RasAuto'; StartType = 'Manual'; }
+            @{ Name = 'RasMan'; StartType = 'Manual'; }
+            @{ Name = 'RemoteRegistry'; StartType = 'Manual'; }
+            @{ Name = 'RpcLocator'; StartType = 'Manual'; }
+            @{ Name = 'SCardSvr'; StartType = 'Manual'; }
+            @{ Name = 'ScDeviceEnum'; StartType = 'Manual'; }
+            @{ Name = 'SCPolicySvc'; StartType = 'Manual'; }
+            @{ Name = 'SessionEnv'; StartType = 'Manual'; }
+            @{ Name = 'TermService'; StartType = 'Manual'; }
+            @{ Name = 'UmRdpService'; StartType = 'Manual'; }
+            @{ Name = 'WbioSrvc'; StartType = 'Manual'; }
+            @{ Name = 'XblAuthManager'; StartType = 'Manual'; }
+            @{ Name = 'XblGameSave'; StartType = 'Manual'; }
+            @{ Name = 'XboxGipSvc'; StartType = 'Manual'; }
+            @{ Name = 'XboxNetApiSvc'; StartType = 'Manual'; }
+            @{ Name = 'CscService'; StartType = 'Manual'; }
+
+            @{ Name = 'AJRouter'; StartType = 'Disabled'; }
+            @{ Name = 'ALG'; StartType = 'Disabled'; }
+            @{ Name = 'BcastDVRUserService_*'; StartType = 'Disabled'; }
+            @{ Name = 'diagnosticshub.standardcollector.service'; StartType = 'Disabled'; }
+            @{ Name = 'diagsvc'; StartType = 'Disabled'; }
+            @{ Name = 'DiagTrack'; StartType = 'Disabled'; }
+            @{ Name = 'DispBrokerDesktopSvc'; StartType = 'Disabled'; }
+            @{ Name = 'DPS'; StartType = 'Disabled'; }
+            @{ Name = 'EFS'; StartType = 'Disabled'; }
+            @{ Name = 'EntAppSvc'; StartType = 'Disabled'; }
+            @{ Name = 'fdPHost'; StartType = 'Disabled'; }
+            @{ Name = 'FDResPub'; StartType = 'Disabled'; }
+            @{ Name = 'fhsvc'; StartType = 'Disabled'; }
+            @{ Name = 'FrameServer'; StartType = 'Disabled'; }
+            @{ Name = 'icssvc'; StartType = 'Disabled'; }
+            @{ Name = 'iphlpsvc'; StartType = 'Disabled'; }
+            @{ Name = 'lfsvc'; StartType = 'Disabled'; }
+            @{ Name = 'lmhosts'; StartType = 'Disabled'; }
+            @{ Name = 'LxpSvc'; StartType = 'Disabled'; }
+            @{ Name = 'MapsBroker'; StartType = 'Disabled'; }
+            @{ Name = 'MSiSCSI'; StartType = 'Disabled'; }
+            @{ Name = 'Netlogon'; StartType = 'Disabled'; }
+            @{ Name = 'PeerDistSvc'; StartType = 'Disabled'; }
+            @{ Name = 'PhoneSvc'; StartType = 'Disabled'; }
+            @{ Name = 'PushToInstall'; StartType = 'Disabled'; }
+            @{ Name = 'RemoteAccess'; StartType = 'Disabled'; }
+            @{ Name = 'RetailDemo'; StartType = 'Disabled'; }
+            @{ Name = 'SDRSVC'; StartType = 'Disabled'; }
+            @{ Name = 'SEMgrSvc'; StartType = 'Disabled'; }
+            @{ Name = 'SENS'; StartType = 'Disabled'; }
+            @{ Name = 'SensorDataService'; StartType = 'Disabled'; }
+            @{ Name = 'SensorService'; StartType = 'Disabled'; }
+            @{ Name = 'SensrSvc'; StartType = 'Disabled'; }
+            @{ Name = 'shpamsvc'; StartType = 'Disabled'; }
+            @{ Name = 'Spooler'; StartType = 'Disabled'; }
+            @{ Name = 'SSDPSRV'; StartType = 'Disabled'; }
+            @{ Name = 'swprv'; StartType = 'Disabled'; }
+            @{ Name = 'TapiSrv'; StartType = 'Disabled'; }
+            @{ Name = 'upnphost'; StartType = 'Disabled'; }
+            @{ Name = 'VSS'; StartType = 'Disabled'; }
+            @{ Name = 'WalletService'; StartType = 'Disabled'; }
+            @{ Name = 'WdiServiceHost'; StartType = 'Disabled'; }
+            @{ Name = 'WdiSystemHost'; StartType = 'Disabled'; }
+            @{ Name = 'Wecsvc'; StartType = 'Disabled'; }
+            @{ Name = 'WerSvc'; StartType = 'Disabled'; }
+            @{ Name = 'wisvc'; StartType = 'Disabled'; }
+            @{ Name = 'wlidsvc'; StartType = 'Disabled'; }
+            @{ Name = 'WMPNetworkSvc'; StartType = 'Disabled'; }
+            @{ Name = 'WpcMonSvc'; StartType = 'Disabled'; }
         )
 
-        foreach ($Task in $Tasks)
+        foreach ($Service in $Services)
         {
-            $ScheduledTask = Get-ScheduledTask -TaskName $Task.Name
+                $SrvObj = Get-Service -Name $Service.Name
 
-            if (-not $Task.Admin -or $Admin -and
-                ($ScheduledTask.State -ne 'Disabled') -and
-                (ShouldProcess @WhatIfSplat -Message "Disabling Scheduled Task `"$($Task.Name)`"" @VerboseSplat))
-            {
-                $ScheduledTask | Disable-ScheduledTask > $null
-            }
+                if ($Service.StartType -ne $SrvObj.StartType -and $SerObj.Status -eq 'Running' -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting [Status=$($Service.StartType)] -> `"$($SrvObj.DisplayName)`" ($($SrvObj.Name))" @VerboseSplat))
+                {
+                    #$SrvObj | Set-Service -StartupType $Service.StartType
+                }
         }
 
         # ███╗   ███╗██╗███████╗ ██████╗
@@ -565,8 +683,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURtwZ8ADXehZn9zS3IoI+NGBL
-# qvegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZQ5uOIvQ+GQq+P4m8YYMcffO
+# HO6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -697,34 +815,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRBBvzi
-# RYDleUh8HmfYm0fsDZlfszANBgkqhkiG9w0BAQEFAASCAgCN4mYhVUQrGFk0fDLe
-# zFuxj+zrKmAvO1OrPuFpD2A2Wda4PTfiKe4sg9tW6I3xo2eoz67xudau96hMuTw6
-# GFtDIY6yHdbR7D1etm3uvHTvVVBiBOmHuKvqh0WRB5Fn0YXYZKeLPKOpiFmaU0Cj
-# yq/0qCMB5H3RDQUwjKwFPvQZU1hDQrE8RUOpeHMbot045voPt8PdButXa1UC5+F+
-# M2MBQZaKYUlQvbFDCV2v3sexIP7adinll8lNrnvRBfHd6d1CS3W539K+lO0hU5F/
-# GU2o2FmWdqVxEOKQrLAdDwgeoDQz5f0BItfwFWkqU9KR/2hzJycDv90mcLpzpVRA
-# jOGi9d0oGs0wLSkb1vfha6DjpO7g8l+oZ0QzO3EogdiPgHgGXpcLTsCgfLW1bjNG
-# JcWeUPfxpq50ZAm0kp9EyjoXWDsCFpaJjqzOIVTnx4kPF9yg7p1Mf3kO/BCDIKu/
-# xbP6J3/FZUGXYr9MCyPnU4q5bfk5vj8BknNsy8x+KxCtq1uE7jdsAVN/+79F4FIA
-# I9xsfTKM2Gm0ImvL2khT9LutVmKMxEBNS9WBYT7dMADIQ2HyiQ8/kLAMXc9vw6rW
-# TNSEyvSdxRGyObHlLQZJOQ2u650pIVzKCLyo2HsT2yFvOXwRjqgAGafDlbTpmrqC
-# zVBqQFBvLAxeX9PFjjXLwREh36GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH7GH+
+# NFJZiSX6K/fCfOq/rcg8kTANBgkqhkiG9w0BAQEFAASCAgBIISOlz+V7QVxIUtXB
+# XpabfVW1NUW1z95AO1A1wP1P4VbCjReEswklA0CFQlkZJc1oSKaFmvC9wG/YAzel
+# KRvKh95Rccn0ir1C9NwMINi2bPbPG9TjXAM8WJ0JLHfCKVl+CqjihITonX1qZrqN
+# sEsOPcDDYT8E+2uz1SVFX/B+ZnaocmbiUyZ4Mggr5e3kSIXGPtBGybLztP3QVC3Q
+# CSxlSYwAjJ2fyMo00h3o+bfxOqBWy8JpKXLpSdw3pxMWqmkQuWEMywgTIzbwEZmS
+# Gor7A3Y5o0A1/GEh9tCx232IM+uerH72OEI3lKo9EI+n/xED0xQd6ChPXDKsFyEa
+# 5lTrTU6YxOH7x0kICpTuZyGJfZv3KwEI6wY6BoPhfubqUPhMIjVqiefJFUofZg9N
+# S0z4hNE6edmfUXCB+KBO3Uu7qTxU3J+VzVkU0l1ZBtgXyyyqScMnRez7fU5/g0TE
+# gTSrKo4tgNICx77xzuzIIR/ii7EzYUa7KAQDbu5VY80OEF+gl1Oh1ISP7W8nK89m
+# 0AX5G0Ip9DCRWT3T8PasM79X5yYyTrdZGkQvSCE6WFB535osnJJPcc7OfEBvZBZ+
+# +kpIFN/vhxH+8kYpeBYxN2IAwFgpA/J0aTu+uQ7tdof/jdizxKgigtBytr9Rylmn
+# FPZ7JrxpmJXufRZuKYrnUIDBTaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcxOTAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCBIhgPo8G/JGPYv/sVs4lmlAOsoRwKfAi5cddWM
-# xq2GLzANBgkqhkiG9w0BAQEFAASCAgAC19KKBu4q7K03wr0QeXjHXJW7lef6KyKK
-# u6DGLpi0MCSLv0s4JMPvAexrOpzahtQZ5hJj+F37kdu4xhb7RQ2o4893vIlRtltb
-# d9TJjDuygF2PVp6zts+tsR2EVAxdQDSvrd0Bvnmz4PI6DQiFmKT36bUMAAZR6UOC
-# 0Rwx9RZhdPfdFdfZ1oIvTGOJqzY4qVLMA18fmbj1dToNY0Mb+27aFhwK83ORAaQT
-# HU7AaciBVpDSl7kwHendS5CpO/FePszIGg917nVFzey8yZpJ0fMtewwgUE1HJ9St
-# loT7cqxHP9M1r6L2CxfkIb3E55VWZjN0mfjdkmHgCfSiLeVx5rVe6pwXDM5V70Gu
-# xZCETa9I3ZGG1mIyQefHjjz3kdL/SH0IpvTWuXwKFEpMDJ9DrDNaYgS0Vufgby+X
-# xXY6/OfxXtBCB+o+S9B7wzQn6m2P/ILeD5dE6UgjFrNRd1JUMtlAcbW/uKMY5IQ8
-# y68Ln+grbcgNSWwQPm7XeYQEGSPJoHpyHs5F+arV5hChU3XKKDqI8537OweQJ5K+
-# kTnnjcTBC7+S9DHjoC8S9/OzewbCjMTSBhtyHnO0daa9BuTJHL2FqWGLjdlWdOFV
-# O0P1/wwqFK6hicLzWgmZ6xpBT11Two61PTdGU+B6EFG1lvTx+O2dpDNwi6PBWein
-# 3pqu1Z2Jqg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcyMDAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCCXAxsbJXFcsVsIGG+SXddXKUbpz7GxViZsVBvn
+# O/TchzANBgkqhkiG9w0BAQEFAASCAgAVqRSraCabnHTyFy+uu3Gz8UpkiHN3b63/
+# ADyR+n6ugoyMnYKMT5Ta3ss9dn1syC6OTD/T2N8zMWkAwlXU++OJo1P3u4olkpu8
+# +M2pWmyU3+deoV5zbcLRRkcXwlBzfWslUAm6lp3Os1ig92MXMNuiRsTTn035/b28
+# dKFA50ntyqzFqZGFgkr9t3W4M706rcUwnC3AUFqARMgkgDME1lVs/w7jIEqEDQji
+# nwhhLJ5fu5N8kfptGN88xq8PVOiXU7HVHiDhfGTKWyfPH8ypwh/uDGHRcIoIP0ia
+# qI7txCkkmfifTr5A51x8L16b/gnLGmlsR2c09IHpGEFeIVkvttGUCGXvJiYPBxbZ
+# h/aZ86sQYPuOuwxiRdHt98WjI4j+Ws3lTOoKxDUb3aQtWhpkMyszDhneNuIGXu2q
+# c0PBaktgtX/JVK4+kxssRAUeCU8hdTHdx89DTwnQyHwzkO0MUhbefgg2iCtlLwEu
+# UagBnE0nMIzW4pT8A9Z/Lh57gPDJBKZRnzuaLMBtQfoYfcTpnV2zH/24Lj7PKw2m
+# zxAKDimExcblAG/wUZbrIsGPEy/xCnVYiW9THEa2edmPZJffHEMYglKtNYjJsoT1
+# WmD0dmqWabZ40zBE/kH1S3anqBV+D4dPUTfD3b6FBOWgzuL1PVjWTReJ9GuuFRXa
+# RXjwj07EFw==
 # SIG # End signature block
