@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{347086a8-5fc8-492a-b034-62c72e9d5d47}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Security - Client Kerberos Armoring</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2023-12-24T12:38:13</CreatedTime>
+  <ModifiedTime>2023-12-24T12:38:13</ModifiedTime>
+  <ReadTime>2023-12-27T17:19:26.6887895Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-2996733540-2597173769-1088004821-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-2996733540-2597173769-1088004821-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-2996733540-2597173769-1088004821-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-2996733540-2597173769-1088004821-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-2996733540-2597173769-1088004821-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Security" xsi:type="q1:SecuritySettings">
+        <q1:SecurityOptions>
+          <q1:KeyName>MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters\SupportedEncryptionTypes</q1:KeyName>
+          <q1:SettingNumber>2147483640</q1:SettingNumber>
+          <q1:Display>
+            <q1:Name>Network security: Configure encryption types allowed for Kerberos</q1:Name>
+            <q1:Units />
+            <q1:DisplayFields>
+              <q1:Field>
+                <q1:Name>DES_CBC_CRC</q1:Name>
+                <q1:Value>false</q1:Value>
+              </q1:Field>
+              <q1:Field>
+                <q1:Name>DES_CBC_MD5</q1:Name>
+                <q1:Value>false</q1:Value>
+              </q1:Field>
+              <q1:Field>
+                <q1:Name>RC4_HMAC_MD5</q1:Name>
+                <q1:Value>false</q1:Value>
+              </q1:Field>
+              <q1:Field>
+                <q1:Name>AES128_HMAC_SHA1</q1:Name>
+                <q1:Value>true</q1:Value>
+              </q1:Field>
+              <q1:Field>
+                <q1:Name>AES256_HMAC_SHA1</q1:Name>
+                <q1:Value>true</q1:Value>
+              </q1:Field>
+              <q1:Field>
+                <q1:Name>Future encryption types</q1:Name>
+                <q1:Value>true</q1:Value>
+              </q1:Field>
+            </q1:DisplayFields>
+          </q1:Display>
+        </q1:SecurityOptions>
+        <q1:Blocked>false</q1:Blocked>
+      </Extension>
+      <Name>Security</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q2:RegistrySettings">
+        <q2:Policy>
+          <q2:Name>Kerberos client support for claims, compound authentication and Kerberos armoring</q2:Name>
+          <q2:State>Enabled</q2:State>
+          <q2:Explain>This policy setting controls whether a device will request claims and compound authentication for Dynamic Access Control and Kerberos armoring using Kerberos authentication with domains that support these features. 
+If you enable this policy setting, the client computers will request claims, provide information required to create compounded authentication and armor Kerberos messages in domains which support claims and compound authentication for Dynamic Access Control and Kerberos armoring.
+
+If you disable or do not configure this policy setting, the client devices will not request claims, provide information required to create compounded authentication and armor Kerberos messages. Services hosted on the device will not be able to retrieve claims for clients using Kerberos protocol transition.  
+</q2:Explain>
+          <q2:Supported>At least Windows Server 2012, Windows 8 or Windows RT</q2:Supported>
+          <q2:Category>System/Kerberos</q2:Category>
+        </q2:Policy>
+        <q2:Blocked>false</q2:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+  <LinksTo>
+    <SOMName>Domain Controllers</SOMName>
+    <SOMPath>home.bcl.nu/Domain Controllers</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Computers</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 0/Computers</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Computers</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 1/Computers</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Computers</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 2/Computers</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>
