@@ -489,9 +489,9 @@ Begin
 
             foreach ($Task in $Tasks)
             {
-                $ScheduledTask = Get-ScheduledTask -TaskName $Task
+                $ScheduledTask = Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
 
-                if ($ScheduledTask.State -ne 'Disabled' -and
+                if ($ScheduledTask -and $ScheduledTask.State -ne 'Disabled' -and
                    (ShouldProcess @WhatIfSplat -Message "Disabling Scheduled Task `"$Task`"" @VerboseSplat))
                 {
                     $ScheduledTask | Disable-ScheduledTask > $null
@@ -509,45 +509,58 @@ Begin
         $Services =
         @(
             @{ Name = 'CertPropSvc'; StartType = 'Manual'; }
+            @{ Name = 'CscService'; StartType = 'Manual'; }
+            @{ Name = 'DispBrokerDesktopSvc'; StartType = 'Manual'; }
+            @{ Name = 'DPS'; StartType = 'Manual'; }
             @{ Name = 'LanmanServer'; StartType = 'Manual'; }
             @{ Name = 'LanmanWorkstation'; StartType = 'Manual'; }
             @{ Name = 'RasAuto'; StartType = 'Manual'; }
             @{ Name = 'RasMan'; StartType = 'Manual'; }
             @{ Name = 'RemoteRegistry'; StartType = 'Manual'; }
             @{ Name = 'RpcLocator'; StartType = 'Manual'; }
+            @{ Name = 'Spooler'; StartType = 'Manual'; }
             @{ Name = 'SCardSvr'; StartType = 'Manual'; }
             @{ Name = 'ScDeviceEnum'; StartType = 'Manual'; }
             @{ Name = 'SCPolicySvc'; StartType = 'Manual'; }
+            @{ Name = 'SENS'; StartType = 'Manual'; }
             @{ Name = 'SessionEnv'; StartType = 'Manual'; }
             @{ Name = 'TermService'; StartType = 'Manual'; }
+            @{ Name = 'uhssvc'; StartType = 'Manual'; }
             @{ Name = 'UmRdpService'; StartType = 'Manual'; }
             @{ Name = 'WbioSrvc'; StartType = 'Manual'; }
             @{ Name = 'XblAuthManager'; StartType = 'Manual'; }
             @{ Name = 'XblGameSave'; StartType = 'Manual'; }
             @{ Name = 'XboxGipSvc'; StartType = 'Manual'; }
             @{ Name = 'XboxNetApiSvc'; StartType = 'Manual'; }
-            @{ Name = 'CscService'; StartType = 'Manual'; }
 
-            @{ Name = 'AJRouter'; StartType = 'Disabled'; }
+            # Checked
+            @{ Name = 'AdobeARMservice'; StartType = 'Disabled'; }
             @{ Name = 'ALG'; StartType = 'Disabled'; }
+            @{ Name = 'fdPHost'; StartType = 'Disabled'; }
+            @{ Name = 'FDResPub'; StartType = 'Disabled'; }
+            @{ Name = 'iphlpsvc'; StartType = 'Disabled'; }
+            @{ Name = 'lmhosts'; StartType = 'Disabled'; }
+            @{ Name = 'MapsBroker'; StartType = 'Disabled'; }
+            @{ Name = 'NcdAutoSetup'; StartType = 'Disabled'; }
+            @{ Name = 'SDRSVC'; StartType = 'Disabled'; }
+            @{ Name = 'SSDPSRV'; StartType = 'Disabled'; }
+            @{ Name = 'upnphost'; StartType = 'Disabled'; }
+            @{ Name = 'WinRM'; StartType = 'Disabled'; }
+
+
+<#
+            @{ Name = 'AJRouter'; StartType = 'Disabled'; }
             @{ Name = 'BcastDVRUserService_*'; StartType = 'Disabled'; }
             @{ Name = 'diagnosticshub.standardcollector.service'; StartType = 'Disabled'; }
             @{ Name = 'diagsvc'; StartType = 'Disabled'; }
             @{ Name = 'DiagTrack'; StartType = 'Disabled'; }
-            @{ Name = 'DispBrokerDesktopSvc'; StartType = 'Disabled'; }
-            @{ Name = 'DPS'; StartType = 'Disabled'; }
             @{ Name = 'EFS'; StartType = 'Disabled'; }
             @{ Name = 'EntAppSvc'; StartType = 'Disabled'; }
-            @{ Name = 'fdPHost'; StartType = 'Disabled'; }
-            @{ Name = 'FDResPub'; StartType = 'Disabled'; }
             @{ Name = 'fhsvc'; StartType = 'Disabled'; }
             @{ Name = 'FrameServer'; StartType = 'Disabled'; }
             @{ Name = 'icssvc'; StartType = 'Disabled'; }
-            @{ Name = 'iphlpsvc'; StartType = 'Disabled'; }
             @{ Name = 'lfsvc'; StartType = 'Disabled'; }
-            @{ Name = 'lmhosts'; StartType = 'Disabled'; }
             @{ Name = 'LxpSvc'; StartType = 'Disabled'; }
-            @{ Name = 'MapsBroker'; StartType = 'Disabled'; }
             @{ Name = 'MSiSCSI'; StartType = 'Disabled'; }
             @{ Name = 'Netlogon'; StartType = 'Disabled'; }
             @{ Name = 'PeerDistSvc'; StartType = 'Disabled'; }
@@ -555,18 +568,13 @@ Begin
             @{ Name = 'PushToInstall'; StartType = 'Disabled'; }
             @{ Name = 'RemoteAccess'; StartType = 'Disabled'; }
             @{ Name = 'RetailDemo'; StartType = 'Disabled'; }
-            @{ Name = 'SDRSVC'; StartType = 'Disabled'; }
             @{ Name = 'SEMgrSvc'; StartType = 'Disabled'; }
-            @{ Name = 'SENS'; StartType = 'Disabled'; }
             @{ Name = 'SensorDataService'; StartType = 'Disabled'; }
             @{ Name = 'SensorService'; StartType = 'Disabled'; }
             @{ Name = 'SensrSvc'; StartType = 'Disabled'; }
             @{ Name = 'shpamsvc'; StartType = 'Disabled'; }
-            @{ Name = 'Spooler'; StartType = 'Disabled'; }
-            @{ Name = 'SSDPSRV'; StartType = 'Disabled'; }
             @{ Name = 'swprv'; StartType = 'Disabled'; }
             @{ Name = 'TapiSrv'; StartType = 'Disabled'; }
-            @{ Name = 'upnphost'; StartType = 'Disabled'; }
             @{ Name = 'VSS'; StartType = 'Disabled'; }
             @{ Name = 'WalletService'; StartType = 'Disabled'; }
             @{ Name = 'WdiServiceHost'; StartType = 'Disabled'; }
@@ -577,16 +585,17 @@ Begin
             @{ Name = 'wlidsvc'; StartType = 'Disabled'; }
             @{ Name = 'WMPNetworkSvc'; StartType = 'Disabled'; }
             @{ Name = 'WpcMonSvc'; StartType = 'Disabled'; }
+#>
         )
 
         foreach ($Service in $Services)
         {
-                $SrvObj = Get-Service -Name $Service.Name
+                $SrvObj = Get-Service -Name $Service.Name -ErrorAction SilentlyContinue
 
-                if ($Service.StartType -ne $SrvObj.StartType -and $SerObj.Status -eq 'Running' -and
+                if ($SrvObj -and $SrvObj.StartType -ne $Service.StartType -and
                    (ShouldProcess @WhatIfSplat -Message "Setting [Status=$($Service.StartType)] -> `"$($SrvObj.DisplayName)`" ($($SrvObj.Name))" @VerboseSplat))
                 {
-                    #$SrvObj | Set-Service -StartupType $Service.StartType
+                    $SrvObj | Set-Service -StartupType $Service.StartType
                 }
         }
 
@@ -683,8 +692,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZQ5uOIvQ+GQq+P4m8YYMcffO
-# HO6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtx3FVqIheQSzxYxfdZ5EAnQG
+# +HagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -815,34 +824,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH7GH+
-# NFJZiSX6K/fCfOq/rcg8kTANBgkqhkiG9w0BAQEFAASCAgBIISOlz+V7QVxIUtXB
-# XpabfVW1NUW1z95AO1A1wP1P4VbCjReEswklA0CFQlkZJc1oSKaFmvC9wG/YAzel
-# KRvKh95Rccn0ir1C9NwMINi2bPbPG9TjXAM8WJ0JLHfCKVl+CqjihITonX1qZrqN
-# sEsOPcDDYT8E+2uz1SVFX/B+ZnaocmbiUyZ4Mggr5e3kSIXGPtBGybLztP3QVC3Q
-# CSxlSYwAjJ2fyMo00h3o+bfxOqBWy8JpKXLpSdw3pxMWqmkQuWEMywgTIzbwEZmS
-# Gor7A3Y5o0A1/GEh9tCx232IM+uerH72OEI3lKo9EI+n/xED0xQd6ChPXDKsFyEa
-# 5lTrTU6YxOH7x0kICpTuZyGJfZv3KwEI6wY6BoPhfubqUPhMIjVqiefJFUofZg9N
-# S0z4hNE6edmfUXCB+KBO3Uu7qTxU3J+VzVkU0l1ZBtgXyyyqScMnRez7fU5/g0TE
-# gTSrKo4tgNICx77xzuzIIR/ii7EzYUa7KAQDbu5VY80OEF+gl1Oh1ISP7W8nK89m
-# 0AX5G0Ip9DCRWT3T8PasM79X5yYyTrdZGkQvSCE6WFB535osnJJPcc7OfEBvZBZ+
-# +kpIFN/vhxH+8kYpeBYxN2IAwFgpA/J0aTu+uQ7tdof/jdizxKgigtBytr9Rylmn
-# FPZ7JrxpmJXufRZuKYrnUIDBTaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR00je1
+# SyHJZ1SuP8pxJZ+3I2gXBTANBgkqhkiG9w0BAQEFAASCAgA9+tFe5q/c0QFeJ5dq
+# du3lpxRya1ADizA7mYAbYpbZVky/zKQSnKFkppMSbLvQto8tkIKH99ZsFFs86nWx
+# f4NdsbuKs45m391UEoIx8iqCirc5hgxy1AtDnSHpvnmx9ey481rcCaeMnEfFNVkI
+# eHNyg0yo5Pv8dT9b3cwSreO6GK+y0BCVXKgs1+GTF8BH8nx15Me9jGYCPMRej3yE
+# nvZKzzNZfuXqFoFJGyOoiZBIOxc567toWmRXodoj83N4oMuQ7KctXtlzdmKqL3E8
+# fkFG41EtYt2GLLbBm6SFyaueU7gGJ1rc15oRzc0T3+tL/uGOW6TgctwkTnZlB6nR
+# kRp+79r8pZRz3BjEm154zlxaYfmdKAozGjoqy32fxnXLrMbVUOkAy83T8noN1yE2
+# jTr6WFZyPFcwrGC6MMtKjc30Bx7jwDXRzT/Vf40mE4jpNOIOmqAJN/A5EOosPC3z
+# thN1RrHPpRfCF6u1Ifb7tDaVIxdyGOR8QW1hUdZ427dQVP9m2X/AhyS0x/QDDrGI
+# GIFV0dwqCvYa7d5klDcyeL6A8aky3d57ZkvlOIjOswuyQ14XMcYXV3yDdp3hrg+G
+# mkKxHODmaKDc6lN6PtVUtDa7drD3+BX2sh6fWiaGgnt8cNAx/znsBVYIullWCUY+
+# 0uTgnE0gfsAshWIaVkLuwGQH4aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcyMDAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCCXAxsbJXFcsVsIGG+SXddXKUbpz7GxViZsVBvn
-# O/TchzANBgkqhkiG9w0BAQEFAASCAgAVqRSraCabnHTyFy+uu3Gz8UpkiHN3b63/
-# ADyR+n6ugoyMnYKMT5Ta3ss9dn1syC6OTD/T2N8zMWkAwlXU++OJo1P3u4olkpu8
-# +M2pWmyU3+deoV5zbcLRRkcXwlBzfWslUAm6lp3Os1ig92MXMNuiRsTTn035/b28
-# dKFA50ntyqzFqZGFgkr9t3W4M706rcUwnC3AUFqARMgkgDME1lVs/w7jIEqEDQji
-# nwhhLJ5fu5N8kfptGN88xq8PVOiXU7HVHiDhfGTKWyfPH8ypwh/uDGHRcIoIP0ia
-# qI7txCkkmfifTr5A51x8L16b/gnLGmlsR2c09IHpGEFeIVkvttGUCGXvJiYPBxbZ
-# h/aZ86sQYPuOuwxiRdHt98WjI4j+Ws3lTOoKxDUb3aQtWhpkMyszDhneNuIGXu2q
-# c0PBaktgtX/JVK4+kxssRAUeCU8hdTHdx89DTwnQyHwzkO0MUhbefgg2iCtlLwEu
-# UagBnE0nMIzW4pT8A9Z/Lh57gPDJBKZRnzuaLMBtQfoYfcTpnV2zH/24Lj7PKw2m
-# zxAKDimExcblAG/wUZbrIsGPEy/xCnVYiW9THEa2edmPZJffHEMYglKtNYjJsoT1
-# WmD0dmqWabZ40zBE/kH1S3anqBV+D4dPUTfD3b6FBOWgzuL1PVjWTReJ9GuuFRXa
-# RXjwj07EFw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjcyMTAw
+# MDBaMC8GCSqGSIb3DQEJBDEiBCBEScbxOPo4eH2aB44wlCAOA9K5ZRUNlcypE/1G
+# kDEEjzANBgkqhkiG9w0BAQEFAASCAgBuKnN5dvHgXFjr8sJay9+XJSAIoO+UYoqq
+# nXLfCCF5W6qJDVxruaxzJ7C08gMrrTBiQR/wi/jilDJR5lceLOJ26PAz+JTjpB/B
+# zvRTR4ES4Py2sjlIiURDmbS0SUVsXdQkgTe8oo9l3oeN/TzPT8310EKMIWI3Utw5
+# cVMS52hwhOJTpdCajCxctshspW5ntt7YbRi+IrnYZa9DIHSAc4KZCAhM6AT4/OmA
+# Q92fZaiPtAwMkMpdvBwDl0AYTYud17AmiiyWwwB7x1Ru7VaWfUBaNTfsvugq0gsv
+# N+uGCLMi1vu7YYGh07i+382vs2yutjHu0wZNdP2G7cRS51C7/5em9my70zGM4qqh
+# 0qlF6+o4ChcwPgoWhDCoTZ1nidqFKWyqn6ILvVg2Vy5EEwj3/oQUrD13qeoq3DLO
+# 3dkGAfHoIZUmiie2kQufOYEbzNH47nf1fW9YvMmfbY//do/lg2d0XQUm+sRwDJlF
+# 2J2iahKbBC3iZS+eAlMiFeItPsUxf+VnNTEAEma5c7RPQkyExXMlCrd50fTWRPXv
+# o42oQOTPiYLq2KFhniGM6bkYuCpVzQd+QVG5l78Dgo+ap95odXrsVH3M6GeD/aLA
+# 02YITYtVCmxXCXHeKc91eqR6MEZtDqP29F+vpl5Lo9o193avv602g8g7LtgAuJ54
+# 1r24S9mKbA==
 # SIG # End signature block
