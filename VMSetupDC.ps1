@@ -713,11 +713,7 @@ Begin
                     @{ Name = 'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Internet Explorer 11 1607 - Computer';                          Enabled = 'No';   Enforced = 'No';  }
                 )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 1607 - User';                              Enabled = 'No';   Enforced = 'No';  }
-                )
-                ComputerBaseline =
+                WorkstationBaseline =
                 @(
                     @{ Name = 'MSFT Windows 10 1607 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
@@ -728,6 +724,10 @@ Begin
                 DCBaseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                UserBaseline =
+                @(
+                    @{ Name = 'MSFT Internet Explorer 11 1607 - User';                              Enabled = 'No';   Enforced = 'No';  }
                 )
             }
             '17763' = # Windows Server 2019 / Windows 10 1809
@@ -741,11 +741,7 @@ Begin
                     @{ Name = 'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Internet Explorer 11 1809 - Computer';                          Enabled = 'No';   Enforced = 'No';  }
                 )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 1809 - User';                              Enabled = 'No';   Enforced = 'No';  }
-                )
-                ComputerBaseline =
+                WorkstationBaseline =
                 @(
                     @{ Name = 'MSFT Windows 10 1809 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
@@ -756,6 +752,10 @@ Begin
                 DCBaseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                UserBaseline =
+                @(
+                    @{ Name = 'MSFT Internet Explorer 11 1809 - User';                              Enabled = 'No';   Enforced = 'No';  }
                 )
             }
             '19045' = # Windows 10 22H2
@@ -768,13 +768,13 @@ Begin
                     @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer';             Enabled = 'No';   Enforced = 'No';  }
                 )
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                )
                 UserBaseline =
                 @(
                     @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - User';                 Enabled = 'No';   Enforced = 'No';  }
-                )
-                ComputerBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '20348' = # Windows Server 2022
@@ -787,10 +787,6 @@ Begin
                     @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                      Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer';    Enabled = 'No';   Enforced = 'No';  }
                 )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User';        Enabled = 'No';   Enforced = 'No';  }
-                )
                 ServerBaseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2022 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
@@ -798,6 +794,10 @@ Begin
                 DCBaseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2022 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                UserBaseline =
+                @(
+                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User';        Enabled = 'No';   Enforced = 'No';  }
                 )
             }
             '22000' = # Windows 11 21H2
@@ -810,13 +810,13 @@ Begin
                     @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer';             Enabled = 'No';   Enforced = 'No';  }
                 )
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                )
                 UserBaseline =
                 @(
                     @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - User';                 Enabled = 'No';   Enforced = 'No';  }
-                )
-                ComputerBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22621' = # Windows 11 22H2
@@ -827,13 +827,8 @@ Begin
                 @(
                     @{ Name = 'MSFT Windows 11 22H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 11) - Computer';             Enabled = 'No';   Enforced = 'No';  }
                 )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 11) - User';                 Enabled = 'No';   Enforced = 'No';  }
-                )
-                ComputerBaseline =
+                WorkstationBaseline =
                 @(
                     @{ Name = 'MSFT Windows 11 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
@@ -847,7 +842,7 @@ Begin
                     @{ Name = 'MSFT Windows 11 23H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
                 )
-                ComputerBaseline =
+                WorkstationBaseline =
                 @(
                     @{ Name = 'MSFT Windows 11 23H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
@@ -984,7 +979,7 @@ Begin
         @(
             # Domain administrator
             @{
-                Name = 'Admin'
+                Name = 'DomainAdmin'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
                 NeverExpires = $false
@@ -1089,8 +1084,8 @@ Begin
 
             # Domain Admin
             @{
-                Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                TargetPath = "CN=Users,$BaseDN"
+                Filter = "Name -like 'DomainAdmin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "CN=Domain Controllers,$BaseDN"
             }
 
             #########
@@ -2452,7 +2447,6 @@ Begin
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Computer - Display Settings";                                   Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
         ) +
         $DomainSecurity
@@ -2468,7 +2462,8 @@ Begin
         }
 
         # Domain controller baselines & default
-        $DomainControllerGpos += $WinBuilds.Item($DCBuild).DCBaseline +
+        $DomainControllerGpos += @{ Name = "$DomainPrefix - Computer - Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  } +
+                                 $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
                                  @{ Name = 'Default Domain Controllers Policy';  Enabled = 'Yes';  Enforced = 'No';  }
 
@@ -2662,7 +2657,7 @@ Begin
                 $GpoBase = @(
 
                     $Build.Value.Baseline +
-                    $Build.Value.ComputerBaseline
+                    $Build.Value.WorkstationBaseline
                 )
 
                 # Windows 10 1607 disable SMB
@@ -3578,8 +3573,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzLZoNi9ADD5o2JAUvlTqYASd
-# VWigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmt+DC1/2wxt3jv4ph8/tj2/n
+# me2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3710,34 +3705,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTtRgVN
-# ueGUB4uzM9qzz9pj/r0fhjANBgkqhkiG9w0BAQEFAASCAgAgdqNJVh+d2myQBPce
-# mibhb7+An+2bL2n5lO4fxoa/P8IUrGTYbgnIjAvDT5/DTYgI0OzNIMItFD6k8HYz
-# uutIZRZmYRUF0yUMGPTJO792v/07kDpM8qBg1rSsdce5euaeyQkWsN4gDc68w7dB
-# a8m15qcW0YdRY3Jm4k/UOaxuRTWJ/g3jb6lCW59ylJ4a8oBxIUmm1cFfZiZEWQYI
-# S6jKZ4Es9dHw2AAtYoJUDeI+f1f7eOLZzIFxT3sNwA5THGCwf3wgwRCIcq2XZgU6
-# lLMfnPzcRcnzAEeWVDOto2xAGtrYlX59g0vWaBqCGPcl8tqrz3rsuVllKcLiz0/G
-# X8lBpcWZ5VWISin+MkCm/gCHEFEVg/ZMbhv8xK3PNTY19oN7AX7BozVwAyLjLL66
-# KMJSDvY0lEyW9vM/BpWClxg8RgVda+3mVqBXok2gtD2f7Sprc/cAKC9ZBKjjp+m6
-# AHzKWOc5wst4n6XSiM1GlB5jeMFWHRc4O1WWOv9YZPRb1qiMGqjlxOnGEuiw5fCg
-# VhsxrUITZA5AS1w20XDOj/LDFGbvrOh1YPdAkq5JXLjwmKojtppys8yew0QHDcUi
-# ixOITKlwpsD+Lw8zhmXal6sUhEO4pd/i2qHW4X4LQXvf1W6SFttiR/Pbzf77uvo0
-# xcofAu7RQcpV8PqxH7YWaapnI6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSseuuk
+# LeKJELepvqDdoIKHh01YZTANBgkqhkiG9w0BAQEFAASCAgCh28T1DQKvWFe+7aQ4
+# DdLfpJNml+dREsPyRJQKMq5+fzkaek5XO/Y/A5UXRJIxclAp7Cnu1bEjCIFN2LRU
+# o+fhg4gMJbPkUouO+863HfmbAe+8ZDkL/nljbugW30a939H508dYkbBI8g9eiEF3
+# lya6wVtL9nQ0ds0F1pFANK1WOhpCm31l2ByNBmoreAaVCbpHp1cGdgTTuZvangQS
+# vBiW1iugKC8nnpzlqzlXcRk/2hTxXz7h1hnGG6X/xjl5brrjpcZs0U4UHOqga6VI
+# W3mOAhlkxyvr0w9quu2g4h+q6NNZumH6LDEeaw7RYi1q4eiq07nl70z+1FPdwC/r
+# Ta6CXGPKnxzJRMyJNOA7ggjl+w3rDbi/L7sOQPjJlprG5+06eVkO4IN7D1foZDvw
+# Zr0vxUfuU2UZi+HDy62ne6rPqOxP/U5btxboJbBnaj1fQXYZqgVP8mKCbMFEl0ZP
+# 2h3v4gwAZxzMLkzRV7CuOknUUWsRP3hqdQD4YDv6ftq8nclB3FOQq1r4H/WjbTv2
+# kDAeTzkUCZAAMDec9orkCRqbByv6NcFdV53VBBQzHbRPrJTNOiAQI459xG1zQEdj
+# fH/LjmoiyOicOfA2NyGxzaVSYWN+rNrfBQoHfJvE2zWJ2kNUh5HxHIU89sdlieCl
+# qU0Z33WdvYB8AS+0jrJJWz2ABaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgxMjAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCcB7iNckcXvon6gH0dLOZpST/m+ZtC5slgIkNH
-# Ny6JSjANBgkqhkiG9w0BAQEFAASCAgBX6ySs8ETnoGukjTrYlnGL9ifbzSGgJuVN
-# OJjPXJXNcEWWAQHwhUvFvnP9+VI3RkYN26t0HDkeYHPWdxnNkzrXqnzARrrxkMCG
-# gGoOJm1f+2voXR8eQCOxOIzuHN+Rt0+BjArCPe5HYm5pU8bb8f3nUGuPjStJ4Peg
-# p89qbr6oW77TN7A7xm3biTqeA6pXkLmHRYQJl6e/tuc9zIMTWTjg0XXbrBsvLHMD
-# TfNj+y4PnuRWrNV11bJY9/GdJ208y7jKMlPP8wluPnFVzD+L3r5JmZNf1K/Fw8QV
-# nhcfqxcIKPXqvdxyh9b0ME1jbSkrQ9l8ON0k0/EKI1ymC74gujtXEy1BGya5Qunt
-# anuND7T2y2mnegSBn3A56pOCL7vxzDQ2auA4ZPHrlddQ5RSjYwW+Bm6nClUr0BH2
-# 6mngkVjdup+2XBvFZf9E8Tie6Ox+fhU1lJU7M/2b9KpE6gBtjOuRmoiS8gQKthl/
-# 6bk5+C3ibA0VNO4uq8I8rcD1rsRumxHKy7FqzcZzP9IOuJtLuIaR6TyT260sKtLy
-# VVXPXTLQWm/Rx4tGNfDIB7Wr67W/ahOYgv9bEVkBMJYp6m05HU4176Qc1lstgifU
-# uhRd500GTIu6U2WmEVkd+mBB+4yV05qQgfNJANe7uGEFrLgAWYzDmn9ChM8M47Z8
-# 52vDipkwPA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgxNzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAnt9qwCLJ1oB6AVjRF6T9lkWTXub1akHoeD5VM
+# Gp3XhDANBgkqhkiG9w0BAQEFAASCAgCFq/2Prc5UkyryMIK2TZXVLZsNlAMDuM8y
+# cfNLtIYlCzwUAacJKjcikcBymO8pYGQrcjzKnF+EDFubpI+e3tVwm+gZ74BDUsNZ
+# 8P5ama5PRqmXPcE7utszva9+NMXvHZL0MHjRRiQSq/IWyTAtXzaPZpHxBRCIRBpw
+# pH7ED7rosg84mGxhqGMc5QPymq9DRY/ULKOlwAYUJ/LABVxs0QNVQtVB2AWPEtIz
+# 8Ba93pyu7ktS8+OkOMpWi6L8FGdDofn3xmBaEyBrRWCD5ypIlhJdiH5+3Mv8cXzY
+# nt8bULt/F6cot0EDLnqnGlKO0HJsdm0fMTTLWxmSoW3rK3Asxbe2wA5Gf7y95kTR
+# ItYvYwlGfPMDPDmxbiow7NNTXNzkNwIoYYRgnEbFzNe7nQ1c3aYBomkfhaGQhk07
+# zOJwOLQDvg3UPC8l2AVuIybsTtC1sHdD1tccdJ07LlOrDU2pyGdHyyB2gwSZ0WC4
+# OidGqWV9drcNYhi6POWzcmFzffsHDi5R5wsfL4OSiYgTYLltD+qNLB+10T+5B04d
+# z+/0YU4ZNFLyrepaZXdKq7PRp1dwXvgmVWIvCbtWezQ6ndqa4g0M6eRn1/NH5O1R
+# X5j4IMe8MM2Uc949NrEy0mbGElG30dU2jmDVXWr0IoxNVlJEu1vnnPqvNslMPjG8
+# 1ItZU26OfQ==
 # SIG # End signature block
