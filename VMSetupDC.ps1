@@ -834,6 +834,7 @@ Begin
         $OrganizationalUnits =
         @(
             @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
+            @{ Name = 'Domain Admins';                                         Path = "OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
         )
@@ -949,9 +950,9 @@ Begin
 
         $Users =
         @(
-            # Domain administrator
+            # Domain Admin
             @{
-                Name = 'DomainAdmin'
+                Name = 'Admin'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
                 NeverExpires = $false
@@ -1048,7 +1049,7 @@ Begin
 
         $MoveObjects =
         @(
-            # Domain controllers
+            # Domain Controllers
             @{
                 Filter = "Name -like 'DC*' -and ObjectCategory -eq 'Computer'"
                 TargetPath = "OU=Domain Controllers,$BaseDN"
@@ -1056,8 +1057,8 @@ Begin
 
             # Domain Admin
             @{
-                Filter = "Name -like 'DomainAdmin' -and ObjectCategory -eq 'Person'"
-                TargetPath = "CN=Domain Controllers,$BaseDN"
+                Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Domain Admins,OU=$DomainName,$BaseDN"
             }
 
             #########
@@ -2405,6 +2406,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
         )
@@ -2438,8 +2440,7 @@ Begin
 
         # Domain controller baselines & default
         $DomainControllerGpos += @(
-                                    @{ Name = "$DomainPrefix - User - Display Settings";      Enabled = 'Yes';  Enforced = 'Yes';  }
-                                    @{ Name = "$DomainPrefix - Computer - Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                                    @{ Name = "$DomainPrefix - Server - Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }
                                  ) +
                                  $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
@@ -2465,6 +2466,7 @@ Begin
                 @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = 'No';   }
             )
 
@@ -2482,6 +2484,15 @@ Begin
             @(
                 @{ Name = "$DomainPrefix - Firewall - Block SMB In";         Enabled = 'Yes';  Enforced = 'No';  }
                 @{ Name = "$DomainPrefix - Security - Enable LAPS";          Enabled = 'Yes';  Enforced = 'Yes';  }
+            )
+
+            ################
+            # Domain Admins
+            ################
+
+            "OU=Domain Admins,OU=$DomainName,$BaseDN" =
+            @(
+                @{ Name = "$DomainPrefix - Admin - Display Settings";      Enabled = 'Yes';  Enforced = 'Yes';  }
             )
         }
 
@@ -2504,7 +2515,7 @@ Begin
                 # Servers
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";  Enabled = 'Yes';  Enforced = 'Yes';  }
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";             Enabled = 'Yes';  Enforced = 'Yes';  }
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Computer - Display Settings";            Enabled = 'Yes';  Enforced = 'Yes';  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Server - Display Settings";            Enabled = 'Yes';  Enforced = 'Yes';  }
             }
 
             # Link tier gpos
@@ -2513,7 +2524,6 @@ Begin
                 @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Tier X - Restricted Admin";                     Enabled = 'No';   Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                Enabled = 'Yes';  Enforced = 'Yes';  }
             )
 
@@ -2673,26 +2683,22 @@ Begin
 
         foreach($Tier in @(0, 1, 2))
         {
-            $UserPolicy =
-            @(
-                # Empty
-            )
+            # Link administrator policy
+            $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
 
-            # Link administrators policy
-            $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
+                    @{ Name = "$DomainPrefix - Admin - Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                )
+            )
 
             if ($Tier -eq 2)
             {
-                # Workstations
-                $UserPolicy +=
-                @(
-                    @{ Name = "$DomainPrefix - User - Disable WPAD";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                    @{ Name = "$DomainPrefix - User - Disable WSH";   Enabled = 'No';   Enforced = 'Yes';  }
+                # Link users policy
+                $GPOLinks.Add("OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
+
+
+                    )
                 )
             }
-
-            # Link users policy
-            $GPOLinks.Add("OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
         }
 
         ############
@@ -3468,8 +3474,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBjg1vrXL0BqtihKszYvZuIBy
-# 6D2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVbq8fpPx9771i/S6Q1RpUmdY
+# lEKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3600,34 +3606,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQd7Mot
-# 7wlTnVgbqqZiKMRdFHVNyDANBgkqhkiG9w0BAQEFAASCAgB67ENKG/sjMy73hBrN
-# jeMc1PVZnXU+J82A5KMS81pL6wxgXBPegqvdKIgz3x36+lJHFtrOBt9B3UiOJpcC
-# CpeeoOlKepQ3DrDk2T3haDTBeyiI+UVXuLjg5dpzQ9qclwClj6K0/uXYYMk4yG0c
-# sjmww7xeKYVs4SzTZtsED6+paP29jpZyRC51d3FlYMGwaYBCf5iyQzJfq/lc4gbY
-# U/N03TDOF04gR3Q9yD+ntRafddDPQDo8WjDac60QEZp1O8IJGO4q2ZdiIZY1QgXA
-# UqV9eF1JrSaLf4lbNP3gHKS7VRdo29ti66rKiHmbVDbgVPoIjGK3Bhv1fL1jPk6I
-# q4lZs0JGkfNIyfJoNLJS5jtB3H+EBh/97uBlWawFdvnvfXrCJAcl/x8nu/+kd8Np
-# iAlk8ux6a7O/s5sCoMNqaBm8XC06MkvTdDZbyvPWUEocrZW6fDYCiKPbl84IPZ+9
-# 2a5nJD/e99hdiWD6sByopMS4MD0UG1r9GWhdbblykaqNi1ypukK8Z4Y0JH+OPVF+
-# NXGn6hkVbrqNeLdDoIFU1XMZ7OhcVyR14078WIYEMmduwjpMZXPupL7UiJ88OufS
-# R2OHRzLakKmTdb5xnWM/NR8zWJW/KwbbUPzCraoJ/YtZ7udB35B5DmgER9boxi0+
-# xhYOD6VzaY4qNb42kqC+rL9M2KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTZ3T/o
+# mBbG3PSVOjz7LQFpL7YsGjANBgkqhkiG9w0BAQEFAASCAgB+ve6ncmG/wGX2AXbR
+# iknVkdEDkNBJh2j1YsW+tG9HxKw8/rBfPZH5OvNkXfpN63wfcZiWMx3VpDL4Veug
+# 0SArrEaPARSdcZkbcwv76sChzfb0GN/GYNCF3yZiH+54Y4CcB5I5ZYX0BgPe6zaM
+# HAkG13XaCnIWvbZD9dotzzVY1fRL32qJGoo6eix7l8HFgTMTgMNbQqz7NLBPA/Vq
+# Qgi6VGQMJK9/G4diqjPaXnqhgwfQmAwZBcsxs7xIgTCMBrqYRkDz7u/d9DGhWImj
+# 6Vr1EsKziOjLQRFBxZVNqa1o4HXQ2shBZZhJZCZw2o7due8BdMPhKe9qCy/4sl7N
+# EAQKeOtwTkmnneqrRNSjLxHDtx7u5wm34cwJeYgWyD+or/Ii+Da1yMDEcvw+7fXz
+# /sxVpqDc24VM0Ybdb4bksxxKqibQ3cwH04ESOdMg+YFswbFFPPjKqwlbenzGV4Lz
+# +HgUUwmwJmqxKVtu07TQDDCD22SNv0iOOINsMOMM9Vc8mCOKXDjEpmhnWjhPrs7S
+# 4qWGSUU5W7qNcth+x2N+6ioxHIEeqqGUZ5qkudcQuKt6aAh0T7hMde+pgmiuMt4g
+# fO4JVLEUWD4ueK95kjPCpuCB/G/sf6fR0Fz5TR61Ehb1sZx9MVFncg14zgahalr9
+# VOKNpDahnVesBE+vm99AI0fJPaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgyMDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDytKOe9gk7vWk0IAjgU5G72kMh05bLAccnDjFQ
-# 9gNYpTANBgkqhkiG9w0BAQEFAASCAgB0MvYg0OfI23H18Inp1mqlqeP6gA9Q7VOe
-# XDHz1YZRhfycA53F3NG9A7U7pb8MbYxp2SdC1Q2tLRxXp1TKjU83e0q0tCJpCzTX
-# 0ZvO73adbdaHiHiFf9Xc/xkMlZuSFwWK9JOtwU6Zv8gkY/968uqf86yxchGi8+uk
-# 4OxVVaQ0l5hKKTq3f9Ty6jDN+h5imscyu0ybiwGhXWxNfTW+5c6Ek7gwTp7KRt/y
-# Pa+AoMff4i5S+i0DoKCfSIypUYh1nVAI7BcHylGmjd8CTQBgxl2LV5noOGNMwGb3
-# bpYfcFZWZeEUlvfPwym1NvKouOCVDhgXyoJ2cr6jRT57GD79pGsMrFp8m/wqFRrt
-# LSxw4U6FkPPYXL5htv8h8LchcyAOx5EmUohyuAkFX6bLk8WauEvYIKDMCLQYumq4
-# tQNU4ayXUIWM9hxVjQDGI4u9xX158J1Ibt5paMz4rLf+W0kxuQgl8BTtVgW0gfbM
-# gEFddRNy3u+SvqpaxPAi3DtKcAMUW3L4NF9wYjbp89gw4T+N6GcU11PHPQ3G9arU
-# B55fQAvrI78WqG5HoHs2GHdqtqR2uMMgtmxW9wmVUJQ6AUsvxEcM/3uEzLBwpw3U
-# hu7bBlWhxs2C3ugMEFtkAttapTsHwfzzzMtknrJjctyNRD+KwOeNE+PJwy0SRBuR
-# CvklLERLVw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgyMzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAPB8ZUYxhUDW4/YNYuvPbpUd/+QKgN5+/IWfeM
+# m9hn4TANBgkqhkiG9w0BAQEFAASCAgA2BzF6MWRtpY4ikQD1HRaZmfgi8C9RArWi
+# Z2hFZxCj0Y96arYfqxiE+yClxM25rsE85v5QOi+tzm70Vl0BOhge9BoA5ODD0uLQ
+# vFUdWnCUdyUvXN9JARvDPD8F7k8qWUMzOS2/26vKAXlEwKmufIA3wVssNCOp80t4
+# Z4PJrhR03M74kFENI0pM7Z0sYHZ+sR87Z1it7IXPc1G9529suquh0547fc1fkR18
+# slKPod5NlejOGrZqrV8fCiIQ55zO68RAdi+Vnx+IFUz+l9A++Zo4wz6cBu6gudGe
+# rH7XJQy3Zs73c/T8mIDS9g6k7Aw6QViO3OL43VQVQG9UkGaofbStcwnITZax7GGW
+# ETObBpeTEjDL7j7vVM9dUYZEojirmPM7yZS/f/Wfu31hgS6DsgTK+NU0AN4VSV3H
+# HrkMnLPSGr7xENL6QvxLMI+tXXQKDdIkGbkf6vCOKbdGPKdB8Yn4NKCPltOkQab3
+# 39gMzEK/guFnSAe82rVTYlcVE9Ng33/OIrpxqcnAVauXLvMrlJ64b7cIzoB+MjNl
+# lSpfJigo49JHW4Fovb6VBdsT4ZUl9D8eT0Ox8moGdcoX/8U+jcZ0LzqO0eQ15e6F
+# DFeSagXrU74zHt0zqFvsV/zDag+nO6MeSvFcpWHqHWyOo9kCzxkjp6n9tVh+duhN
+# E2NyDViB+Q==
 # SIG # End signature block

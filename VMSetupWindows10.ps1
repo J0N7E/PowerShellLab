@@ -507,12 +507,15 @@ Begin
 
         $Services =
         @(
+            # Automatic
+            @{ Name = 'LanmanWorkstation'; StartType = 'Automatic'; }
+
+            # Manual
             @{ Name = 'CertPropSvc'; StartType = 'Manual'; }
             @{ Name = 'CscService'; StartType = 'Manual'; }
             @{ Name = 'DispBrokerDesktopSvc'; StartType = 'Manual'; }
             @{ Name = 'DPS'; StartType = 'Manual'; }
             @{ Name = 'LanmanServer'; StartType = 'Manual'; }
-            @{ Name = 'LanmanWorkstation'; StartType = 'Manual'; }
             @{ Name = 'RasAuto'; StartType = 'Manual'; }
             @{ Name = 'RasMan'; StartType = 'Manual'; }
             @{ Name = 'RemoteRegistry'; StartType = 'Manual'; }
@@ -532,19 +535,19 @@ Begin
             @{ Name = 'XboxGipSvc'; StartType = 'Manual'; }
             @{ Name = 'XboxNetApiSvc'; StartType = 'Manual'; }
 
-            # Checked
-            @{ Name = 'AdobeARMservice'; StartType = 'Manual'; }
-            @{ Name = 'ALG'; StartType = 'Manual'; }
-            @{ Name = 'fdPHost'; StartType = 'Manual'; }
-            @{ Name = 'FDResPub'; StartType = 'Manual'; }
-            @{ Name = 'iphlpsvc'; StartType = 'Manual'; }
-            @{ Name = 'lmhosts'; StartType = 'Manual'; }
-            @{ Name = 'MapsBroker'; StartType = 'Manual'; }
-            @{ Name = 'NcdAutoSetup'; StartType = 'Manual'; }
-            @{ Name = 'SDRSVC'; StartType = 'Manual'; }
-            @{ Name = 'SSDPSRV'; StartType = 'Manual'; }
-            @{ Name = 'upnphost'; StartType = 'Manual'; }
-            @{ Name = 'WinRM'; StartType = 'Manual'; }
+            # Disable
+            @{ Name = 'AdobeARMservice'; StartType = 'Disabled'; }
+            @{ Name = 'ALG'; StartType = 'Disabled'; }
+            @{ Name = 'fdPHost'; StartType = 'Disabled'; }
+            @{ Name = 'FDResPub'; StartType = 'Disabled'; }
+            @{ Name = 'iphlpsvc'; StartType = 'Disabled'; }
+            @{ Name = 'lmhosts'; StartType = 'Disabled'; }
+            @{ Name = 'MapsBroker'; StartType = 'Disabled'; }
+            @{ Name = 'NcdAutoSetup'; StartType = 'Disabled'; }
+            @{ Name = 'SDRSVC'; StartType = 'Disabled'; }
+            @{ Name = 'SSDPSRV'; StartType = 'Disabled'; }
+            @{ Name = 'upnphost'; StartType = 'Disabled'; }
+            @{ Name = 'WinRM'; StartType = 'Disabled'; }
 
 
 <#
@@ -691,8 +694,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAthSkIaCLAr9fI1Kgi7w00KB
-# C2+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/c/dBY1Y6q0NQ4eql2B3yVVs
+# X1SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -823,34 +826,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSHJTUb
-# Tfsqo0w5UPs1iYlLsfUidTANBgkqhkiG9w0BAQEFAASCAgAsDLvoOvPlrSz1qaBJ
-# Jfi1Hyb7pMg4BNJstqoDGEZKcYV9CIr6m1fGzAhERTYwOwES+TGfdCdDFmEk1wZR
-# uXGaBOqpt/I5v0xbeNKWLGrdPxb/mnky4FpmXOXiNyrQMUkeFC4H5d9rq43phYNu
-# uIht5FM/1G2H6jwF3kJ2VrcufPrfGGHArfvUY8dou2UJazJibu7FQLcUKsufSGv3
-# Xgk6HJmiIwmK8tNjko2va4RhTmNqetC8m1EtqMrgqAXYnkeW1JBiFXoaL20IFTJ8
-# A3Ix+cC68dPq9EOMxkkKDdJMuclst1anHxTmCaLxF9RrUh4gmYe+WcyCt/et3lgV
-# Gs1+S4j/QKXtAz8oM8s4zeuo/8DtKRDlTMV4na94nHS04sP5Qjpj9HbF7u0VxlCy
-# R11Wthi+skIzyQWzjd+ZuRqCdrc2q7P9v+abkAB/m8LiWOn/mu3xNZvTTZKaWeIG
-# 0JMdKCGEmbSTS9Jm2TxQ9djgZb0DDZ9B1qwJ52uU4eihESJB/+I34A5NjeLJ7MVa
-# IY+AK1UGCKmGOihCIX3Pef219NbXFVqoYtMzotpjourWvd1/ZUWLBjpF+RFR35do
-# ELn0hxuWtpQRJq2AdkzzaYIHCErSXjBjLLomzRNouvYhjTZ9ACp95mZJ8RZ7xHGS
-# ZQwwrqQGtASMTD6OygG/BxKs0aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSHvWU8
+# aXQIyht/JGE4P+Wc/O0/JDANBgkqhkiG9w0BAQEFAASCAgA9xuP1LEa7xcXIsVL6
+# vzezRJvmhjrjtAj9MP5xnwgbWY3WcH4BrbLOMhtgSlKSmHxmXhTUZvVZJSayFxVu
+# MKXRpmguoyg+I+ipnZsU8xlgdQXnvNs1Ke3CSqHgRRd0f9I0TLcDListaSjBDxOJ
+# Bf+xUqd06TliGo9D9+26VpvAepivdM5lS2GrcO106vERUM4q70dE89TPr1JbvgDh
+# XfCjk0CFs8Q3rYcG/ZkZI4JEt2ECzn+sD5l8WqpubFhk486dm2NWdfSoXz6y7ai0
+# 9XWfoqC5EUbIS9hsypfxq6jnXJ75jJkpEPPMtIgfoFWMF83jenXKz92rhe/k0oXF
+# 2RixKTFvO+fBz26fMTcyZ0VsoWi6IMB1Nh9Xs9Xdv8V2zeb6VpFPT1yW8qVLUwTK
+# xl6a62Ow7eRH/yodgFPNtLUehOMcSA69cE57EgkOFxVuMgaXJOJaINTVnKjr2fv3
+# eQjfvdbZjaEgB190BHpTsFdoYmn+BTmRHh4suLG6d8eeQ0ajEgQ8F2MILdPTX/AW
+# 50CxhShkIxA3B1MwRLdrNlNtKjb4F0u+CR0ULw+jkHINC9ZdK27bJpjtHZbE3zz2
+# roxNlwOvUHkRS1tygupywTAqEUFti924qnyVXfQrccFuh0rnKkDCOK/NY4a6d/zs
+# QmdHn01EMo54q409eoYYGR8pZKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgyMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDO/LFVeQpTL00gEiCxoXIVbyt0NnyJn2ku7LDB
-# xVwXoDANBgkqhkiG9w0BAQEFAASCAgCGP6etrThBsxxn9luQLC+biHPFNGtROBvW
-# hWgwnA+mDL65Xgs2nyRa56Y4fgYPyzaWbUV00ydkFNaOxR1IgH3gR6mUdZ7Jw+K1
-# 6+dwxZqMPhn9ixhl3c51of8z+Zv9QYJsLPkVTMi7DmDlUfwsYF97jwNv8wKrtoFl
-# hhjecwNWYFza/O60gXvLc/NRToPv8r+Z6ADiSOMUu1I7Y6SFEQtpdIaPHsjtcn56
-# EyziaHBL+BtxxYUKoPeullG5ht1Y7KLhoz3HiT2suYwBrJGX0O8sUoEZcW+JZ/8/
-# 9iumN92hgb52srKlYTJWlNGPRk1SklCqjnjNcLCSF8qdrpQln2NAPiFv4n5fmtfp
-# Q5Lc9BkVTqyZCqCTvQEnKoAIDDCvIOwvdr+89bfivJo3SALOlaSd/tgUdnCPf/Ka
-# +qhQshC4bWSPtDSDnPMMLNtJCfVrKOJXNZGUGFS4NLXJW3t4dpNfhWEZeps8Qnj4
-# TnkdcAmkJBfWLotBobxwgv4NPiudExpKH1ABgCwZ7eU6YfvHVPjwBVkTLat8aII0
-# La9NDPZ1eSeRPywFCRdgA0mJKIMUrl/06gTivLCrWN/R0phr0IQGptWM+uZtY8Dv
-# gFZRRqO2NOI8TxqeFIQ94N+AYiElwtBHx6lY+FcK1+EPr69gCRoLTCT5dxjQPF+Z
-# UuLBUxcXfA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgyMzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDMjHKq7Ebe0YawRT+hxzFvLT4oG0e0x161GmT3
+# lRgqBjANBgkqhkiG9w0BAQEFAASCAgBSdR5hmlQ9V5CpkdD0EGCmPNk7/G3dNWX0
+# GdNHDj1QV3VKNjDMdj1pCumq8rGdudjMHt00fARNevN78PtT1Vj1oYBjI70pBJQD
+# 2yC4229ntrhGKKvHfLqqYlPWNVRixhiHv+NucfKRJ4Q/YMTOrfxIUwDj2Q7bYO4A
+# DAS1fx3oFWB6vIRstuBaggyHVZIPf6qMvj41pEeInjdZOcyZmQ2cmoQe+9+Phypn
+# oUPMmuZPjegbAaSn228aUzP6RbKIOMyx3OmAfCbgwdUff+228NBgUkii6Er+DCoG
+# G0rhgoKaR3sfhk0ggFCcoNK75MXI5XWnd36Yw13QNUTbGKchtSm+lut5SXRNgur+
+# SmOi/4iXcrEe9DdWRcUaM1rD+IOtJ71zhQJOfjdmvmvMIYPWzxy2IJNb3WZRYgEm
+# EpglkpW4ErKc49fr3pPyqSwVnfNb2HVaLkRqaOzYjP+/CtBE1UbklkKURqfbnNQF
+# UgM7GQDvfofMMeblzl9RP3bpf/O70P9KoAkbO7XBX9awQ0BSZJHuLnmQ0UPL4aOE
+# vQ0t3AOJ/lWzefdFy4mIRXk2oXYMpn7gYyPDuiq/j8LxAbjGtT4EvTFG34H6A+HL
+# amGoVquQPkliIDuAm9kx7ElCavP9MIpUZGx1riWzLsuILeOiLH0S8XRDPXyCd4cK
+# vL0lbfgAQA==
 # SIG # End signature block
