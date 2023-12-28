@@ -707,28 +707,18 @@ Begin
                 Version = '1607'
                 Server = 'Windows Server 2016 (14393)'
                 ServerEndOfSupport = '2027-01-12'
-                Workstation = 'Windows 10 1607 (14393)'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 1607 and Server 2016 - Domain Security';             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 1607 and Server 2016 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 1607 - Computer';                          Enabled = 'No';   Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 1607 - User';                              Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '17763' = # Windows Server 2019 / Windows 10 1809
@@ -736,47 +726,33 @@ Begin
                 Version = '1809'
                 Server = 'Windows Server 2019 (17763)'
                 ServerEndOfSupport = '2029-01-09'
-                Workstation = 'Windows 10 1809 (17763)'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 1809 and Server 2019 - Domain Security';             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 1809 and Server 2019 - Defender Antivirus';          Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 1809 - Computer';                          Enabled = 'No';   Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 1809 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2019 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 1809 - User';                              Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '19045' = # Windows 10 22H2
             @{
                 Version = '22H2'
                 Workstation = 'Windows 10 22H2 (19045)'
+                WorkstationEndOfSupport = '2025-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - Computer';             Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 22H2 (Windows 10) - User';                 Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '20348' = # Windows Server 2022
@@ -786,68 +762,61 @@ Begin
                 ServerEndOfSupport = '2031-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';                         Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                      Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - Computer';    Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Member Server';                           Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';                       Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows Server 2022) - User';        Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22000' = # Windows 11 21H2
             @{
                 Version = '21H2'
                 Workstation = 'Windows 11 21H2 (22000)'
+                WorkstationEndOfSupport = '2024-10-08'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - Computer';             Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                UserBaseline =
-                @(
-                    @{ Name = 'MSFT Internet Explorer 11 21H2 (Windows 11) - User';                 Enabled = 'No';   Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22621' = # Windows 11 22H2
             @{
                 Version = '22H2'
                 Workstation = 'Windows 11 22H2 (22621)'
+                WorkstationEndOfSupport = '2025-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
             '22631' = # Windows 11 23H2
             @{
                 Version = '23H2'
                 Workstation = 'Windows 11 23H2 (22631)'
+                WorkstationEndOfSupport = '2026-11-10'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';                             Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';                          Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                                    Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
         }
@@ -2487,9 +2456,10 @@ Begin
                 @{ Name = "$DomainPrefix - Domain - Firewall - Settings";                Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Firewall - Block Legacy Protocols";  Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - WinRM HTTPS";                        Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Remote Desktop";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = 'No';   }
             )
 
@@ -2691,28 +2661,6 @@ Begin
             )
         }
 
-        ########
-        # Users
-        ########
-
-        # Initialize
-        $UserServerBaseline = @()
-        $UserWorkstationBaseline = @()
-
-        # Get baseline for all versions from winver
-        foreach($Build in $WinBuilds.GetEnumerator())
-        {
-            if ($Build.Value.Server -and $Build.Value.UserBaseline)
-            {
-                $UserServerBaseline += $Build.Value.UserBaseline
-            }
-
-            if ($Build.Value.Workstation -and $Build.Value.UserBaseline)
-            {
-                $UserWorkstationBaseline += $Build.Value.UserBaseline
-            }
-        }
-
         ###########
         # Users
         # Tier 0-2
@@ -2720,14 +2668,6 @@ Begin
 
         foreach($Tier in @(0, 1, 2))
         {
-            $UserPolicy =
-            @(
-                # Empty
-            )
-
-            # Link administrators policy
-            $GPOLinks.Add("OU=Administrators,OU=Tier $Tier,OU=$DomainName,$BaseDN", $UserPolicy)
-
             if ($Tier -eq 2)
             {
                 # Workstations
@@ -2736,13 +2676,6 @@ Begin
                     @{ Name = "$DomainPrefix - User - Disable WPAD";  Enabled = 'Yes';  Enforced = 'Yes';  }
                     @{ Name = "$DomainPrefix - User - Disable WSH";   Enabled = 'No';   Enforced = 'Yes';  }
                 )
-
-                $UserPolicy += $UserWorkstationBaseline
-            }
-            else
-            {
-                # Servers
-                $UserPolicy +=  $UserServerBaseline
             }
 
             # Link users policy
@@ -2850,62 +2783,6 @@ Begin
                 else
                 {
                     ShouldProcess @WhatIfSplat -Message "Gpo not found, couldn't link `"$($Gpo.Name)`" -> `"$TargetShort`"" -WriteWarning > $null
-                }
-            }
-        }
-
-        ##############
-        # Permissions
-        ##############
-
-        foreach($Tier in @(0, 1, 2))
-        {
-            foreach ($GpoName in (Get-GPInheritance -Target "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN").GpoLinks | Select-Object -ExpandProperty DisplayName)
-            {
-                $Build = ($WinBuilds.GetEnumerator() | Where-Object { $_.Value.UserBaseline.Where({ $_.Name -eq $GpoName }) }).Key
-
-                if ($Build)
-                {
-                    # Set groups
-                    $GpoPermissionGroups = @('Domain Users')
-
-                    if ($Tier -eq 2)
-                    {
-                        # Add workstation group
-                        if ($WinBuilds.Item($Build).Workstation)
-                        {
-                            $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Workstation)"
-                        }
-                    }
-                    else
-                    {
-                        # Add server group
-                        if ($WinBuilds.Item($Build).Server)
-                        {
-                            $GpoPermissionGroups += "Tier $Tier - $($WinBuilds.Item($Build).Server)"
-                        }
-                    }
-
-                    # Itterate groups
-                    foreach ($Group in $GpoPermissionGroups)
-                    {
-                        # Set permission
-                        if ((Get-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -ErrorAction SilentlyContinue ).Permission -ne 'GpoApply' -and
-                            (ShouldProcess @WhatIfSplat -Message "Setting `"$Group`" GpoApply to `"$GpoName`" gpo." @VerboseSplat))
-                        {
-                            Set-GPPermission -Name $GpoName -TargetName $Group -TargetType Group -PermissionLevel GpoApply > $null
-                        }
-                    }
-
-                    if ($RemoveAuthenticatedUsersFromUserGpos.IsPresent)
-                    {
-                        # Remove authenticated user
-                        if ((Get-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -ErrorAction SilentlyContinue) -and
-                            (ShouldProcess @WhatIfSplat -Message "Removing `"Authenticated Users`" from `"$GpoName`" gpo." @VerboseSplat))
-                        {
-                            Set-GPPermission -Name $GpoName -TargetName 'Authenticated Users' -TargetType Group -PermissionLevel None -Confirm:$false > $nul
-                        }
-                    }
                 }
             }
         }
@@ -3578,8 +3455,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDC5izMVBby3sEtiglCC11UbR
-# MXegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUS+JWiOenokHX7ugAAOVg3PD5
+# x7agghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3710,34 +3587,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTmL4Bs
-# u0LBwxPXwBbqryrYWG9xaDANBgkqhkiG9w0BAQEFAASCAgC1wKoqXStzo6c2AeT/
-# RptnmOPWQTQdXJ1nSH3nNVYO1RLC4stmlN9voINLFXjQZBfSm18Srl4KsTlEOysW
-# 667Lzztz99N0/1y1DCN7biMWZ00iaY5MAfEfed09W2Kp41JVLmi/LoQVtWQ9Als7
-# wH0Re6COHXnKObeBr79Q4eWfbOYX8n8wNFOEvDh9U4UcJ7PQy/tRprwbePKJmdad
-# pEMD9IPYxTUT6hLwCydznt0EsYjHUKVmIyKbP0+McNCTVh6XYbEpzafABILDDQzY
-# G1UiGzlNZ6kNlbPzzDbczOj4DUveewZFwyu2bUemOSNSR3ys/mu5cxTIJs5ffeWS
-# JvF7CWFT+w0O+gQnU9BwJyqBeGM0Z9xpFcE89l2Yy0D8P9uJ+/jAc+Q8//pMu5id
-# nTQqnkfcWKbVBwwk/E3XP/gV6DCMpO9mUmm+H0cV7PMtMIDHt/IWeyOGwYiw900c
-# L0cHRNPJ62GRRO1U/46zfbQ/WWCm7sYfh1l7hqwz4huAR/z25XSxljWFwLUMqjFi
-# UXBQznWDgICd/CmmWB3LSiHtRdHUQuK47IBGcyYVVh0RjlPA+91lG2vvH0i77L49
-# D9f012fTkC2JxgQdfqD7LIx2GKIvmgDknpsQkh6UmABtLYC8UkvUKeLdKTAIfNbT
-# Xl1fYke+NkJMLZ4qne9gxvah76GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS1Q6eA
+# 3SZd5zz8hDSJJox0A8K/YjANBgkqhkiG9w0BAQEFAASCAgCTnGaog9QAeL2T+HEz
+# Xxwq+imsMJh6nc3CdzvjvqtbBeBsqnNC1giNH2cvUNyRXsw1Lxq7auYed3AGhXg6
+# R6LWtRPNsuvAY4OV15i0pmfaxDXrQ7ahw5u1EEjmhfAH9sbDy+2dY4Dfkqc6AsnB
+# mVng6Cm8ExNGcmi0dSynifadcaMVn48Me6UcXUqaNljw8feI1NERJ7+EeR/MLZba
+# F/szK9QW2eEmDXQzx6y2HlC6bkpiCbpzd24JK6G9xsTN+vm+4J33VKfo4KbdYpHs
+# 8736TWVn8IKbQLu4wp3KHJm+RCjyDSW8pIb9iaQzWq3oiCm89GXqkf74xAZFAeSl
+# ZF3djxEb9y7cellOJqMiRBB/vmrrjsKcHhuwvPnH5Pu7TFsGwFXEzc1TTW5t3ory
+# 9qLli2rNj0yuhIgA0WvDkIAH+CHR1HHSVg4tfch4CwLhTsptakM3aSY8Vi3ONPNv
+# Ema9OFm2jeZ7lFZV9Xis6006oEAaqJ9TaGR1DLcNXBuxC4Dphcefi3erFfxBPrFY
+# sxxL8gYh/1Dht3+pAD4AXICAXRDUS75Ac+m9z+WNytLPSVrVXa6hDKDoXkiwvDmY
+# Ub0JI+6EUJCjQooF0znKGy9g3DyuQINeSuUVNfYYOTUJr3t5Qi46HxGn7Th446yw
+# k0ZRD1S2/pqP5Mug4wxxIuubS6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgxODAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCAPkdx0eFmYd3svYYYAaTMfhEbllhwxGtINsb0q
-# 8JWHEjANBgkqhkiG9w0BAQEFAASCAgAMa832efHsCvmwea2MBfOO1AehBOXdZqI8
-# z03WRY1rGMD/nRs6UTT/PGATodv0I3sLmp9lHXalfKk9z3vZJ7uh80RY4IzWVv6R
-# PZH5WcUEzePjo1cT6vQQxDJHQum7JH3Gt+06ml/isLmmf/WFdWqGqBmQWpSfElCQ
-# fnPfuEjnDHkQtmXEsNEPbAVlo7M/8T5tPx1/tU0f8lPDAL1Wy7cRa589593TQwXz
-# xnZUBotdYgpumvkpCFXZir08ElMq9K7euNBMJm8wmEnnupAfql1Ql8/e0RJFAcGT
-# 2eBb7rGdpJ23zWnA10KsN/PJsytnffVd0G9uf64gszXOACSf1KKeLJ1L1JyIeC8D
-# yYZwuIqyDAOaEbd107i6xBeCRGdF9TwdLkmtjQYibaMmLy7XVSo08+Opta5pUdmE
-# d70vi8u6uWjTjUow5XuCcC7IOjfQ7fSthWNzEtr0cTOfqEwJC5rctayltwYJdDRq
-# psGrqkpL2mNvgDU0BVLicOgAL5u1ncjrR4NDezaW8n3Wnu5McS5YmZgbLedGVJdi
-# rEL7CmAoKUvOGXMkRCP/EPPLxbq68s+joCkp7GV9VOruVeuqQLfUFb4RMrK7vw1e
-# bJWO3v4titX5X/SQpBpdAJ5JNV9iBQj+XEHDgQP3OOs9uKr6afUkit8R0RBCeEUP
-# Gay3vt7EOA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMjgxOTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAszCzsHfRsasGJRTPOC9zCY+X2rzIwEMHpJdlY
+# 8yw5KjANBgkqhkiG9w0BAQEFAASCAgALb70nIzbPGZKEHRt36Nq2fOe7vGUDViFA
+# Wnx2kiIg8V5Hkawn1tck4CSf5hpZhu1g7gPYtXs+2H5cCwnirntq5VjPbATsbE9B
+# pv/okFkVMuSihQ2pK8yQyyz2mbnI66whI0x0JJslE67QmSwy4H2LMwW4iYvrerqx
+# EktdJe94pyRijNHauTeUqQj8jntOTfpkAe9c/etRrB0aZT8TB+qi5k4rBMePKGen
+# 1ho8wAH/dlaCiSeZWJyBPlB++cGIjdUsdlHBg00WSpHkwXzFUaaiJsTcKiCjhDgr
+# N4QmBo+dXtxjONg7PADV+1jqDh11Z29hPjfcQhw/+pAwTDEtFkGxpWTz1uLfOV9M
+# a7V+gHRXg/VB+pmW6z39NlOpfI7daEQzOw/iF0pdcKQ0nGx+zIWXwHiUo4Nyq4wj
+# H2+i6q8O9csgVIpuAOs7LO9+m2n8PlcQuWahK2hvwtfwcS8+M0GecSwLqacIzEnU
+# c9P4x0H3NrFRh55a+Na3TpYIasZH9rbXhWZsayTPuKvWc5FkKRdVvg7vV+so0hV2
+# CqYgyV8XY34oX3yyijm8+KsKLDq2QnJ6wBwvO0TMAjhRmeNwKD20LSVOUd5jJd0K
+# HU7mmL/UcZl93J6JCy72vZou3c64XYdepQRn9y80p9ikmiYBn1g+soma1Gw1gQaO
+# HW2rSaxYTg==
 # SIG # End signature block
