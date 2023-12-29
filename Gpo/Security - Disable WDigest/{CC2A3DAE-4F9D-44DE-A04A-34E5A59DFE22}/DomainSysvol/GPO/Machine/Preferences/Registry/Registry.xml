@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="Negotiate" status="Negotiate" image="12" changed="2023-12-28 17:14:49" uid="{2697888D-959B-40A7-93A6-EFD6462B1993}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="System\CurrentControlSet\Control\SecurityProviders\WDigest" name="Negotiate" type="REG_DWORD" value="00000000"/></Registry>
+	<Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="UseLogonCredential" status="UseLogonCredential" image="12" changed="2023-12-28 17:15:05" uid="{09722673-A2EC-44A0-BA65-4CC4B3A091F2}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="System\CurrentControlSet\Control\SecurityProviders\WDigest" name="UseLogonCredential" type="REG_DWORD" value="00000000"/></Registry>
+</RegistrySettings>
