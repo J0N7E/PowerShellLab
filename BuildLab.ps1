@@ -789,71 +789,6 @@ Process
                             -DomainName $Settings.DomainName `
                             -DomainNetbiosName $Settings.DomainNetBiosName `
                             -DomainLocalPassword $Settings.Pswd
-
-            <#
-            # Add new computer object
-            $Result = Invoke-Command @DC @Lac -ScriptBlock {
-
-                # Set variables
-                $DomainJoin      = $Using:DomainJoin
-                $DomainName      = $Using:DomainName
-                $VerboseSplat    = $Using:VerboseSplat
-                $Result          = @()
-
-                foreach ($Computer in $DomainJoin)
-                {
-                    if (-not (Get-ADComputer -Filter "Name -like '$Computer' -and ObjectCategory -eq 'Computer'" -ErrorAction SilentlyContinue))
-                    {
-                        # Set joinblob path
-                        $JoinBlobFullName = "$env:TEMP\Join-$Computer.blob"
-
-                        Write-Verbose -Message "Djoin $Computer to $DomainName..." @VerboseSplat
-
-                        djoin.exe /PROVISION /DOMAIN $DomainName /MACHINE $Computer /SAVEFILE "$($JoinBlobFullName)" > $null
-
-                        # Get blob
-                        $JoinBlob = Get-Item -Path "$($JoinBlobFullName)"
-
-                        # Return blob
-                        $Result += @{ File = @{ FileObj = $JoinBlob; FileContent = (Get-Content -Raw -Encoding Byte -Path $JoinBlob.FullName); }}
-
-                        # Cleanup
-                        Remove-Item -Path "$($JoinBlob.FullName)"
-                    }
-                }
-
-                Write-Output -InputObject $Result
-            }
-
-            # Handle result
-            if ($Result)
-            {
-                foreach($Row in $Result)
-                {
-                    if ($Row -is [Hashtable])
-                    {
-                        foreach($Item in $Row.GetEnumerator())
-                        {
-                            # Save in temp
-                            Set-Content -AsByteStream -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Value $Item.Value.Item('FileContent')
-
-                            # Set original timestamps
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name CreationTime -Value $Item.Value.Item('FileObj').CreationTime
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastWriteTime -Value $Item.Value.Item('FileObj').LastWriteTime
-                            Set-ItemProperty -Path "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -Name LastAccessTime -Value $Item.Value.Item('FileObj').LastAccessTime
-
-                            # Move to script root if different
-                            Copy-DifferentItem -SourcePath "$env:TEMP\$($Item.Value.Item('FileObj').Name)" -RemoveSourceFile -TargetPath "$PSScriptRoot\$($Item.Value.Item('FileObj').Name)" @VerboseSplat
-                        }
-                    }
-                    else
-                    {
-                        Write-Warning -Message 'Unexpected result:'
-                        Write-Host -Object $Row
-                    }
-                }
-            }
-            #>
         }
 
         # Publish root certificate to domain
@@ -1172,8 +1107,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzufwiwMkg2sHoWRudzhr/jhu
-# egqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOuqNRtMMQfOCR6MtjkZ2uLvR
+# SuWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1304,34 +1239,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR/d7cJ
-# grTfaTWg3FRS8VNS2QWx3jANBgkqhkiG9w0BAQEFAASCAgCq+qeyMQIsWSipcfe8
-# jo5bKP/smgZzryyBRgwSaMbKAJOePks2T5YzC89pR9mC2K2v9OwUM8/uYR5BsSyu
-# cq9TDRcHbibLHSA8rKyezIGkKgwjNoF5w1cwJi/zD7oLt7uoDgd+dEp0hEwT4YqU
-# 5ZPuFpOU0Xn6Pga6xtJtbuXAIfp87KApGi5DEYet5F9tFcH6x3eptKEdGlYYJRNn
-# 58uoglPwDB2CWiuJYZeZ9Daa/vlmJBCMf64JUv03cKsiV166Ombk/0B5csLpc9pO
-# xsvzVroO1/Q3kLgKAHf24rfbyOsAl071MfZPyXoaUtWN/BzebePrKjIlThUI78MU
-# qYiaEzVR7ucNH0+bAM27Vkjsdy/T8R2VSzcdytCPXye1Eleue9tqLZTM/T2ieavs
-# PoJZMGYRVBUxhy8FqmG9tHdCxM/eLr/6xZ2Ycpi2P7Apufyq8g4+ZUhqSy9STsVI
-# BEtWbysGYxBn/w/Ph/uAhbFSsXYnEr5D5f/csRTETADLoUbIB5oDy2UOc0tjG/AY
-# zAyKaKr5/uj34quQNUpxNSEGgZ6yhTzdS71HRsGCWlIWGlL3zH49/xsY+egzarNT
-# HQgehzA6kFzs3eE/PWSzzwUr356VqQZwrrO6z970sRPmxOKXWqfcLlI2VzXCMgvN
-# HJ5qA46lNuL29PBY77yeeufYGKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQms4m0
+# wpvg+At8EWp/vBSMBxdqsDANBgkqhkiG9w0BAQEFAASCAgBgHS8wPePqC2NibrOx
+# 2ze09QPToBkhdzo2Z3NXHHu4Al1un2ZYOUuDbVk7xOo9LcQmVNcKrECCormjVr/p
+# fyzhbYO8i3z2H8zNads1ipRqfgZqsHZbmckfSgEB7Y2QkRSZ/FHiupiOCjyl0YPM
+# x1eGoCaXJo3xwhhxQatzGf5zfxRSSbfoPRyZb73XSUi+UVk6S/xC4Ge3YNvWSFmE
+# 3OPgS0sZuT5du27HNaU4DvNPrqtcIKGYl4CtvwZN9JEAH19/oGB0ncD7y8Tu8Hv3
+# q/eorVtJ1ATDucBz6G8WBFqJsdMA7niiySFh/hfZd6RLh0sw9zaC5l0cuTEQfskl
+# M6Kgbp3V7y2dWeT8wWecT8KZzWG0IobxRnU/3V2Ws1FJca9jhpVn7IJJFNHbd09a
+# nigX/ZRJUf9OXVsv3W5XgAMKvako9O4y5rL/RSIr5n/Rc7EQepN4ueOvPgNlartz
+# Hov6aoEwY3Oec8Q8J7l7kmdM9/zHaAO9rsYm8i03/M9mwLyPWqVPN24imlZTFNRu
+# neJ2Up4k4AjfOahlZG9U8nrXhizyORq4SaIp2sx61W1Vx9y31XlAO7jKi95Os1mr
+# mfImOJ0LWRefy2Hc1kLp2fmPwYWTXpI4C6I+EKgiycalDtCsvz3wMRQWBfW5HNkU
+# b6Xd3KQ03SLmWK/Uh0Us+7nBDqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMzAxMTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCBuMXq3scrz1vKApYzSxfHXOSS4Av69tTODO+Kc
-# 6VIq3DANBgkqhkiG9w0BAQEFAASCAgBBEyhgFk7kgUk85nPFzKIs5PnOhFhFbiE/
-# NVPveN+8IzEPSIvAMSRNRwFuvotp3tIWTQGAnNwAC+KK04/MEeFo0hup0HDi1LeE
-# iJLx5DLB3d9kMdiqjPUAKTBsTCHIYdog0kBB7EjTCzadOVvYILbPCmLsF638EAAL
-# x3aMfsoR2cTjiVF+mD4u5CeSxRzgfLc/uKQPcn7fUvIT9GYUea7fy7pBMnWzIYEd
-# bK+/6ZASnD7+GIomd2Ubyiyzd/NRJQHAhSlvJ3bnMOd3BZk1tE8oGHf9RlIC0EmX
-# ryuMB9Huq0gVxQaOJfDPsvKv059eZ6CCdcoxDCq0KFT4pEZq/hnNzByYWveC8Hq7
-# dfNEU5Is9b+US6GNqlKbfIOi6BdlLSrFreDjh3GxhawhsPvSe2j5J/HzwO+9UPya
-# uCxXT2O69ixprKT3Rn1xPguGqFRWjFyS1tijpe+1fCeow1JoqT0x1p5OQwKYeDsT
-# 9G4ssF4oejVEzt21nwaZxrrnHLQK7ObemzEszSLyGNlneVcErxp+OzdO1NNT8GdP
-# lVQotBzLCAIfX2eJ7CKnbRtsuVPV9T2k4dbgozJdmgT+VUrIgbnGlxQpfGipJnqA
-# b1dAk4G3jt6fQtOfPdt+wxcDzg0IxQsQaUbys7n6ZZ/DaJLEpMVhguEj9pFiUFYm
-# 4ilHzK5mEQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMDEwMjAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCDB61bDLS6Aq+hdWEQjYMnb6yz1Wug9INJ++d4Y
+# MM1H0jANBgkqhkiG9w0BAQEFAASCAgB/O1y1k2PFWGS2ACPGnTqJN2uD3c3oKWhR
+# zundcZ6bJmJ4fgE3vEao4AQAxQys6FoXF/YxclKEK7O8YA7YyqPXZXaKg9fxMInr
+# YVHK/xOt+Fxy3SvMPYMOlZ1tcjXMYcQR56owPxrvUrJC6oVN5/BT53N1yoZshIBR
+# Qha9g19VOTsnYdrQvH19qQkXwDCTKyvmhy9NONSBIieulxXWsFsSBkQ9KVPUyPPd
+# O22NsuE10rUAv7O78QynNbSLA22Du6X5kjAopqX5HwOgsehAhkBmD69AaKTA6qa7
+# 8HCj1lyFujcr/7aP7keKtP0YtwomwznBxmGqa0IVzdAmcSxIYal8eouJ6FXXTe5Q
+# 95wdStVlw9znq0culo2xAsYSRIWIYCyNuvItrQ6QXdyewQkkRXEAdeVpbfj/u0/n
+# wlieTnS3+shJoOW81XUuwCB8Y5tnj1wHQnnJRq+mSGtR5hHGvZTBgvkCRe//z50y
+# XV5KS6c0GOs/FJhN+skQFim2d4tA133eaIfbUFNyxVOskwVrUfPYffLj3fyljrAM
+# Y8oC+XpAOvpbwo6sALKEVYkqWyQkO/zhha0LMTrqMLC8cs7pbf/JR38eUE3LEciv
+# eBGte2Bey/FXgNMFpYZLEK+CjZoX7YP4a+TCxk19M/5eCPJD60ihLq6/z0wi18ud
+# WWocW2nIxA==
 # SIG # End signature block
