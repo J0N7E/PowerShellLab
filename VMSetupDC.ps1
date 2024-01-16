@@ -2403,7 +2403,6 @@ Begin
         $DomainSecurity =
         @(
             @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Client Kerberos Armoring";              Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = 'Yes';  Enforced = 'Yes';  }
@@ -2411,8 +2410,9 @@ Begin
             @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable Client Kerberos Armoring";       Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
@@ -2433,7 +2433,7 @@ Begin
             @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - IPSec - Domain Controller";                                   Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
         ) +
         $DomainSecurity
@@ -2494,8 +2494,8 @@ Begin
 
             "OU=$DomainName,$BaseDN" =
             @(
-                @{ Name = "$DomainPrefix - Firewall - Block SMB In";         Enabled = 'Yes';  Enforced = 'No';  }
-                @{ Name = "$DomainPrefix - Security - Enable LAPS";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = 'Yes';  Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - Security - Enable LAPS";                      Enabled = 'Yes';  Enforced = 'Yes';  }
             )
 
             ################
@@ -3487,8 +3487,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyLkNZntzAP0NKo8TISxaPcim
-# 9/mgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4dX41VdJicoTRNNipTVRojZg
+# IK6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3619,34 +3619,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQtySph
-# cWkFy+zlemfGsV000zRNtTANBgkqhkiG9w0BAQEFAASCAgB/XatJ9ZkRUJ4HzPWP
-# DrgAY+BNGY14fed5ZHOn0GAV+KmseJG+u0euvVA+E/fspHtEKT06HaLDyzC6YJvR
-# 5dWx0aYmFAlicJ4TdtP3zOkOzl+W4KYD/lBOPmEN+oGIlRZg+YzI3dU6DaEe1sOA
-# LCtccP7d4Qqs1xwlUMPcUhaxFGc8v7Hdmtrh3QSE9jZcLr3nfncmgFRxysibZqyS
-# GugfSHM2QnEZFCU6T97jhTuY0cgPF33iFTVP/LSJxYIJZjh/76r+FophZmL2yGZQ
-# /mOavRwbCnDyPlKQoPsTX51cwiviAIfNkbhN0CaHATIw9IoOlpi2kkNFI0ek2l+h
-# J9ZnMosvzqk5EBINgFbASuBUcmoejnGrW4VFGHWutqIpps16IePmfQ3xSmQuuWr3
-# 9v48QJG47rpRs1uR8RuI7s7GbZLh8FXmZXkE8WVSgJ/mV9KZQ1mrfXLJaGJq4tbP
-# dAKK1ipvf7g/I7ns8GOif+O0zWx4KSl+ORbllhWsJ7RHRyQ8qsKAjnZjH3dCjnwH
-# iP6m1Fn/0v3V5QNCXiqnYu2Ds7BCPJ983x70pmM07rPk1TY3qVlPEoPZIJ0xQpnz
-# KLLwu6hxXEoQcC2KU3l+G3eaP5oWMXWuS19/NvskV7fa+mAOAvYTXJt32M8mJQ52
-# iu4ItwQd4UVYzFjnMrrzGEFilKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQn01mf
+# ppgTBCkU/BAySdQFw5cH/TANBgkqhkiG9w0BAQEFAASCAgCzZTpz4v/IL53NHARO
+# 8WgZ64lyu1Ol6bMkTDoV5d2ja/kC5YeazawlLaWR5ZeDW3+XGDJIv+nN4P0fGd2f
+# dDd84U/DE1Q9kQa/mwjmNT0/PpMJYV7OQsqwXCqByuNRVL6/seKVM6MuP5707GEc
+# MygA3MTM0BOxvYde9+VSKv5rM8qMVYwKK4zPuaDeOVKrEMpfRhyPw8KQjdsQ5gcU
+# sEQbrA3dU1072Ta5AI43eyXsVBjTJWa1D+gsWUaAmxE0ltOpFl7yXDTWtPh5EBAV
+# DxfJt1oUUlxTiG2KSaAbb77Tvy+MNbK4YeFWUdu4W9zKVvC0FlV6edqdK87Ut9iL
+# es1/MNr3gK+zphKChVm3skjs1roxEzH+8MLt0B56asl/1HEe6mo3QKGZ+mm4sqG8
+# cKTsQHqCYBa+/lkghv0er26WmwTm4x8Vqp2l3usFa1/jxL3T17srkmdkjvdTlhUo
+# c0bH26suUsyKEVMIOIaUG1DB5q9uJqV6pHqNoAn6NxJDuGtjj/ENnrgmRj/cCeaL
+# 9TJXrkCYwaIzqAUQnXELQkaFtYP5fRRPKZLPHFwlBrF9lVvgokm7dCLULUTJ1HHw
+# CgoKzLrJ+q8tphL1QnxgwhnqR15dlL8TFmADOfDUV9nj5S8AIYlVNtKKZoJA1U3Q
+# SZA7urLzVzj4D3PjLeMRGmmRzaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMDgxMDAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCAK0SjS63OoPhHiK1BnwnTFPUj4GPYAfRgGf36s
-# hVvP9jANBgkqhkiG9w0BAQEFAASCAgA8UVozhq/mFiQ8hDe3JEBBaEtFkbT82LvG
-# 1G8m3ziLZIrnVPsk01RePR7gs6Mz5YU4F2bL+skFfwJTGkAZ5f6AcNr5wNk89TcY
-# S/pRJQLkAuY4X5kFXU9HOiVmd/JzKjcay9s5qBQJ1HeSkoe+K3DX48ICnXiV85vc
-# RZw1rF2E6jCsHfIJZJhXyh+7SaesHixpkPiHC/Gd9HpDafEAia7hRXSyZFLR0iZR
-# DUPtFdYVGe4rXzt6kovqBnJFPfgXCtcqfkuRtc0xEiSsClknx+ZQtIX/q3Ll2vBb
-# 0bBlsC1LFZiXbkvkvsXaDmMs5Uztnvnom4O8Q4eYOZB0TiKbwj9uR1+4nCq2vBSZ
-# Naqz0uyCLOyFvyH3nUG9FtAZziqJunwc0dia0GOAf9ng3CtmfYVGvXru1OfHooRv
-# R1BL21+6YZZlDgJ0hTp0h2DgOwRq6ZshrYLftpc9ALw/AYq6Whr7poZvzs1ELfTU
-# TnzrWo7FqvblX+P1LUpuDpItExzbHGg1NuvSXuVKhRlIQpII/8fQN3homDzDKulj
-# rQbSkVTqCwV/qYQss1DQBiwlerDNxiqDRzlQsFWmURttfjlljUGnebPvAKOSah3+
-# nL1cCmNApREDV916MyTPcoffHaOisegRXtnTHjNvUYUG4YYJsU0BBakb+Skg2R1r
-# v0Nd+SeClw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMTYxNzAw
+# MDVaMC8GCSqGSIb3DQEJBDEiBCBAgCUrhvJjgbBBR+sc6Kket4j4Zyv1VyjjtDS/
+# fiN37zANBgkqhkiG9w0BAQEFAASCAgADvxizCag8OtwPUsPkqQaXjCgZaxDinu5e
+# sTHxcach62SRhkfAtgeyR2MBAMCUghoB0avxkAhKeiMNlC3fp9n0DFx7/rCLWB50
+# dWfKw108ntbw3CQke8vYOznMD9u4Z2efU+glqwSSntObuXFrRlUUzcMaQnheTrTC
+# yB77aIroxj4tY7itjWp3p3p3k4zYZk03BPMwucPZcdRtQQi80Bo+n8QEMT2IiubB
+# MFeMoi2kYd+j3Rpbiz6y8J7uB/MG/Mr79astMyOr1VkZ34DdWtjuU+MhHtzPlVXL
+# OCWVNqV7YK0Ylg5DvcG38y6wi0E06hcoo/Vq3nhLSbqUBLsDeSRJ6Jxizy36Zb9A
+# gDFX8aV3/FP2Mr2KqwBYbsdWW8sRCi2Hx+TbBD7YiOC1+cnI+ii1GTnMNlslvElB
+# 9wDQu+8VIGZk3MeEemFPssnMxudxjstu300BQKAJaHaow/h1P+Bv4U6FNiLcxKrX
+# 43C3nkJffn5EInipnLhlzqQHrin1KT8ySZJqtzCsq8lS7EZB7jghTvxz7Wz96OkI
+# zWc3DTs9VZwtuajvSd56d23PiIOkbyjx9Ph9aPam83SFlOIlJoNkZKb+lqoBvt5s
+# R0gqZCNsHV4KPqWoVsgt22Kj02dzSsRFE4/s6GRfEkfSbiYzPQbXcx1LiL+9mshj
+# o85LYHEJag==
 # SIG # End signature block
