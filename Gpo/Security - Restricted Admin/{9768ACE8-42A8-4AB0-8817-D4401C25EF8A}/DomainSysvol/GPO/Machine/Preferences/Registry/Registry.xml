@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="DisableRestrictedAdmin" status="DisableRestrictedAdmin" image="12" changed="2023-12-29 01:13:39" uid="{1912D6E3-0800-4B74-A779-CBAAC709D63A}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="System\CurrentControlSet\Control\Lsa" name="DisableRestrictedAdmin" type="REG_DWORD" value="00000000"/></Registry>
-	<Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="DisableRestrictedAdminOutboundCreds" status="DisableRestrictedAdminOutboundCreds" image="12" changed="2023-12-29 01:13:08" uid="{0FD06AAD-6B3F-45C5-86F9-89F62867FF1D}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="System\CurrentControlSet\Control\Lsa" name="DisableRestrictedAdminOutboundCreds" type="REG_DWORD" value="00000001"/></Registry>
-</RegistrySettings>
