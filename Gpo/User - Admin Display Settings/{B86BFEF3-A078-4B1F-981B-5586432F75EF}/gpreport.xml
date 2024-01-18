@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{b5c00afc-547e-4cb4-937b-83590893fec2}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - User - Admin Display Settings</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2023-12-30T10:45:22</CreatedTime>
+  <ModifiedTime>2024-01-17T10:12:45</ModifiedTime>
+  <ReadTime>2024-01-18T14:00:05.6053648Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-439269611-2605146275-3694021392-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Security" xsi:type="q1:SecuritySettings">
+        <q1:Blocked>false</q1:Blocked>
+      </Extension>
+      <Name>Security</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Windows/Registry" xsi:type="q2:RegistrySettings">
+        <q2:RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}">
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="Schemes" status="(Default)" image="7" changed="2020-03-29 21:22:15" uid="{96AA816A-E268-4EEA-B3E7-D142BF850423}">
+            <q2:GPOSettingOrder>1</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="1" hive="HKEY_CURRENT_USER" key="AppEvents\Schemes" name="" type="REG_SZ" value=".None">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="SearchboxTaskbarMode" status="SearchboxTaskbarMode" image="12" changed="2020-03-29 21:18:21" uid="{E1D068F4-92AB-4E8D-A8DD-BFB51374FBEB}">
+            <q2:GPOSettingOrder>2</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Search" name="SearchboxTaskbarMode" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="ShowRecent" status="ShowRecent" image="12" changed="2023-12-21 16:55:58" uid="{7B1B4F13-0D41-463D-9C60-E6167596F48A}">
+            <q2:GPOSettingOrder>3</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer" name="ShowRecent" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="ShowFrequent" status="ShowFrequent" image="12" changed="2023-12-21 16:56:04" uid="{90E601AB-BEEC-42A9-B637-733E70B21059}">
+            <q2:GPOSettingOrder>4</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer" name="ShowFrequent" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="ShowCloudFilesInQuickAccess" status="ShowCloudFilesInQuickAccess" image="12" changed="2023-12-21 17:55:34" uid="{DDEE3FB5-E13B-41D2-9604-92CFF92D642A}">
+            <q2:GPOSettingOrder>5</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer" name="ShowCloudFilesInQuickAccess" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="Start_TrackDocs" status="Start_TrackDocs" image="12" changed="2023-12-21 16:43:08" uid="{FF90AC37-ECD2-461B-B2B3-F47D56EC52C7}">
+            <q2:GPOSettingOrder>6</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="Start_TrackDocs" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="LaunchTo" status="LaunchTo" image="12" changed="2020-03-29 21:27:32" uid="{20016D58-94F7-4898-B822-48796A3DF78A}">
+            <q2:GPOSettingOrder>7</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="LaunchTo" type="REG_DWORD" value="00000001">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="Hidden" status="Hidden" image="12" changed="2020-03-29 21:25:23" uid="{A83D6862-677D-42AC-BD5F-380B3C28FB9A}">
+            <q2:GPOSettingOrder>8</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="Hidden" type="REG_DWORD" value="00000001">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="HideFileExt" status="HideFileExt" image="12" changed="2020-03-29 21:26:23" uid="{FE3D34FF-5714-4A9F-926B-CC5A91247808}">
+            <q2:GPOSettingOrder>9</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="HideFileExt" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="ShowTaskViewButton" status="ShowTaskViewButton" image="12" changed="2020-03-29 21:18:25" uid="{C4C3163A-A846-4E0E-A253-19C6DE020BE0}">
+            <q2:GPOSettingOrder>10</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="ShowTaskViewButton" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="TaskbarDa" status="TaskbarDa" image="12" changed="2023-12-21 16:36:56" uid="{34C34114-A753-4C9B-8A6A-2862661AD15F}">
+            <q2:GPOSettingOrder>11</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="TaskbarDa" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="TaskbarMn" status="TaskbarMn" image="12" changed="2023-12-21 18:03:10" uid="{DF663CD9-7D5E-4E25-975D-CEF5AB8B6F0B}">
+            <q2:GPOSettingOrder>12</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="TaskbarMn" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="MMTaskbarMode" status="MMTaskbarMode" image="12" changed="2023-12-21 18:01:33" uid="{9C023A80-E161-4F9B-AC2C-DA8948E30B5C}">
+            <q2:GPOSettingOrder>13</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="MMTaskbarMode" type="REG_DWORD" value="00000002">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="SnapAssist" status="SnapAssist" image="12" changed="2020-03-29 21:18:11" uid="{CBFA2C51-E636-4C8E-8E56-1B7F57D6C4D0}">
+            <q2:GPOSettingOrder>14</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="SnapAssist" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="SystemUsesLightTheme" status="SystemUsesLightTheme" image="12" changed="2021-11-19 10:40:07" uid="{2DCF47BC-0ABC-4E58-B223-7654D983AF43}">
+            <q2:GPOSettingOrder>15</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" name="SystemUsesLightTheme" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="AppsUseLightTheme" status="AppsUseLightTheme" image="12" changed="2020-03-29 21:20:57" uid="{4A90834F-E7E0-4B19-9090-89C64E15BC5C}">
+            <q2:GPOSettingOrder>16</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" name="AppsUseLightTheme" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+        </q2:RegistrySettings>
+      </Extension>
+      <Name>Windows Registry</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q3="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q3:RegistrySettings">
+        <q3:Policy>
+          <q3:Name>Desktop Wallpaper</q3:Name>
+          <q3:State>Enabled</q3:State>
+          <q3:Explain>Specifies the desktop background ("wallpaper") displayed on all users' desktops.
+
+This setting lets you specify the wallpaper on users' desktops and prevents users from changing the image or its presentation. The wallpaper you specify can be stored in a bitmap (*.bmp) or JPEG (*.jpg) file.
+
+To use this setting, type the fully qualified path and name of the file that stores the wallpaper image. You can type a local path, such as C:\Windows\web\wallpaper\home.jpg or a UNC path, such as \\Server\Share\Corp.jpg. If the specified file is not available when the user logs on, no wallpaper is displayed. Users cannot specify alternative wallpaper. You can also use this setting to specify that the wallpaper image be centered, tiled, or stretched. Users cannot change this specification.
+
+If you disable this setting or do not configure it, no wallpaper is displayed. However, users can select the wallpaper of their choice.
+
+Also, see the "Allow only bitmapped wallpaper" in the same location, and the "Prevent changing wallpaper" setting in User Configuration\Administrative Templates\Control Panel.
+
+Note: This setting does not apply to remote desktop server sessions.</q3:Explain>
+          <q3:Supported>At least Windows 2000</q3:Supported>
+          <q3:Category>Desktop/Desktop</q3:Category>
+          <q3:EditText>
+            <q3:Name>Wallpaper Name:</q3:Name>
+            <q3:State>Enabled</q3:State>
+            <q3:Value>C:\Windows\Web\Wallpaper\black_triangles.jpg</q3:Value>
+          </q3:EditText>
+          <q3:Text>
+            <q3:Name>Example: Using a local path:   C:\windows\web\wallpaper\home.jpg</q3:Name>
+          </q3:Text>
+          <q3:Text>
+            <q3:Name>Example: Using a UNC path:     \\Server\Share\Corp.jpg</q3:Name>
+          </q3:Text>
+          <q3:DropDownList>
+            <q3:Name>Wallpaper Style:</q3:Name>
+            <q3:State>Enabled</q3:State>
+            <q3:Value>
+              <q3:Name>Stretch</q3:Name>
+            </q3:Value>
+          </q3:DropDownList>
+        </q3:Policy>
+        <q3:Blocked>false</q3:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </User>
+  <LinksTo>
+    <SOMName>Domain Admins</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Domain Admins</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Administrators</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 0/Administrators</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Administrators</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 1/Administrators</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Administrators</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 2/Administrators</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>

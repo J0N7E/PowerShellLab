@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RegistrySettings clsid="{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}"><Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="DefaultDomainSupportedEncTypes" status="DefaultDomainSupportedEncTypes" image="12" changed="2023-09-12 09:46:23" uid="{59592F0D-D42A-4521-8988-39974D645B62}"><Properties action="U" displayDecimal="0" default="0" hive="HKEY_LOCAL_MACHINE" key="SYSTEM\CurrentControlSet\Services\Kdc" name="DefaultDomainSupportedEncTypes" type="REG_DWORD" value="00000038"/></Registry>
+</RegistrySettings>
