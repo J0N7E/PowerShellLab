@@ -1403,7 +1403,7 @@ Begin
                     # Get file
                     $CsrFile = Get-Item -Path $CsrfilePath
 
-                    ShouldProcess @WhatIfSplat -Message "Submit `"$($CsrFile.Name)`" and rerun this script to continue..." -WriteWarning > $null
+                    ShouldProcess @WhatIfSplat -Message "Submit `"$($CsrFile.Name)`" and rerun this script to continue..." > $null
 
                     # Add file, content and set result
                     $Result += @{ File = @{ FileObj = $CsrFile; FileContent = (Get-Content @GetContentSplat -Path $CsrFile.FullName); }}
@@ -1525,7 +1525,7 @@ Begin
         # Check if running
         if ((Get-Service -Name CertSvc | Select-Object -ExpandProperty Status) -ne 'Running')
         {
-            ShouldProcess @WhatIfSplat -Message "CA not running..." -WriteWarning > $null
+            ShouldProcess @WhatIfSplat -Message "CA not running..." > $null
             $Restart = $true
         }
 
@@ -1536,12 +1536,12 @@ Begin
 
             if ($Result.CertificateInstalled)
             {
-                ShouldProcess @WhatIfSplat -Message "Certificate installed, waiting a bit extra for CA..." -WriteWarning > $null
+                ShouldProcess @WhatIfSplat -Message "Certificate installed, waiting a bit extra for CA..." > $null
                 Start-Sleep -Seconds 7
             }
             elseif ($PublishTemplates.IsPresent)
             {
-                ShouldProcess @WhatIfSplat -Message "About to load templates, waiting a bit extra for CA..." -WriteWarning > $null
+                ShouldProcess @WhatIfSplat -Message "About to load templates, waiting a bit extra for CA..." > $null
                 Start-Sleep -Seconds 5
             }
         }
@@ -1645,7 +1645,7 @@ Begin
             # Export CA certificate
             Backup-CARoleService -KeyOnly -Path "$env:TEMP" -Password $CertFilePassword
 
-            ShouldProcess @WhatIfSplat -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$CACommonName.p12`"" -WriteWarning > $null
+            ShouldProcess @WhatIfSplat -Message "Using password `"$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CertFilePassword)))`" for `"$CACommonName.p12`"" > $null
 
             # Get p12
             $CACertificateP12 = Get-Item -Path "$env:TEMP\$CACommonName.p12"
@@ -1917,8 +1917,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNKkjaE25kMa88zYNgd3wdVQ6
-# qsWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtff8eiB57yqjP9nWmVGHz7G0
+# 2PCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -2049,34 +2049,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQLD1DT
-# pkm3JtyRkH8YbDEOiwvEszANBgkqhkiG9w0BAQEFAASCAgDE3p9hs5GlDc35Ctq1
-# a+TMk3Hi2kE5spyxpZ6FwGRdyhjSdAeYdXrbDASNORC5SzJIKuCv01eg7Xua38gC
-# IItLCzFy+DDq2qF4wwO///NRsZoTkyE+nLFFDJHKzohcU0Mt5AXatU+1AJluA32k
-# 8dRyr3UxPYOLshxkyByyAgCwlcTpRTmUauSr3NSBX2PmR5tlE8/OJ51iEZVtKr0O
-# bzo9LObtLwzxJvi4fh05b0wGt/7uzWeBjR8mKDSdU4vF78w8lbRwFbLQP7iyjV0s
-# eTk90FQs+insJPMtiPjr/zvuSPjbOrikTZJy0dWlMrBdjpuVxswf1vDdBXiOLvbQ
-# Kf+6W+L22y+ZHQ6HGc1Yqb+EyhWM3JWi8iXSWaTlXsGoxRTH0M0uvU3ZEkrRRSMu
-# cBSePGPuyidd284/BZd2tSgdwks5BrlU2TqH5V0xXiD2A39Ks79CwZwDxr9c1ZYR
-# 45yxpq939UF7BU1ubr9Xv2vIcY5/z+Rfnv6C6z/XGB16INssTJ8J6KyBs0MKUkoU
-# 5zvC16gPGzODtjX3QSOj3B7cQZTEfl/lk8lK2QiriDrIn5ZxFrE20OnqLWb7vYwC
-# Bgnsl7iPvyTAJxHpjDeBr81tvIfIfIgO8XrPnIXFrRF7qJ1i8jyM2LgDliF56Zvo
-# qaKekycHnFdEdB301PSdAhdfq6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR63+M8
+# iMZmH7UFOPDo8ua37HSXxzANBgkqhkiG9w0BAQEFAASCAgATFah+jcxoQQc/A4fd
+# fhWjcdIpkcpRIh8xdFPgSV+GKmD9JYTNohraBZl00nVgTIYU6pPcXDNVM6pmwXMc
+# GwV5wnuyxLs0pAja9vU4YlJ6n4UKv7+nLpnEVis92gfTNGdCndAP+8avy9IG7qSd
+# Q2l0Y3B2mWf5NCLlyTWfZnkaBK4aKkX3xfzeqvQMICSMW0QMiSgCaVIGlrJYC6o5
+# O9Ovi8/Lb8KSt9D1at067ixpMECLS6L4x8Bl8DG4b4zXDCvJr3QTjzDc+ovyNB6g
+# 3ja7zVJW9LWBq8FJ42yukGJtkEIDCZpX55bNXud2J8VxyM+DJjXokEdCpkusWDkB
+# 0/aIZRtbVELVBSOO4+Fs/d3kC7jkHZygESlTLMijKvxMTvF3drkoxPcSe3inbOUg
+# lHTPYFCQ8ASZxEzPOhCW59OXF9fCneGq39uALVCV30R/LW1Qsi9TXoVdLd5LlbJa
+# qgFA0EEgDL2cJc2uK6zCyMZUCMYBU27j/Em7ea8hehZA0MsW2wc6pXOR3mFBfwha
+# 3tQAmJIFJ638WUm52Vo2dP1/NqJAScMp61M7Ua3LYJ4bfQODInJ6gXOI2t/opfuA
+# KWMz2+Xvugrl0Qy0A2A6UgyoLltZvvjVXmBo5ucA8rgp9XbG/c1WoIm9bwdK+ndj
+# VhbTjj0bgs0hovpqAg6PsdxQK6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzEyMTIxNTAw
-# MDBaMC8GCSqGSIb3DQEJBDEiBCDIQeWgSdM+zJmQWofSI2VRxFuyFUiqK38qRo77
-# 4HisPTANBgkqhkiG9w0BAQEFAASCAgAK8S3G5IbULD4VFCLdCI7lftl7rborhqB1
-# F9/26V0s9q+8n640zhdAzLnhtujRPDTtoWydzPnZ01Rh23JMlt3s63X6oGKL8yBU
-# TUovIKsSCuUs+P/kC+l+cqJb8DgNoMpzIpWL27i4INiLN9VlLRo0cJVqv+bHMQtQ
-# oo3447lLPCFaE5MIQXuOJF5t/FEnCrcMySETfeZDdArwwRiyqJ8myoNNoEVnDt/O
-# AeHcHt4fFnm/Nbn1lrsp1uHzSeW8zNfUi/2rn6t0BJM1Oq/i/zS/bdUl/3uk4kSH
-# oPvYqtpm6m5QCqSnebq35ZP/uFnzqH/T5s6vh4VM6Gt2ZbISjRjiwN7pY63DJtcn
-# uPTa3whWw19qnkd/4ZaVPySlO06JvCCZsgJfR+PaaJS+aKeGRqo6Yh+tHnTD41Xz
-# lYpr9+CljAS9dUJRzdME8dsmaCD6bHnbhWZrUHsAK6o77cAPJb3n8Uh8CKn+kLo1
-# kDWa3XKtnyXl437v862g1kQBPFHeU5wZ7ujDbc5wwT/V3zlPDwyT9c5Jo1GDHoJ/
-# wEaIvKPIVzGyigBa/Ih/Z9GgUDJ8Ruu6dKVQvtPGVY/aqrOx3o6NBu0lN2tGHxWn
-# ShKuKj2q8aL+qdZlnVnT8A907z7CEBQ5ZwCW/v5jtgH6h2XXmcWPEJ8qQgoDz5Ou
-# rWpHlIdsjg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDjLZ0GTDb+kuLUEcBl4i3s9ZbmAzCFjI2CtanV
+# n2g+KDANBgkqhkiG9w0BAQEFAASCAgBf+DG4I58Afa9YI+wFD1TID51wDZ7vnb53
+# +e7cSJR25m7ShJdeguzVUtoyDsUcVA36KswyTLU8iTFss9TMufb0XmQYQ8F1U9tH
+# 5JxkwY6h8XKHhEzVdYft6S5y4JxSyw/EHR8QrIcdK+srxnvNuhywduPXzxwU1nOQ
+# PkdssQOArSXS3vubfOJ1PSz4aIiC8MtJGGOS2u3BCggYrTi6l71Vljf/DilU7VlA
+# JnGJkwc0m2gC6OEjbUpbtJDo1N2LL4sxHlS8TOBfrS/9JWjQttNsD7Iht4b8E8UI
+# 1SPErox0Rci2UYgk9a67VJG1ijvvEd03lszCVPH8HHVMRALhyl3OOyKV0BkOqAC+
+# x2NfeMt5II0m5QZOfFpRT1Fy6tvisYxPs9dfByPTsZO/UD7zubI8VGmR2Tj1BqzS
+# sBc2Cql3zWkEK+FdPO6bGE8hJn59wFGzaABsrD2NfBWFbyM0UPpzBkbRTUXvto1t
+# 4BxV57lwlkMvGJh1O61d8vdUwklH0lpaOuJwIhkPlc7gfGstHm7e7g3NcMVheYKz
+# rK2yNPT9r/yxDJgWnaoCvLKk2NvTxhNBj0YCgZ1SBC+YK0nnjJFDvLRKTDjbzkl4
+# Uz/YyZopp8Qq2MuyEabvryf1xoWfHhtKa0+CJBeBRL9GqtMtY1j/ggesMUAwPg28
+# mrDTbXOMcA==
 # SIG # End signature block

@@ -100,28 +100,22 @@ Begin
             $Global:DomainName = Read-Host -Prompt "Choose a domain name (FQDN)"
         }
         until($DomainName -match '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
-    }
 
-    $DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
-
-    $Settings =
-    @{
-        DomainName = $DomainName
-        DomainNetbiosName = $DomainNetbiosName
-        DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
+        $Global:DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
+        $Global:DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
     }
 
     # Password
-    $Settings += @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
+    $Settings = @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
 
     # Get credentials
     $Settings +=
     @{
-        Lac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-        Dac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Admin')", $Settings.Pswd
-        Ac0    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
-        Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
-        Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
+        Lac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
+        Dac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Admin')", $Settings.Pswd
+        Ac0   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier0Admin')", $Settings.Pswd
+        Ac1   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier1Admin')", $Settings.Pswd
+        Ac2   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier2Admin')", $Settings.Pswd
     }
 
     $Settings +=
@@ -131,8 +125,8 @@ Begin
             @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.168.0.1';  DNS = '192.168.0.10' }
             @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
         )
-        VMs =
-        [ordered]@{
+        VMs = [ordered]@{
+
             RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @();                 Credential = $Settings.Lac; }
             DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Dac; }
             SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
@@ -600,8 +594,8 @@ Process
 
             $DCStep1Result = .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
                                              -DomainNetworkId $Lab.NetworkId `
-                                             -DomainName $Settings.DomainName `
-                                             -DomainNetbiosName $Settings.DomainNetBiosName `
+                                             -DomainName $DomainName `
+                                             -DomainNetbiosName $DomainNetbiosName `
                                              -DomainLocalPassword $Settings.Pswd
         }
     }
@@ -628,9 +622,9 @@ Process
                         -StandaloneRootCA `
                         -KeyLength 256 `
                         -CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
-                        -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
-                        -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
-                        -DomainName $Settings.DomainName > $null
+                        -CACommonName "$DomainPrefix Root $($Settings.VMs.RootCA.Name)" `
+                        -CADistinguishedNameSuffix "O=$DomainPrefix,C=SE" `
+                        -DomainName $DomainName > $null
     }
 
     ################
@@ -673,7 +667,7 @@ Process
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Lac @VerboseSplat `
                                           -Force `
-                                          -CAConfig "$($Settings.VMs.RootCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
+                                          -CAConfig "$($Settings.VMs.RootCA.Name).$DomainName\$DomainPrefix Root $($Settings.VMs.RootCA.Name)" `
                                           -ConfigureIIS
     }
 
@@ -738,8 +732,8 @@ Process
 
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat `
                             -DomainNetworkId $Lab.NetworkId `
-                            -DomainName $Settings.DomainName `
-                            -DomainNetbiosName $Settings.DomainNetBiosName `
+                            -DomainName $DomainName `
+                            -DomainNetbiosName $DomainNetbiosName `
                             -DomainLocalPassword $Settings.Pswd `
                             -GPOPath "$LabPath\Gpo" `
                             -BaselinePath "$LabPath\Baseline" `
@@ -786,8 +780,8 @@ Process
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
                             -DomainJoin $DomainJoin `
                             -DomainNetworkId $Lab.NetworkId `
-                            -DomainName $Settings.DomainName `
-                            -DomainNetbiosName $Settings.DomainNetBiosName `
+                            -DomainName $DomainName `
+                            -DomainNetbiosName $DomainNetbiosName `
                             -DomainLocalPassword $Settings.Pswd
         }
 
@@ -795,7 +789,7 @@ Process
         .\VMSetupCAConfigureAD.ps1 @DC @Lac @VerboseSplat `
                                    -CAType StandaloneRootCA `
                                    -CAServerName $Settings.VMs.RootCA.Name `
-                                   -CACommonName "$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)"
+                                   -CACommonName "$DomainPrefix Root $($Settings.VMs.RootCA.Name)"
     }
 
     #################
@@ -868,8 +862,8 @@ Process
             # Run DC setup to configure new ad objects
             .\VMSetupDC.ps1 @DC @Lac @VerboseSplat @RestrictDomainSplat @SetupAdfsSplat `
                             -DomainNetworkId $Lab.NetworkId `
-                            -DomainName $Settings.DomainName `
-                            -DomainNetbiosName $Settings.DomainNetBiosName `
+                            -DomainName $DomainName `
+                            -DomainNetbiosName $DomainNetbiosName `
                             -DomainLocalPassword $Settings.Pswd
         } -WendBlock {
 
@@ -959,7 +953,7 @@ Process
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
-                                          -CAConfig "$($Settings.VMs.RootCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)" `
+                                          -CAConfig "$($Settings.VMs.RootCA.Name).$DomainName\$DomainPrefix Root $($Settings.VMs.RootCA.Name)" `
                                           -ShareAccess "Cert Publishers"
     }
 
@@ -976,8 +970,8 @@ Process
                             -EnterpriseSubordinateCA `
                             -KeyLength 256 `
                             -CryptoProviderName 'ECDSA_P256#Microsoft Software Key Storage Provider' `
-                            -CACommonName "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)" `
-                            -CADistinguishedNameSuffix "O=$($Settings.DomainPrefix),C=SE" `
+                            -CACommonName "$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)" `
+                            -CADistinguishedNameSuffix "O=$DomainPrefix,C=SE" `
                             -PublishAdditionalPaths @("\\$($Settings.VMs.AS.Name)\wwwroot$") `
                             -PublishTemplates `
                             -CRLPeriodUnits 180 `
@@ -992,7 +986,7 @@ Process
             {
                 $Wend = $true
 
-                if (Test-Path -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Response.cer")
+                if (Test-Path -Path "$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)-Response.cer")
                 {
                     Write-Warning -Message "No root CA response match the sub CA request."
                     Read-Host -Prompt "Press <enter> to continue"
@@ -1001,7 +995,7 @@ Process
                 {
                     # Issue sub ca certificate
                     .\VMSetupCAIssueCertificate.ps1 @RootCA @Lac @VerboseSplat `
-                                                    -CertificateSigningRequest "$LabPath\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Request.csr"
+                                                    -CertificateSigningRequest "$LabPath\$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)-Request.csr"
                 }
             }
         }
@@ -1010,8 +1004,8 @@ Process
     # Cleanup
     if ($SubCaResult.CertificateInstalled)
     {
-        Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Request.csr" -ErrorAction SilentlyContinue
-        Remove-Item -Path "$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Response.cer" -ErrorAction SilentlyContinue
+        Remove-Item -Path "$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)-Request.csr" -ErrorAction SilentlyContinue
+        Remove-Item -Path "$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)-Response.cer" -ErrorAction SilentlyContinue
     }
 
     #########
@@ -1024,9 +1018,9 @@ Process
     {
         .\VMSetupCAConfigureWebServer.ps1 @AS @Ac0 @VerboseSplat `
                                           -Force `
-                                          -CAConfig "$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)" `
+                                          -CAConfig "$($Settings.VMs.SubCA.Name).$DomainName\$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)" `
                                           -ConfigureOCSP `
-                                          -OCSPTemplate "$($Settings.DomainPrefix)OCSPResponseSigning"
+                                          -OCSPTemplate "$($DomainPrefix)OCSPResponseSigning"
     }
 
     #############
@@ -1069,7 +1063,7 @@ Process
             Invoke-Wend -NoOutput -TryBlock {
 
                 .\VMSetupADFS.ps1 @ADFS @Ac0 @VerboseSplat `
-                                  -CATemplate "$($Settings.DomainPrefix)ADFSServiceCommunication" `
+                                  -CATemplate "$DomainPrefixADFSServiceCommunication" `
                                   -AdminConfigurationGuid "$($DcUpdateResult.AdfsDkmGuid)" `
                                   -ExportCertificate
             } -WendBlock {
@@ -1107,8 +1101,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMtO+9LlPSgWD+vD8lxLSKusY
-# cOGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUDkYBKG5Aj+tWjRL5zvxesgGC
+# KMygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1239,34 +1233,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSbiGT2
-# TYhd70RZi03gk+d/m9Z9CTANBgkqhkiG9w0BAQEFAASCAgB3sfdRWBHLLM81iiaP
-# 8scUr7gafkLNWi8+hZmOBtBgLMSi3iRAewPnn7bBqFLS77xU5H5IsAoiV2QiTqBR
-# aIIq4X5juQPrcydcQ1tI3w4y3uI0CEOXNz0ZPZut3bs2dmj+cvqphRZ/LF/v+yU1
-# uUqoaRhSLmS7n9HtIHLvq26Yu3qAaCaeB5N+S+X5mFdrhFA+tMVTctvIeYf8aVoZ
-# AlToKWUlSYf2R3ruvpZHVXfw/yTl5hWzcjLeI5thryGmZt1GeK9r0KBf22KoTuxf
-# JGJ/Rx9f4BB02CJnrcBcEAHJ2urVzZXkZjRmEzPsSiIVQioCF1Spi3TFZO3lvgWV
-# KoPKbEAc9qV/W4V53IdCnFINT80DlRxBrBi/Agzo/RzYbO00rCoPq4qF70UvxNwr
-# LkFV3tiqXSJYTvOWOd0x792pperGSpWvekx47suYu28SMSZp1ffR6yYrKyCFs3H3
-# 7msy9sDBKMY0nyzGzNViibPwuxeQun8vXWr+zXlKXee0vm/wNt3VxCqhwLZTEIVb
-# XgLQ0jfaQBvtEAoKWGnjkN4oL/FehJK/KUO9NPmpA2aRtxPY38cC8ua0WFTxbZm9
-# k+7ZeJ7v5jtS15p4V5sztqNZ8ED90RRLng/05tOVol0WWpT30suxrrcDRHTB2PxK
-# +n44UPJmJOyOY2gXXte+CFhcOaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRHty11
+# A1EMcOgodc6aATK34Y3HXzANBgkqhkiG9w0BAQEFAASCAgC+PWxojBuim7no6EOt
+# JmZ+RDmW7E14+8zJvlup9fFRUe/fYK0PMxJ0lL+QMlO/50QvER+DbUqhIG5dbKKE
+# EY7YbtPBdVnQGAwV2fgaPFn8AkFMspXZlwhOeT07tr3MDAzYFUaQLDo6rHupisxk
+# tw221EbeTBpzbIOlUDVMVY1VbX1ZST+wOSUKqzivpX7gJZ+c9CVbA4wWnKs2Qc0V
+# uWSFCdAlvEbYx5LHUOkHqGR06Boijf2Wq04EM62q52eyhqq/Becb9GNuEvpy/dJK
+# amIIVs1W+RdotMf01LyAfSspKC7nfoN0zqpKo97H921VzsSE4iN+CnxOhXdI70Y2
+# tC08DjaH5MtpO9+A5bJG8PKUrsRg7IE8Qq1IM6eWTFWl5g2EYHGQv5WEqy1tUT+w
+# irk5laqnRFPBWCHsu/PtMuqmUD1I+zHj1qLq0Wm0ExVswWOLTb7doEmUsSqoVECK
+# 61bnmpcLaEqacsLwup3sRC9L4YaiJOxrgcAwEu7+1mRrlvLi6HGihEV4QMWa9wND
+# qzUaeefLWFnoaC/Rn6QiKMliqTRso8MSs8vo+wEH6YrXhwpYejeeX7q0bA5IfBHa
+# 9qlL3C2k0iclcd2tB1pXoeW9VtVrjjPnrLpsbcB/4hwzCbePj/9AdWUOS8COU+3k
+# e1f3bsB9ZRfwOo8Qnukmb9G85aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMTgxNjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBxTekNrpa0eAbEKg8qEqe0JQiCSHM9zycxaGt6
-# Xq0lMTANBgkqhkiG9w0BAQEFAASCAgAo/EQdKWAx5vjVgHBktu6KhhYFZFIA/Xv8
-# YKlHOhXSBERqWNZnGmZ3w0opis3MfVAH40CvT0DT9I2G2Vl7eKNNqpm4FP7o8Ibe
-# VDY2GOME+L6uLB050e/iE1HNcRwTB+sWzK8fMqDIryFA3b2+wEWFskQQmcWoC6Eh
-# zR4/yamD5bgXQ+w9FNW0U68K7CI5JsBMz7WnMxUX3JpWMeFIuWobphYabbOaWoat
-# fdJaLxQTLzj7n6O3LHkNvfgyxpzNb7QpbfoHaFzEfJWK3k2BGPFhI6XEzrreIBxg
-# OA5I67vyEd0YYs2M2EGf38SGoZFzjCQmFvAZJYKMVivg5IxGw+wISXxxz1Jmn9oo
-# q3DprJxs7hl+bzJ9iShBZ/Rzq8QuZneve/dtCyes94scFVgm5JwjmZWnbRKS+chK
-# 5Zk3DL33jY8dFWxPvZ4OP5B3LOV7jzHBKTg/Pn8jw+3cX5TrkGish8ZB0w7XT0Y8
-# yKCbcpKJr/+EAMR6SMZtxCJz5/vRV3j70HFtKEh6mZCtlUAliodGTBXYyjdPkAzg
-# QWF3sKhyigh5G2qFEgQEJzZDw8179gV/yQPJtZRp9eSE7x/rSP7m/HtbyvdJUfMy
-# GN5hGa/Q2LVnaANuag7UW3bLGepndPoJ5VoubrjvlgerrLFK7gf9k3A/4/Wdd5bP
-# GFDGno715w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAm75qzm0GI8Z2+oU8qQQotrVwb3H4WoXeFVQDI
+# oqw+XTANBgkqhkiG9w0BAQEFAASCAgAvuUd+cD66y8KB/m99YHT9jXaNaJf8J/Hp
+# VRJdyLN4fQ3PbEEnisLpzBCzAGi/77+xu83QGwrJPKf2AhhYdEUZWLuWEm6wRXe5
+# THUHDh3MFTmh5FLsRsVP//I6IKC7pEOOgvggs41NqyyCMGlXUJaLV4C4LIvN3I73
+# QOS5qe4/oYjFvV9RXaW63794y1VxB9GhuziHzg6Ckn8NGsmOt0o3diOjMVIO+Cvu
+# MpfZTFbbDBelkH2wAyN6obadTwmWsXRXqpafkqWY600A7YrOKjYAH1wmoirkJqed
+# 971E1yQQ2EFQvhpDqodn1cBhyLPbVeVIU4uAYeUdSXX3bicU4Kwq3y7+jbEv2uCX
+# VrQMgTvkYcNL7qmjDByPIS9U3Uq2zxjWWPKC43p9J7f7kP5Ax2SzkD1jfZvGz4gM
+# SxurnNpN0s59yVvCZ8ruiBVAfrV2vxtvRXdpJbGXA2y5aKEIybWnq7KLZtubGzQc
+# Ui3/Gxn3MP+/y2nJGK/C26Vh4ozJC3OiNw8gLijPGFT+RBlM3oC6j9HVbR0Ado6S
+# 5YHJo4iAH8Xzv7/LzO13a0OFX/mPZlN1+HVAF3L8db3YUBcV4lReaj2C5qZbsi3A
+# ILc0vYLTNR584jpnI2TxZtuXNEzXBguiIT4YkdW7SSt57APgfM+AsHQFXsf+FDBF
+# 68mjcSDj5g==
 # SIG # End signature block

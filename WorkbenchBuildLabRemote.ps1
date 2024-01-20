@@ -35,50 +35,45 @@ if (-not $DomainName)
         $Global:DomainName = Read-Host -Prompt "Choose a domain name (FQDN)"
     }
     until($DomainName -match '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
-}
 
-$DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
-
-$Settings =
-@{
-    DomainName = $DomainName
-    DomainNetbiosName = $DomainNetbiosName
-    DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
+    $Global:DomainNetbiosName = $DomainName.Substring(0, $DomainName.IndexOf('.'))
+    $Global:DomainPrefix = $DomainNetBiosName.Substring(0, 1).ToUpper() + $DomainNetBiosName.Substring(1)
 }
 
 # Password
-$Settings += @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
+$Settings = @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -Force) }
 
 # Credentials
 $Settings +=
 @{
-    Lac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-    Dac    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Admin')", $Settings.Pswd
-    Ac0    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier0Admin')", $Settings.Pswd
-    Ac1    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier1Admin')", $Settings.Pswd
-    Ac2    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\Tier2Admin')", $Settings.Pswd
-    Jc     = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($Settings.DomainNetBiosName + '\JoinDomain')", $Settings.Pswd
+    Lac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
+    Dac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Admin')", $Settings.Pswd
+    Ac0   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier0Admin')", $Settings.Pswd
+    Ac1   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier1Admin')", $Settings.Pswd
+    Ac2   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier2Admin')", $Settings.Pswd
+    Jc    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\JoinDomain')", $Settings.Pswd
 }
 
 $Settings +=
 @{
-    Switches          =
+    Switches =
     @(
-            @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.169.0.1';  DNS = '192.168.0.10' }
-            @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
+        @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.169.0.1';  DNS = '192.168.0.10' }
+        @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
     )
-    VMs               =
-    [ordered]@{
+    VMs = [ordered]@{
+
         RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @();                 Credential = $Settings.Lac; }
         DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Dac; }
+        DC2    = @{ Name = 'DC02';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @();                 Credential = $Settings.Lac; }
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
         #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac2; }
-        DCPAW   = @{ Name = 'dcpawjohe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
-        T0PAW   = @{ Name = 't0pawjohe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
-        T1PAW   = @{ Name = 't1pawjohe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
-        T2PAW   = @{ Name = 't2pawjohe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
+        DCPAW  = @{ Name = 'dcpawjohe'; Domain = $false; OSVersion = '*11 Enterprise x64 23H2*'; Switch = @('Default Switch'); Credential = $Settings.Lac; }
+        #T0PAW   = @{ Name = 'paw0johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
+        #T1PAW   = @{ Name = 'paw1johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
+        #T2PAW   = @{ Name = 'paw2johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
     }
 }
 
@@ -199,11 +194,18 @@ function Setup-DC
     [cmdletbinding(DefaultParameterSetName='Standard')]
     param
     (
+        [String]$VMName,
+        [Array]$DomainJoin,
+
+        [Switch]$SetupADDSOnly,
+
         [Switch]$CopyGpo,
         [Switch]$CopyBaseline,
         [Switch]$CopyTemplates,
 
-        [Switch]$SetupDhcpDnsOnly,
+        [Switch]$BackupGpo,
+        [Switch]$BackupTemplates,
+        [Switch]$BackupReplace,
 
         [ValidateSet($true, $false, $null)]
         [Object]$SetupAdfs,
@@ -212,23 +214,18 @@ function Setup-DC
         [Object]$RestrictDomain,
 
         [ValidateSet($true, $false, $null)]
-        [Object]$EnableIPSec,
-
-        [Switch]$BackupGpo,
-        [Switch]$BackupTemplates,
-        [Switch]$BackupReplace,
-
-        [Switch]$RemoveAuthenticatedUsersFromUserGpos,
-
-        [String]$VMName = 'DC01',
-
-        [Array]$DomainJoin
+        [Object]$EnableIPSec
     )
 
     # Initialize
     $NoExitStr = '-NoExit '
     $WaitSplat = @{ Wait = $false }
     $ParamArray = @()
+
+    if (-not $VMName)
+    {
+        $PSBoundParameters.Add('VMName', 'DC01')
+    }
 
     # Itterate parameters
     foreach ($Param in $PSBoundParameters.GetEnumerator())
@@ -250,16 +247,6 @@ function Setup-DC
                 $ParamArray += "-TemplatePath `"$LabPath\Templates`""
             }
 
-            { $_ -in @('SetupAdfs', 'RestrictDomain', 'EnableIPSec') -and $Param.Value -notlike $null }
-            {
-                $ParamArray += "-$($Param.Key) $($Param.Value)"
-            }
-
-            { $_ -match 'DomainJoin' -and $Param.Value -notlike $null }
-            {
-                $ParamArray += "-$($Param.Key) $(Serialize $Param.Value)"
-            }
-
             { $_ -match 'BackupReplace' }
             {
                 # Open session
@@ -269,9 +256,21 @@ function Setup-DC
                 $WaitSplat = @{ Wait = $true }
             }
 
+            { $_ -match 'DomainJoin' -and $Param.Value -notlike $null }
+            {
+                $ParamArray += "-$($Param.Key) $(Serialize $Param.Value)"
+            }
+
             default
             {
-                $ParamArray += "-$($Param.Key)"
+                if ($Param.Value -is [Switch])
+                {
+                    $ParamArray += "-$($Param.Key)"
+                }
+                elseif ($Param.Value -notlike $null)
+                {
+                    $ParamArray += "-$($Param.Key) $($Param.Value)"
+                }
             }
         }
     }
@@ -279,10 +278,10 @@ function Setup-DC
     # Default argumentlist
     $Argumentlist =
     @(
-        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $Lac -VMName $VMName -Verbose",
+        "$NoExitStr-File $LabPath\VMSetupDC.ps1 $Lac -Verbose",
         "-DomainNetworkId $($Lab.NetworkId)",
-        "-DomainName $($Settings.DomainName)",
-        "-DomainNetbiosName $($Settings.DomainNetBiosName)",
+        "-DomainName $DomainName",
+        "-DomainNetbiosName $DomainNetbiosName",
         "-DomainLocalPassword $(Serialize $Settings.Pswd)"
     ) + $ParamArray
 
@@ -418,9 +417,9 @@ Start-Process $PowerShell -ArgumentList `
     "-Force",
     #"-AlwaysPrompt",
     "-StandaloneRootCA",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
-    "-CADistinguishedNameSuffix `"O=$($Settings.DomainPrefix),C=SE`"",
-    "-DomainName $($Settings.DomainName)"
+    "-CACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`"",
+    "-CADistinguishedNameSuffix `"O=$DomainPrefix,C=SE`"",
+    "-DomainName $DomainName"
 )
 
 <#
@@ -428,7 +427,7 @@ Start-Process $PowerShell -ArgumentList `
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCA.ps1 $RootCA $Lac -Verbose",
-        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
+        "-CACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`""
     )
 #>
 
@@ -460,8 +459,8 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupDC.ps1 $DC $Lac -Verbose",
     "-DomainNetworkId $($Lab.NetworkId)",
-    "-DomainName $($Settings.DomainName)",
-    "-DomainNetbiosName $($Settings.DomainNetBiosName)",
+    "-DomainName $DomainName",
+    "-DomainNetbiosName $DomainNetbiosName",
     "-DomainLocalPassword $(Serialize $Settings.Pswd)",
     "-GPOPath `"$LabPath\Gpo`"",
     "-BaselinePath `"$LabPath\Baseline`"",
@@ -474,7 +473,7 @@ Start-Process $PowerShell -ArgumentList `
     "-NoExit -File $LabPath\VMSetupCAConfigureAD.ps1 $DC $Dac -Verbose",
     "-CAType StandaloneRootCA",
     "-CAServerName $($Settings.VMs.RootCA.Name)",
-    "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
+    "-CACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`""
 )
 
 <#
@@ -483,7 +482,7 @@ Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose",
         "-CAServerName $($Settings.VMs.RootCA.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`""
+        "-CACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`""
     )
 #>
 
@@ -506,7 +505,7 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.RootCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
+    "-CAConfig `"$($Settings.VMs.RootCA.Name).$DomainName\$DomainPrefix Root $($Settings.VMs.RootCA.Name)`"",
     "-ConfigureIIS",
     "-ShareAccess `"Cert Publishers`""
 )
@@ -522,12 +521,12 @@ Start-Process $PowerShell -ArgumentList `
     "-Force",
     #"-AlwaysPrompt",
     "-EnterpriseSubordinateCA",
-    "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
-    "-CADistinguishedNameSuffix `"O=$($Settings.DomainPrefix),C=SE`"",
+    "-CACommonName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`"",
+    "-CADistinguishedNameSuffix `"O=$DomainPrefix,C=SE`"",
     "-PublishAdditionalPaths $(Serialize @(`"\\$($Settings.VMs.AS.Name)\wwwroot$`"))",
     "-PublishTemplates",
     #"-CryptoProviderName `"RSA#SafeNet Key Storage Provider`"",
-    #"-KeyContainerName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
+    #"-KeyContainerName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`"",
     #"-IssuancePolicies $(Serialize (@( @{Name='Policy1'; OID='1.2.3'}, @{Name='Policy2'; OID='4.5.6'})))",
     "-CRLPeriodUnits 180",
     "-CRLPeriod Days",
@@ -540,8 +539,8 @@ Start-Process $PowerShell -ArgumentList `
     Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCA.ps1 $SubCA $Ac0 -Verbose",
-        "-ParentCACommonName `"$($Settings.DomainPrefix) Root $($Settings.VMs.RootCA.Name)`"",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
+        "-ParentCACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`"",
+        "-CACommonName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`""
     )
 
     # Remove sub CA certificate from domain
@@ -549,7 +548,7 @@ Start-Process $PowerShell -ArgumentList `
     @(
         "-NoExit -File $LabPath\VMRemoveCAFromAD.ps1 $DC $Dac -Verbose",
         "-CAServerName $($Settings.VMs.SubCA.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
+        "-CACommonName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`""
     )
 
     # Configure sub CA in AD
@@ -560,7 +559,7 @@ Start-Process $PowerShell -ArgumentList `
         "-RemoveOld",
         "-CAType EnterpriseSubordinateCA",
         "-CAServerName $($Settings.VMs.SubCA.Name)",
-        "-CACommonName `"$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`""
+        "-CACommonName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`""
     )
 #>
 
@@ -572,7 +571,7 @@ Start-Process $PowerShell -ArgumentList `
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAIssueCertificate.ps1 -Verbose $RootCA $Lac",
-    "-CertificateSigningRequest `"$LabPath\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)-Request.csr`""
+    "-CertificateSigningRequest `"$LabPath\$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)-Request.csr`""
 )
 
 #########
@@ -592,9 +591,9 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
+    "-CAConfig `"$($Settings.VMs.SubCA.Name).$DomainName\$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-ConfigureOCSP",
-    "-OCSPTemplate `"$($Settings.DomainPrefix)OCSPResponseSigning`""
+    "-OCSPTemplate `"$DomainPrefixOCSPResponseSigning`""
 )
 
 # NDES
@@ -602,7 +601,7 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCAConfigureWebServer.ps1 $AS $Ac0 -Verbose",
     "-Force",
-    "-CAConfig `"$($Settings.VMs.SubCA.Name).$($Settings.DomainName)\$($Settings.DomainPrefix) Enterprise $($Settings.VMs.SubCA.Name)`"",
+    "-CAConfig `"$($Settings.VMs.SubCA.Name).$DomainName\$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-ConfigureNDES"
  )
 
@@ -622,8 +621,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzKfgscoWJQD1gVBdmVyNKjIU
-# nZSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqtO0lXGNpCdYhXyIxx4jSwNq
+# 9YWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -754,34 +753,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTkxaw1
-# TD5wJbHXv+ZIxlXAmtecdDANBgkqhkiG9w0BAQEFAASCAgDLkyRdvlZC+DD219RV
-# FccbnTIHpoS9dyjpNP0A+Je84p+PgrwPqIveo6dtiIIL5r47X2h9LgeNZSnXlw4E
-# /IImdMquDiCTa7gM7b21nVczFvcLppBFqlUNmLsJQ/AI+pnf25bev6eKjMZgP672
-# 53c1cxrnP1ChRzBerrAlb7srkivqY2X9mPXT5ZjOVKV/mQyH0QC5UKSdroAyKucp
-# TE1davOojj45g1Hc5c3BRhvwEsP9MjfhGeDO0tbx2qmynvKFMmG28bqACCtmwXwJ
-# fgir5rzsF8JdO+p5Da+zRLL+nuuZ6PpMDoJX1KOMegFibIyzJMsw+WKW6oA+bUlx
-# 94roTMcfqkGXHumBJy4VGVjmnVld7T352gC+7/8HwktGcUhH1btPB+D52p7cc3At
-# U9HgESyXvf6Qv/9XBJ8RbYMTgDqmcDfmW81dMvnCvcuRBdCOzdGW5SY1RxHqrNgP
-# KnCDPHCe8iWFJzD1tNyAHaBEHf6qiQbU6f9mmNhCZHpcooPcJOncImLoqPkPBrne
-# e6BQtK/MqvXO7ljejmNtC3bHhKhXz8OBQ9ov+wYv0G5cQKOK2jn1O8ZAsQnU3CuE
-# SD7yfMBv6iWXO/6frNa4t4SpteFbk8dQphhECS/mLfmIBx5ug9KcjD0X5kzgVu6v
-# 0DKOXWUks/U28ezAkTlw74FEXqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSJr2jb
+# ePFyHpW89CTPusXGBT3A1TANBgkqhkiG9w0BAQEFAASCAgAihLd/tLQ3J+Eg8qJV
+# k5XnBalrPJSEg8WXgGcl7k42MaVizut3zD7YKN+BVuSpPERSiXNv7lzUagyke/yB
+# 4zQQyKr81KfVtJfLrgeC35X+lIVgV7lZ3hloahHbFEX1yvqJY7TX2yRZoUdB/1xt
+# zSMJNYdq2ns6TkfNbBZtRMw5LpVwiFi1pQNAEtXkpdtaKoueuwmTmIqDbkMcHugk
+# SYynTWI0LkCWF8dP+U0T5bkVZWrqa3qurKzyY0240Vg1r0osWvy5IsPmi973boIT
+# LoQwZb6MaaJfmRaB6lwT94Mz2YYUKUk3B0qUj2nN6xeSVt0hGls8qYnjYJvYBLfz
+# DtyIMG7Wq14+6gh+f8pVQxpPBs6Zv4osKO/nKaAL6hSMRDiPUHqnDjSKStzpF/Y8
+# YGJX0NLVOA9QGweKYwpNihaEKtLS3Bn5cHf6XW7CwsjhjZvH7fbbLM6Q7G6JK59g
+# RRUSvfqkWRXLsGRF91FoaOQJ69ubkSkQwO9Ga/MVJp6LO1jCFwGwTEH6U7nBXN1X
+# 7+TiB4WDDmKyuDjxqMxn53udo8Cu9YeaghqXLowyKfIeHkShLuTIxKMNnZC9cPjL
+# q6UyZ0EBpq4bhqTzoBHzrQIpe7jBN4LzDD5SMjsTE+YiyuLd6Uj3uUTE4j3g3vnC
+# 95OLBqZ/ECQp8qx+toPduDlkTqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMTcxMzAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDukuEcRd5Sgq8EqFug9udUUhREou+1AKDaOqmS
-# ycKFuTANBgkqhkiG9w0BAQEFAASCAgBAtV14+/H9KJWnZay2Rn6Y5MfGO4qQmcxn
-# q3wXqlp3AyMWLttbSuaLwb1Ge6nGt/afQAowGstqujAuRqYPzynPewb64GWzVPpJ
-# F57a6JWs757Cd9R2ZU8UExx+JlEkLhFbfk1bt9LI8F43+juccKPiLnf/wzmOlDoJ
-# MwS09C4ZJMbD1FCKjMqGTNhpCp50vHPOwjAGLA3U4vxnCHJbXvpF6eTVOrRFnWqG
-# GxD2NbXdxSFQjWszD5MVJ9ljKj678UQoimUZUafBasTND9nSMt0Ol9GLf7f9ZAv+
-# YhdZyJt8PjspQd+e7iN4Oq62JXFk7EMrHQ6mHRdNisRVrxgmKNxN+KBguk3T5gkt
-# JxRtKoz839c6fVKV601gM6xwCXxX+DOZcsdr0sff8A/I80R05+qz4HqD1sjUCPT1
-# 2X9d9WxGPrkGkxEmKx6EmSU3S800uJ31SynfWZdDzvkUWLPrUMYCijG1omb9L4oc
-# WFoozrOIMNwpbLyRw1io9mw87z5L6+ABrvK7hXZT0VAWxoAJKERBb0IaXHVh7+YM
-# Scl+9XbrBoR8UJYUsZKtOwtD4Q8kXC26327UEGPH/6WwA/LHgO09wJDnGoduu2kW
-# fRMDm0dEXBa2a/eatjdXyaXe0rUN1OS1FSo2ubt2KLRQsga1Aj+lGU34shT9AEiH
-# Wk5JfFQEbQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDkaKgisjvCFkDFf5gU1IFCWiQewHAbr0h2J1pm
+# oJJiLjANBgkqhkiG9w0BAQEFAASCAgB0pbCg1PJ7yoSJ6O+i2RmaRaDYhxuAAetN
+# 1/GOWbhTomXBTvVVZjlIcI/IsIxyxnuuPITlUM1PjKkVDB5T299s6DHAs7gmTtzP
+# OvtIpOrwsV0fJdXJR+VY6cxpqknjaXi3ULem2LhvTY3xFwrWln4QX79XOSvsfYHv
+# PHKU041ttFTGOLxVtN95MFk2DINtSU8EQAldPwNelTXGYBI9vajKxjZeJBCuJcKu
+# KMiQGbQvaJpS5g/u/1iAIprE93Hs8usQbC+9TYFEaXPHemd+enwvB8Ii98itzFTv
+# vPu8gcAZI8nSOrGoX89aTIf1ymyGf3vsyiAhBjUOdXA0F+aYyv7A/j60J/HnkPlW
+# X5I9MlZwbl0vlIc6W4WVp3w5uxSQ5LMAufG+KPto4HHf9+MBhKn43ccUV9YF54dl
+# 6ixnfTxbZXHFMc+x+sfRoqmH7O/bAKu8ozhEhOCFfCqsKoz+9hqxPU8hYDpkRFJ4
+# vVt6b7+wLTkPibbeKqFL4td4bD2zZkwsNvMai9vrrzu1pcWHD7lPNwJaJkWXh08p
+# 1Cr8/HQBKeNdWJq/nqPOnEl2iDfXULqLuviK7jA0YkAouKp2Jwjb2EfLNskd0EA5
+# pkKLSIVUvVc4s8x3sC1oqnj/Zzl/SbxNCIFciwaVgPE4J+NW4V5Z2oFCF54Aoo4q
+# Il6y/XSE2w==
 # SIG # End signature block

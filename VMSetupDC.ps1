@@ -65,7 +65,8 @@ Param
     [String]$TemplatePath,
 
     # Switches
-    [Switch]$SetupDhcpDnsOnly,
+    [Switch]$SetupADDSOnly,
+
     [ValidateSet($true, $false, $null)]
     [Object]$SetupADFS,
     [ValidateSet($true, $false, $null)]
@@ -75,7 +76,6 @@ Param
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
-    [Switch]$RemoveAuthenticatedUsersFromUserGpos,
 
     # Domain join
     [Array]$DomainJoin
@@ -417,7 +417,8 @@ Begin
         # FIX Protect OU Domain Controllers
 
         # Check if DHCP windows feature is installed
-        if (((Get-WindowsFeature -Name DHCP).InstallState -notmatch 'Install') -and
+        if (-not $SetupADDSOnly.IsPresent -and
+            ((Get-WindowsFeature -Name DHCP).InstallState -notmatch 'Install') -and
             (ShouldProcess @WhatIfSplat -Message "Installing DHCP Windows feature." @VerboseSplat))
         {
             Install-WindowsFeature -Name DHCP -IncludeManagementTools > $null
@@ -449,6 +450,12 @@ Begin
             # Restart
             Restart-Computer -Force
 
+            return
+        }
+
+        # Check if to skip
+        if ($SetupADDSOnly.IsPresent)
+        {
             return
         }
 
@@ -694,12 +701,6 @@ Begin
                     }
                 }
             }
-        }
-
-        # Check if to skip
-        if ($SetupDhcpDnsOnly.IsPresent)
-        {
-            return
         }
 
         # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
@@ -3372,14 +3373,13 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $SetupDhcpDnsOnly = $Using:SetupDhcpDnsOnly
+            $SetupADDSOnly = $Using:SetupADDSOnly
             $SetupADFS = $Using:SetupADFS
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
 
             $BackupGpo = $Using:BackupGpo
             $BackupTemplates = $Using:BackupTemplates
-            $RemoveAuthenticatedUsersFromUserGpos = $Using:RemoveAuthenticatedUsersFromUserGpos
 
             $DomainJoin = $Using:DomainJoin
         }
@@ -3487,8 +3487,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlKQdtQXEvOTv/jPrxs0DkWLJ
-# Xh+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsn7JYtRcHMe1CaOczN5bLsPB
+# 6qugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3619,34 +3619,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTPA2bW
-# lJLHAqUrssWVZzAwrGRHtDANBgkqhkiG9w0BAQEFAASCAgAcg50bWKeNs8poFEn1
-# 5+ZnyLyr+YUloYc34obVgAbDqstPSJ/UYNCYDwPQNB63oDKYbzkO7JDA1ci/Bo9J
-# Ti6cplV8QEJ87r6DP4tKIn0mFParK93+B/9IY8eDc3vs8EWpauwgWyqqQKq9HG2R
-# xcV/9Zwq2pveWXD4q27UUnlmWyioGHS0u59vluMTF/h2pmiCgXNOZBiL55kKKA7a
-# Jws0lw4eXUdKRSG/el/Ml8nhWuBNJqw4Id2yrL+Dj9AweQQ7FEOOWL9PkefjfBO1
-# +esxuvxFau+haXGf2PrcmzS3HayIzxW0tzOeiXptxwfT+AbMP83Jy/TuDa0bBxgq
-# BEo1mFRDBZHbmxLIpD2F9Xf2otS+aO0u/4au/OvZfgofBgX8+vlchwtORPkNt6vq
-# 8uuS3CydODYSLq+6xn7g6voLpnAtf4dhrISUKHJYkOwo/gRs01KQvRoqoq52lX9i
-# f4Tr560V7dq0mHwlXaHqDv6Qfm3C14dlEdPBf2Ay4YyFxnu/CAqB6PFsMCCFpMzm
-# pk+tGhSkhredoY7gRc6gzFQmQVAuwa84YeAB939p7IlyqVpr3p7eJkOwkKvU89Na
-# MjjDrKDRq8zZJU3HRKfCMqu6yP20WLd6CjRB/VGdX+bdQv3mNeYRSxvGlJtOpWpr
-# S4JaSXmZvqmoM7zVLAzqzD6K7qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSUmGdm
+# GEddIZ8NqFSzHhCCmyzw7jANBgkqhkiG9w0BAQEFAASCAgB3gkG8Uu6gHEUo7cq7
+# wMb3KGmz1jXwNIhxuPPsXXMrlFHbUyO8ImU6zP5L/DVJi0Poj7dl6fV0LpYO4QeF
+# BplnitPSERNupkzz/QJXDWVTpB8GbLHz3XKEDBz0y7R+E3Ea+TB1LOpbK7k2MqwB
+# 55F7wx/JAvY+RZUjK/FYEKDXLfMYLnF8evcZwVCIMgtHwNeSrYHi5hwhFpDFFY0f
+# 7JDyinXGdGbJdf/F/hnwxHHa0hLxxK3hMyDliZeAQND9DQGsvMq2EXXYT5YydIfL
+# 2E/tmiddmuxx5gue4OQ0P8jbIIxhS3ILRA3ZdL6WVekHCUGMZH03x1F7882LiJHk
+# KYW6MfCU9HYNdc6rpe7tKiUFzz8Jp7SYs9HjS8Jy7atFfbQYwhacTCKcKF/iIanb
+# 1+uOCMU37AaeLbrxhMiS3Y10gkBeztkZXYMgTIRl4Wq3BZqU4bwHz5/DQ13yGzNT
+# RMsh/s53uAdfRRzGIzHGwWsnRqSUyoSh2IOJ3DYusUzLzoatCQWYMqXEgoJiUNI9
+# HlzyiwsmXAEXvuPm8d8lLy1CkutGnF3Ef8l7VxJUsjqgCQCkoSeAaa3jU3LrPwLT
+# uPJg8qxON3R3fa9mPtPZKFvVLAKuwzrZNdGs+CAzHOG+givdpipC+pTPL+1rRQdN
+# qt7zIs95pRDuSOwAd8up+LYlCKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMTgxNDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBl4iAorpN4EsZ2OC72ukhqAmOzie8CIjN65ytb
-# QPrpIzANBgkqhkiG9w0BAQEFAASCAgBsOLmrd8Dq4ScIW2o9O94LAOINWCD626RD
-# gOjT9RR1N8T/LlAtp9Wojn4d6ItR4qQY3P28oP3X7jFUdgM8rUm2zLF37tONrWSx
-# Dee2jcTl0zmRKA0mrNkHjujokqcOC6FZevRWJ/5VcPoC7j0/LqdtHB5B6V5j8ejr
-# NjWl4Z0WSq4By1jtZ73d8Z4u4hlykKwqeSLTp0h0hJiY8YCtHzR/gLBEfJagV0wX
-# P31vpdDwDA+b52Qu4y3c3mZzQmOIhBWQPvxQB0nrGg4bz1SfTPwkD/pE03EaUFaQ
-# Wnw76GmlTHBLATbiYZ4gIFBuA5k9Vn4eyuzelCm26zbMgaFJn5ABgQGhbduqXGMn
-# idQ6oTdVv+7B/c0VTdH4cwiEMBneA7vKK2aH6n/cP/3L6xfCnKN/icEKaKi6wSi5
-# PqkD+p9vCuLp3/PWzYOzBPxEoSaSO5lOddj1DefIXQy5Fx3XSD7PtynzAUz3Rdlv
-# z07c1/HbEkrfT2mv6MDcyOm5ulVpJsgwKh2EA5YDLSUHLp7m5MG/gTuSN5WD4mWD
-# iwO//x+IeiFpQqq13q59U7Km2mZgXf4S+dct4wQOWHmN/4ol55vPLKW0qfBtb1A8
-# zZBdLe6dzTxT/Qlhx9FFsQzDau7DZTbmkwEPeTPD3Jqe8abVJdt2HFRcL7/irQtP
-# 8WKa/nrjMQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAVFNyqg292qOKmLJD4U3TGR1SiK20PThSaM3Fe
+# c2ehtDANBgkqhkiG9w0BAQEFAASCAgBMcF70U0VDy0U1sHJDrW4qpv0HtmiWlXgR
+# b0XlVkgvKNNIqyRZdeKwxGNZaLMEbNASMg7YTVre4hgmHrk+g7XcgkdvYbGKauuu
+# 3ajgZOLFGgq6uJnYeX5Bwh+nevvIYTFepiE03DzGwmeJofB8YAoYIZlpDoVFRTDv
+# YdTTjxt8xNciXb+54EYxBYsA73v6KRf87VQ1so5W2EdWX8M8GfVGM/fbn5z8TQnQ
+# 0Fnk67S1d0jm1r2ip/P/a/LzFJOQwMBLdpggH6n0HwQtWlGTtZnJseo1l5J6C4MH
+# 7PRT/mVrbfOgaaBAp4mIK8fF9bjb0UIW2UGMb7UvID9fmUDaoTIwI3AOJ5Q3cFZb
+# GirtJiqP0OTEipxirmFowl4Rho2yVGDlJlvyjWs+eQl3vlwe1F9gpwqfchdoWNH5
+# 5K+iZKTat1TuOzd5lb7hKahqC1P7/JFqBuFEHErt9eajdXhrbUskaczzjoIyXv41
+# E+EEf0unPI6PgOjJX+wBLKxpOIlMTFVgDVLlWHXeQI57dLnV2w7QtC6uDrEhqLK2
+# 3kDQcLtzZyDmiZzwJkC5DAx94RKxmk074goHS8xlMzdVQxFxipeDX5dx9U5qwcz2
+# uxTEb1ZR2RhBKPc4FnrTHKK0VeAftZEHxYTViASHuxX56HpUi6GoVY1eWXKrNnb+
+# LZyh3U4xzg==
 # SIG # End signature block
