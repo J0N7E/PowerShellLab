@@ -845,7 +845,6 @@ Begin
         $OrganizationalUnits =
         @(
             @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
-            @{ Name = 'Domain Admins';                                         Path = "OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
         )
@@ -866,6 +865,29 @@ Begin
             $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier $Tier,OU=$DomainName,$BaseDN"; }
+        }
+
+        #########
+        # Tier #
+        #########
+
+        $OrganizationalUnits += @{ Name = "Tier #";                                            Path = "OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{  Name = 'Domain Admins';                          Path = "OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{  Name = 'Groups';                                 Path = "OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{   Name = 'Computers';                   Path = "OU=Groups,OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{   Name = 'Local Administrators';        Path = "OU=Groups,OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{   Name = 'Remote Desktop Access';       Path = "OU=Groups,OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{   Name = 'Security Roles';              Path = "OU=Groups,OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{  Name = 'Users';                                  Path = "OU=Tier #,OU=$DomainName,$BaseDN"; }
+        $OrganizationalUnits += @{  Name = 'Computers';                              Path = "OU=Tier #,OU=$DomainName,$BaseDN"; }
+
+        # Workstation builds
+        foreach ($Build in $WinBuilds.GetEnumerator())
+        {
+            if ($Build.Value.Workstation)
+            {
+                $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier #,OU=$DomainName,$BaseDN"; }
+            }
         }
 
         #########
@@ -2498,15 +2520,6 @@ Begin
                 @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = 'Yes';  Enforced = 'No';   }
                 @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = 'Yes';  Enforced = 'Yes';  }
             )
-
-            ################
-            # Domain Admins
-            ################
-
-            "OU=Domain Admins,OU=$DomainName,$BaseDN" =
-            @(
-                @{ Name = "$DomainPrefix - User - Admin Display Settings";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            )
         }
 
         ############
@@ -3487,8 +3500,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUk663qDeeZe8kBfjwhumSeDer
-# PoegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnore0UQwIsXa0elrYJ4qtr2L
+# 1eygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3619,34 +3632,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSmCYem
-# aku2LyaK+b/giP/AQCcI9TANBgkqhkiG9w0BAQEFAASCAgBz6H06lY/LdddepOzU
-# eP148v7eOfqLKjffyrA/nGzgk/uYUrMUjxo8mLOtJDpUF48+hQrrauGCNFALoqKf
-# +dRFmvoIuCkg6Uj7OVla7dSLfUOoDeLsfDGHSklGVlUOr3iPKUbEoldap7/Tnpva
-# yB2kHZUGzvx+O3/fBSR1YQ2BThAOpa/gkO/DgYdzvhRZcxZgQhhONQzneUgAKPYa
-# MB3Y60KVa+zm+4LrvTftlDkqPFSKSLMtrSXcYli9zmJSXQkkQcRmlLG1ZCFHR/cg
-# hEpdDfQj2WmdvW7cZJ7xx3HkWZXY55RnaRylqRuLRZpSXpv7UEcHneDteTYEhB+O
-# 6kWn1My77DO/TWqYc9SV6mdqf8f4T5YOTSZ0BhX7rxPbW5sHGB3jXF7EaxXyOzs5
-# XDvSu/gus3lgfERIdnYR29i7RsmxOkLiI9sWCKhsmupx3u4tIgfq6vXg0FWAC5eh
-# 6oMCjZLBNWXCbYx56A9nkofeQ27uQljT2UJO3ojY1QheSa8uJw+qCVmQmyvF01L0
-# nBQeq9b6uPxW2Sl7RqDZwabIn9syu3rAVqQO8r0xp3nM2HJWbNZrvye7GH+kAnES
-# i2GlSdpUp2AI06AvGPYPx5mwbQFZ5VItqmi6TMGK3B6F9zImaNo3QOQCqvpmnpL8
-# tvh7ZSmVgYSxGDaO+PsRjbP76aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRJI/Om
+# F8xZO9cAJhhQSfJsmffzpTANBgkqhkiG9w0BAQEFAASCAgC95h/exin0D1A/9P3A
+# gIBwRCDk95vj2K0AtA7a5jpvSkBfc15Lgbi7tknU2hID2f8fAOrnVcLFhphccKyS
+# HciQmYTtieu1lg35/8smcc2yPJ+FImq/j61xbNEoXId0gvH5yhzggOAnioE7gzEo
+# Qwy6KChkGJFtgh3AY7+swKOVASxXUcVLzH2XN9A/ilPiIE1eeHn1HaYciDA+p48+
+# EqHdYAHDS8lnTkkKoVlHQO9tlCRdG9d/UZpKMVmtPCJhmiXy5/iUSRagiUld4Y5C
+# cbHv3ZR+/D7Zfekytls5FAVbFY7fAUAm+UmxZdP5SIvHRhuyMAhIYOa89wQZ7kP5
+# OhKJ42T1+OxHSRnF5EMW8OKRPSbfVvTOCNhXfK1kU1vde73C/H/jxdg1L2eQdCrm
+# X57uQGivVFbxNbKWqrL7DgQDlaxLEAJBYysYSlaBIFKl4MfDySU/cUUDIq/0/CVe
+# pUFluQnkcQhnvrTduvD5vIdrnFAK3VpDx3yghAvMA37raI8AM43Z0zJb///QJy52
+# FLrWRiGGUq10ToGlGO9Hcte3sJk67ceIPtNEI/tOjOZoSAD7H0POtti9C8IPwTHI
+# ESDiLQ6V4tNystQHTfT8gExAbIPfuo/f2srA4mi7vBgkFLFx5DiBEI6iClYLsEjs
+# Ss6yI0kuuGs02kTA08i98+XB7KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjIxMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCDPwKylSOUk3RxaZsrsLSmQAlHoIMHzHqQD1MVj
-# SgBu7DANBgkqhkiG9w0BAQEFAASCAgAiaorjpIoZre/3ih8uc6NIcDkTeJOI0Cu+
-# iIWzEb939q7UYqR8APAhsBzkCDzyKJOtsLSKHn9JaOBLJ+Xq+XWgpoGqR8j5JCKh
-# gMal0EaecbjDIeqPYMQekaK/cHLVKmRsoflaDwctzHZO7ye9mIL1GxowFIzPx6po
-# 5WOBuwEgqYnmzrmlmxMAUqYK8eYCU1DJBW7fQ85tsFHwpNnczEERiB09Aja3AEuO
-# yFut3sx9McTSIKhceVpUFt52IyW3te08TGryIQEuXnOGp78y4cW/H3vr0L5Ipur7
-# SC2C41IFMoiWfZLHe1BP6g35IhVKM6skZxGkDZDQGGiGK32aOWCNSqmGvLqYJN2+
-# duNtZOpDd7ec7NYzcrUgtm3hWNpPVB1DyDrZTeTOU1XKZyEkfcfALfIQeormsSPT
-# CHDjrNqbAk5fEx9iME0Zz0kkLa04m0Y1goC1+7jwj/n+9xe3mjQ8gjd6bBvIh+G0
-# CKjo01o2qUi10GJd7g3ZeSrkR6skewYpNWug7zHFSpNd3stqvun1zjHrvoTLnc48
-# gv7FLaa5CQ+DrAIM3KtWpSgS/dOvGu4k07jZpMt4n3aLSvVcRi4uNHeiryLJ3uJJ
-# Hs4TAmOqu1KHPfw903dESjPrbLudG4CqxQKgDfgQX53dNx8s09aFJNlyQvaIGS4a
-# wuUnzYwDIQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjIxMjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBnu7vsG3v+V2eh2hK6bI+tmI2ZuM6RV+i4ItZ7
+# +ELMrDANBgkqhkiG9w0BAQEFAASCAgBXeWmAZoEjuCMBT3mhdTggmh3ZypWjX9eI
+# abky5BtwpQoMB1zWY/XQrE6aCySVQ/Yn6jl86dw2P4R5kIYVlVW/OdXkU6JRiess
+# 7iLxsARztUiYZDzgnr/sfVd5n6sdnymD0OHFB3xz8rQQYykkQVKQbX8irwDijl51
+# p0YsoY/unvllE+BwamCJckJ5noLU68Ng9dARV1C3sHgdIZjFyMjElTXN1bjmSs41
+# 1OOkolzcE+HeFRGM+gfIOMpo7GxHN5hnqM+4RfRzSx1NWKTG530Fo0JP7cl0fjDP
+# Jaio6U/oLb+q5/+eevelc134Bg1AsrNIuepjpRUM+kVpoeeQmYZNrRKbxAZCZy4V
+# HzGOSNIbdcgBDD12vEK5s5ET64McCK0sMg+NW9N916wRnsGlupNqKPwiESqKllog
+# 8RcVgww8DUU+A76d3O3/1MdRGGwduzb3SmHzki8mbC2XuNkYrx2fmlJZJ8py1lfa
+# tpMVi1FeCkY+ku46eN4ilZkSAYKWRklaQ3l9cKaSybnv6ntiMpu3NqP/0fP4ikzA
+# w7nFMjZtnulLTJHnBP9ZWA7QpsrEhk6iE6ly34UBH7yvt1V5x67zLec7Y3RRnLHG
+# fzQGojlsvBwFLcQ1WVv6arTgH56+TQseDp5EihI1po+kRjO+Ybpgyv7pPxOK5aWP
+# r2gnLwCV/w==
 # SIG # End signature block
