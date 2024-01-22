@@ -70,7 +70,7 @@ $Settings +=
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
         #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');            Credential = $Settings.Ac0; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Lab', 'LabDmz');  Credential = $Settings.Ac2; }
-        DCPAW  = @{ Name = 'dcpawjohe'; Domain = $false; OSVersion = '*11 Enterprise x64 23H2*'; Switch = @('Default Switch'); Credential = $Settings.Lac; }
+        #DCPAW  = @{ Name = 'dcpawjohe'; Domain = $false; OSVersion = '*11 Enterprise x64 23H2*'; Switch = @('Default Switch'); Credential = $Settings.Lac; }
         #T0PAW   = @{ Name = 'paw0johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
         #T1PAW   = @{ Name = 'paw1johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
         #T2PAW   = @{ Name = 'paw2johe';   Domain = $false;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Default Switch');  Credential = $Settings.Lac; }
@@ -621,8 +621,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqtO0lXGNpCdYhXyIxx4jSwNq
-# 9YWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUucCDKwgJO9l+4nmxvySKhD6i
+# LYGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -753,34 +753,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSJr2jb
-# ePFyHpW89CTPusXGBT3A1TANBgkqhkiG9w0BAQEFAASCAgAihLd/tLQ3J+Eg8qJV
-# k5XnBalrPJSEg8WXgGcl7k42MaVizut3zD7YKN+BVuSpPERSiXNv7lzUagyke/yB
-# 4zQQyKr81KfVtJfLrgeC35X+lIVgV7lZ3hloahHbFEX1yvqJY7TX2yRZoUdB/1xt
-# zSMJNYdq2ns6TkfNbBZtRMw5LpVwiFi1pQNAEtXkpdtaKoueuwmTmIqDbkMcHugk
-# SYynTWI0LkCWF8dP+U0T5bkVZWrqa3qurKzyY0240Vg1r0osWvy5IsPmi973boIT
-# LoQwZb6MaaJfmRaB6lwT94Mz2YYUKUk3B0qUj2nN6xeSVt0hGls8qYnjYJvYBLfz
-# DtyIMG7Wq14+6gh+f8pVQxpPBs6Zv4osKO/nKaAL6hSMRDiPUHqnDjSKStzpF/Y8
-# YGJX0NLVOA9QGweKYwpNihaEKtLS3Bn5cHf6XW7CwsjhjZvH7fbbLM6Q7G6JK59g
-# RRUSvfqkWRXLsGRF91FoaOQJ69ubkSkQwO9Ga/MVJp6LO1jCFwGwTEH6U7nBXN1X
-# 7+TiB4WDDmKyuDjxqMxn53udo8Cu9YeaghqXLowyKfIeHkShLuTIxKMNnZC9cPjL
-# q6UyZ0EBpq4bhqTzoBHzrQIpe7jBN4LzDD5SMjsTE+YiyuLd6Uj3uUTE4j3g3vnC
-# 95OLBqZ/ECQp8qx+toPduDlkTqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQjyYuc
+# NOCWueRYrAoVl1XC9MWd1DANBgkqhkiG9w0BAQEFAASCAgA5OvlE0Mti9d7+2d8A
+# RFTvzKoc6huqtFQGWu13bq6+ttKj0RLmkdhUPE0Hsff8HuYxmB6C1f5f+wnrBt+u
+# 3NXpi7xxU2kc5kwrpFC6Cq9sxaO9LKtwP4f+417Il1i2+Ef4sfVaveAkd8HZANs4
+# wWTxeD3Un7x7K9nGlQAUF+QQS2XENWEoL+h8Tnre0YWiakYQ+ANfsXU0zxYu0A1W
+# W8LQnNO5OgIHH51Bb5sjW38XGYv5fLQgpjD7oOesIDCWd/ulxGV08a281oHQ+aoD
+# 6hSvFSCrMel5Mh5wFh7aKddmr20SxH2EpO2zsceTQSV3ZuxoNEYYwpthzGv/N+NK
+# +v/wNa9wO3iwJkemyVyWQO1XMiXe/YSOAFu0ScVS9dNj9kF50YqJR5jGsRW1gMOv
+# LB/NikHASUcc18TvPlhpbhJQWdxNIqVLYOqLTkm7qXj+kYLlZ8MysvglPuRI1YA5
+# lJEUz41ZZ5AXvZRfQrL0sP712mu3+JQQ7AGZTl9VZWRAjAti+U8NhC6q2xCZ5YKU
+# D3FVtsHYr/gRsv8xQ/k6QvWxP+f75M2jafqLuruSLrdridVlQGzarmPOCnNdd2M0
+# Va3xj4QSKW+dA7s0u8Nf2UTzgx2nv2/Qo0P7uxZ3d7MCTRa6CVzv9TzDwU0mQ1Nd
+# MxQgtkHpoX45Ke6/9eBv/HlAGKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCDkaKgisjvCFkDFf5gU1IFCWiQewHAbr0h2J1pm
-# oJJiLjANBgkqhkiG9w0BAQEFAASCAgB0pbCg1PJ7yoSJ6O+i2RmaRaDYhxuAAetN
-# 1/GOWbhTomXBTvVVZjlIcI/IsIxyxnuuPITlUM1PjKkVDB5T299s6DHAs7gmTtzP
-# OvtIpOrwsV0fJdXJR+VY6cxpqknjaXi3ULem2LhvTY3xFwrWln4QX79XOSvsfYHv
-# PHKU041ttFTGOLxVtN95MFk2DINtSU8EQAldPwNelTXGYBI9vajKxjZeJBCuJcKu
-# KMiQGbQvaJpS5g/u/1iAIprE93Hs8usQbC+9TYFEaXPHemd+enwvB8Ii98itzFTv
-# vPu8gcAZI8nSOrGoX89aTIf1ymyGf3vsyiAhBjUOdXA0F+aYyv7A/j60J/HnkPlW
-# X5I9MlZwbl0vlIc6W4WVp3w5uxSQ5LMAufG+KPto4HHf9+MBhKn43ccUV9YF54dl
-# 6ixnfTxbZXHFMc+x+sfRoqmH7O/bAKu8ozhEhOCFfCqsKoz+9hqxPU8hYDpkRFJ4
-# vVt6b7+wLTkPibbeKqFL4td4bD2zZkwsNvMai9vrrzu1pcWHD7lPNwJaJkWXh08p
-# 1Cr8/HQBKeNdWJq/nqPOnEl2iDfXULqLuviK7jA0YkAouKp2Jwjb2EfLNskd0EA5
-# pkKLSIVUvVc4s8x3sC1oqnj/Zzl/SbxNCIFciwaVgPE4J+NW4V5Z2oFCF54Aoo4q
-# Il6y/XSE2w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjIxMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDk8XIOzo7TAXU9RxhvF0QsscGau1N2pNjVQfJy
+# zAH9FjANBgkqhkiG9w0BAQEFAASCAgAOOwWHtCUObslfx2r0PDTHAPXD5ZaOc0eR
+# hd7mnFRbrH0ohIAz9M9yYJgV21s9A/0GzNWV/7Hw5Ildh4J+pWobvRnzwDIbm0kR
+# fGetQfm6RVSuHMIHC/h/Mz8eB2otCDYtQ08OhjjXQ4491qfm5NxR42WISkqh+5b3
+# vCjRsxvfwMAqhv3yNQBV3WJt7JQmQi16qBERNP/vE8ZywFB8JbbnSAgruGTEt4Db
+# 73z2FGO6pIPeCrSYZ4wV+eJL57M9t4YO6wUu3n3+HeB6TXOcENOiKEy5ff+/qeN6
+# /7nx3V+l3ahmJsdJ0PYYXBQfxKNs/fyNV98+0E6JtAtNqB63KfKBJH+qLW6STju8
+# 7XRvUdI0ubs95+Iu4s6+MiIzimpZ6G9ALB4yS2kQrN9TTFXKXPphFvgd+Ixtr05Y
+# mCKnN+k4Tbsj3PQBUYel4f6Trh8WbukB9MppGQO8TOIklcQxdQi7/qfk9sd5VGub
+# wpZIpcRmVxCPYOp2tUZSTAy/hwk/faytR/thVFIKsl/ykPxgY/qYFlkz5inCUNsN
+# OJwXeWLu9BqaTfhpM/UWgX4qtbwu6fMDwx8L0VlU/j/Uln/+9nyFv428y3XwTPW0
+# 7AzVomKgypQY0obekgn1OE1q4pOcLcsKKY7maKI7Wc4RSvYjmrJmXoTj6CzqJ9nW
+# dTqMnQuElA==
 # SIG # End signature block
