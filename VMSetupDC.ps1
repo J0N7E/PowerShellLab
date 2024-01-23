@@ -713,7 +713,7 @@ Begin
         $WinBuilds =
         [ordered]@{
             # Build
-            '14393' = # Windows Server 2016 / Windows 10 1607
+            '14393' = # Windows Server 2016 / Windows 10 1607 (End of Support)
             @{
                 Version = '1607'
                 Server = 'Windows Server 2016 (14393)'
@@ -732,7 +732,7 @@ Begin
                     @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
-            '17763' = # Windows Server 2019 / Windows 10 1809
+            '17763' = # Windows Server 2019 / Windows 10 1809 (End of Support)
             @{
                 Version = '1809'
                 Server = 'Windows Server 2019 (17763)'
@@ -846,8 +846,8 @@ Begin
         @(
             @{ Name = $DomainName;                                                            Path = "$BaseDN"; }
             @{ Name = 'Domain Administration';                                 Path = "OU=$DomainName,$BaseDN"; }
-            @{  Name = 'Domain Admins';                                        Path = "OU=Privileged Access Workstations,OU=$DomainName,$BaseDN"; }
-            @{  Name = 'Privileged Access Workstations';                       Path = "OU=Privileged Access Workstations,OU=$DomainName,$BaseDN"; }
+            @{  Name = 'Domain Admins';                                        Path = "OU=Domain Administration,OU=$DomainName,$BaseDN"; }
+            @{  Name = 'Privileged Access Workstations';                       Path = "OU=Domain Administration,OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirUsr;                                               Path = "OU=$DomainName,$BaseDN"; }
             @{ Name = $RedirCmp;                                               Path = "OU=$DomainName,$BaseDN"; }
         )
@@ -915,32 +915,26 @@ Begin
             }
         }
 
-        #########
-        # Tier 2
-        #########
+        ################
+        # Tier 2 & PAWs
+        ################
 
-        # Workstation builds
-        foreach ($Build in $WinBuilds.GetEnumerator())
+        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
-            if ($Build.Value.Workstation)
+            # Workstation builds
+            foreach ($Build in $WinBuilds.GetEnumerator())
             {
-                $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
+                if ($Build.Value.Workstation)
+                {
+                    if ($Tier -eq 'Tier 2')
+                    {
+                        $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
+                    }
+
+                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
+                }
             }
         }
-
-        ##########
-        # DC PAWs
-        ##########
-
-        # Workstation builds
-        foreach ($Build in $WinBuilds.GetEnumerator())
-        {
-            if ($Build.Value.Workstation)
-            {
-                $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
-            }
-        }
-
 
         # Build ou
         foreach($Ou in $OrganizationalUnits)
@@ -951,9 +945,9 @@ Begin
             {
                 $OuDescriptionSplat = @{}
 
-                if ($Group.Description)
+                if ($Ou.Description)
                 {
-                    $OuDescriptionSplat += @{ Description = $Group.Description }
+                    $OuDescriptionSplat += @{ Description = $Ou.Description }
                 }
 
                 # Create OU
@@ -1093,7 +1087,7 @@ Begin
             # Domain Admin
             @{
                 Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Domain Admins,OU=$DomainName,$BaseDN"
+                TargetPath = "OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN"
             }
 
             #########
@@ -2527,7 +2521,7 @@ Begin
             # Domain Admins
             ################
 
-            "OU=Domain Admins,OU=$DomainName,$BaseDN" =
+            "OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN" =
             @(
                 @{ Name = "$DomainPrefix - User - Admin Display Settings";      Enabled = 'Yes';  Enforced = 'Yes';  }
             )
@@ -2552,7 +2546,7 @@ Begin
                 # Servers
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";  Enabled = 'Yes';  Enforced = 'Yes';  }
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";             Enabled = 'Yes';  Enforced = 'Yes';  }
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Computer - Server Display Settings";              Enabled = 'Yes';  Enforced = 'Yes';  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Computer - Server Display Settings";     Enabled = 'Yes';  Enforced = 'Yes';  }
             }
 
             # Link tier gpos
@@ -3511,8 +3505,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUC6ADauqOMAIkb4xlc3Dsp6F8
-# akugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUB0u5f7Umk81nl2pI4bLCJUrq
+# SKWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3643,34 +3637,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTPIC73
-# NEI8RNFah7zYhzSEHCVgmDANBgkqhkiG9w0BAQEFAASCAgC7g9PbkkSWrjQNdm/q
-# T606rgNUhYnpZAdYSRzygJq+LN0HE8zndkldWPyBMSoUfzN74d1Ped8XZCpG09Xv
-# zMf8TD9/HN2wY3m6KTGDN20FiG7NLjPHVkNGYfL00JFrUAQeYsBCqM6fvDh9Afoy
-# LPHFLOXbsCI3LMGYDo2i46qHHAj4T5ikQ+NJvf5DeN4d8DySzJRelGn8SQtwr/xv
-# Nc+x0SDi40EnbeOyvVVwlpwc6Lg738edkBAPIdGe8+FaJ8FquO21+wekpKzs+wWZ
-# hNCzXyzBlM3N9ySu1QLlXTIpaZqZrDNMipqIhbheTiTa1pbp7kThFQkwY/I9s1JY
-# DWdOyoKEbtwkOYcSV6O7b4eXNbTPSVBzqubPIQJ/YZ0iG+qYWlsNCPE0Oy66o0eN
-# iDhLX9uW9NDaY2jonT2IgkMdplBTFJXwTLe2kYPXWwxK2Pzfbo0ckzBvfsCWWUt8
-# tXALLb2Eiipmz9ZzWOtjQcBBi7r6VMfDAr5opKqxeh0CEG+x+wGKgkOwxtC/feHQ
-# hT9GFUQ4iIdoxFxiKs/9VF4VuegqIeDIg8NBsEcp+N6DkNevlm4b5taJfepKTknW
-# OuVQsDS3ZmgQhNFpE22+sqhKxmFpWXu3cQNRN4pd7xbpHASmbxogPFUq0RPoqdMC
-# h3RRfAHAlK+xz7prgiybZZIO2aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQyGqoz
+# QMiCN0QEQpuFjkYJjmC2OjANBgkqhkiG9w0BAQEFAASCAgCekielh+MPDmDAddsc
+# 4Y9Y501IKY6oPMOtW+N5mFMpTWInO7Sfwy+0eupBwaM9ZBiCPLwb9z0Eg4gm8cZt
+# h9hJAWWTWwsRbI87c3KJGEQQGJay2kbYPdWtYW7wV5cgRkAVKuvuGjhXdt1lWOV+
+# 0hEbx2Uox1ies+gy4G9aOOMca64pfqMdJU/Fkr9pA9e0wR69DH2fns/MaiFfgnOw
+# ISNvoMDwHYuqx0IztcunNa3APEpIdEEuQ4hPK7A6VzszMlxGsvjQwey69oarMWzj
+# PuQiUHvjSMjWWDztSe6HRgZBgBhXZPmPvEfkR441e67pu/v7ElDLyu2xv3mEfrg1
+# gvrpX1xvOlTQEzXI+mcBnvq2AUJ3KmIe7QRXo9Gigwwt3D3AGUe2lq3XM6hYOWSP
+# l11S/VDQrvLyrRF/Lpir5RjWIa7SxzauY5Q8QNBwReHjKEJHAZiwDcd10waBX+ct
+# O3CaNJErccbtWSKqPE3IaEkVmEpFXETuJX2bYHJHN2ZVVYBKQQWPuFf2u8az+9Wx
+# ZtCqzXO9jJVIkkv1Makv+Ls/ICxLUdt2vYUdi19MlADiTgZSQwqfV/tlg4igJmA/
+# i7cw3+KX9/5eRQuKaQgG9BTw0t9ZQzyHVG71L0Qk0mGc5aJZnrzFhkVGoMU/tmOo
+# smFWcFChXyGg4tMCRxe7DbX6A6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxMTAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCB8i4iiQWsoqiQsSC2pjM08343ChP0FcSQPdABw
-# RKvBYTANBgkqhkiG9w0BAQEFAASCAgBKKQmmWCOBArVMhG82r6LB6IoOwsV2XrpY
-# h4nllOhLy88TGXo5uRgPnI36MSu+AERFKmQjCnAvVTH+iXeTZZvkucRWidrlM+O6
-# d5qWZbdRXNXdT3iMmX1DZ+9ZNAF/3MJ0P3DKtRy2jOpIBfR65gR7RrVNZaay8eTs
-# FbG3w0pLdks/swlunC554dhsZKfWmoPxXw++G+rIgG+3fhcqj+ihJB2mkQGCQVaF
-# zDnzaBooy4AbSwszBxwkn639yqcQKkHEe4R9R/QLc777xy6dfLoYh8TDf/2TJib2
-# WKWjnXeJrR6JaM2QF42uFwZ2eX0yFYKvOQFrMtB/FQuyfr8E//5Z9J+7VfX72Dma
-# 7x5JKwPlYqRCgji3OdWREfjRd0QzhQg6wqh+NJB9tQLjHooH5VhTwR3ir1k4uvHE
-# mUx7+0SL+JsEI5cK2r1/No9k05rCG6egxBysGsr/FRZiK2j73/Tr3zeyxn1/+MeU
-# WMhImkdPdUIXbD5Gbu4WRB4nXT3RE0dNuG659jHiL+Bd3cRs2893BB/g6cFQ3Kj7
-# 0t9CJ2Xgfvfp6K2BCPqWcsIYxcqHdlj4M3uMlT5ACsF7FUTUgbBnvR724PxrPtUZ
-# A0OaBQ/dvKV+TT1+7jmTevk2+wds4UAM0QDv8yQjeUQiLFbVyvjx4H0xKRYklMjK
-# JEyEz3Yzzg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxMjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCC9cjqGc6avfSBIOThi12zk4J0h2dzC1gvgjdwR
+# JWIKLTANBgkqhkiG9w0BAQEFAASCAgCYjEvld/cC7E2nQ/OL1feiCyqwAhJAxnPM
+# mwK+i7waLCycG/SLNOXfyrgVPWYHFumLs+9bUVeFZFC+JnlPH8/v15pDaPnWZb3N
+# vvp0h0dbwR5dszFAtRWsnidfs30dMVdxgE3z6a10Qrb3GC2zHur4ezib6pWddBXl
+# j4KMkmdJ7uT5DigXWoGFxLTIhYmc3pSeybZ+C4wOybaFafcZgmE0okPzSXVEtGNf
+# zC4Tzu7kgNLeOG1STvICrVJpysN/Cu6W3DfIQx2+eh9R63dV3S3XA2V9yF/uDFAQ
+# 5h8VZ34B1h09Xg3sY78YIjPGOO7+QY+m1i1bXii1ZNBpVYkbLkrrna7J4prTQFqA
+# CmLT9VQBeyCgPLkYeu5GBttMfW8YtHa3xBCcziVSyrC8IrlxmRpBpQqYJ7Khg/JE
+# 8rxMbORxS2SXlrdFlv2XLl2l+CU86ahRsw2T9PWhrnJF23elptUTRMW8XPa6duLf
+# fTKdE44MtGV8ifRCrWa4rRe7r3xjhiAN3BAqUeJ+TH4bOa7QmUrfqQ7wbdT5Pk27
+# mfaoHiQQnHS6MDAydYUiiGmgCgJZ4zqdLPCw0uqU6gxTi+PRya8oK2eO3SjdHqFd
+# cRAFxBhDc3lIZuBQ4jdP7WV0NJ+w5m985okxobKKIN2GkUUP9A6HGvYZr6+SEygC
+# +9IzR56hWw==
 # SIG # End signature block
