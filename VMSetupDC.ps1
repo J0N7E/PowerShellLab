@@ -2520,9 +2520,7 @@ Begin
         }
 
         # Domain controller baselines & default
-        $DomainControllerGpos += @(
-                                    @{ Name = "$DomainPrefix - Computer - Server Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                                 ) +
+        $DomainControllerGpos += @(@{ Name = "$DomainPrefix - Computer - Server Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }) +
                                  $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
                                  @{ Name = 'Default Domain Controllers Policy';  Enabled = 'Yes';  Enforced = 'No';  }
@@ -2545,9 +2543,9 @@ Begin
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = 'No';   }
             )
 
@@ -2577,13 +2575,15 @@ Begin
             )
         }
 
-        ############
-        # Computers
+        ###########
+        # Computer
+        # Base
         # Tier 0-2
-        ############
+        ###########
 
         foreach($Tier in @(0, 1, 2))
         {
+            # Set computer policy
             $ComputerPolicy = $DomainSecurity
 
             if ($Tier -eq 2)
@@ -2599,148 +2599,147 @@ Begin
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Computer - Server Display Settings";     Enabled = 'Yes';  Enforced = 'Yes';  }
             }
 
+            $ComputerPolicy +=
+            @(
+                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                Enabled = 'Yes';  Enforced = 'Yes';  }
+            )
+
             # Link tier gpos
             $ComputerPolicy +=
             @(
                 @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                Enabled = 'Yes';  Enforced = 'Yes';  }
             )
 
             # Link computer policy
             $GPOLinks.Add("OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
         }
 
-        ############
-        # Computers
-        # Tier 0
-        ############
+        ######
+        # PAW
+        # Domain Administration + Tier 0-2
+        ######
 
-        foreach($Build in $WinBuilds.GetEnumerator())
+        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
-            # Check if server build
-            if ($Build.Value.Server)
+
+            # Set PAW policy
+            $PawPolicy = $DomainSecurity +
+            @(
+                @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - PAW - $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - PAW - $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
+            )
+
+            # Link paw policy
+            $GPOLinks.Add("OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN", $PawPolicy)
+
+        }
+
+        ###########
+        # Computer
+        # By build
+        # Tier 0 + 1
+        ###########
+
+        foreach($Tier in @(0, 1))
+        {
+            foreach($Build in $WinBuilds.GetEnumerator())
             {
-                $GpoBase = @(
-
-                    $Build.Value.Baseline +
-                    $Build.Value.ServerBaseline
-                )
-
-                # Server 2016 disable SMB
-                if ($Build.Name -eq '14393')
+                # Check if server build
+                if ($Build.Value.Server)
                 {
-                    $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }) + $GpoBase
+                    $GpoBase = @(
+
+                        $Build.Value.Baseline +
+                        $Build.Value.ServerBaseline
+                    )
+
+                    # Server 2016 disable SMB
+                    if ($Build.Name -eq '14393')
+                    {
+                        $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }) + $GpoBase
+                    }
+
+                    # Link server base
+                    $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", $GpoBase)
+
+                    if ($Tier -eq 0)
+                    {
+                        # Certificate Authorities
+                        $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                                @{ Name = "$DomainPrefix - Certificate Authority";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                            )
+                        )
+
+                        # Federation Services
+                        $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                                @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
+                            )
+                        )
+
+                        # Network Policy Server
+                        $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
+
+                                @{ Name = "$DomainPrefix - IPSec - Network Policy Server";   Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Network Policy Server";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                            )
+                        )
+                    }
+
+                    if ($Tier -eq 1)
+                    {
+                        # Remote Access Servers
+                        $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+
+                                @{ Name= "$DomainPrefix - Remote Access Server";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                            )
+                        )
+                    }
+
+                    # Web Servers
+                    $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
+
+                            @{ Name = "$DomainPrefix - Firewall - Permit SMB In";        Enabled = 'Yes';  Enforced = 'Yes';  }
+                            @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
+                        )
+                    )
                 }
-
-                # Link server base
-                $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", $GpoBase)
-
-                # Certificate Authorities
-                $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name = "$DomainPrefix - IPSec - Certificate Authority";   Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - Certificate Authority";           Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
-
-                # Federation Services
-                $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
-
-                # Network Policy Server
-                $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name = "$DomainPrefix - IPSec - Network Policy Server";   Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - Network Policy Server";           Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
-
-                # Web Servers
-                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name = "$DomainPrefix - IPSec - Crl Distribution Point";  Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - Firewall - Permit SMB In";        Enabled = 'Yes';  Enforced = 'Yes';  }
-                        @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
             }
         }
 
-        ############
-        # Computers
-        # Tier 1
-        ############
+        ###########
+        # PAW & Computer (Tier 2)
+        # By build
+        # Domain Administration + Tier 0-2
+        ###########
 
-        foreach($Build in $WinBuilds.GetEnumerator())
+        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
-            # Check if server build
-            if ($Build.Value.Server)
+            foreach($Build in $WinBuilds.GetEnumerator())
             {
-                $GpoBase = @(
-
-                    $Build.Value.Baseline +
-                    $Build.Value.ServerBaseline
-                )
-
-                # Server 2016 disable SMB
-                if ($Build.Name -eq '14393')
+                # Check if workstation build
+                if ($Build.Value.Workstation)
                 {
-                    $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }) + $GpoBase
-                }
+                    $GpoBase = @(
 
-                # Link server base
-                $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", $GpoBase)
-
-                # Remote Access Servers
-                $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
-
-                        @{ Name= "$DomainPrefix - Remote Access Server";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                        $Build.Value.Baseline +
+                        $Build.Value.WorkstationBaseline
                     )
-                )
 
-                # Web Servers
-                $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN", @(
+                    # Link PAW
+                    $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN", $GpoBase)
 
-                        @{ Name= "$DomainPrefix - IPSec - Web Server";            Enabled = 'No';   Enforced = 'Yes';  }
-                        @{ Name= "$DomainPrefix - Web Server";                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                    )
-                )
-            }
-        }
-
-        ############
-        # Computers
-        # Tier 2
-        ############
-
-        foreach($Build in $WinBuilds.GetEnumerator())
-        {
-            # Check if workstation build
-            if ($Build.Value.Workstation)
-            {
-                $GpoBase = @(
-
-                    $Build.Value.Baseline +
-                    $Build.Value.WorkstationBaseline
-                )
-
-                # Windows 10 1607 disable SMB
-                if ($Build.Name -eq '14393')
-                {
-                    $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }) + $GpoBase
-
+                    if ($Tier -eq 'Tier 2')
+                    {
+                        # Link computers
+                        $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $GpoBase)
+                    }
                 }
-
-                # Link base
-                $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $GpoBase)
             }
         }
 
@@ -3555,8 +3554,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1ftCOoa6wHJfMXZYVd4jvMs0
-# y1ugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtSbCeIm7BU5uTD2u865TIB7r
+# E7mgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3687,34 +3686,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSHkLQQ
-# ERsKD7Mv3soM4977wcdofzANBgkqhkiG9w0BAQEFAASCAgDOCdPKxxCOeYW8WTOT
-# pS+bHFt3eGszLSxl3WGr8xKc3MljDz2KaNcTu5TNT1/ZXpgeGVYK3vos9fOab8gw
-# sWep5f0qryvRjV4xGTzm22tIGqPoryrcuQHN5kNg6y5wMxiiQ/kCb/GRwi1lXRpk
-# Z7dSLUCDRSVBxgv/mrvSbyogInp2yZ28JGFjqRfmq5q01fDNdkPndW/IrpKP4ern
-# xkm9wBKlXrqFNDdFlvBguHuZmWpbt4n7+RM4rRYK9uABGPOGtkqujcHtWWTMKV78
-# CsmxfgQLPxEPfe+1pljXs4E5IJ3BFMnabrO2gLObFtTDLwfjjpTtVDl9cmetUcco
-# 7BfdlVbHxm70O4dgAE3wA8iqCJiijWwtwKvxs5YYbPrSWX89kP996doVfb6qh6Uf
-# hs0gN2p/t/fUD7o2Azn8BURezOxnLFurOUBxivgO5HPOpJjjD96ojrVNJMdsELhR
-# UtGgeeRQKoCZF3xxy/GlK1AR19n4KBAQp3UgHW9F1mYpezdvqQiDPzqZKYjPFZMV
-# Hg6jh3TXNsnaM88OekGlGWWPfSInf9cHSGN0cDI45VvijIMETtNUAYp5kaxFEd1U
-# H6ny59eoTfBF4kUlGGGnLRjJOAGTMEk78VNVCjSTlL1PTjlO7aABpcPqgo1Mkp6Z
-# 111pYY7KGr2b3TSJ3WB+qO2cF6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQXqrLt
+# pP1kZTkSZsxoc+wIf/YlPTANBgkqhkiG9w0BAQEFAASCAgCrqLAcvdOEPsJK+a8f
+# qIsd5FTr6roQ/oECBzvc+INqRbOdC4oT/JakUMByIfJOA5doki1zQCGNwiBaufJg
+# KVcXuyaV7a6D0PIaLlFIXhoRlItvXxqzKLjvyxN1qR8cwb81jcsSNgQVueftM6Vg
+# iT8QTpTcKP1EDh/raIhKmDl42PO0QIJXNBNi6afCflgLjTaGql7UEAbw8cy34foJ
+# f5pb3IipmsErWH4kUf7WY4228Qzeqeigmfbr+lz3wr6UuAID1kNLqmww3A6/2Iya
+# kvsNcc0ezdkQtWGUs7r7+0mVT78or8tPhRajZ3wRT+Kda9/xUVTfFL+5OIZLMV2m
+# LzguIT2kEexWOVqlcBklWRMznvRmwOzadnMyTG8akMtIjK7cUvczjyCrr1XolezJ
+# D5ExerJya4tDJiUXZKaL6RgMCjf/9+nrXq/3HPpu6UrIyRX2bPGDmkOSFPTrmfme
+# 4tMXo8GllTu+DJWIvy8kB5rWxnRZBw5wWR272Ryso22EESk7Nks1y4ktv6SQbMKP
+# lTSpj3EejcbrPNI/99OLz+/ul73YIChVF+VKaDis6ttdmNBNV1mJpdxLKHxhFust
+# NDD/QDwikjlHdovMSjNFaJCxu/QqLcGc4yb7etTDKqY/Xg4hYMxzhPEdO4GBir8c
+# y0RdAjRjYg9srjne72cWgeRttKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxNDAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBYSYFIuftBCxhOV2+UiL6Fyro8PeX3ZoIhxdzI
-# 8a1mkzANBgkqhkiG9w0BAQEFAASCAgBGSzkU3X2DC++Rqd0ip7pT5yVbM1vlzNjl
-# i0XsgDmn9AWH/xONaCYj/ZpWl0zEiWm7tpNBq0HWoF3DMi5f7elxGTEToMjYd/NM
-# a/CPcTKxyzhu5FYgzAqyWKa6iY8bYHSV4boryfXsXr8hqvlPtf4/aKHJmdtjLMIN
-# qor4WiRQMVXHcr7fQFsg5XyzpAqFu/6Lo3yUJYr6ZMH6fiA3XcoEvMUv6w30+sBS
-# ukDf18HCWpxOaSmTks2YUJyRnztqX1nAYWSfTQflua65OczJ54nKAvRYDY483xTh
-# Sv4mX9XLy453e720kBLownIxALyMDyVAUZTpskXCvCp9FpAMPPYmP+7BJCXMyBGL
-# lf06zdlMhQn955V9/u20FDbygVLQ2WI+eV8TFS5GOq/bRw5Aea+js4OyoIVd8aLD
-# YWHnmRI8epiIIX8atyqihI4jo07v9marcPmGsfurCzJS3c/fRvF+4w91d2cDJNBx
-# 4P0PUzxoya/qI2OmDf4Oh4WwWs2PiwEinumA+tXklQws6FPHkIyKeujB4AGht+UL
-# 1/W5c6nN5TO0xPHb+4i3hs/JioZz5fj+6CJjFZoB6pBEjiUrpBdrEmj3mdqYhL62
-# DibZTbDLRrLy5dJ1BKmh1v9JddKdk/4Ja4+KFhGN4CmaStJIaBnS+jFAzEkkWv5n
-# mHNkmC+GXg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxNTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCA+EW8d3UxSwnw3mtHs/BtvEgsOMnWU2CiuG3q2
+# 4Ec25TANBgkqhkiG9w0BAQEFAASCAgB2/nnrsqxjQH9m4wcSHGJymWGKBgqH9aHT
+# NfqgbBhAb3UdXiLab5nln0BjN6HssuKlb2BrLCgjs7zShTuoDkpeBCDgvoTebIay
+# e0uFU3fblNNfZLBdduoSTc7S1PmPbfkaL7qNVhW4q8EK8glOiCgv20ncT/GIjQlp
+# sPHAHys4UZ2m6XDo8xl1mtHKOkQpXShCArtRtr0dtyUnQA8Cg5MYU6iuhx3xEu0w
+# HGt2KC7umgzEnW+8V5Pe1abCVMf2SGn5RPCGbOlInxwez1VZxTUxU7yY2Zg2IX/J
+# 63Vfvma5xlNrjwQ2RsAu5NI7/S52L8CB3O5Ab5j/sBQ+877BWhuVC0JDTOaxPawP
+# hc/zDnhICMCOh35YKnITZZRrQ/UYkEH5RzOIXT6R6FMCuvgDLUIhRlQEhVDMqfH2
+# 8tF6i9jsJCEXw1XDFbuFJ7deYczDHYyjpDIXVCXoM9Yz2gkJV83cFkM54p41RwkF
+# a2N0oUgHJ3doSUVKkuIHYbSdlYq2cXRU2rHMSY+npGsuZAJnjEJvb+7jFdtgtdY9
+# FxXmT1cMispcfgNblH69zGXc/yJgm8EgUnwhPDv9kjD7bg8lN7exPxEINDcVPfLG
+# uu75QzS4zY0sR1eQxK88Wlqf9NRQfdsKhL7HAm8wnjFHwAcW3COerZ42J2XYqdmb
+# cFx5YEiLVw==
 # SIG # End signature block
