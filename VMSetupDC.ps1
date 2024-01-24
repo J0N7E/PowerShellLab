@@ -844,14 +844,14 @@ Begin
 
         $OrganizationalUnits =
         @(
-            @{ Name = $DomainName;                                                  Path = "$BaseDN"; }
-            @{ Name = 'Domain Administration';                       Path = "OU=$DomainName,$BaseDN"; }
-            @{  Name = 'Domain Admins';                              Path = "OU=Domain Administration,OU=$DomainName,$BaseDN"; }
-            @{  Name = 'Privileged Access Workstations';             Path = "OU=Domain Administration,OU=$DomainName,$BaseDN"; }
-            @{  Name = 'Groups';                                     Path = "OU=Domain Administration,OU=$DomainName,$BaseDN"; }
-            @{   Name = 'Privileged Access Workstations';  Path = "OU=Groups,OU=Domain Administration,OU=$DomainName,$BaseDN"; }
-            @{ Name = $RedirUsr;                                     Path = "OU=$DomainName,$BaseDN"; }
-            @{ Name = $RedirCmp;                                     Path = "OU=$DomainName,$BaseDN"; }
+            @{ Name = $DomainName;                                                                  Path = "$BaseDN"; }
+            @{ Name = 'Domain Admin';                                                Path = "OU=$DomainName,$BaseDN"; }
+            @{  Name = 'Administrators';                             Path = "OU=Domain Admin,OU=$DomainName,$BaseDN"; }
+            @{  Name = 'Privileged Access Workstations';             Path = "OU=Domain Admin,OU=$DomainName,$BaseDN"; }
+            @{  Name = 'Groups';                                     Path = "OU=Domain Admin,OU=$DomainName,$BaseDN"; }
+            @{   Name = 'Privileged Access Workstations';  Path = "OU=Groups,OU=Domain Admin,OU=$DomainName,$BaseDN"; }
+            @{ Name = $RedirUsr;                                                     Path = "OU=$DomainName,$BaseDN"; }
+            @{ Name = $RedirCmp;                                                     Path = "OU=$DomainName,$BaseDN"; }
         )
 
         ###########
@@ -923,7 +923,7 @@ Begin
         # PAW
         #########
 
-        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Workstation builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -1091,7 +1091,7 @@ Begin
             # Domain Admin
             @{
                 Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN"
+                TargetPath = "OU=Administrators,OU=Domain Admin,OU=$DomainName,$BaseDN"
             }
 
             #########
@@ -1389,7 +1389,7 @@ Begin
         # PAW
         ######
 
-        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Privileged Access Workstations
             $DomainGroups +=
@@ -2565,11 +2565,11 @@ Begin
                 @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = 'Yes';  Enforced = 'Yes';  }
             )
 
-            ################
-            # Domain Admins
-            ################
+            #################
+            # Administrators
+            #################
 
-            "OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN" =
+            "OU=Administrators,OU=Domain Admin,OU=$DomainName,$BaseDN" =
             @(
                 @{ Name = "$DomainPrefix - User - Admin Display Settings";      Enabled = 'Yes';  Enforced = 'Yes';  }
             )
@@ -2618,10 +2618,10 @@ Begin
 
         ######
         # PAW
-        # Domain Administration + Tier 0-2
+        # Domain Admin + Tier 0-2
         ######
 
-        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
 
             # Set PAW policy
@@ -2715,10 +2715,10 @@ Begin
         ###########
         # PAW & Computer (Tier 2)
         # By build
-        # Domain Administration + Tier 0-2
+        # Domain Admin + Tier 0-2
         ###########
 
-        foreach($Tier in @('Domain Administration', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             foreach($Build in $WinBuilds.GetEnumerator())
             {
@@ -3554,8 +3554,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtSbCeIm7BU5uTD2u865TIB7r
-# E7mgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4GIq0VqWAPykZS3arr441Mmz
+# hYCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3686,34 +3686,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQXqrLt
-# pP1kZTkSZsxoc+wIf/YlPTANBgkqhkiG9w0BAQEFAASCAgCrqLAcvdOEPsJK+a8f
-# qIsd5FTr6roQ/oECBzvc+INqRbOdC4oT/JakUMByIfJOA5doki1zQCGNwiBaufJg
-# KVcXuyaV7a6D0PIaLlFIXhoRlItvXxqzKLjvyxN1qR8cwb81jcsSNgQVueftM6Vg
-# iT8QTpTcKP1EDh/raIhKmDl42PO0QIJXNBNi6afCflgLjTaGql7UEAbw8cy34foJ
-# f5pb3IipmsErWH4kUf7WY4228Qzeqeigmfbr+lz3wr6UuAID1kNLqmww3A6/2Iya
-# kvsNcc0ezdkQtWGUs7r7+0mVT78or8tPhRajZ3wRT+Kda9/xUVTfFL+5OIZLMV2m
-# LzguIT2kEexWOVqlcBklWRMznvRmwOzadnMyTG8akMtIjK7cUvczjyCrr1XolezJ
-# D5ExerJya4tDJiUXZKaL6RgMCjf/9+nrXq/3HPpu6UrIyRX2bPGDmkOSFPTrmfme
-# 4tMXo8GllTu+DJWIvy8kB5rWxnRZBw5wWR272Ryso22EESk7Nks1y4ktv6SQbMKP
-# lTSpj3EejcbrPNI/99OLz+/ul73YIChVF+VKaDis6ttdmNBNV1mJpdxLKHxhFust
-# NDD/QDwikjlHdovMSjNFaJCxu/QqLcGc4yb7etTDKqY/Xg4hYMxzhPEdO4GBir8c
-# y0RdAjRjYg9srjne72cWgeRttKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTOb4IY
+# K3Q/nJVW+MptRDZUS/BbnTANBgkqhkiG9w0BAQEFAASCAgAk6cndNoNLXCbmI6eI
+# S59x39tPBeRiXDB20rkP/JJ86wSdOK5ed+ueKzFhe1bjxeIg8FiaXVdtVp6d6dbj
+# 9z27l0XM0IU9CDn0Qe6jVjfA40jM77luTXuBBCCqcWiyTUF9zC6YDJw9Kr/mo3yp
+# anduVJ+Lo/kXsTAZVjKAybDEDOcO6jcYJa1stjVWZ1wiK3L4CMwLdHvLE0nU2f5n
+# vk0YToMeUkqwjBkhQx8wdAHqGT1UBkjW8oXNnPL9ltFuQQ9WuJ3qiMmoE0t379IQ
+# wlh5Gnb0AoX9atOvQWXnjG3RGWJfDT07oLAS9diTVrFzU3WqYfibkTVtkesNoakG
+# IDKYFKeRM1rzD4X8d1DiPseACQA8Mu294rlKhrH6yWE9GShFpc1rqDKvhuM8KQw1
+# FlhmBUygj5PLzUSf6iLCCTjym+yHnjoEy5UqwM9JgV+KQ2PA5IY6F7O9M5ppVanl
+# k3wKSsdPMFHNQ39wwqFqJvzBms3rxaqGAwJZcnOTW5VqyBivRnPVl0uHerk71ZCw
+# zy96uYnPMyY1N7Xqt7zYP520YA+x/DFdHiGOTekemgUXxjbyHk6oogPFvy01g0MF
+# OOEkIhXKhawFjrbIY6bH6Oq08NyaVP/0N65yZTkE5h1RBx+NSJ0oiszIdQsYy9v3
+# j7XSpHReEiDBloxbIY1Q3+0HqqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxNTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCA+EW8d3UxSwnw3mtHs/BtvEgsOMnWU2CiuG3q2
-# 4Ec25TANBgkqhkiG9w0BAQEFAASCAgB2/nnrsqxjQH9m4wcSHGJymWGKBgqH9aHT
-# NfqgbBhAb3UdXiLab5nln0BjN6HssuKlb2BrLCgjs7zShTuoDkpeBCDgvoTebIay
-# e0uFU3fblNNfZLBdduoSTc7S1PmPbfkaL7qNVhW4q8EK8glOiCgv20ncT/GIjQlp
-# sPHAHys4UZ2m6XDo8xl1mtHKOkQpXShCArtRtr0dtyUnQA8Cg5MYU6iuhx3xEu0w
-# HGt2KC7umgzEnW+8V5Pe1abCVMf2SGn5RPCGbOlInxwez1VZxTUxU7yY2Zg2IX/J
-# 63Vfvma5xlNrjwQ2RsAu5NI7/S52L8CB3O5Ab5j/sBQ+877BWhuVC0JDTOaxPawP
-# hc/zDnhICMCOh35YKnITZZRrQ/UYkEH5RzOIXT6R6FMCuvgDLUIhRlQEhVDMqfH2
-# 8tF6i9jsJCEXw1XDFbuFJ7deYczDHYyjpDIXVCXoM9Yz2gkJV83cFkM54p41RwkF
-# a2N0oUgHJ3doSUVKkuIHYbSdlYq2cXRU2rHMSY+npGsuZAJnjEJvb+7jFdtgtdY9
-# FxXmT1cMispcfgNblH69zGXc/yJgm8EgUnwhPDv9kjD7bg8lN7exPxEINDcVPfLG
-# uu75QzS4zY0sR1eQxK88Wlqf9NRQfdsKhL7HAm8wnjFHwAcW3COerZ42J2XYqdmb
-# cFx5YEiLVw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjQxNzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAOoZxNR6AobyZdp2zycVVeE/bntICkdMfsaWQY
+# kRQsozANBgkqhkiG9w0BAQEFAASCAgAQZnhqcin7+5pe9On1pNXPhlTzSUJJg9g8
+# Zg9Tf2wYmdmsQGltoqVfmZOzC07XjaRHDNbW8AKgPzGxMLc/k0YggRkQhC5t8Cf2
+# B8ZFdrMyJW9rwVYQ0W5RyIU4PLrm3jXN58Obg0JsWjB/5aWVy44ap5Z6lbpX835O
+# xbMAGYSTAzVZfnSZKKTTv1tlmzf1woA4oQoA7X7gTHL4uMLtAhdw5xkTZNqtPQc2
+# OeD4Nz9MQ+PuMzwEWTwQpH+oIKRAiYQ1f5lyjm3ZQ0xb0g8B5Ap4J7+RO+0imYt5
+# /22P/bhQGslJyOftj0wuvJQVJM5UxYqpWLfRzOgCE4ZbG5cf7AsEfI3QE6FP9b9G
+# x7bS2pUt+vJCARLVWEsZNwqVSwmdfEegVZ7smXOmnQc0mAM/1toGb9duIPLD5tSO
+# nWslSv5PJr0YiQhjfA/xb7PR3Areyz9faEcgLYfO+guHCtz+mG9zn/X0MTgKs3qI
+# mmNU39DNHPdP9Fl8893WgbnIM7T4x6PmuB2tmd01v8vzmOZz1CZdliMQCIRhH2In
+# aGRQZoAUBofWkVdY2Vh73pXFncY6N2frzAJbjtpzqkgPEao0YdNgcpUEEN9ZCfno
+# yLBQ/6oYz0G+0n4bult1uNwvkWcmm3z4r9z6VZHfO32uI+PQjerPu3qLdMiV169y
+# d8Al+C48yw==
 # SIG # End signature block
