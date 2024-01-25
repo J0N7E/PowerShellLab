@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{5fdb54a7-2dc2-4843-8333-be6135c16e90}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Domain - Windows Update</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2023-12-30T10:45:24</CreatedTime>
+  <ModifiedTime>2023-12-30T10:45:24</ModifiedTime>
+  <ReadTime>2024-01-25T09:34:48.3736585Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-439269611-2605146275-3694021392-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q1:RegistrySettings">
+        <q1:Policy>
+          <q1:Name>Configure Automatic Updates</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Specifies whether this computer will receive security updates and other important downloads through the Windows automatic updating service.
+
+Note: This policy does not apply to Windows RT.
+
+This setting lets you specify whether automatic updates are enabled on this computer. If the service is enabled, you must select one of the four options in the Group Policy Setting:
+
+        2 = Notify before downloading and installing any updates.
+
+        When Windows finds updates that apply to this computer, users will be notified that updates are ready to be downloaded. After going to Windows Update, users can download and install any available updates.
+
+        3 = (Default setting) Download the updates automatically and notify when they are ready to be installed
+
+        Windows finds updates that apply to the computer and downloads them in the background (the user is not notified or interrupted during this process). When the downloads are complete, users will be notified that they are ready to install. After going to Windows Update, users can install them.
+
+        4 = Automatically download updates and install them on the schedule specified below.
+
+        When "Automatic" is selected as the scheduled install time, Windows will automatically check, download, and install updates. The device will reboot as per Windows default settings unless configured by group policy. (Applies to Windows 10, version 1809 and higher)
+
+        Specify the schedule using the options in the Group Policy Setting. For version 1709 and above, there is an additional choice of limiting updating to a weekly, bi-weekly, or monthly occurrence. If no schedule is specified, the default schedule for all installations will be every day at 3:00 AM. If any updates require a restart to complete the installation, Windows will restart the computer automatically. (If a user is signed in to the computer when Windows is ready to restart, the user will be notified and given the option to delay the restart.)
+
+        On Windows 8 and later, you can set updates to install during automatic maintenance instead of a specific schedule. Automatic maintenance will install updates when the computer is not in use and avoid doing so when the computer is running on battery power. If automatic maintenance is unable to install updates for 2 days, Windows Update will install updates right away. Users will then be notified about an upcoming restart, and that restart will only take place if there is no potential for accidental data loss.
+
+        5 = Allow local administrators to select the configuration mode that Automatic Updates should notify and install updates. (This option has not been carried over to any Win 10 Versions)
+
+        With this option, local administrators will be allowed to use the Windows Update control panel to select a configuration option of their choice. Local administrators will not be allowed to disable the configuration for Automatic Updates.
+
+        7 = Notify for install and notify for restart. (Windows Server only)
+
+        With this option from Windows Server 2016, applicable only to Server SKU devices, local administrators will be allowed to use Windows Update to proceed with installations or reboots manually.
+
+If the status for this policy is set to Disabled, any updates that are available on Windows Update must be downloaded and installed manually. To do this, search for Windows Update using Start.
+
+If the status is set to Not Configured, use of Automatic Updates is not specified at the Group Policy level. However, an administrator can still configure Automatic Updates through Control Panel.</q1:Explain>
+          <q1:Supported>Windows XP Professional Service Pack 1 or At least Windows 2000 Service Pack 3
+Option 7 only supported on servers of at least Windows Server 2016 edition?</q1:Supported>
+          <q1:Category>Windows Components/Windows Update</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Configure automatic updating:</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>4 - Auto download and schedule the install</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>The following settings are only required and applicable if 4 is selected.</q1:Name>
+          </q1:Text>
+          <q1:CheckBox>
+            <q1:Name>Install during automatic maintenance</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+          <q1:DropDownList>
+            <q1:Name>Scheduled install day: </q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>3 - Every Tuesday</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:DropDownList>
+            <q1:Name>Scheduled install time:</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>20:00</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>If you have selected "4 – Auto download and schedule the install" for your scheduled install day and specified a schedule, you also have the option to limit updating to a weekly, bi-weekly or monthly occurrence, using the options below:</q1:Name>
+          </q1:Text>
+          <q1:CheckBox>
+            <q1:Name>Every week</q1:Name>
+            <q1:State>Enabled</q1:State>
+          </q1:CheckBox>
+          <q1:CheckBox>
+            <q1:Name>First week of the month</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+          <q1:CheckBox>
+            <q1:Name>Second week of the month</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+          <q1:CheckBox>
+            <q1:Name>Third week of the month</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+          <q1:CheckBox>
+            <q1:Name>Fourth week of the month</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+          <q1:Text>
+            <q1:Name> </q1:Name>
+          </q1:Text>
+          <q1:CheckBox>
+            <q1:Name>Install updates for other Microsoft products</q1:Name>
+            <q1:State>Disabled</q1:State>
+          </q1:CheckBox>
+        </q1:Policy>
+        <q1:Blocked>false</q1:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+  <LinksTo>
+    <SOMName>home</SOMName>
+    <SOMPath>home.bcl.nu</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>
