@@ -2432,7 +2432,7 @@ Begin
 
                     Start-Sleep -Milliseconds 125
 
-                    if ($GpoName -match '- IPSec - (.*?) - (?:Request|Restrict)')
+                    if ($GpoName -match '(.*?) - IPSec - (?:Request|Restrict)')
                     {
                         switch($Matches[1])
                         {
@@ -2502,7 +2502,7 @@ Begin
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - IPSec - Domain Controller - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
         ) +
         $DomainSecurity
@@ -2610,7 +2610,7 @@ Begin
                 @{ Name = "$DomainPrefix - Tier $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - IPSec - Tier $Tier - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
             )
 
             # Link computer policy
@@ -2629,8 +2629,8 @@ Begin
             $PawPolicy = $DomainSecurity +
             @(
                 @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - PAW - $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - PAW - $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - PAW - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - PAW - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
             )
 
             # Link paw policy
@@ -3555,8 +3555,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUA+Wxh7WTyvtcLSeCPvW7GbpM
-# 9m2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUd+4oLt93GlVzjFZO3v/8RXu5
+# uN6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3687,34 +3687,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRyTpDU
-# lhOEAYgxVMXIFxYsLXPMLzANBgkqhkiG9w0BAQEFAASCAgDMahCrxpe6XBJepKOf
-# 5t2O6Q6PYf1TjfjM+xAcqawFYjah3QbB9UgiLsyKziDTupz4kPHSR5LiorBUhZpO
-# cQ9FtbxGGPQv1lnB7GZlztzMH5HKP7cwCaozOmcuCmIGOc+lTuW3SYYMGjHeWX7q
-# X4hKzpoHgoZoMIhWgruVNLcHBx89JzYupZNrux7nIX6GFnQJAhAVL9vL7dPmm4sl
-# tAqzDXr/RNkY9URCRXyuWkOj79tXt8/IUEcxZDW69SibPbb+Z9SWwcTmvcsHqLTL
-# qBsUKJW9XmP4DsTHmOE+7n8VbhE1OHfLsZhh9mwiJWboXlBsbMWtdgi1mwUmy2l1
-# H07CJoFhH4k6sgQ/YiZtPEXBGJ26N7e7bayL+hlJ1AHnR1Fjt2zTI/TrE2tVccaE
-# tVaDHjRu4VTDiUxLnMzG0wYL7fJkqeTdk374V4Ae5c3dSGjYVwT39O4t6zDaGz9s
-# qWlcc74BuI123BL7jMhKC46wx3ATQVzGVuXMIL4BP1Sw+8zzsy88ACEgm/MBPHLT
-# 3BC9diZ/v2H/NLI2jfhwSuw+dG3JzxoKAVpZSbamFjPf5dBkHpwZ8OZSB6MG+mXX
-# CTGdoCVg0NAySli7oSdx3tVShbbq/EJku7HQFgF67ZUzpPzL+nTmi3fKXOITD9S6
-# V45RSokqXHDHCUBVBdIHN2BBlaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR+N2Xd
+# Fe7GhqVXK/xOl8FNFeuWyzANBgkqhkiG9w0BAQEFAASCAgB1Y1fYhN7fy2aaE/Mg
+# i/zi8txhMLEL68SADorwzw06W4Id0TUKz6LPLCmIQgh/6mnhb+Em6yPeAJylwOMF
+# PgpURFhAsHRaiTNHLM9ocMWtuYDlS6w9BcLfSXmMiiGNROIBcjzP3gKgI2cwyG7i
+# arqYEQIaCADDcbX1TS52L1bwBqOiCCmt3SBHO9BZOZ48ktjgE5mgb67Akelk7osY
+# oIS1MmHg5I8FducoM8eY0zx51GGxyRlPYMZwHRYa0uPQEZylvNjkcVgIUOR1m5cu
+# 3WE4HOcdyehcQ58U+3lTyYWE1J+m65GbKZ9ZJ80hi9XgWtLBqvLJ1+YwNX4JqMpA
+# R95dBgDXdyGypT6xf29XBJ+P9KKI3/H7xReyT0QdoL+7Qp+tya5p7boW2d9B4IFK
+# S5F+4Xt2Oq5ka7ENhC9QbHImo3hAtHZh9Tve1CDhZ9DEXvR4qt83OOV3t957VNDS
+# uOJlPvaq8Wd4r/BNWujw2cnxkZw9akZLMKC3h1D54WMLmrmfDBwTFXZE6UtNncoO
+# 5sy+wW6C4+gnjuYEGRuih2iFJL+ra0jkLhZaToMikzHV0mJ/E91AjaDVo5pKfne6
+# c5J4yEoGLDPQE8wARY0KLV3pu4Ldj5/snKFO1AoLNDIRDLlXTXKf72RJ2fh3Z1xP
+# lFFFCm8cxrfoTV5ArMmuD6tTJqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjUxMDAw
-# MDVaMC8GCSqGSIb3DQEJBDEiBCDS5f2uLlxBweCbYNm7+abQFhsoepm03z9ElWcY
-# Gqb2STANBgkqhkiG9w0BAQEFAASCAgAjmVBHelbUNCyLTRYG3l+ZKNim9AGrYJLm
-# c1Bss7ahnOMslJe2tqgtHel7PHEHR7yf0asocHcnxt/t1E34AspRReCb4NpaCl6/
-# xJgOPdxYncPrS0nvYfVbK4cUoRUrMf2IpHNi3HMI/TTqTMPI/70ihZlhcLzZkpjt
-# bAMxgVbr5+eRopLl+AjMewuPqPv//mqOPltjcEp9xOpy2WBvN9BGmJu2Iisgfh0j
-# 5+sy08Mjj/UZRqAll82sJtDsrvkC5XBF5tsL1X1JWdgkwTEpGr7oIACmmBI0k2FC
-# q7Az+XUAnQEVF/147XVzRdgmsxbyU7ohnmsXw+eRwtoJGCMPzANXXp8ZoIK/QkuT
-# vHq7O09SwGGOcL2O2dtVfi41ILWfEjRk7GJwBIW27GwLUuwLod0vSbuCd8zcyISp
-# GSmatzXyFKYvu+wcqVVRvn0MEvWNhUPL+/ttO1qFa2UE7U6PMwkiQXudH2g5RVcL
-# FE+HQMvIA1L20cBVx2OAWXSrpVj4taIzMVoBUuujUO2sokAlp8nWl4figyfGoJ7L
-# YDgdFpSMTkHE7c9L3/mAIBa83wHiEUiKTk1orqV+PNzT4hwyDJcHKVbj3LngYKxi
-# 1d8qMKfi+vuKoCYZw5fa2OfgCZE5GA/bjI9+bJ5Zam3yarv8CKGZtT+SQ01jyXvr
-# wFEQA8+ewA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjYyMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCCI8+pjPjncGY5hTfCEW1P3sYaBsN3jc31TycWy
+# iOGrsTANBgkqhkiG9w0BAQEFAASCAgB3LsxztqWnFMbDua7OdMCtX+2QI+/nSHbm
+# vc4RYCaZ+BTrLSXYrf8GoUuSDARVqvWbxZDm/WDX+fvA4fLmvhf+a+dveKmarpiC
+# 8pmmz/lr/07ARoZN4P0g+JqzxUxcZIYK+zTBR2u9HN9vRDUG2V/rJrWJhd3ZZgYg
+# nMEmL+jtumwDxXZGP4d5I3x6vb2YQlyWJj32Mk3N7Yjmcv6P/2zX/9WdaJMhCKI7
+# QDMotlMQ7v/PFn/k/CSxyH8yEqDpmSui4HV+92051wo2nx584xNzwza/6YsQGW+p
+# OS2+aIqWMAIjIjDjZ6wBb5jl6gPnNCL4F32EUjtUQs8DKmEctNurH6M3dan9V6pu
+# jM8VXBNEjqZRV7Gqso8t7oxwNsKUDFQn29foNW3TESa5Q4W6S+MqqZExcTgkQyKq
+# uq0MzSAhfICxNrfYFTFJzw3sddwmrULycyRiOwmBXEOsWhMK/EdT0nHlvmIdUsQx
+# mIN0hbbpu9Z/kGDZZu73+oEzySqlBLMb81WRLEIRTyfvK6YgjZZA5OP2V4+bgB15
+# cElVeUBTLF8Qp0pGHba5WZ0F3GBx6OnUeIPfdWpsotKk7j9uvxjqTRrg39f5taoe
+# NFNgRL63AZYOr/T7WrQeY5qPm1gBYK5vob/gJ+E4I3zpO/mgaVO1RJQVOaS0XUM5
+# Ot88YdsX5w==
 # SIG # End signature block
