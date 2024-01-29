@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{08261a0e-1d7b-4a97-a662-89ac990c2aa5}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Domain - Enable WinRM HTTPS</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2023-12-30T10:45:24</CreatedTime>
+  <ModifiedTime>2024-01-08T09:47:32</ModifiedTime>
+  <ReadTime>2024-01-29T21:43:24.1949334Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-439269611-2605146275-3694021392-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/ScheduledTasks" xsi:type="q1:ScheduledTasksSettings">
+        <q1:ScheduledTasks clsid="{CC63F200-7309-4ba0-B154-A71CD118DBCC}">
+          <q1:ImmediateTaskV2 clsid="{9756B581-76EC-4169-9AFC-0CA8D43ADB5F}" name="EnableWinRmHttps" image="0" userContext="0" removePolicy="0" changed="2023-12-12 21:46:28" uid="{29FE5DA8-A577-4CBB-B6E1-922E547CE0CB}">
+            <q1:GPOSettingOrder>1</q1:GPOSettingOrder>
+            <q1:Properties action="C" name="EnableWinRmHttps" runAs="NT AUTHORITY\System" logonType="S4U">
+              <q1:Task version="1.2">
+                <q1:RegistrationInfo>
+                  <q1:Author>home\admin</q1:Author>
+                  <q1:Description />
+                </q1:RegistrationInfo>
+                <q1:Triggers>
+                  <q1:TimeTrigger>
+                    <q1:Enabled>true</q1:Enabled>
+                    <q1:StartBoundary>%LocalTimeXmlEx%</q1:StartBoundary>
+                    <q1:EndBoundary>%LocalTimeXmlEx%</q1:EndBoundary>
+                  </q1:TimeTrigger>
+                </q1:Triggers>
+                <q1:Settings>
+                  <q1:AllowStartOnDemand>false</q1:AllowStartOnDemand>
+                  <q1:DisallowStartIfOnBatteries>false</q1:DisallowStartIfOnBatteries>
+                  <q1:StopIfGoingOnBatteries>false</q1:StopIfGoingOnBatteries>
+                  <q1:AllowHardTerminate>false</q1:AllowHardTerminate>
+                  <q1:StartWhenAvailable>true</q1:StartWhenAvailable>
+                  <q1:Enabled>true</q1:Enabled>
+                  <q1:Hidden>false</q1:Hidden>
+                  <q1:DeleteExpiredTaskAfter>PT0S</q1:DeleteExpiredTaskAfter>
+                  <q1:MultipleInstancesPolicy>IgnoreNew</q1:MultipleInstancesPolicy>
+                  <q1:Priority>7</q1:Priority>
+                  <q1:ExecutionTimeLimit>PT0S</q1:ExecutionTimeLimit>
+                  <q1:IdleSettings>
+                    <q1:Duration>PT5M</q1:Duration>
+                    <q1:WaitTimeout>PT1H</q1:WaitTimeout>
+                    <q1:StopOnIdleEnd>false</q1:StopOnIdleEnd>
+                    <q1:RestartOnIdle>false</q1:RestartOnIdle>
+                  </q1:IdleSettings>
+                </q1:Settings>
+                <q1:Principals>
+                  <q1:Principal id="Author">
+                    <q1:UserId>NT AUTHORITY\System</q1:UserId>
+                    <q1:LogonType>S4U</q1:LogonType>
+                    <q1:RunLevel>HighestAvailable</q1:RunLevel>
+                  </q1:Principal>
+                </q1:Principals>
+                <q1:Actions>
+                  <q1:Exec>
+                    <q1:Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</q1:Command>
+                    <q1:Arguments>-NoProfile -ExecutionPolicy ByPass -Command "&amp; { Get-ChildItem -Path WSMan:\localhost\Listener | Remove-Item -Recurse -Force; $Cert = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Subject -match ('CN=' + $env:COMPUTERNAME + '.') -and $_.Extensions['2.5.29.37'].EnhancedKeyUsages.FriendlyName.Contains('Server Authentication')}; if($Cert) { New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint $Cert.Thumbprint -Force &gt; $null }}"</q1:Arguments>
+                  </q1:Exec>
+                </q1:Actions>
+              </q1:Task>
+            </q1:Properties>
+            <q1:Filters />
+          </q1:ImmediateTaskV2>
+        </q1:ScheduledTasks>
+      </Extension>
+      <Name>Scheduled Tasks</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+  <LinksTo>
+    <SOMName>home</SOMName>
+    <SOMPath>home.bcl.nu</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>
