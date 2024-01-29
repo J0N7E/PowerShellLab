@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{2ce15e7e-58d0-4862-ae74-050b2fed32dc}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Tier 1 - IPSec - Restrict</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2023-12-30T10:45:38</CreatedTime>
+  <ModifiedTime>2024-01-29T14:56:13</ModifiedTime>
+  <ReadTime>2024-01-29T15:07:21.6196576Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-439269611-2605146275-3694021392-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-439269611-2605146275-3694021392-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>8</VersionDirectory>
+    <VersionSysvol>8</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Auditing" xsi:type="q1:AuditSettings">
+        <q1:AuditSetting>
+          <q1:PolicyTarget>System</q1:PolicyTarget>
+          <q1:SubcategoryName>Audit IPsec Extended Mode</q1:SubcategoryName>
+          <q1:SubcategoryGuid>{0cce921a-69ae-11d9-bed3-505054503030}</q1:SubcategoryGuid>
+          <q1:SettingValue>3</q1:SettingValue>
+        </q1:AuditSetting>
+        <q1:AuditSetting>
+          <q1:PolicyTarget>System</q1:PolicyTarget>
+          <q1:SubcategoryName>Audit IPsec Main Mode</q1:SubcategoryName>
+          <q1:SubcategoryGuid>{0cce9218-69ae-11d9-bed3-505054503030}</q1:SubcategoryGuid>
+          <q1:SettingValue>3</q1:SettingValue>
+        </q1:AuditSetting>
+        <q1:AuditSetting>
+          <q1:PolicyTarget>System</q1:PolicyTarget>
+          <q1:SubcategoryName>Audit IPsec Quick Mode</q1:SubcategoryName>
+          <q1:SubcategoryGuid>{0cce9219-69ae-11d9-bed3-505054503030}</q1:SubcategoryGuid>
+          <q1:SettingValue>3</q1:SettingValue>
+        </q1:AuditSetting>
+      </Extension>
+      <Name>Advanced Audit Configuration</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/WindowsFirewall" xsi:type="q2:WindowsFirewallSettings">
+        <q2:GlobalSettings>
+          <q2:PolicyVersion>
+            <q2:Value>543</q2:Value>
+          </q2:PolicyVersion>
+        </q2:GlobalSettings>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>ByPass</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-28776</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%SystemRoot%\system32\svchost.exe</q2:App>
+          <q2:Svc>termservice</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>3389</q2:LPort>
+          <q2:Protocol>17</q2:Protocol>
+          <q2:Desc>@FirewallAPI.dll,-28777</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-28752</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>ByPass</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-28775</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%SystemRoot%\system32\svchost.exe</q2:App>
+          <q2:Svc>termservice</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>3389</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Desc>@FirewallAPI.dll,-28756</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-28752</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>Windows Remote Management (HTTPS-In)</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>System</q2:App>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>5986</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Active>true</q2:Active>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-29515</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%SystemRoot%\system32\svchost.exe</q2:App>
+          <q2:Svc>RPCSS</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>RPC-EPMap</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Desc>@FirewallAPI.dll,-29518</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-29502</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-29503</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%SystemRoot%\system32\services.exe</q2:App>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>RPC</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Desc>@FirewallAPI.dll,-29506</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-29502</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-34252</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%SystemRoot%\system32\svchost.exe</q2:App>
+          <q2:Svc>rpcss</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>135</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Desc>@FirewallAPI.dll,-34253</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-34251</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@FirewallAPI.dll,-28543</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>System</q2:App>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:Protocol>1</q2:Protocol>
+          <q2:ICMP4>8:*</q2:ICMP4>
+          <q2:Desc>@FirewallAPI.dll,-28547</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@FirewallAPI.dll,-28502</q2:EmbedCtxt>
+          <q2:RMAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1117)</q2:RMAuth>
+          <q2:RUAuth>O:LSD:(A;;CC;;;S-1-5-21-439269611-2605146275-3694021392-1111)</q2:RUAuth>
+          <q2:Security>Authenticate</q2:Security>
+        </q2:InboundFirewallRules>
+        <q2:ConnectionSecurityRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>SecureServer</q2:Action>
+          <q2:Name>Any - Require/Request</q2:Name>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:Auth1Set>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE3}</q2:Auth1Set>
+          <q2:Auth2Set>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE4}</q2:Auth2Set>
+          <q2:Crypto2Set>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE2}</q2:Crypto2Set>
+          <q2:Desc />
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt />
+        </q2:ConnectionSecurityRules>
+        <q2:DefaultPhase1AuthenticationSet>
+          <q2:GUID>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE3}{4B5BA75D-1D04-4F38-B16D-D36CAA9962B2}</q2:GUID>
+          <q2:Version>2.31</q2:Version>
+          <q2:AuthenticationSuites>
+            <q2:Method>MachineKerb</q2:Method>
+          </q2:AuthenticationSuites>
+          <q2:AuthenticationSuites>
+            <q2:SkipVersion>2.19</q2:SkipVersion>
+            <q2:Method>MachineCert</q2:Method>
+            <q2:CAName>C=SE, O=Home, CN=Home Root CA01</q2:CAName>
+            <q2:CertAccountMapping>false</q2:CertAccountMapping>
+            <q2:ExcludeCAName>false</q2:ExcludeCAName>
+            <q2:HealthCert>false</q2:HealthCert>
+          </q2:AuthenticationSuites>
+          <q2:AuthenticationSuites>
+            <q2:SkipVersion>2.19</q2:SkipVersion>
+            <q2:Method>MachineCert</q2:Method>
+            <q2:CAName>C=SE, O=Home, CN=Home Root CA01</q2:CAName>
+            <q2:CertAccountMapping>false</q2:CertAccountMapping>
+            <q2:ExcludeCAName>false</q2:ExcludeCAName>
+            <q2:HealthCert>false</q2:HealthCert>
+          </q2:AuthenticationSuites>
+        </q2:DefaultPhase1AuthenticationSet>
+        <q2:DefaultPhase1CryptoSet>
+          <q2:GUID>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE1}{E2962BD0-51DF-4F0B-9DF0-3BC76B33AEE5}</q2:GUID>
+          <q2:Version>2.20</q2:Version>
+          <q2:DoNotSkipDH>true</q2:DoNotSkipDH>
+          <q2:TimeoutMinutes>45</q2:TimeoutMinutes>
+          <q2:TimeoutSessions>0</q2:TimeoutSessions>
+          <q2:Phase1CryptoSuites>
+            <q2:SkipVersion>2.0</q2:SkipVersion>
+            <q2:KeyExchange>ECDH-256</q2:KeyExchange>
+            <q2:Encryption>AES-256</q2:Encryption>
+            <q2:Hash>MD5</q2:Hash>
+          </q2:Phase1CryptoSuites>
+        </q2:DefaultPhase1CryptoSet>
+        <q2:DefaultPhase2AuthenticationSet>
+          <q2:GUID>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE4}{E01A7020-7009-49C3-8059-064FCC4191E4}</q2:GUID>
+          <q2:Version>2.31</q2:Version>
+          <q2:AuthenticationSuites>
+            <q2:Method>UserKerb</q2:Method>
+          </q2:AuthenticationSuites>
+          <q2:AuthenticationSuites>
+            <q2:SkipVersion>2.19</q2:SkipVersion>
+            <q2:Method>UserCert</q2:Method>
+            <q2:CAName>C=SE, O=Home, CN=Home Root CA01</q2:CAName>
+            <q2:CertAccountMapping>false</q2:CertAccountMapping>
+          </q2:AuthenticationSuites>
+        </q2:DefaultPhase2AuthenticationSet>
+        <q2:DefaultPhase2CryptoSet>
+          <q2:GUID>{E5A5D32A-4BCE-4e4d-B07F-4AB1BA7E5FE2}{B7F1E748-8415-4E6D-ADA6-FE8E552129FB}</q2:GUID>
+          <q2:Version>2.20</q2:Version>
+          <q2:PFS>Disable</q2:PFS>
+          <q2:Phase2CryptoSuites>
+            <q2:SkipVersion>2.0</q2:SkipVersion>
+            <q2:Protocol>ESP</q2:Protocol>
+            <q2:Encryption>AES-256</q2:Encryption>
+            <q2:AHHash>MD5</q2:AHHash>
+            <q2:ESPHash>MD5</q2:ESPHash>
+            <q2:TimeoutMinutes>15</q2:TimeoutMinutes>
+            <q2:TimeoutKBytes>100000</q2:TimeoutKBytes>
+          </q2:Phase2CryptoSuites>
+        </q2:DefaultPhase2CryptoSet>
+      </Extension>
+      <Name>Windows Firewall</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q3="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q3:RegistrySettings">
+        <q3:RegistrySetting>
+          <q3:KeyPath>SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile</q3:KeyPath>
+          <q3:AdmSetting>false</q3:AdmSetting>
+        </q3:RegistrySetting>
+        <q3:RegistrySetting>
+          <q3:KeyPath>SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile</q3:KeyPath>
+          <q3:AdmSetting>false</q3:AdmSetting>
+        </q3:RegistrySetting>
+        <q3:RegistrySetting>
+          <q3:KeyPath>SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile</q3:KeyPath>
+          <q3:AdmSetting>false</q3:AdmSetting>
+        </q3:RegistrySetting>
+        <q3:Blocked>false</q3:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+  <LinksTo>
+    <SOMName>Computers</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 1/Computers</SOMPath>
+    <Enabled>false</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>
