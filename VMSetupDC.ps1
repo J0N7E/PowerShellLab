@@ -2472,22 +2472,23 @@ Begin
         $DomainSecurity =
         @(
             @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable WDigest";                       Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Enable Client Kerberos Armoring";       Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Kerberos Encryption Types";             Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
         )
 
         ####################
@@ -2496,10 +2497,11 @@ Begin
 
         $DomainControllerGpos =
         @(
-            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Default Encryption Types";                Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
@@ -3555,8 +3557,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+dNBZ8Z4J50n+Eux+5qrXjMP
-# 9m+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUu/2S7nUhzajH7GxMX073OKEB
+# DHegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3687,34 +3689,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTdAs5n
-# bsqdPjEaUqmukHQA328dfzANBgkqhkiG9w0BAQEFAASCAgDJiCeBR0b7zp2EW5dl
-# flQWfr08Eg1kWEkhDECzqmcNGv0LYKSjubAJO085TfnmQAlVxmsVmBGsr+kCpLHa
-# gEhHwwxbFVGPQ5+vin2oT/s5VJEHqrnKyEayiEJtXLSMeYGb6+VIxAU+ucSFCJeF
-# 3X+ukpt6y8suXqoTrveW5hdnAenCKuTiAnkyqIFkgM5i3gZo4/C1Msz9oULqX/lj
-# S8P3LtMOEfAhstaIIrLLXdwgy9rN85F8o+nZByqXSCN7oV4+AYvfbwbqiu51ab3s
-# yCN5+JT9oqlET4LZlTY1JZObkMJn8NbKANjNs1kk6RuRNYbTN2rooBjE80YnzetI
-# 8t6O3/LxgthI0dHbe9erL+l5NxMfzzcq2e4RKyqoSQgNyyZWUpKny8O5DUCroXMe
-# 2r1Z57Oiq/Xh7RBWoUzmqVyg+wkADCvt7PdEwviZ0uBaDrZqZp4XfxW9VU1bispw
-# 1Vg6cxa3DM0SUQIoDuENnCK88gdh3T4QZ+UrBrgxd75M6C+rSh5wu8mgTYfR3RDW
-# iYvq8llJYYE/LjHmUHffgRQUARI68Q+U0QS/bjebR+cCy22I6rRlbLUWiulmxLs3
-# qiJLEZ0rx6RDF/oca9a2dPrAS+TOf9tuiLp2G3xnsaaCwAGUKtsT85zqYhqpllSi
-# Tr3osHZAF3LWRjhRRiJm0P/n5KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRW+y0Y
+# fFuYYIyaXk5+ProUmVyjKDANBgkqhkiG9w0BAQEFAASCAgCxUsQ4D68r/DWa1it8
+# rI9CygW4GH7SFFygUdQDGd6kK7NcC8P0JRlbDhMF6JfoMvYA/NoqxFH/wYT0d8jO
+# qboSgAObjRExcV1hbANVZQFclJsHuwP7iBeGrU8v8ZitrmiWtbDhhsjS0aFkQrdY
+# amR9DbyF+IrwHWFVFy+TCiXX/tF3S5ZM/QegbEM0BmS9d7TrzTQqq8XV31UaVYx5
+# lHMbFS1aICdTIHtrChTaEmKtEPi6g6td0w1TSScsC85WV3oWJ/+yOvtKAOoe3/1D
+# hCc9WdQ1cPKjhGYJquKDJ8WgV5GSK8bPSiegQ4+urmMqlwo1IPhl5CWJyPylgXw+
+# MPBeLdRU1el+2JDiWe1KAc3ih5/teCFn89PVsS45v/wEfpQ1+yUGgYnHxCQLjtDg
+# 3sFiLE+17Y4dpVM7plDW5V9gRodBl0hUnpfCDuUG6mNcD929ZPZVKn77DE97ONOF
+# Ht/YK5HuSXJB5YT4U7HmJ2qNRITwRpZ+l+nmBGS3tMMoBIMtv5FGHcIyyFIlLStA
+# CLo/rC3Nqx+sq767/Qek/N51j5S+Rx+9B2ZVOXEtMLLXfDg1cMJZ3sOExZA2Fk4q
+# KQZy8JnpiE7tYzEUsoEVso/RwoBdbMBdbatz+fn5SxBG9Oc7jp1qWHdhJVCbtJpR
+# qvJaN50ZS3patrFEjie/xIX8N6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjkyMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBiVb+DFh6UbFOE8s/fkuq+RRRoC/wIqdtUY691
-# DELg1DANBgkqhkiG9w0BAQEFAASCAgBO9F6BgcXZ0FY4ElFPCrYpxDaQP3j0rOPb
-# Aw/OFMoXUv9p9Hmv6wYNfAdy/MVZw2U3EhxUgIUX2WjqOXjrGwjOBv09b/iDN3Jy
-# WTiMtbUb/HAPN5xwW4rapZugpYYUNlQ4d+vS+C2YDTTLiu4vYe/cYEHg5J2FjR4Y
-# eikQr6qsZKUWGj7S7jucZQs13okaH5gBhoZvZzP4jWL00FzACkM2tNj134Z5NZkI
-# v1k1zh1a9lA1ehB90TOVex/w4J8VLSYZfZJcCTCmqnvHwlGb75Jegxy9Z3zSOjHr
-# pPb41P6mWVZ/W/a6Sm3xNvuAQEXRIlmOZlnMwrDXpWxvj1jJBG4jCoH0Y/CYRnRC
-# JGDDdTQbi6DtlrSINwGCn6uIfdcmiFKw1fPbNrGNB++HlmX9Fwvwql/IKMHrwoTI
-# kinRttH1npDjysw0Km+Y0q4tYLrMjZwvG7zH+Wwg4gjPG5YLcN21CF7WYIZ9colI
-# Zn4B0F7Uw+kRcPxwWZissdGGoIKVvEXHXT/4X0nt+dXT9UTQtRrZRwkw3IWqTkPe
-# DcOvITaipPGjaxq4RQnJa2k83Juup+N/YF9dqkGehbE50K45PlrupU4kjjY0GJ3U
-# OkoRapqQYBdVMor8onMTeo5f1XXndoQmjV7glArzJc38wmcV1axhT9wWHsFt3Cbs
-# F84TWYN87A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMzExNjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCB7I8RG4HRb0lTiGaZPeruPFI02CJo4hCei6tdu
+# IXhaNzANBgkqhkiG9w0BAQEFAASCAgBUcCFZOkPG0bJlVBQnX2A1+TGjYN6RMlPp
+# WT7mdO/x6YPeMWuAACAvY7CDMbQT8gS7u0bErUZosPFxETvXdZwEQKtjd2lwywUy
+# ZiNe17zRka+XT7aS/ly7iHiuwdAmokQCJz57xED3wxcsnDf8uAJWWExGqgSzVeOA
+# jXJfXZa4ufZs+RVI67Fz0PGZ+FHETKLZZf5Q5F6y9N+h2X+Q9kktpatbji/Tgitd
+# PR74j/EAhfDghUULqkPzvdhg0fGVv+Sr4lCrt1Gl+KByB4MHUgqj37S2p2sorSKA
+# +vV+6g7jC7ZrW7eIHIdptTVnRQy1xiXt4qJOQUm5UKsd1ODix+F7TLTWxeunq8Ju
+# aR/R35OOiN2282SGfE1txuABl0FFVnQdpyAGFW51N2Y/rD/nCT/FYDolHMqoQN9t
+# NGccbgg87M3OX41Qj/VQfBWn/0OniOjGfgKhLDkNufucv6jTe+mgymd9hfkfUckc
+# 29aLCHODkECtpEobp3hajo5S2xy0yVefJYpVEWYiPwawRx30cOvcw0OuC+Klc3Y5
+# IpmfEhKQy0vo3NGIQS+Bv0+g3vcSE6YPhPsIM2qHr2nWF/+mPU3OCEurOCISZkxu
+# fZFBAqjcRdY3wuqRKtQsoxUhBVCim7zCbdvwTv8w00snt5s4RWTW+FaR8QW5lJT4
+# Z/V6k020gg==
 # SIG # End signature block
