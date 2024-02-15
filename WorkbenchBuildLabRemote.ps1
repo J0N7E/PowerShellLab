@@ -47,11 +47,10 @@ $Settings = @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -F
 $Settings +=
 @{
     Lac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-    Dac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Admin')", $Settings.Pswd
-    Ac0   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier0Admin')", $Settings.Pswd
+    Dac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Admin')", (ConvertTo-SecureString -String 'F3ttk0tz.!' -AsPlainText -Force)
+    Ac0   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier0Admin')", (ConvertTo-SecureString -String 'F3ttk0tz.!' -AsPlainText -Force)
     Ac1   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier1Admin')", $Settings.Pswd
     Ac2   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\Tier2Admin')", $Settings.Pswd
-    Jc    = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\JoinDomain')", $Settings.Pswd
 }
 
 $Settings +=
@@ -622,8 +621,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJnY729OJno4pfnry/ZJ23Myd
-# EJOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0QgiMGElxFi585Vt7PgQyuM3
+# T8KgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -754,34 +753,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQzF0lE
-# nu3eymcEQSjEBnw+P8C1/jANBgkqhkiG9w0BAQEFAASCAgC4kdM4gcpl+H7m2PH+
-# DFzgkB5VVsOmGLTaTKCf0ROcBNnhlVnEFyHiEoUSrtOdaDzj8FMTG9ScKZXmXlR8
-# pKKPXNmVocupyVSo0z0zKDcAn9XLQ6S8AkIRgrT9F3ji8oExwnwy5+/LwSai8UL7
-# YNx8xCTgRtp1WcL9yw0MjhJllVWeRV4f8ifz+tIx1UWzrRVPjKhN0SwCvuKTnNin
-# hhjD0U0fwVFjP1XLNdf1zi+FtEzaNoj9XPcis4/VdSS0apR9/37uuRwWuz1/1DRz
-# Z2NPW+EDLlat8At52D0UJfW16zrD6zSqvk7T8vFOx2GBMKwUXwAi5/QkXVmEEBFn
-# slAThKxg14LSVTkFJyhjYTiG2v7Spi9NSpEP4GACc/FPHdznyArycgExJiau7eyz
-# eNJf7AYDPZZzo9taeO79rZl3OWN4BXu3OuOU+f5oxStnhwuaAZA1r3VUYPa+4qog
-# DMwHq9fftpJL12WiVbHrDmureCjG1WjnFoYzZ78pkmnEb4t1vfjuh2sBjhggoOo/
-# rrHep/nB7ygywhsIk2oEoxB8Fv4eHKo84VXaDGcJIvLLL8AFmYMfA6Yullikr56w
-# RULdEBRp2WKIdjn7pbAwJ5QpVrnlWHYcwcMIQW4fe1TG6XjUclKD1E5QoSlTv0EH
-# kEfJwGp94PqGT0VjG7C3u/83SqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRP10km
+# pifhmXtyfO3hJkGP4fduHTANBgkqhkiG9w0BAQEFAASCAgC4xF35AcL/J93kil7R
+# o/SAidqs4Sh1RsTFUIauX9XGy2rZx1JSBmdrLl9erWDpzBKLTgtn5KRTFTHK300V
+# wwGJIzmlQVBxn8BQOCAVaDAzweNK3G7dtFiQ5sVqf8lb3P1+tNWOnxkedpsphseX
+# /xBOcMaZB/F2tczLJrb9rAOJj0vqVgqO/8Y3qCoqc6YMcsyzIJBHgUSVkHMdWblp
+# xPKmgcoyinmvV5t5eYC5Xdbt57Et0dmY//6FChNAWlpRbM7gmA9pkFRnnqTW247R
+# Qqp/nbtMgGj4ehPEbMPN1yGQcidzerDuNM9Uxv4Q+PtHUVeFfNmicpO/+z5eJi6m
+# s7xii0D/3tsktD637+1tJZ5K214FCkRrbRoHgLtRSmjLexJo0tSsOWtYKZ4z/XfT
+# utwFTCnUFXvZCN51jOec9EjYMbwiBWctjUKw0qJ11MkrW74Ei6ZYOm2pLcF/IiaB
+# fKX+AtOuXCxZmU0WEtZ9+E6rRZ2AykFLzhNT8OkXyZ37qpVALM+5COYk/IAtKVcL
+# CsbOjYlH09trlIwZGsjrDxmuyJsGLLfeVJVx8Xt+cuuTFqi2o+zQ/706dCFMmjXC
+# rlIlL6Q8yK1CYYu+VhVGgawm/Z2XCfD1TjqlzovE1Qtq7WSzNjre5w5m+TTXgQSP
+# Dqi1HQzjW/L4axe4tk7vcWklU6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjMxMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDSuJCt3JOa3s4IGsTW8vmcEDdn5i6vRsJXj7Xj
-# 13QxZzANBgkqhkiG9w0BAQEFAASCAgAtkgR+WugtUCUvfqleUUxfol+SI+tUAD/u
-# 1xMA0yPRUGNu1UssJTyCsOBC2kHy9dWfNq80f9EfhENfVtwEIrQ0+yKvkTwrOkqC
-# w5bO408S+GXoJ1w2Vy7KHdqnwLvk0vEWPOYs75gGq+aQhqVrEKLlOjIESoqKUvve
-# fMWFz2H9m3QOYn6TFlHi5cFUGAZauaY2cp42XQ7pRN+qKlAV8Vhso86JRFUZs/DH
-# rdNhkUyOEMQKhFb8FK7qyx1ZSt4sXDB4bb289PKVcFY8CbGnAeDBfeDOkBdZdO3V
-# mWubmvAnFRYInjbpfIYpz8dn0GlGaWfHTJMhi3pDktVIYPi38Vg14+LZig9OK+rZ
-# QvvrBSqA4pmySN93hTo7X71btVyNapWkEu+dOQynvQ8puFC8E2Ke6JrpitkF8Ppj
-# uMFkYqe3p9GTMitD8QlCxmsqdI/Do8yfKAEwopBY3AiiJDbC0MnugwKBD9hiPUnR
-# qnEd27z2VHJ635jNV7jT5h6NJaXK3x1qwy2R4bbi8C11nHsMnC1SZyYiMGd0YMkJ
-# XZY2UqSn0UbnEvG13C16y3KrmLlWcfZU6k+v/8+bwm3mS/06pJhVVc9Ywp8g7LlG
-# yC+JR8zi0SIV1ix86wh3NLTfMgIuikTF4ZFSxSdPT4vY+OzTiveSMb5OEtg5EuXU
-# Gb5ugPERCw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAyMTUxNTAw
+# MDVaMC8GCSqGSIb3DQEJBDEiBCAihNDn4zUAlo4W30/0RT9ixHjvvsG/ZSRsMxyg
+# PavMMjANBgkqhkiG9w0BAQEFAASCAgBULj/9pLrMGXp1zMBCyWGXYo7cY1kw82RP
+# byVl5DxePeRn5I6POH/8GSBZV57/HZbc8dGMwlphtEJs1xC0wBYPuYU8mvH2ikqC
+# NNvryv86d5LL4lNguSEyFUiqkIT85enScWFAL6v1+wgoVaP6/Z5sONMRTLdrjUtS
+# DjNogjCvIG9Kixahtll08TQuGzS+PivuYdyh6OS7SO+Vp4/RmqGNLXh+I89bvWN7
+# h9NHQpo9P2iIb4/NKJqV+v1PKIJkgYnchL+mHA8VS7bwxPga+wEdjfJuwjk/X4KO
+# 5261x/aCVtbXGvzufxF4DvIlGycfc2UZ30UlYhKqcGS4oTV2t2lTKROoL3oR4MyV
+# Uk5pdmdguOIm+PvwEGFHGlh8/32j/3lSy7bi8ulmdNrNmRwDpE2d8g8qrRB+d/tw
+# Dt9wjYtKgeHZRR1Z7FWS9z1mssABSMMdUBEtRAeBx3BGGxQOwBRp9slqtdCuP1j4
+# haB+qgr/+nhHN7TbpAClRW/udaupBWzeULfNbY8SjMuGXuk3huw2r0PIQ6GgO2mv
+# ASyPWeAvUGNMwDKVl3R8ce38q8EO2X6bz4vSl9gpIjpYzQc2HdCrDD8b8vPFH7hx
+# qIwTPvVE7qOhT0Hmsny0Njj1P+q8iWq0M6e8p72hLUgy1UE5MrdFt59PAtb24miM
+# x1NuzsxgKA==
 # SIG # End signature block
