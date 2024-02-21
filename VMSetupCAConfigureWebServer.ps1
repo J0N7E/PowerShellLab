@@ -925,6 +925,13 @@ Begin
                 Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
             }
 
+            # Add CertSrv application
+            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            {
+                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
+            }
+
             # Check if windows feature is installed
             if ((Get-WindowsFeature -Name RSAT-AD-PowerShell).InstallState -notmatch 'Install' -and
                 (ShouldProcess @WhatIfSplat -Message "Installing RSAT-AD-PowerShell windows feature." @VerboseSplat))
@@ -948,13 +955,6 @@ Begin
                 (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
             {
                 Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
-            }
-
-            # Add CertSrv application
-            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
-            {
-                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
             }
 
             #####################
@@ -1277,8 +1277,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxaNZQVIDcL8v67LFzjEfGuGi
-# lWigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMWKY4ST6vmnm/X2Kaac+cWtn
+# KeKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1409,34 +1409,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTY0NNd
-# m9q+px/NxpXleyuz2v+lmTANBgkqhkiG9w0BAQEFAASCAgAnCmL1Kj6xfUaT2l6v
-# Zi+UKNl3Kh6yaqB2maATB62soj1XsXTT/MfaJhspM31fH0ejgdoZc88hsPNwrdPk
-# FxRJQLpuPCYzmGUQxZG5gw/DKXJBOIBMpGd/0GS9fODodBkqeWDqLNyimx07EqWE
-# OSjx8h5dQbfJkVK3l5gVgTdz/JObaOMMUsP66VdqXIV7Yqrfj6YpqcX07cf3MP1P
-# YByTwlI36F65DctAp30l+AIfhpjK6dXpsxQWsLU7A++iOWDwH9x9vWNZTKPqQvp+
-# MbVsq+YRNLL9lbopGb7QcZS6gtvE/CDr7jGGrP3j7sQ4butSosKTKhmxj3T3xd9t
-# cDXNCotv1wSMuDj6XWLnoItR90dcq70yfTc1ClhmgQGirZOHU1VA8YujRHV6pfNV
-# D/Wbx+QVBveq/8LiQ3X4uiHYpCmphvGauY/QA4bZsw61mYF9pMdeeWPnIqTSVHBh
-# FMvaP6lizZhALCzzy+Vmwt2SXrOUFANLOFZa+kSmzsEtDMHwh8xqNGTRGqXj/ed6
-# 5i8wI6XmujSS0A2KgWhCPJdJpLLUJm5gf1ubjCBwK39aQ1V9DvCtAKhk03DeujUE
-# /1iBKM3uNNoWd/l1gCiAtBFFYjBkjiisyMSmvU/g9iM9ZxOKVukd/vLdG1oGiMAz
-# 7glhQpXjh0oHvUNhANgyXjCGQqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8oOA4
+# 0tLShiBJkM0xP8eUDauKoDANBgkqhkiG9w0BAQEFAASCAgDJStAj3wmWZ6jl8Bx+
+# npGOFIzNwbiSqZhYP1HJzXz6ga1OHkaIuzpnOUdPrypGNIzD0IQtAodyYgaTf2Ps
+# Doji9rs7FXiWKOdqz1Co8+BLz4HIYZWxnqSVhS6GrB1iwQ768t1W13qNDgA+sjoJ
+# RPalO8XuZzngay1GGbUcwnaOUBzL4UgfYxW5j800gR5nTV2x/kEr3mFNHT3klGwb
+# yUugs7idDpzV87Va4SilZndEx2rsILcx/okqOc185CpPUIBR5htbm+hZ5I6+0AvX
+# uXoJwcV31vBVdbfEYT+biQ8d83j7dHqtSBtfSQZpC6Ww9uOleHz9FQ4xtWJ5fPcT
+# uQeu4H9H35ga5KLEDmE99oRHH6MZjI5TfjfOixQfkGScOt/kFxlLBF6kC8hdRtwQ
+# rEPpVQ5dARJ/7m9qBiatXnz7PNCsjvgwyRVlIV+UuzE2Q4Cx704UX1C9fO//OdKA
+# OTv1nFZFkDhioMcw0MDUH6E6KGqdLfrHXazSG1MsFYrro6XGQccy5Q1dET8Lbrht
+# IwmOzbNLAxdBwRtYqNFIpuH05myzUabDHQXese8HO6og8rYLzjKrVEMxmBCEh0Bj
+# HvgO+GglqJMCveP0HvxM6em3b8Bv678tubn3mYmruwheLFyep7dhOT6V29/vBTHY
+# 3KXT1piqHhJSQXx1wC7TK1ARh6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yMzA5MDgyMTU5
-# NTVaMC8GCSqGSIb3DQEJBDEiBCBJbrb94mYeYBjTQi+BrxnLDUnUzvSrDxUqojHG
-# QEM99TANBgkqhkiG9w0BAQEFAASCAgByeASFkwlBzHHbuSa7USRBX7B5KSxLHEG2
-# 0g+6+ieyy8pmMPUtynX9U56lr0WuR/t8Cvb+2D9GT6D73jrHm0UfUcQayM27o8JA
-# orlSIEot+QEZLdrnR5wJ1XyZDIm8Sz9YfE4HrewTK7OKFQcFwwyWJ7pqggEcFWBc
-# aEgSoGpmwLnFDS/XMcHUzf2k/J3j79pgJVIPIFNyPBxxygik3GUwB+JrpH0lT6AU
-# brW5lQ1I3gjsu4V+7sGbpAdT5+/owfMyRw9Hf7BVNSoUE9E84jUKUiMesYMzX9Bg
-# 7V1hP2Cu0GN2nzDh8MNqeyNjIY+cPgpvpGrS0Y9VjkCEl/uBSbBNhtsJEKz5zIw1
-# GSc5pmuTvjCWuLjUJPc1skmyTX+B54aOZq6QIWwvlZqbGyqUnyKWE981+JlEu/tX
-# JF5tF2LL9vf7DV2hgBqJ2opkz+gArA3wMf4Kx+p60dpk2MlaxPFU2fVx7rCoFGmU
-# Iu42V4M8KmLEVonMXPZkRC376YymkET55MzbOBJbm4THIeQ0NENZ6MUaajFugyH+
-# 4P1WIeR8squHmwS6oDG00EY48SEvYu7EPIZZ6ewXlk/S1D/g40Kr6YMscoYRO27R
-# egzlQyJRNfbRs3maIKG/T+6pM/AwJXJErnv0igheQLoE7iqTGlsmO2uAPRIE0vAL
-# Luj19C6xkg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAyMjExNTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCCFjQYDXq8GwW5SrBitg6+xqZC43MiQOohUflXL
+# DLMc0DANBgkqhkiG9w0BAQEFAASCAgAvJt4RwIPCrXaGNoQ7EzO8KXf59tQSUB8v
+# NjpQ6ztcKJ4tZt1TXH6W2/qsS8Srl4Ra2pV0OcwM8rFnlZdIQCAQHz08exxWI4Uy
+# gfX4ALJI50EkcDhcHhrhCg83j6KCMiUvIoaa/KV927ZQLOQ1pq1UKOE9QQ6ywrci
+# 474yYAQVxsd0RZVhkkP8M2O2XCWQALZDkkd66sUMHmwV+96+ywtHl5819dRlMbMk
+# Ohp8n/1AbeQaZyh286E8PkTCRsPhcXAVpIzonoBAwHnTj//DkOdxmwqjU5AZPxWf
+# F6n9MLIPuR6fM92bwd4QR9rkB9imDpVcsIrKHT0u0xOkO6+A/JFyHjjxyyitRVoS
+# s6zkJXOjYKpkahN8qKAzZ1Sfo7pqKA3ntep1h++fCHD/k0ox1HPfwdGV5sS2fNyB
+# 3b9j99sZkguP1ThYmks+zV/DYVq6Lw1p5QmDeWLR73Z1NFv8W7NzuT8hM+cSLuWQ
+# Xsp8NxXc/oIUPCb3cBObwXSFxtKnOEc8FItQDVhq5s+8bLFTzMWCgOoOZ0c/6gG+
+# toE+5GFpXf5Sptr7GHH7baaRVNWY57OV6whM70URPC4MoIz7E07/gehi/teoH2Z/
+# 2Wbv6oVhvqYrf6SHFhQ3lP+TMoi/02BfMv/z+qfOfn4cQCdB++JsNl4Rj/ZcWz+E
+# zQYC/ZY33Q==
 # SIG # End signature block
