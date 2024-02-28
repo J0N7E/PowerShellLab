@@ -926,7 +926,7 @@ Begin
             }
 
             # Add CertSrv application
-            if (-not ( Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+            if (-not (Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
                 (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
             {
                 New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
@@ -950,11 +950,12 @@ Begin
 
             # Add service account to iis_iusrs
             # FIX add parameter for accountname
+            # FIX netbios name
 
-            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$ -ErrorAction SilentlyContinue) -and
+            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member MsaNdes$ -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
             {
-                Add-LocalGroupMember -Group iis_iusrs -Member home\MsaNdes$
+                Add-LocalGroupMember -Group iis_iusrs -Member MsaNdes$
             }
 
             #####################
@@ -963,7 +964,7 @@ Begin
 
             $WebServerProperties =
             @(
-                @{ DisplayName = 'Disable directory brosing on CertSrv';           Name = 'enabled';         Value = $false;  Path = 'IIS:\Sites\Default Web Site\CertSrv';  Filter = '/system.webServer/directoryBrowse' },
+                @{ DisplayName = 'Disable directory browsing on CertSrv';          Name = 'enabled';         Value = $false;  Path = 'IIS:\Sites\Default Web Site\CertSrv';  Filter = '/system.webServer/directoryBrowse' },
                 @{ DisplayName = 'Set maxUrl=65536 on Default Web Site.';          Name = 'maxUrl';          Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' },
                 @{ DisplayName = 'Set maxQueryString=65536 on Default Web Site.';  Name = 'maxQueryString';  Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' }
             )
@@ -1277,8 +1278,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMWKY4ST6vmnm/X2Kaac+cWtn
-# KeKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUEEVMafZQrWLlAlzsEMGxl10h
+# p2ygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1409,34 +1410,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR8oOA4
-# 0tLShiBJkM0xP8eUDauKoDANBgkqhkiG9w0BAQEFAASCAgDJStAj3wmWZ6jl8Bx+
-# npGOFIzNwbiSqZhYP1HJzXz6ga1OHkaIuzpnOUdPrypGNIzD0IQtAodyYgaTf2Ps
-# Doji9rs7FXiWKOdqz1Co8+BLz4HIYZWxnqSVhS6GrB1iwQ768t1W13qNDgA+sjoJ
-# RPalO8XuZzngay1GGbUcwnaOUBzL4UgfYxW5j800gR5nTV2x/kEr3mFNHT3klGwb
-# yUugs7idDpzV87Va4SilZndEx2rsILcx/okqOc185CpPUIBR5htbm+hZ5I6+0AvX
-# uXoJwcV31vBVdbfEYT+biQ8d83j7dHqtSBtfSQZpC6Ww9uOleHz9FQ4xtWJ5fPcT
-# uQeu4H9H35ga5KLEDmE99oRHH6MZjI5TfjfOixQfkGScOt/kFxlLBF6kC8hdRtwQ
-# rEPpVQ5dARJ/7m9qBiatXnz7PNCsjvgwyRVlIV+UuzE2Q4Cx704UX1C9fO//OdKA
-# OTv1nFZFkDhioMcw0MDUH6E6KGqdLfrHXazSG1MsFYrro6XGQccy5Q1dET8Lbrht
-# IwmOzbNLAxdBwRtYqNFIpuH05myzUabDHQXese8HO6og8rYLzjKrVEMxmBCEh0Bj
-# HvgO+GglqJMCveP0HvxM6em3b8Bv678tubn3mYmruwheLFyep7dhOT6V29/vBTHY
-# 3KXT1piqHhJSQXx1wC7TK1ARh6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRQIpOh
+# BW6H7AhNm0DXXPdXOWZpXTANBgkqhkiG9w0BAQEFAASCAgA2HMNTPW/NxhKbHElR
+# u1/7/G0eNMfn1WViuZegk0FDMk8VI+M/Z1HfWYB231S4typ1h4DyGN2Ten5k/c2j
+# YhQrHrMqIWwoZJMnkiMn/Qf+EX5YxwvRCTqIWfdHfaUKrm9KtIc6WqgEpqa6CLzV
+# PJHVdaefvWkNcO/g+EfJMVxcQ5xUTY74LX8JVcRn380zSy9ttT9aSGE4WX4AQ9x5
+# lp3FU59j3/xFqOe/opJSVEN9FOW+O2+tg5UnmZ0AbFgk4GLxcuds68GopxHj0dLU
+# CYsCZZ1KkQlBo+n2iCDe3FjZW0leUojtKvFZu1EhZ1+OCO/EaG7ccQLgtnseIuko
+# x8KPSCUyrRpWM458N3a6jfuffNl2aUpH6leaHnWoKDup8s/QXB6ISY9poJxQitI8
+# 5QrUrblSjOMqUMaUt4SDcnVdTP4znlhOVfSleePwEQwHkRG7mn3RBWYHQxUixLUd
+# WtXBbSlJ9qISiEmBKjaxvd2DgocZpuK3viA+50X4RakTdkRYAf49qionE6HKFA2K
+# WPZrYF9v8IZMn357BexW1XgYbvLkCIDSZi0YOoygkYwOwG4MDkoBkCFMeTpJv9WK
+# w0y49H8vLzDZnWjAPDQUWEURfNvI8aovfr0zxEk10Hhx8DBHGLautqwFAIRQo/Mn
+# 7CC8faNhRnBHsKbScgEwbj0XY6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAyMjExNTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCFjQYDXq8GwW5SrBitg6+xqZC43MiQOohUflXL
-# DLMc0DANBgkqhkiG9w0BAQEFAASCAgAvJt4RwIPCrXaGNoQ7EzO8KXf59tQSUB8v
-# NjpQ6ztcKJ4tZt1TXH6W2/qsS8Srl4Ra2pV0OcwM8rFnlZdIQCAQHz08exxWI4Uy
-# gfX4ALJI50EkcDhcHhrhCg83j6KCMiUvIoaa/KV927ZQLOQ1pq1UKOE9QQ6ywrci
-# 474yYAQVxsd0RZVhkkP8M2O2XCWQALZDkkd66sUMHmwV+96+ywtHl5819dRlMbMk
-# Ohp8n/1AbeQaZyh286E8PkTCRsPhcXAVpIzonoBAwHnTj//DkOdxmwqjU5AZPxWf
-# F6n9MLIPuR6fM92bwd4QR9rkB9imDpVcsIrKHT0u0xOkO6+A/JFyHjjxyyitRVoS
-# s6zkJXOjYKpkahN8qKAzZ1Sfo7pqKA3ntep1h++fCHD/k0ox1HPfwdGV5sS2fNyB
-# 3b9j99sZkguP1ThYmks+zV/DYVq6Lw1p5QmDeWLR73Z1NFv8W7NzuT8hM+cSLuWQ
-# Xsp8NxXc/oIUPCb3cBObwXSFxtKnOEc8FItQDVhq5s+8bLFTzMWCgOoOZ0c/6gG+
-# toE+5GFpXf5Sptr7GHH7baaRVNWY57OV6whM70URPC4MoIz7E07/gehi/teoH2Z/
-# 2Wbv6oVhvqYrf6SHFhQ3lP+TMoi/02BfMv/z+qfOfn4cQCdB++JsNl4Rj/ZcWz+E
-# zQYC/ZY33Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAyMjgxMzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCCR1MWnNlv96DBm104O2S7fZmJLvikaiewcyW31
+# p64WajANBgkqhkiG9w0BAQEFAASCAgAsdMh4Cjq3BpEAH1z8j5ptSOi+m1IhEfFY
+# UuV7AOP9ohJy1o8HsQMf+0jQn3VnlcUH3DxbvCgq2VSQWT/WUKRSMaDFe7K2kTdJ
+# ZQRzHNYetW6TIM0EDEGJm/VeJIXwkrpdEelOKgiWRjCcUYRYQtSFuGhyNuNl9Hw5
+# yseP5yr2M5sR+ZwpyuD6kgyazrB4ZhtkIclKkEPKTt+ejrVjB54di97mWLc++7eC
+# I4JxITAB/0B5GCW88KFr9QCGXeB/y0Y97elOHVqpQj8pLFAK/6ROODfzJ6xi1b1L
+# zr+1X589BNw6dfeAKmqjR4hRcr8+c3oNQzzkBouLSvira2RyYBZTo6LG0EuVwmy6
+# t1nbdBEcSjNnLTfMGcNje3rzlivT09cNoR3G0w2AA7YrgdmbHVmdFXIS+CXBiWT6
+# f7PNoSWC9VK/F2mA9Yxz44AMhLkk+NkpmuKt/ApAj7OCubIar8dJtnj2UaJwXTX/
+# KzLRjLPSKyjS3SvYgE7x+IqG8xrb+9NMajbp+FXjmCDuZqoy6k5JSV4CVRQdp/5u
+# iKc403rwfBQcxLXh63XSYCt8pfT7N12iDbdJAi+IPImuHEAT0npUfzRKYnBjjCCN
+# yb/o/23nI/lImqQlpPKT/938fFMuZSHLjl8S9ad8f5C0udwimB4+pR6AChpOSqTm
+# bkRNbvNe9Q==
 # SIG # End signature block
