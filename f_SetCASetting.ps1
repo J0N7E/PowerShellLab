@@ -14,13 +14,12 @@ function Set-CASetting
 {
     Param
     (
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName='Set', Mandatory=$true)]
+        [Parameter(ParameterSetName='Remove', Mandatory=$true)]
         [String]$Key,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(ParameterSetName='Set', Mandatory=$true)]
         [String]$Value,
-
-        [Switch]$Remove,
 
         [Bool]$InputFlag
     )
@@ -31,34 +30,20 @@ function Set-CASetting
     # Get common name
     $CACommonName = $Configuration | Select-Object -ExpandProperty CommonName -ErrorAction Stop
 
-    # Get position backslashes
-    $FirstBackSlash = $Key.IndexOf('\') + 1
-    $LastBackSlash = $Key.LastIndexOf('\') + 1
+    $Key | Where-Object {
+                    $_ -match "(.*?)\\(.*)"
+    } | ForEach-Object {
 
-    # Get path
-    $Path = $Key.Substring($FirstBackSlash, $LastBackSlash)
-
-    Write-Host $Path
-
-    # Get property
-    $Property = $Key.Substring($LastBackSlash)
-
-    Write-Host $Property
-
-    <#
-    if ($Remove.IsPresent)
-    {
-        if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration\$CACommonName\$Path" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Property -ErrorAction SilentlyContinue) -and
-           (ShouldProcess @WhatIfSplat -Message "Removing $Key" @VerboseSplat))
-        {
-            TryCatch { certutil -delreg $Key } > $null
-
-            $OutputFlag = $true
-        }
+        $Entry = $Matches[1]
+        $Property = $Matches[2]
     }
-    elseif ($Opperation -match '\+|-')
+
+    # Get first character
+    $Opperation = $Value.Substring(0, 1)
+
+    if ($Opperation -match '\+|-')
     {
-        $ValueMatch = ((TryCatch { certutil -getreg $Key } -ErrorAction SilentlyContinue) -join '') -match $Value.Substring(1)
+        $ValueMatch = ((TryCatch { certutil -getreg $Key } -ErrorAction SilentlyContinue) -join ' ') -match $Value.Substring(1)
 
         if ((($ValueMatch -and $Opperation -eq '-') -or
             (-not $ValueMatch -and $Opperation -eq '+')) -and
@@ -69,47 +54,44 @@ function Set-CASetting
             $OutputFlag = $true
         }
     }
-    #>
-
-    # Get key
-    $CurrentValue = Get-Item "HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration\$CACommonName\$Path" -ErrorAction SilentlyContinue
-
-    # Get property value
-    $CurrentValue = $CurrentValue.GetValue($Property)
-
-    # Check if value exist
-    if ($CurrentValue)
-    {
-        # Change value
-        $Message = "Changing $Key from `"$CurrentValue`" to `"$Value`""
-    }
     else
     {
-        # Set new value
-        $Message = "Setting $Key to `"$Value`""
-    }
+        # Get key
+        $CurrentKey = Get-Item "HKLM:\System\CurrentControlSet\Services\CertSvc\Configuration\$CACommonName" -ErrorAction SilentlyContinue
 
-    $Array = $CurrentValue -is [String[]]
-
-
-    if (($Array -and $Value -notin $CurrentValue -or
-        -not $Array -and $Value -ne $CurrentValue) -and
-       (ShouldProcess @WhatIfSplat -Message $Message @VerboseSplat))
-    {
-        if ($Array)
+        # Check if key exist
+        if ($CurrentKey)
         {
-            #TryCatch { certutil -setreg $Key "+$Value" } > $null
+            # Get property value
+            $CurrentValue = $CurrentKey.GetValue($Property)
+
+            # Check if value is string array
+            if ($CurrentValue -is [String[]])
+            {
+                $CurrentValue = $CurrentValue -join '\n'
+            }
+        }
+
+        # Check if value exist
+        if ($CurrentValue)
+        {
+            # Change value
+            $Message = "Changing $Key from `"$CurrentValue`" to `"$Value`""
         }
         else
         {
-            #TryCatch { certutil -setreg $Key $Value } > $null
+            # Set new value
+            $Message = "Setting $Key to `"$Value`""
         }
 
+        if ($CurrentValue -ne $Value -and
+           (ShouldProcess @WhatIfSplat -Message $Message @VerboseSplat))
+        {
+            TryCatch { certutil -setreg $Key $Value } > $null
 
-        #$OutputFlag = $true
+            $OutputFlag = $true
+        }
     }
-
-
 
     if ($OutputFlag)
     {
@@ -126,8 +108,8 @@ function Set-CASetting
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBqpelmpS5b9lXlGSrSjtwBoC
-# BligghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfnOtqfe/ky6K5irK27xY3Xe5
+# 4JagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -258,34 +240,34 @@ function Set-CASetting
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR98hv2
-# m6pkwtYo+fVIykA1WPOnCjANBgkqhkiG9w0BAQEFAASCAgAPH3Iramp+uQQCowFG
-# BzVx+Pmd+LyQ20IvXZYWd3smXx2bGk5Lm+RmFm6HSHXGFWwQAHIS6kT0n7k5N6CC
-# rMH7Ziqh1PXRyF3WXjge2YVMZCsKACWuapPEaOOWYOnAedvHWzBXe+3BEYtDNxat
-# 4K294Nrpui/HwMpAYpJw0GiT5b/z60yWoKciTwWdK5FM8bfsI6g6G8dYmTB5HEj8
-# 6+BF2RbuZRAEBwVPsJ/HI8Og7pppHIYH9Ia1xx8vs+tzEfPaJvwCm4e8TS71xLwD
-# bznkm1ZbQ23UWON0xWNZcuFLPV8awCLqthuLTVBN0nAp3VYPejJbAv9lqqtYTaJP
-# C/XKnBLAVAbDAgXKA6e/IUTIZjtaafSCINCJh9C7AjCb9aZi2NVH/32kckfzhsdr
-# 3pxdpOKRh/BrptFVKrdIqylea67E/C5vsCpyoO8uLJoFhzNZqP2s0TDDDz6Bvk/B
-# i/Fh6UKduruxwS/yweTX1WqvswDW+SZijRyNZtUMs+49w9BTsyHVs2SC4wYheYEp
-# DmFZHU6Vv6I+48ajFdL4qnjTM/vIkDDZjWj9o201z+9o0Tv1qQhqGhFGthBcN4AP
-# eIT+GD4Lmkg8b3KGqbmMYS32HkCv4nB+2UfiTKzcs8AkzVIMF3pVKh68TuZbja6X
-# dlkjWw609vezI2+l3II8oGH2qaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTOTbfO
+# UFAoxT259EEvBh4COD41/DANBgkqhkiG9w0BAQEFAASCAgAnPcezFb+vrtk10LII
+# TOrlihaGgdiFVmdiX8UxK0ueJhrA0SeLq/eI1JpfKebtDEW1KohYbM/ZGvNy7qZj
+# Yux4e8GSsASUHu+x78v5dFCf6nURK7uJOnFfy3gJYhS4svx+3A+J558TCyyn3os5
+# uuIE9xv3r94p077r8v7hQQFWCbF5ORW3lWzjkTrte/iso8iz8Ee0KvUieHN0FxEn
+# SDy/gYAJRqRxBKCS2nl7wn5Jgb/w6gcDWztB9aAOv8fZRqyzvJdP1Ltkq8pewHmv
+# oel2QFuZzT8vLKf+g8cDptjftuHCMTrOTgF/S84JcLXauaqJFKGNjqke5dDKEQt9
+# 7mrSe+rrtO2TCX6gnIH2JvpfaqOEV+IoShAS5mgJh7t0lDPjCFLxVvubUo03hnvt
+# o2pjneHFS7UrVlou/5UO/m5wriuhcU6brW4OLZEL/wmrajVQ6IpdLSUqNW38hWRZ
+# oCHFHS6fiX6TZEC+WWdmJyc27NHXfuH7+0tfBENzt5mqdkkY6akdUmpPhinRI+xA
+# 18Q5WRqIbNax2Izp0FAgnPtmrfQO9Q44oFDBdDt3uRiZJGXKWzqj4mtst+yYdY/j
+# WR6AT+tbzrl1XPN7+moXmvzBUoh+hhtG4Kg6lzd1Nk+8+6X03mYokrEXqfgaVNWk
+# q53QO4Q9y07SKegX9xyWbxvV8KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDYxMzAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCAlfQUyTV9tLtmZoYGLZ0HlkVXwtCmcUNMfcs1D
-# OAeUEDANBgkqhkiG9w0BAQEFAASCAgCE4/nn2PsWyudh+7+khbf/PiD75C+V/+JP
-# Av1jcYN1fst4yOlKMUK1Fj3seojIJQRFxiwTkPpKhEhvElIS9BA4fKvRTkAjrpE5
-# 5OJZ6Om8hjzucTVAL51MbYEGqUZxKuxcA+s5xPbMeBINeMdqGKWkAmMrMpvqWMYe
-# GAVhiFZJPssd/tUzA6LX1n1QDxTgLUTwcBvpD1jClUzN4tNXLoyPrrcS2+O/6ZE9
-# UiKGlN0Dp5OmxcdDV20fnfZ/SLQRXZmCxXbE0TcDJk87J61COZ9ut35Lw1cTW3O9
-# 5hl5vzNeIu+hioMDH9pAp/L1U3o8FrHshWVm6Ci+gmXzSgxrp/SiZWnZrcu3Q+/+
-# oMsfnu/6jAAKr62A4ZhDAISjGtEayfu3GWcqLYMBENkymc+I9SxQ64JHmx4IHrz4
-# AvKQ3bcUsb8cC5DPw2TyFzadJfcEtnEq5BYLR4GitZBaHZ9VHOo9WXVhksVIdr3r
-# ZOIwcRq2NbvZxy1HQCXVze2c9fu+s3sBw4UELtv3arBXehz6ZsZUlZjqOTP9b/T0
-# 5xniPmcOdGlfgYzklMA0dAndIsSNJMfQkagi/XWX++hG0jtSl44TYh5+IEBSN4e3
-# ilEG76yJXI0cG1iGojShssNi/tlVoWPkxWGEhrqz+fk35DHmzuCQ9DlZiRGMUPp8
-# v2n74DPkmQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDYxNDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAVkT1SkJx2ZO/7sWxU9G1/SGcGX4nGvDAWpObg
+# DSxI/DANBgkqhkiG9w0BAQEFAASCAgAxbf9Gi9pRHLFkE5pGUmJx0SBEHMzdmd5n
+# jp4i7KN5QynPV5cuk2Kv76doBN3OlkBKOzZY4QB1zhWiZSdCfQYjqQLqGnCnGstK
+# dHLHS0fx8zdym5HEYLvg2ZXj17X2eY4Ep5RUvSeh0CNgtQAilYRQ3kH/Bs21u3Ji
+# DTzueHCabegq1eDNq0V8RTQzanNkvdcVrviY/u9A/UlAE4sXRM8Xixl0NJgd7DtY
+# vM6gtE2BjHIviY1Xwm31yJgSnKHNIbXrJ5tb1QHnCCgMU63z9dscbRn4tQwBCghF
+# Tn/B4uJbVlpsw+M85xXkOhZTYJakYxXppQJ7cGEFLNVJ7pBF7GUKuuxsHxV5QeK8
+# QjT4XtxdJLIR90COeQoyrjnY4XFeChfWB+7R9Go18F09V8CMS7hDW9UH+ULakLQg
+# PCvhpzAmNgSBpcojXHJo2cdlhfY1oczrLkgtNa9327KYdA1jD1XFJiYNLLlbQG8y
+# /8vO4uvtQNTIUUWASx6VqaapzKsnu7wL68JieFCBz4DL9e/lrLVGCuCsGoSG81bK
+# RiCNadWmDhPmspqdsoSQsEK1B5rG3EICWwRGdsCpqJmZ6SysTcn8QkaG3WAB+XTB
+# 5rATHVMN99sM01FSX09qsTyuRznMqx3dQvcS7BaDw8bPKdrb3frMyXcUZr3dhkdv
+# BudVZgfn9Q==
 # SIG # End signature block
