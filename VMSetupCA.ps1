@@ -1462,25 +1462,25 @@ Begin
             if (-not $UseDefaultSettings.IsPresent)
             {
                 # Set validity period of issued certificates
-                $Restart = Set-CASetting -Key 'ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\ValidityPeriodUnits' -Value $ValidityPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\ValidityPeriod' -Value $ValidityPeriod -InputFlag $Restart
 
                 # Set Crl Distribution Point (CDP)
-                $Restart = Set-CASetting -Key 'CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLPublicationURLs' -Value $CRLPublicationURLs -InputFlag $Restart
 
                 # Set Authority Information Access (AIA)
-                $Restart = Set-CASetting -Key 'CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CACertPublicationURLs' -Value $CACertPublicationURLs -InputFlag $Restart
 
                 # Set CRL settings
-                $Restart = Set-CASetting -Key 'CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
-                $Restart = Set-CASetting -Key 'CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLPeriodUnits' -Value $CRLPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLPeriod' -Value $CRLPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLOverlapUnits' -Value $CRLOverlapUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLOverlapPeriod' -Value $CRLOverlapPeriod -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLDeltaPeriodUnits' -Value $CRLDeltaPeriodUnits -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\CRLDeltaPeriod' -Value $CRLDeltaPeriod -InputFlag $Restart
 
                 # Set auditing
-                $Restart = Set-CASetting -Key 'AuditFilter' -Value $AuditFilter -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\AuditFilter' -Value $AuditFilter -InputFlag $Restart
             }
 
             #############
@@ -1490,7 +1490,12 @@ Begin
             if ($ParameterSetName -match 'Enterprise')
             {
                 # Add logging for changes to templates
-                $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'Policy\EditFlags' -Value 'EDITF_AUDITCERTTEMPLATELOAD' -InputFlag $Restart
+
+                # Set NDES SubjectTemplate configuration
+                $Restart = Set-CASetting -Key 'CA\SubjectTemplate' -Value 'UnstructuredName2' -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\SubjectTemplate' -Value 'UnstructuredAddress' -InputFlag $Restart
+                $Restart = Set-CASetting -Key 'CA\SubjectTemplate' -Value 'DeviceSerialNumber' -InputFlag $Restart
             }
 
             #############
@@ -1503,17 +1508,17 @@ Begin
                 if ($BaseDn)
                 {
                     # Add domain configuration for standalone ca
-                    $Restart = Set-CASetting -Key 'DSDomainDN' -Value $BaseDn -InputFlag $Restart
-                    $Restart = Set-CASetting -Key 'DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'CA\DSDomainDN' -Value $BaseDn -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'CA\DSConfigDN' -Value "CN=Configuration,$BaseDn" -InputFlag $Restart
                 }
 
                 if ($ParameterSetName -match 'Subordinate' -or $OCSPHost)
                 {
                     # Enable ocsp extension requests
-                    $Restart = Set-CASetting -Type Policy -Key 'EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'Policy\EnableRequestExtensionList' -Value '+1.3.6.1.5.5.7.48.1.5' -InputFlag $Restart
 
                     # Enable ocsp no revocation check for standalone ca
-                    $Restart = Set-CASetting -Type Policy -Key 'EditFlags' -Value '+EDITF_ENABLEOCSPREVNOCHECK' -InputFlag $Restart
+                    $Restart = Set-CASetting -Key 'Policy\EditFlags' -Value 'EDITF_ENABLEOCSPREVNOCHECK' -InputFlag $Restart
                 }
             }
         }
@@ -1539,11 +1544,13 @@ Begin
                 ShouldProcess @WhatIfSplat -Message "Certificate installed, waiting a bit extra for CA..." > $null
                 Start-Sleep -Seconds 7
             }
+            <#
             elseif ($PublishTemplates.IsPresent)
             {
                 ShouldProcess @WhatIfSplat -Message "About to load templates, waiting a bit extra for CA..." > $null
                 Start-Sleep -Seconds 5
             }
+            #>
         }
 
         ######################
@@ -1585,6 +1592,14 @@ Begin
                 if ($Template -notin $CATemplates -and
                     (ShouldProcess @WhatIfSplat -Message "Adding template `"$Template`" to issue." @VerboseSplat))
                 {
+                    if ($Restart -and -not $Result.CertificateInstalled)
+                    {
+                        ShouldProcess @WhatIfSplat -Message "About to load templates, waiting a bit extra for CA..." > $null
+                        Start-Sleep -Seconds 5
+
+                        $Restart = $null
+                    }
+
                     TryCatch { certutil -SetCATemplates "+$Template" } > $null
                 }
             }
@@ -1917,8 +1932,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtff8eiB57yqjP9nWmVGHz7G0
-# 2PCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUB7Jv25m9wEjGA3u3gET6sM/1
+# GW6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -2049,34 +2064,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBR63+M8
-# iMZmH7UFOPDo8ua37HSXxzANBgkqhkiG9w0BAQEFAASCAgATFah+jcxoQQc/A4fd
-# fhWjcdIpkcpRIh8xdFPgSV+GKmD9JYTNohraBZl00nVgTIYU6pPcXDNVM6pmwXMc
-# GwV5wnuyxLs0pAja9vU4YlJ6n4UKv7+nLpnEVis92gfTNGdCndAP+8avy9IG7qSd
-# Q2l0Y3B2mWf5NCLlyTWfZnkaBK4aKkX3xfzeqvQMICSMW0QMiSgCaVIGlrJYC6o5
-# O9Ovi8/Lb8KSt9D1at067ixpMECLS6L4x8Bl8DG4b4zXDCvJr3QTjzDc+ovyNB6g
-# 3ja7zVJW9LWBq8FJ42yukGJtkEIDCZpX55bNXud2J8VxyM+DJjXokEdCpkusWDkB
-# 0/aIZRtbVELVBSOO4+Fs/d3kC7jkHZygESlTLMijKvxMTvF3drkoxPcSe3inbOUg
-# lHTPYFCQ8ASZxEzPOhCW59OXF9fCneGq39uALVCV30R/LW1Qsi9TXoVdLd5LlbJa
-# qgFA0EEgDL2cJc2uK6zCyMZUCMYBU27j/Em7ea8hehZA0MsW2wc6pXOR3mFBfwha
-# 3tQAmJIFJ638WUm52Vo2dP1/NqJAScMp61M7Ua3LYJ4bfQODInJ6gXOI2t/opfuA
-# KWMz2+Xvugrl0Qy0A2A6UgyoLltZvvjVXmBo5ucA8rgp9XbG/c1WoIm9bwdK+ndj
-# VhbTjj0bgs0hovpqAg6PsdxQK6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQkB6Ec
+# 4XhBOk6hTd8VchkRUUKLVTANBgkqhkiG9w0BAQEFAASCAgC4a1yPP+NOPBTS12nF
+# r9Dwom4hP7Ffhte5q1KwiJeY3p0qcnxwe7A5Hlr1k+oBlnT+X07S5nuq2UbVTYBi
+# sfoI9LrdLvjfzmGL1thK0IwLpmsKU4J/8oLhstivb1VthMG4tsO+ZCf3iiASLQeS
+# pvzIY8AHJYobJ/smGdlMx1J8UqczMiABg1aYnBZqpNh6oOEKK+i3xgwvUvEUC5Wy
+# nhb5HIWVxtO4/AI7PTE39WViklJ06eRNb/v8oboo2hLfg/axJJWAC4o3ff/c2G6A
+# 1ifV6Zi+ryXp3+7QBO8QYLW8lMlJPuhAEgkwpmU476fxOt8vJqJEK56sESDyBYQy
+# 6ajiQ5K5CEo6th5as132sgqEGya2Uasv1VzK3D3WEujFSE2BmJu4/DEj5C551uc2
+# ZQme8E7xU06MyCSU4Bsow0Pwz0VRLpLemWEcsA9bxkj6SacxjLLgu72DWGpftrMM
+# 82fUKJg7iNIQiGRlkNSx54AgWnjoHpcQBCiUjipI84Q8GGSVtO23F9UQSO4n7rOJ
+# 75Ahj2C5qo6zajR/IgYq1kNF85TkNZUaDF8v+ZBzRr1DBzBs3oh5vc24Mxz1Y2Dp
+# eHnG7QLY0qPzOTBnay5wdEDbiajkX8qabTuahEmgP/wzOS2sTLl7jyq2Kb8ryflF
+# 0EYn05FtwSMRHs8AS3BTv8Dqd6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAxMjAxMzAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDjLZ0GTDb+kuLUEcBl4i3s9ZbmAzCFjI2CtanV
-# n2g+KDANBgkqhkiG9w0BAQEFAASCAgBf+DG4I58Afa9YI+wFD1TID51wDZ7vnb53
-# +e7cSJR25m7ShJdeguzVUtoyDsUcVA36KswyTLU8iTFss9TMufb0XmQYQ8F1U9tH
-# 5JxkwY6h8XKHhEzVdYft6S5y4JxSyw/EHR8QrIcdK+srxnvNuhywduPXzxwU1nOQ
-# PkdssQOArSXS3vubfOJ1PSz4aIiC8MtJGGOS2u3BCggYrTi6l71Vljf/DilU7VlA
-# JnGJkwc0m2gC6OEjbUpbtJDo1N2LL4sxHlS8TOBfrS/9JWjQttNsD7Iht4b8E8UI
-# 1SPErox0Rci2UYgk9a67VJG1ijvvEd03lszCVPH8HHVMRALhyl3OOyKV0BkOqAC+
-# x2NfeMt5II0m5QZOfFpRT1Fy6tvisYxPs9dfByPTsZO/UD7zubI8VGmR2Tj1BqzS
-# sBc2Cql3zWkEK+FdPO6bGE8hJn59wFGzaABsrD2NfBWFbyM0UPpzBkbRTUXvto1t
-# 4BxV57lwlkMvGJh1O61d8vdUwklH0lpaOuJwIhkPlc7gfGstHm7e7g3NcMVheYKz
-# rK2yNPT9r/yxDJgWnaoCvLKk2NvTxhNBj0YCgZ1SBC+YK0nnjJFDvLRKTDjbzkl4
-# Uz/YyZopp8Qq2MuyEabvryf1xoWfHhtKa0+CJBeBRL9GqtMtY1j/ggesMUAwPg28
-# mrDTbXOMcA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDYxMzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDO3uqsrQsd7zx641ggSQLEJzwBX8i3z8wM7P30
+# jQj9TDANBgkqhkiG9w0BAQEFAASCAgCHSHKyWNUwleFKuDGMtIy9gKsmNytkTPCy
+# AedasROR/8BZsKvm/ZOgzoss8TbGCGtPa29chqf63uw9ukwPV5nm1UpMQWvw4rHJ
+# BY3Z6d6epmn82ktgZ3YsAxkVc+59WqYdlBtDEcfJ1lHGeRgyihmUTkC7bg8eA++B
+# nFNKvuJK1A0cLa7sL8YEL6UQqtUuxJEc96U/7PlTMLba55hwGo+8zfIAjKSJeXZY
+# JSTADraQxRSUXp91YL91MG6WGekmjVdG/St4gYWAjHc4wDHMfRTmZX3moywXpWcC
+# 3HvtCDZugeQCeXNPXKx8LPFMcgGrPNapHonAwMMnum5KCBJ//KvLxbviRcriWMOj
+# ZSe35v0IngLhXqJ9KzrFJN2/Q/BivH2JmmFQr5FazC4sciNghsH0l5LivM5FUxeM
+# jVLP+xRAEVZLKNxdjXoAI2NACbGS6W1C4pKSZKOsqKQXuXuGNke4kLsn6TpT94Mo
+# RmXcxCB00QqmrDMglLib/6T0vkNcubPxinhL48qJ25pjwk1g3BZ+rfvhwYUEqn7e
+# mMOf1dJITRwN7I1MU754k/9qD5sGj6rBUT1vDZ6G55Ti5zwdBvme1+NAuX1xVNKa
+# dMq1IY50VLVZCpclIXu2fg9jZPesQYGxpZAOTmRfLfIHyjj1TciLtdX0dfNlZRsU
+# VQmvMhZ3sQ==
 # SIG # End signature block
