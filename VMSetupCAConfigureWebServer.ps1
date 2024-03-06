@@ -27,6 +27,7 @@ Param
     [Parameter(ParameterSetName='Share', Mandatory=$true)]
     [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
     [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
+    [Parameter(ParameterSetName='NDES', Mandatory=$true)]
     [String]$CAConfig,
 
     # Host name
@@ -54,6 +55,7 @@ Param
     [Parameter(ParameterSetName='Share', Mandatory=$true)]
     [Parameter(ParameterSetName='OCSPManual')]
     [Parameter(ParameterSetName='OCSPTemplate')]
+    [Parameter(ParameterSetName='NDES')]
     [String]$ShareAccess,
 
     #######
@@ -65,12 +67,14 @@ Param
     [Parameter(ParameterSetName='Share')]
     [Parameter(ParameterSetName='OCSPManual', Mandatory=$true)]
     [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
+    [Parameter(ParameterSetName='NDES')]
     [Switch]$ConfigureOCSP,
 
     # OCSP template name
     [Parameter(ParameterSetName='Standard')]
     [Parameter(ParameterSetName='Share')]
     [Parameter(ParameterSetName='OCSPTemplate', Mandatory=$true)]
+    [Parameter(ParameterSetName='NDES')]
     [String]$OCSPTemplate,
 
     ####################
@@ -100,7 +104,15 @@ Param
     #######
 
     # Configure Ndes
-    [Switch]$ConfigureNDES
+    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Share')]
+    [Parameter(ParameterSetName='OCSPManual')]
+    [Parameter(ParameterSetName='OCSPTemplate')]
+    [Parameter(ParameterSetName='NDES', Mandatory=$true)]
+    [Switch]$ConfigureNDES,
+
+    [String]$NdesServiceAccountName = "MsaNdes$"
+
 )
 
 Begin
@@ -918,18 +930,15 @@ Begin
 
         if ($ConfigureNDES.IsPresent)
         {
+            ################
+            # Prerequisites
+            ################
+
             # Check if windows feature is installed
             if ((Get-WindowsFeature -Name ADCS-Device-Enrollment).InstallState -notmatch 'Install' -and
                 (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Device-Enrollment windows feature." @VerboseSplat))
             {
                 Install-WindowsFeature -Name ADCS-Device-Enrollment -IncludeManagementTools > $null
-            }
-
-            # Add CertSrv application
-            if (-not (Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
-            {
-                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
             }
 
             # Check if windows feature is installed
@@ -940,27 +949,36 @@ Begin
             }
 
             # Test service account
-            # FIX add parameter for accountname
-
-            if (-not (Test-ADServiceAccount -Identity MsaNdes) -and
-                (ShouldProcess @WhatIfSplat -Message "Installing service account." @VerboseSplat))
+            if (-not (Test-ADServiceAccount -Identity $NdesServiceAccountName) -and
+                (ShouldProcess @WhatIfSplat -Message "Service account $NdesServiceAccountName not installed, aborting..." @VerboseSplat))
             {
-                Install-ADServiceAccount -Identity MsaNdes
+                #Install-ADServiceAccount -Identity $NdesServiceAccountName
+                return
             }
 
             # Add service account to iis_iusrs
-            # FIX add parameter for accountname
-            # FIX netbios name
-
-            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member MsaNdes$ -ErrorAction SilentlyContinue) -and
-                (ShouldProcess @WhatIfSplat -Message "Adding service account to iis_iusrs." @VerboseSplat))
+            if (-not (Get-LocalGroupMember -Group iis_iusrs -Member "$env:USERDOMAIN\$NdesServiceAccountName" -ErrorAction SilentlyContinue) -and
+                (ShouldProcess @WhatIfSplat -Message "Adding service account $env:USERDOMAIN\$NdesServiceAccountName to iis_iusrs." @VerboseSplat))
             {
-                Add-LocalGroupMember -Group iis_iusrs -Member MsaNdes$
+                Add-LocalGroupMember -Group iis_iusrs -Member "$env:USERDOMAIN\$NdesServiceAccountName"
             }
 
-            #####################
-            # Set IIS properties
-            #####################
+            #####
+            # CA
+            #####
+
+
+
+            ################
+            # Configure IIS
+            ################
+
+            # Add CertSrv application
+            if (-not (Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            {
+                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
+            }
 
             $WebServerProperties =
             @(
@@ -979,7 +997,12 @@ Begin
                 }
             }
 
+            #######
+            # NDES
+            #######
+
             # Configure Ndes
+            <#
             if (-not (Get-Item IIS:\AppPools\SCEP -ErrorAction SilentlyContinue) -and
                 (ShouldProcess @WhatIfSplat -Message "Configuring NDES." @VerboseSplat))
             {
@@ -1005,18 +1028,22 @@ Begin
                     throw $_.Exception
                 }
             }
+            #>
 
 
-            <#
             # Set application pool identity
-            # FIX add parameter for accountname
-
             if ((Get-ItemProperty IIS:\AppPools\SCEP -name processModel).identityType -eq 'ApplicationPoolIdentity' -and
                 (ShouldProcess @WhatIfSplat -Message "Setting service account as application pool identity." @VerboseSplat))
             {
                 Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
             }
-            #>
+
+            # Remove default certificates
+            # Enroll new certificates from custom templates
+            # Export user certificate pfx and remove it
+            # Import user certificate to local machine and remove pfx
+
+            return
 
             #############################
             # Set privat key permissions
@@ -1099,15 +1126,11 @@ Begin
             Set-Registry -Settings $NdesRegistrySettings
             #>
 
-            # Remove default certificates
-            # Enroll new certificates from custom templates
-            # Export user certificate pfx and remove it
-            # Import user certificate to local machine and remove pfx
+
 
             # Enroll TLS certificate
             # Force SSL on MSCEP_admin
 
-            # Move ISAPA 4.0 64bit Handler mapping down
 
             # useKernelMode false
             # useAppPoolCredentials true
@@ -1160,9 +1183,6 @@ Process
             # IIS
             $ConfigureIIS = $Using:ConfigureIIS
 
-            # Ndes
-            $ConfigureNDES = $Using:ConfigureNDES
-
             # Share
             $ShareAccess = $Using:ShareAccess
 
@@ -1172,6 +1192,10 @@ Process
             $OCSPRefreshTimeout = $Using:OCSPRefreshTimeout
             $OCSPAddNonce = $Using:OCSPAddNonce
             $OCSPHashAlgorithm = $Using:OCSPHashAlgorithm
+
+            # NDES
+            $ConfigureNDES = $Using:ConfigureNDES
+            $NdesServiceAccountName = $Using:NdesServiceAccountName
 
             # Files
             $CAFiles = $Using:CAFiles
@@ -1273,8 +1297,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQgpcLQH3YQSdVAXL4h+aTgzc
-# GcGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMIjQSWyayslby8LWG3VSi69b
+# 6RqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1405,34 +1429,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRpIMEZ
-# sRvmEl2OtlS592bplUqz/DANBgkqhkiG9w0BAQEFAASCAgCR41oTrX9mLB1sf7FL
-# psRF7rTeaTt+6jegOzz/KWv5Sjsya1ruAfjWo0vYPDSZtW1ixcGEB3uI3TGq2sxA
-# LQU6UtP8gOOANFi0kcqHg6Dli+191h7EbovKVhPURxjITHLzGGQqSGS5hf9tiMbU
-# zc+o763C3VLv7kQkzUxdXKfx7RXJYe0cI/WaaZRCjawQ9XwbynJu/hOV4OnxUZLR
-# 557tHAodYXgOs6ClGn42HuxSWGQsYfzHBNWeqY2dOiHl/cQMz/q2dcm19u0SZBv7
-# K2z630zCajbrxQmuwkUhff6f4Y8N27eMGb3d7UV7usrQKJ/5sP+k+biW33MeOauI
-# H2CSGGnQLeYZ7C51gvTYDLTNs1DMXPsc1Q8fnYy60N2Fp9uq8U3/swEmv36oQUJM
-# op7jpUiSJn3okCqmqSG6lBVORPIWKp/IQwld7Zry93zQ9v8R62Wjc9b8Wp3f3Bj/
-# RmALT0ed/wSQmntQxF0NzHzV8Ciiop/awbmGO2QuJseejV8cvcs95UhzDuUx9UDK
-# zsiniDNUoNmmQ4hhg27LauQSJl+UsXZ+TLsHubU75dFqYc2FUqvPeD1RtOwoun8+
-# 5yCE2GKqLGmFE8hO1rygtCj0/pvv1X5s2dh4KwwLi2OToJarFX+Nm8kZVCcW42Vh
-# cidrASLbgRUFhoCI7pnFDBKV6aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRMiV32
+# Mv7Uj5lnfQ3tPV6giaQ3XjANBgkqhkiG9w0BAQEFAASCAgCjhUeFw+Ex65W1Qwnl
+# 1HglWdYFQVx+6TN7ca/RRGI+nmqY+nfIjvhBlSCc1YnI5A888O4C8ab5MKx0cfp/
+# 9yPKg3BZikaHfz27MS5JGsazdhZYjWSMEs9Q93mDvpUvbNqeXLCIWLm9HW9dWfZk
+# jZNPUOfrhvbmOBW3hSRTJpjYucIO5aMw4IYvQJ3mmunaqkyFHdy4ah9XGRk4U5yG
+# 8EblxcD8hWBNeS+bJ3TIX20N785yI1Jc/ROj7rAJcagXEPSBB2lhxuH5eXlKYyNM
+# xZrQ/yVJlTdB1U0X48ofjFXAx/tRZtGEUTOioRa+hMG276qH2pJMwUViLrc5Qb85
+# fklwL4ZEoGhYRAtUI7jusr2GCt+wY0N/70SHXIg/OJbWP8Z9fjn6+cxQR2l2b7+Z
+# o00d33AYD/6H3LAcR5VRZfU50Z8AA81QqauOf9nrU2E2P6mjlx+JyJ2CSNeQFv26
+# uC0r1+M4tan+DykIlJK03gLDfweV5yzeD+T+eNPwlq8bxZQC7DbM4JRZbpEg013D
+# J8ChdY1/kL1fve2NKT9n4FrnKtwrXoxjrark+eB5+1JcOqMfKMnQERYwTSWDszNc
+# 5xj9QYxH5LiLkMOGD9zwlmOrddJHcQtMG+S3XoJR7D7MrmaTyTFQnAxj7qrh2C0D
+# rQbrjUugJNXGTQjUUyS9VydgFaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDYxMTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCBAaVUn0vMsczF7MyhUrLea6p94GvSYU1h+Mxfe
-# rnxK4DANBgkqhkiG9w0BAQEFAASCAgA68UoV9LrFhf9stSaz9j581P7/g1OGkAif
-# a5ZdGAqb5tiO6qyrzT5hMpY6RmOeh9ZiNR/bYHCUXAZtUjI+4WsoKd5fX6CfHwqF
-# 8BaqRxYAWUl39ZzJuX5n3EVtPGY6Uo7rIDIgztE2mWmJIhBy0sAO6PqDneMs0Gz2
-# NisTNTFV+BiTp/XoMJPawgSmZSOc+fImRqrZ2W7SWlSNAHWyQR7IEYmSq6TEhteP
-# XnDKhR0NrTbRvHFFQNx8CGI0pRTnOjmMxzhZiC/g5/jN0DN2KmHk/79IK3WP/Tiw
-# moTm/pjpkLLNjG62rnyzW+2IXSOvhcPuWrEApirM86YzCN12TaQ/HDzuDd9uWVXX
-# FpY7iw874ZRsOpntpfnJO9KrW+qqdlPYMPLpoTaOyAE5X10JwFiwjaNYxp8VvYvM
-# teZEhfeiiKtkdi4PkcAqUzxlZHRD7JT0xbxXSavdiAOMeLoiUWGkRqe+qhaN8RVx
-# EmfD4bpCjYIyIF2wHrYIZNuXjnnq3XLo9oZAIWPB5ZaBZNIt6VnMUnrNp6fxU/Ze
-# AjUhMZoova2tpbefRZrMPy5Mfrs0JdbvkKDafxmtqtfuhvAM4RBh0W7eGkjxP+qA
-# ZYSsselk/WpZtHmo7kGby9Ula5YhG2/IyKTIpgbwUTpmzj22LdAWx1GcpCv9wf7C
-# 8drF08cDlA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDYxMjAw
+# MDZaMC8GCSqGSIb3DQEJBDEiBCCYphr7fshm7fWCSrl5pRle4qzNMSjRpF7jjgDv
+# 8dDyoDANBgkqhkiG9w0BAQEFAASCAgAXsWdzDCH5yIYtlLWzoL+9+NE8P4ppL1cn
+# t4oWCU/Xk8ZNAeaYTwZhE/O9tCyqgd8j6r9xHWcCxT7Lhqm7DUGJsN8Ss+iy8J7+
+# dILJJloTeo2kxcu14ykaXOrNcInNQ+Njv5SD3L0obUHujJmRl5zC7DKoe4yAu6bj
+# tFdDjrHXMM/sDt463Gd3iFheuVrbDa2kUwqaoCP7XNjRxrrKc23jpFnuTdRqhZAD
+# gXjo3MSLQtqBLHjnVk9mdS2SOzMr3ChJb31FRdtS+ZRXmotvgYzDUibfQ0oSdi4B
+# /8KO+K1+9XJ3LjgHpDU4I0t+J7aVuY3M8s2M+m1rRJwHOlqDtWvqDv3fv5a/54O3
+# YYXwTpi/z0g14WlefIlqr7A/pedMTZrjtzSRdGI1y0GrGoClOM6izC/bLmNUrTIa
+# gkpXOyTAKxqFRzR2EIVOJ9GW8bWJvRrMc5F6nLKFWkMHHK6JIxIKbD1X7bCyiYO+
+# KReydq3vozKWPl03DRuPPJ4M8p+xKJbfAd66G98WRpQ8Wt5jc4zDzK2G3+uDu308
+# wHIgdmJTrUPEW9VxXLuR6CfduU6aEqWojUpxhL1eSDEAuvf6UGiNY/jlh8ZWELOG
+# VqoSMp+0Gl5YCV3UQS07S/4urMnGeS5SxRvcoVUyKdqrQ+SJWFRSLDllh6qgziCT
+# Uzbck1H9mg==
 # SIG # End signature block
