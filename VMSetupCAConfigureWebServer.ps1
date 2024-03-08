@@ -967,12 +967,44 @@ Begin
             # Configure IIS
             ################
 
-            # Add CertSrv application
-            if (-not (Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
-                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            # Add MSCEP App Pool
+            if (-not (Get-IISAppPool -Name SCEP) -and
+                (ShouldProcess @WhatIfSplat -Message 'Adding SCEP App Pool' @VerboseSplat))
             {
-                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
+                New-WebAppPool -Name SCEP > $null
             }
+
+            $RestartAppPool = $false
+
+            if ($SCEPAppPool.ManagedPipelineMode -ne 'Classic' -and
+                (ShouldProcess @WhatIfSplat -Message 'Setting SCEP App Pool to Classic' @VerboseSplat))
+            {
+                $SCEPAppPool.ManagedPipelineMode = 'Classic'
+                $RestartAppPool = $true
+            }
+
+            if($RestartAppPool -and
+               (ShouldProcess @WhatIfSplat -Message 'Restarting SCEP App Pool...' @VerboseSplat))
+            {
+                $SCEPAppPool | Set-Item
+                Restart-WebAppPool -Name SCEP
+            }
+
+            # Add MSCEP Isapi Cgi Restrictions
+            if ('mscep.dll' -notin ((Get-WebConfiguration -Filter '/system.webServer/security/isapiCgiRestriction').Collection | Select -ExpandProperty groupId) -and
+                (ShouldProcess @WhatIfSplat -Message 'Adding MSCEP Isapi Cgi Restriction' @VerboseSplat))
+            {
+                Add-WebConfiguration -Filter '/system.webServer/security/isapiCgiRestriction' -Value @{ path = 'C:\Windows\system32\CertSrv\mscep\mscep.dll'; allowed = 'True';  groupId = 'mscep.dll'; description = 'Simple Certificate Enrollment Protocol (SCEP) Add-On'; }
+            }
+
+            # Add MSCEP Application Dependencies
+            if ('mscep.dll' -notin ((Get-WebConfiguration -Filter '/system.webServer/security/applicationDependencies').Collection | Select -ExpandProperty groupId) -and
+                (ShouldProcess @WhatIfSplat -Message 'Adding MSCEP Application Dependencies' @VerboseSplat))
+            {
+                Add-WebConfiguration -Filter '/system.webServer/security/applicationDependencies' -Value @{ name = 'MSCEP'; groupId = 'mscep.dll'; }
+            }
+
+
 
             $WebServerProperties =
             @(
@@ -989,13 +1021,6 @@ Begin
                 {
                     Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
                 }
-            }
-
-            # Check Isapi Cgi Restrictions
-            if ('C:\Windows\system32\CertSrv\mscep\mscep.dll' -ne ((Get-WebConfiguration -Filter '/system.webServer/security/isapiCgiRestriction').Collection | Select -ExpandProperty Path) -and
-                (ShouldProcess @WhatIfSplat -Message 'Adding MSCEP Isapi Cgi Restriction' @VerboseSplat))
-            {
-                #Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
             }
 
             return
@@ -1301,8 +1326,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUB72JjNrnxMnw2lfFiSJmgdBs
-# t3OgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCYjY1cEGb2DoWRWuyfDvjvjF
+# 4QagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1433,34 +1458,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSPSJqi
-# QWrQUCAnOKYvuDO6uQ7KaTANBgkqhkiG9w0BAQEFAASCAgAn8Dqo9mbHJf4J1cLo
-# XXGdZZxgIeEy9BgwwXe3azIRmjC3pF5AXOXkC5sQJQlPw94FbDejJyw2zNxW4qWk
-# 97ZWBPrs2srrvJMriudHtyK4reZMFoOcEB9EfXwxdE/g/7PVFHe9AvbRWqp+Psvn
-# THQ8vnDgn+0aXH78t5EjQqeNMSuNW3GgWYMLvVpOmwSWYZ+1/ALq6f8HoOJ0NUI4
-# fBMcGTNVJ/RQmChr2xU8yUx3g9KMWhuvaoUkA7UNJ5vSO7iMLyWz1ee5L1vnqjcf
-# Eo7FTSrAw0g7UliXiUwcOzAm2X8H8F9BUCIKvPUhUY2Tca95zV58uW24ifpSiP7H
-# ZcNEAXHJT0IwnsoHJ+UsCUZMGWcX3PTDy8btrAMVhFPqu7yBKfJ3TBvIfb/a6d0K
-# tKReW+O2zcb6yiw6La466eGDnTKjivAghggm+1zorLYRI+B5E03Ck490rpfOMFO2
-# Qkn8Ut+h7Z7qPv7E8CPIOLeTFjD8xxk+jNZ65s+dCqTBTbx9ff9Z6HUZ2EBw2ZH3
-# TX+w772MLMEhMr4TvhiOjl9PUEcFTZCK52tNZ1SEfeSM1oyUcyglAZbMIO+bI8H+
-# 4jBEBTzQW6VsZpcZIarcyKqRx0Eem4lfJD5MDcIQayjSNAHv+YcB+464j/9ORYue
-# NhW7m3cko/tULANG3jXgNuWrkqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSdGDrG
+# BcbowKnit6wOS3SGeQGd2DANBgkqhkiG9w0BAQEFAASCAgAI7gQRAA48e5B37yw/
+# eeMXBT0BCojgIwRMOJKm4m53Jr6LlCWmRkViErpKIjby8jMppybWI6lrIOO8S2Ry
+# H5hxWx+IO1SdD7iQR+ZzYqUFboyDJbRNEYsU6cut5JGRzZbX+Uz8oYlHGhhvbQGx
+# qHUnDwC1O+tmv3gl2E/+P+7vIqBhuknMdQP6ehSf8kig54aPfhsv8KAf7/GW6dcz
+# ILWgocrVytBRKjfI8S6iefRQ/4B7cq4tXABlQnsU1cJDuK38vzcoRTeZMEXFxhj7
+# xX265kLNizwmeO/wNa9TJDOAUEnaGRWhdD17GuoMukpyrzf4Z6xA4JbKWWvwulH4
+# MWMcGTob3IUOLVhLvyxqfBrkfCnmu3spy9NI7EDruQTq20V7mkWUO3er6zd7gZUk
+# Zc2/xivEA3ydomJLo02hEH+w0RRXM1vtyA7htv5SmUW/f8pddIciYm0GGNcIjOl1
+# A7Ho8XHMQWyIdJTe/tLXp/JTi/ZCxM4I6VVxn11hGs8skTQl6ZcWq98PPi5Mnl+/
+# Nc2Ugzao/H1AWoTNnYN9DRf84Hm+UBEDYAH48kqvtOxQmBVNVUwjT2g1D1ETyMJy
+# YCuQNldEJ7UjA/vE3qZz1WuhwMM0syuBxZlxEKCuQ7zo7XuUHk92IyJ0LZ9Xx6uA
+# R7UT1tanQqT1+SbhOodVAiXIyKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDgxNDAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCA/THY87rNJDoryY2lcd5STPMjRs15z+BBvwAA2
-# AT0RIDANBgkqhkiG9w0BAQEFAASCAgANYcX+68/3FP9rVfd6NCl3vC4gw2CgIZYl
-# QgN0nOu2ummi1ndCT1uFkGvbo4c4lOnfGHqqXAzzuhuBjineRGRr1O1i8axFqWjY
-# jGOGSunczMQGvw8oZBoqA2Fwrvj/lgH766NQRLck24+fnuFsBoiMdCbaQbVTlRJP
-# 1AkXUZlfSaKevcjce+lT5766mY9S4JSdlstoGIs6Tutuc4KXUGR56mwHYcGbFQpN
-# 4OYwEvBQDQ/d0TRCGTBw4zJN0pjDvsw7GP398c+a6KCZjZ9K1WZxWEVSst3TDWkN
-# scwkNjtEV5ot8ysWRYdgGIwtUKvJeby5uQ0+QS+SBdFI1DLehW5RmiMsuXUHSX1e
-# wS27Cyt6pBRIYRQTj1y6dQ0xlknEJ9eYlPzVRaHfzxtEUZpbhw3qz9GYm1Z7parv
-# HWDAgsmk9T5I/FqiS81Or2p2/k6XoyVLUi7TdI5hMRfJUV+EIwlXAsJO3rjyO3tH
-# CWk+8lEgxtpOc7TbbA52ApeUVHcUVgd/YICpn2/fKjgaKefa+kynP476IPKitT/X
-# fgKgD0N/Wp4RO0GO2vzI7WdC7W2CJ2MevHWDY+GD7TCVDRe5FcPwD7bWRcdT/w3M
-# +lwZXxmVCXsL4l/ftHIVIoPOPG0o1oby9KzI9k9qm77FdTuFHKqhmQeNjnj/Bwbk
-# 248G0vMCEw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMDgxNTAw
+# MDZaMC8GCSqGSIb3DQEJBDEiBCAOxEzKAd6NgB1vahslwSPK2Tjz3p1E8l/RvRId
+# 3q/3azANBgkqhkiG9w0BAQEFAASCAgBl7HtgNcHrmd6uJ4fnFPT2G+lf8D/lCPEO
+# kW87kYs/uxFVG/Q7TFb11BhJ8ruX51T+hX5/0Av/AfnSylGR6kDbyiv3WQiV9Wzd
+# hamA42aF8mlv8ahZb3mvDxhnKTWxBqbf0ejLyUXp1wSbSWJfzUbC0lz6qtz8MRxK
+# fDahdAHcuZ49Ft/a1QcQJn7WXFxI1XF4ScWR3JbDYZ5kACjHAbQy/rhoTv6WKpxS
+# lrANa73VoPZkTnhBNZWzHZvvKhRs3y/fhp7Zk63Tr/je6X/q1DcPrZHw4EsUV65D
+# 85LbBz6JLglk2xxX1iHtnuqEcMG1iEAmHeIiOHL0dCqCL3SqkSumZZh+ceM9R4Un
+# Nnmzmfnm+28g8fh9DoZ3+j0R05/Zr/xtVOcRMnLCfzxAIgSFqXdmDDNgC5OrfYLI
+# r7zosKiKWVmOfKf2Z/0k0fVZLS6y9Z42O9TlMygg4N9Nhg7pEUjr5YTTfCZAwd0U
+# ai77rZmkHv32fV7UX12lS6wuQlqJb7Qr3iJEZ9RhqCQ4pr3QnZp556NSHLkNDNiQ
+# tUcNGBnsuZFiI1L0BrTroynRGj7yVDMsuI+3SAr8o6YM5rU3cW0pg/My/gyw5rA/
+# pzWhgeP/RHsxmhOXRds5CFXyQlcY4PitoKqZQfaiGR9lmNFX4jSI4lmsha6koPGR
+# OOkqYNu40Q==
 # SIG # End signature block
