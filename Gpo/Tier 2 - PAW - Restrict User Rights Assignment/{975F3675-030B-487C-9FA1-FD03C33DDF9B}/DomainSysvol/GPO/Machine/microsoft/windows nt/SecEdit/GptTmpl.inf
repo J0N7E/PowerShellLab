@@ -1,0 +1,37 @@
+[Unicode]
+Unicode=yes
+[Version]
+signature="$CHICAGO$"
+Revision=1
+[Privilege Rights]
+SeDenyNetworkLogonRight = *S-1-5-113,%tier_2_users%,%tier_1_users%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyBatchLogonRight = %tier_2_admins%,%tier_1_users%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyServiceLogonRight = %tier_2_users%,%tier_2_admins%,%tier_1_users%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyInteractiveLogonRight = %tier_2_users%,%tier_1_users%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyRemoteInteractiveLogonRight = *S-1-5-113,%tier_2_users%,%tier_1_users%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeInteractiveLogonRight = %tier_2_admins%,*S-1-5-32-544
+SeRemoteInteractiveLogonRight = *S-1-5-32-555,*S-1-5-32-544
+SeNetworkLogonRight = *S-1-5-32-544
+SeBackupPrivilege = *S-1-5-32-544
+SeCreatePagefilePrivilege = *S-1-5-32-544
+SeCreateGlobalPrivilege = *S-1-5-6,*S-1-5-20,*S-1-5-19,*S-1-5-32-544
+SeDebugPrivilege =
+SeRemoteShutdownPrivilege = *S-1-5-32-544
+SeImpersonatePrivilege = *S-1-5-6,*S-1-5-20,*S-1-5-19,*S-1-5-32-544
+SeLoadDriverPrivilege = *S-1-5-32-544
+SeLockMemoryPrivilege =
+SeTrustedCredManAccessPrivilege =
+SeTcbPrivilege =
+SeCreateTokenPrivilege =
+SeCreatePermanentPrivilege =
+SeEnableDelegationPrivilege =
+SeSecurityPrivilege = *S-1-5-32-544
+SeSystemEnvironmentPrivilege = *S-1-5-32-544
+SeManageVolumePrivilege = *S-1-5-32-544
+SeProfileSingleProcessPrivilege = *S-1-5-32-544
+SeTakeOwnershipPrivilege = *S-1-5-32-544
+SeRestorePrivilege = *S-1-5-32-544
+SeBatchLogonRight = *S-1-5-32-544
+SeShutdownPrivilege = *S-1-5-32-544
+SeMachineAccountPrivilege =
+
