@@ -963,24 +963,55 @@ Begin
                 Add-LocalGroupMember -Group iis_iusrs -Member "$env:USERDOMAIN\$NdesServiceAccountName"
             }
 
-            ################
-            # Configure IIS
-            ################
+            ###########
+            # App Pool
+            ###########
 
-            # Add MSCEP App Pool
+            # Add SCEP app pool
             if (-not (Get-IISAppPool -Name SCEP) -and
-                (ShouldProcess @WhatIfSplat -Message 'Adding SCEP App Pool' @VerboseSplat))
+                (ShouldProcess @WhatIfSplat -Message 'Adding SCEP App Pool...' @VerboseSplat))
             {
                 New-WebAppPool -Name SCEP > $null
             }
 
             $RestartAppPool = $false
 
+            # Set application pool managed pipeline mode
+            if ((Get-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode) -ne 'Classic' -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SCEP application pool managed pipeline mode to Classic." @VerboseSplat))
+            {
+                Set-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode -Value 'Classic'
+                $RestartAppPool = $true
+            }
+
+            # Set application pool identity
+            if ((Get-ItemProperty IIS:\AppPools\SCEP -Name processModel.userName) -ne "$env:USERDOMAIN\$NdesServiceAccountName" -and
+                (ShouldProcess @WhatIfSplat -Message "Setting $env:USERDOMAIN\$NdesServiceAccountName as SCEP application pool identity." @VerboseSplat))
+            {
+                Set-ItemProperty IIS:\AppPools\SCEP -Name processModel -Value @{ userName = "$env:USERDOMAIN\$NdesServiceAccountName"; identityType = 'SpecificUser'; }
+                $RestartAppPool = $true
+            }
+
+            # Set periodic restart
+            if ((Get-ItemProperty IIS:\AppPools\SCEP -Name recycling.PeriodicRestart.time) -ne "00:00:00" -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SCEP application pool periodic restart time to 00:00:00." @VerboseSplat))
+            {
+                Set-ItemProperty IIS:\AppPools\SCEP -Name recycling.PeriodicRestart.time -Value "00:00:00"
+                $RestartAppPool = $true
+            }
+
             if($RestartAppPool -and
                (ShouldProcess @WhatIfSplat -Message 'Restarting SCEP App Pool...' @VerboseSplat))
             {
                 Restart-WebAppPool -Name SCEP
             }
+
+            return
+
+
+            #############
+            # IIS Config
+            #############
 
             # Add MSCEP Isapi Cgi Restrictions
             if ('mscep.dll' -notin ((Get-WebConfiguration -Filter '/system.webServer/security/isapiCgiRestriction').Collection | Select -ExpandProperty groupId) -and
@@ -995,6 +1026,7 @@ Begin
             {
                 Add-WebConfiguration -Filter '/system.webServer/security/applicationDependencies' -Value @{ name = 'MSCEP'; groupId = 'mscep.dll'; }
             }
+
 
 
 
@@ -1014,8 +1046,7 @@ Begin
                     Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
                 }
             }
-
-            return
+v
 
 
             #######
@@ -1052,19 +1083,11 @@ Begin
             #>
 
 
-            # Set application pool identity
-            if ((Get-ItemProperty IIS:\AppPools\SCEP -name processModel).identityType -eq 'ApplicationPoolIdentity' -and
-                (ShouldProcess @WhatIfSplat -Message "Setting service account as application pool identity." @VerboseSplat))
-            {
-                Set-ItemProperty IIS:\AppPools\SCEP -name processModel -value @{ userName="home\MsaNdes$"; identityType=3; }
-            }
-
             # Remove default certificates
             # Enroll new certificates from custom templates
             # Export user certificate pfx and remove it
             # Import user certificate to local machine and remove pfx
 
-            return
 
             #############################
             # Set privat key permissions
@@ -1318,8 +1341,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjkHWjkr86aK/DZxNMGvjuJLX
-# eWqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnYwS+oPp2SV9MhGtdFe4WT5V
+# abagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1450,34 +1473,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQEz8TW
-# ndOardJgd8tDwbsFmzTijDANBgkqhkiG9w0BAQEFAASCAgBVZKDOU/O5ELFQ8hp7
-# N21rNeQ9Yg1117LmvLnaRBWZwutt2cf7d3ZVFwAdnTfjLRrUQItSyhMpvthm9t/t
-# p/MXK32Naz279WlalRMyc3iTRCuyO2tKZHjFRwUuhHJJNgHKYVnZzbnOY375693q
-# YNXKSkgUL/i0Ftsn98O5dUHSELBA/MeISDvRW8oYJd7jjPm2K6Gd+v3TUIm528wZ
-# yLafowRKbX6Xk1+PvDZPln4PTYAodV2IVjxjNoVM9G9vvMtu/vd1ycI3MQiNwCMS
-# VmljjyT/LaUlD5i2kyYYAXIv0P2whXX6lizCyJBXQ6OCHl0XWh8iLfSnhq6G5LJe
-# QqdfRSjQO801TlLg9waWuTsagKLVvzyk502Hssw7+EtHv/Mc56E7vVm/mudSzU2f
-# 6xmwqFZjnFYtoeImRzi7BwqMURzFFcjFFZoWPYAXkD6Rxh5r1RRWUF0cQlAKXAc9
-# Jx2YxKE7/yU0LpCyYEoJPfLQVPjHENz/VGi0pXguBbXasMLGB3FaZ0TnQ8QoRTjY
-# HFgeNUrFit2z3uiq7IkjZdZe5YUBbbUQVCd0CgOZksOJwZQ3sSBBtSsuPzIAPhXl
-# oYC4DRfS8KWGDOhyx/iyvVIVJ8Im67ULOeEtvlYGtD1ZpTheSaFx7xw9E2BiIhMz
-# mAy5tfKUSKKP51T/L04VT7YNs6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRkukKx
+# REZKF063/j94yxAM/2wVozANBgkqhkiG9w0BAQEFAASCAgAKJRAGPG6mxoD6yELA
+# 1U4lF9u7op5tEWJqo8TxPzAIxc79guOKOThlwqgg4rgQswtQ3vWiz7AGy6L+RqcJ
+# 3pAPxE9GJQ02VX/vB7tbyFpZiBPYdqjBDcIBY8qO8hqtrwnIXCMsYLXWBqxyR2YA
+# EwZymxnAeE6oLLoxrzO9Lri8KmGSwUhxTKp/bqPjo4HFljrGo+g9pJ2ncU24/8cb
+# umlAsgDLtkjLSgeZKZkl5HBAcxvjezw5RQf8DgGvrlz+DAyNCXT1in9MsrWbhmMB
+# 9OaID4LXHcCYYbH/jzkFgx8eM/x8a+gFfnp2lRcmFZX7ccJ9zueVR7sBtnnKIH1N
+# RJjS4GL0lQ6vug+JOsB1SNfFzIIWn96kSUvnPBcA3WtVOrnyG9hffLCW8ge8LaI8
+# xt/ZT8XPSQFKCBB9D35asxwMRL0V76gOHKxQO9Cgl30xm9giuSGAPAt27A4Ol+zV
+# /U5vRUVg5lDgr/Rgg2egZSecMq4egLAZ35sCVlZ5b9rDr0u9xLmnU/6dqpXkNsvi
+# yIKyrUPcsWpVB8QqBBfMOi5mKtAZqk4JbdrM1uT/MObuyB7GWqsQQtHs4TZD+4Ev
+# W+sK8DnmgRCIcSsgFzR4jE9TjZ73SoFwz7QQBdArD2kSVAWYWlXWf2U6wuYeYrox
+# 6iTVC7n/Ar3u6999uCMgxVheUKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMTExMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCBHWWRQ3qJFxid3F0ZDDHY3nA7ATqLAOqXo+Soh
-# FQu6azANBgkqhkiG9w0BAQEFAASCAgBf6zxNoOfirbeG4fhRWOrBkJihZG04IVVo
-# EQkeEiNOBxVAFCqDIskpJ9ODvqO0B2lcer309toCeZZfJkQVAE9en+Cl9Sdzh45j
-# MTwlSyQPlQgDdcg/H8NCKnqNIMyd4BTON0DV+pwM6V3HBDyGiNxWbfikTwYNGd0h
-# KjHz936cok1kKoZSOD12g3jYrE8zWk3wwsdad6NiQrS5j9OIC+Y5uvdXs5JBBy4Z
-# zQiy3gLvyLI+utFl4Ek0J2V+t4M5ePXNfZl8ad030VPc+fEA4D5Hr0A1CvM8IZXD
-# pRHbZ3NcaeQlNU/cHCHl43wRZ1catTNc8gaeCzlvhmcMEfDJL30WCPAsnZG3OPmK
-# Hpk5VUTxOXLgWs4Vi/iJZc+Ooi2ysLxxNSglCv2iDdtptBbiWgIcqd9FNIN/OJS7
-# lpPfeHYqaAIGhM8sew4XxQ9ekuo4CNp6YOj0fwbpp9I77TS5tb6udAfaVMSfV26R
-# CQ9iL5fLR4F/HKqk6TIQdHmyaUc41x/HOO+W9GnWR/YfutvBeLwnhi58MUljgL0p
-# hpgClh7m438i1Q5w8PMPEI9bB5D8iHOEYaCRndvyigXKe7ALBpCxCjfnGcVOPD4L
-# 7hnwA66Gzi88Vn4NIGoVRj53mlpmG+XE8+YBmnYyrHCXsu0/zxpbdXbyoQbPO0LJ
-# HYV3SL8enQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMTExMTAw
+# MDVaMC8GCSqGSIb3DQEJBDEiBCBoSrTOMeIGAQjEl8bz7phWK9/AHfuA5BtMSGef
+# Yc7+CTANBgkqhkiG9w0BAQEFAASCAgCE4Zx7QvdMao+BdlsLJTOVKbkWxf5QWgzB
+# iYaqnkVEiCZRiSpKUPjIsiBkeeI8zJhHwvStE/eJLo774P9VytjXICg6ZyqYznmZ
+# vae2D1xnCPvyu0wPVbcwrOszSQMzEbVm/7rET8B/4JPiAJkYeHVKyz2MISjsVpLW
+# mXobQg0iSm7cvUWdXqtAtX6iZokpWq3+ibbXiL9f+1l9k4ryyoMZsdzGxxrRyjvO
+# frm4cS5HS2UNmwp9MjTwvxVnx9Odgrz8wNubI+50Fvgi48/Vr7gEgSuiV/niusyE
+# 3QUAyHW4LUWpKaWLpyDzNEUWRJ2p0K1/BcCPMh6nI552szpjmoaTWkk3OC7K0Sru
+# GY+vy1qW1iUm5l+vceNmrLoK+vTQgeACoHYClen8dTJG5WDowmRjBaVBxgL1dwc4
+# t3VIfa0cO2yrGWwvRhVGnfOnvS3gwis24NDxclIg8b+pIrYgmExrspoP4f4ZU7wI
+# 6em6S37XiriBNOb2f3UCS9Lhos4GFvE59/vH1pg4cJuc247hjEOhw5tjD0xevjhd
+# MZ/+6voIyVBVeGTgVAJP2rRczdiWr14MuGXdbkeUPuyfueGiIJrIOA1nECieZkY5
+# eozOG+s1/bMugkCguJhrCHn5ZVcodafwpiY0udiuCnlJyNRz5gHXf+BmM5IFP1hj
+# DA1YLN38Mw==
 # SIG # End signature block
