@@ -934,6 +934,9 @@ Begin
             # Prerequisites
             ################
 
+            $WindowsFeatures = @("Web-Filtering","Web-Net-Ext45","NET-Framework-45-Core","NET-WCF-HTTP-Activation45","Web-Metabase","Web-WMI")
+
+
             # Check if windows feature is installed
             if ((Get-WindowsFeature -Name ADCS-Device-Enrollment).InstallState -notmatch 'Install' -and
                 (ShouldProcess @WhatIfSplat -Message "Installing ADCS-Device-Enrollment windows feature." @VerboseSplat))
@@ -1024,6 +1027,13 @@ Begin
                 New-WebApplication -Name 'CertSrv/mscep' -Site 'Default Web Site' -ApplicationPool 'SCEP' -PhysicalPath 'C:\Windows\system32\CertSrv\mscep' > $null
             }
 
+            # Add CertSrv virtual directory
+            if (-not (Get-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv') -and
+                (ShouldProcess @WhatIfSplat -Message "Adding CertSrv virtual directory." @VerboseSplat))
+            {
+                New-WebVirtualDirectory -Site 'Default Web Site' -Name 'CertSrv' -PhysicalPath 'C:\Windows\System32\certsrv' > $null
+            }
+
             #############
             # IIS Config
             #############
@@ -1042,15 +1052,10 @@ Begin
                 Add-WebConfiguration -Filter '/system.webServer/security/applicationDependencies' -Value @{ name = 'MSCEP'; groupId = 'mscep.dll'; }
             }
 
-            return
-
-
-
             $WebServerProperties =
             @(
-                @{ DisplayName = 'Disable directory browsing on CertSrv';          Name = 'enabled';         Value = $false;  Path = 'IIS:\Sites\Default Web Site\CertSrv';  Filter = '/system.webServer/directoryBrowse' },
-                @{ DisplayName = 'Set maxUrl=65536 on Default Web Site.';          Name = 'maxUrl';          Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' },
-                @{ DisplayName = 'Set maxQueryString=65536 on Default Web Site.';  Name = 'maxQueryString';  Value = 65536;   Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits' }
+                @{ DisplayName = 'Disable directory browsing on CertSrv';          Path = 'IIS:\Sites\Default Web Site\CertSrv';  Filter = '/system.webServer/directoryBrowse';                          Name = 'enabled';         Value = $false;  },
+                @{ DisplayName = 'Set maxQueryString=65536 on Default Web Site.';  Path = 'IIS:\Sites\Default Web Site';          Filter = '/system.webServer/security/requestFiltering/requestLimits';  Name = 'maxQueryString';  Value = 65536;   }
             )
 
             foreach ($Prop in $WebServerProperties)
@@ -1062,8 +1067,8 @@ Begin
                     Set-WebConfigurationProperty -PSPath $Prop.Path -Filter $Prop.Filter -Name $Prop.Name -Value $Prop.Value
                 }
             }
-v
 
+            return
 
             #######
             # NDES
@@ -1357,8 +1362,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5PPXckXUr33yy7EH7ja/rOe3
-# 6w2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8/ybSz2RLSg6mhM6DZ90MhYl
+# FmWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1489,34 +1494,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT3SAvX
-# tWQwBZKwI2tzPF1y1mumvDANBgkqhkiG9w0BAQEFAASCAgB1bgLGkF/yEPkjw6f3
-# Nx6V48mnsVXN7jZDuQhqrzNx8LvKEe421/DmB+0ArVxd0NVuM+gkmO2kR5KbNMq+
-# nG5tYcczu7w2ZaZHrn1frtmFcVqgYXrowUtrER4bQTYmdyLkuyCnknsFZ08rwwqA
-# g/ySUQN4Py9Lo/zl5shRjHN3ydL456+5jZiMMgHR3HRLs+u7CrY9hdklIMTDwarh
-# tf01zqDRrOQ3S3F7d6r/DsVoaCik3lTd/XOBNxfE5giLUYbxOLRgBN6JNOzcCkje
-# 42odPutab5E5PHc8YDMT0A2+80Zs3ZBavC959vcK1wDHbOTkQ3bAZres7uSE40Wa
-# IhJV0IxoLk9xHhy7IZpgq0ARRtrC9q4CE84eIkBScYI+EjPwsY3hLLdJvVw2GD/d
-# 0+L35cxNatuJiA7WE9oDUe0WunFrjMFG3RH7EbsiSKtYhNOg1MdpKqOsI87L0wgg
-# 28h7WEvHOe2id12ORuZ/l3tGXKr9KMnEu1VBJYoK1Wr/3WJnv91b7KpEx1Q2rf30
-# AgEEzV9c6k8tDeWr8GY/h2LOBlifVVT0HUrtCLbQYVoWvdWqVALqlQtnizmlE/zJ
-# DX/lwbC65BlRLEudCuWrH75ADLw86DQkrEj34yJae4P4eN088kPkSn3tv4H5uXFY
-# BK0vZZvb+cvDJ+Hij2Lr3l6tn6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH2s2X
+# FYsZYOQO9v8H7wPOFFpT8TANBgkqhkiG9w0BAQEFAASCAgCMI7TI3J6NMQalbnuK
+# bNWH9QryDF+93XzGGS4tErm2zHCwJiVfsqp3wDE8Ox+u3Enpet+IRGdNIjUKL6Td
+# avATf7VS4ogYnIDPSrGlpIeX/IcqQ/UL/MzDc5uYWjwvu3MubXcxswsRqIyif9yU
+# +e/o6YlKBfxTrQArn1aQaaWBlgsVfDWXqTMgAZLEIZnstPsEhOb4E7EgNY9Yyb/7
+# vzPV0aMwGsaItSkyXUfaAoKso/27GIrtqN/ipNh45iWVO0lHFjejd7ZjiAGHYfiI
+# lE7GvtYfaXZ80P5k4R8R1dRilk/GuA4GdYJgENVRUFekkd3Zs/k/2pnImXT/2kUk
+# tQf7pa3rbI7LacFEQaMvB5suw3MnqmDYg3GTs+jxfIXUXv59F747xXZWquKpb8aG
+# l3sbzkFDcedJSm6lZ98AlEj7x8fty38s1RtMAe7U7YDlvNxUC0p2Rf12GImIDH3h
+# tjZKF1Uaf9aZFgFvE2FbDr97fcIl/9t23aFTqSx3igkK5fKPQnx5vOw6r3eVndx5
+# NS97dGh3YwmRJhBljIQ7bM3SU2QbV/ddokLBkWPRRSRt8T8e8k8bfn3+y92gLCqa
+# 7UAXohF1DwSJntmhTIc+J585nSnz/PJ8vtxHI+fneE9MFlIgezmVsOQuq8w0UJBP
+# zQKFZRXAz2XK7ER2uPKjbBrufaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMTExNDAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCD1vGqQmY3X9UQOy8m20/L/XtGIRDf45/Jy57Bm
-# 9xzeNTANBgkqhkiG9w0BAQEFAASCAgAgRrlsmojlAWdycvKuahSEMZAsgtEsMVI7
-# RQ6IFeaGeNzlCkclJhSjrRh7jWQsIQut6v91HLA87jrVLcilDN/HE6Pr/pB0QM6q
-# kC2v+zTnO0PijVugIlz98sFBA8Qx8JjifOPfT8Uc85Qds379XDyFjmBL4CzyQxv6
-# Ihr50I8mHhSE93UXGhxkeq5kXubR+JCtX8h6Noq12lrzXRkGE9COxE0mN7ThOwm/
-# aOx0UhEWy+D+jIcGZbWcK4wx15RgpHtdZ5wfjXwIDvJAFuKPReGMf0wtU9Fw0gVp
-# OQGS469xX+i9VByegE4kQ5BFHSqO/OpTn71/O6sV/5WVuoCGmXTfbZrASNaHCyrQ
-# l+hKBbTGjtQoWLoI5DSCZ+XO3id9uiTOzNmuMTbEATLGv/DdMPBTSO5MlBOYk0s4
-# 3M6SvRmfJf42GytbMcwwhImxRvn0UyNwvvslSrv+7hTgxOgNP9j6m0MdLM9c1uPg
-# /cq3TEpZdJlQdPRcZspCDO3nkL7hbMaV4J2pZgy0Pi+d9oFddpFpdVe45RY2ikcc
-# SP3YDYvNu4zY0bQYIhNMJ3Xyw4QTypVMkMXBli/N1bhNPzp0T08Co5FlDSlybswp
-# vdaKCY7Xbtla/L02ahjuOMvuigafp/MXET8GZ+Lets93+6e3d0JMSaKSqMIFA5bH
-# m42xAss63A==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMTMxODAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBU6TnIetiZPI4BVPRp9Qy38qPOEmVz6A7DSmFf
+# FxURRTANBgkqhkiG9w0BAQEFAASCAgBZ2unWXiY3QBxkMUxC2bqUhPKWDDotpi1I
+# TCHGbT4zYo3mlCzNu90p5i1TqC/0Op3GQLUDaumMODHC5XACwh3LkZpxULJRQe1q
+# xfPpV5oksP2EHxfNasoqfFtult6JLd0uFWD1Ig5S5uuTuYsDAHLqaIhuyXTvjZUI
+# gwm9kpAC8xrcvHy+6AlBZV5J/+monIAjVgcPXE6pK1o2WpXirifeFmoo9yU6UiRa
+# 0Ru/L7EHR+UF3ZJoOl7vVOwkVHf9rPIBXqx7BXsGPP8i8/qEtoqRMLFlu0JRpZ+v
+# R7HXEOEHxQ8Mji61Hi4KhStA//MJLUCpDkrEv4rXjnuxhe8HFz0Wd6PWoQCHGUmP
+# zSVH8F7mMDAqn6zNVqCjToR4b8Iaywf8vSPdoSffge+vWOVKE9aNy1Gkf6W3qslE
+# gOVW7PrKZ5r6s7ox0Mbh8nKhUP36zV85B4lY+qCH9b6O9PK9eEGvXiCk2bZxevDi
+# 6W0vTBW2zYfS/Q6nS86YLG6mOhtszn7/jF0HElO/Ff8eV9Bg1nsQcOu/XlTbro9U
+# YWP3cUWjvBIcNsb/m9FvKBezfwZ455poMHWne6N9/I8nVVRSf66qbqAoGDbpPLaG
+# HR7whdgNsVNWB6j75670O8mwZfSbExLWwbENM8D33uDJtk2pKF2HWFZwcazXDelA
+# qyqsUJitgQ==
 # SIG # End signature block
