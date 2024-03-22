@@ -979,11 +979,12 @@ Begin
 
             $RestartAppPool = $false
 
-            # Set application pool managed pipeline mode
-            if ((Get-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode) -ne 'Classic' -and
-                (ShouldProcess @WhatIfSplat -Message "Setting SCEP application pool managed pipeline mode to Classic." @VerboseSplat))
+            # Set application pool managed pipeline mode to integrated
+            # https://www.gradenegger.eu/en/the-network-device-enrollment-service-ndes-administration-website-certsrv-mscep_admin-reports-you-do-not-have-sufficient-permission-to-enroll-with-scep-please-contact-your-system-administrator/
+            if ((Get-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode) -ne 'Integrated' -and
+                (ShouldProcess @WhatIfSplat -Message "Setting SCEP application pool managed pipeline mode to Integrated." @VerboseSplat))
             {
-                Set-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode -Value 'Classic'
+                Set-ItemProperty IIS:\AppPools\SCEP -Name managedPipelineMode -Value 'Integrated'
                 $RestartAppPool = $true
             }
 
@@ -1362,8 +1363,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8/ybSz2RLSg6mhM6DZ90MhYl
-# FmWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU5emtl/2qqhC0hIpqdL1Mbp4
+# tJmgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -1494,34 +1495,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQH2s2X
-# FYsZYOQO9v8H7wPOFFpT8TANBgkqhkiG9w0BAQEFAASCAgCMI7TI3J6NMQalbnuK
-# bNWH9QryDF+93XzGGS4tErm2zHCwJiVfsqp3wDE8Ox+u3Enpet+IRGdNIjUKL6Td
-# avATf7VS4ogYnIDPSrGlpIeX/IcqQ/UL/MzDc5uYWjwvu3MubXcxswsRqIyif9yU
-# +e/o6YlKBfxTrQArn1aQaaWBlgsVfDWXqTMgAZLEIZnstPsEhOb4E7EgNY9Yyb/7
-# vzPV0aMwGsaItSkyXUfaAoKso/27GIrtqN/ipNh45iWVO0lHFjejd7ZjiAGHYfiI
-# lE7GvtYfaXZ80P5k4R8R1dRilk/GuA4GdYJgENVRUFekkd3Zs/k/2pnImXT/2kUk
-# tQf7pa3rbI7LacFEQaMvB5suw3MnqmDYg3GTs+jxfIXUXv59F747xXZWquKpb8aG
-# l3sbzkFDcedJSm6lZ98AlEj7x8fty38s1RtMAe7U7YDlvNxUC0p2Rf12GImIDH3h
-# tjZKF1Uaf9aZFgFvE2FbDr97fcIl/9t23aFTqSx3igkK5fKPQnx5vOw6r3eVndx5
-# NS97dGh3YwmRJhBljIQ7bM3SU2QbV/ddokLBkWPRRSRt8T8e8k8bfn3+y92gLCqa
-# 7UAXohF1DwSJntmhTIc+J585nSnz/PJ8vtxHI+fneE9MFlIgezmVsOQuq8w0UJBP
-# zQKFZRXAz2XK7ER2uPKjbBrufaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQsIhNe
+# 0lRdsxSypP2QLw93IaUahDANBgkqhkiG9w0BAQEFAASCAgBp9YS0900K/4d7sv73
+# zyM8QcwPaDA0+8N/Z33OD63mg2Mb9uL85Ix2a6k3fvf7OH4JAetgURwsPGeyYqCb
+# GMZy9pN+kSFE6gjYq/rzSg6XLVg3ovAm1K+u2ne5WLTpNVdmtBGxUWCAK9UbE4HR
+# +mx0T7NSZcwTMqTY/Qzx2tSl/qVumkLqsAWN0pJdY9QWFtKQtGcnehmcMtyDPSUw
+# FbTf0qmqUId20W9YSzMPH/8HiN6Qk+/6qRwXnIx877soiktjMWebSqbIrBc5glv8
+# Ibhmw42l3zmjVdUO33GZjYzE0i7vbuYUgVZj8RDTmEuDJBxgPkR2i7ruqtGMQXnQ
+# MegZMF0g2ikp2rac6FMDg85AGWcI/qzmpxNpr/uMDdf63VJtAZy6UqtIwxUHq/zZ
+# d5jrq6JuuT9yUKfyB4JZ3XRbYVM9tr3iggnXM87/kWXViH9atA40ogNku21PDoec
+# +0w5QAj5Y9MNddbDd2Q3VmlgQ8xD6r3HcQ+Y43g+p95V/kx7XEhFeJQT04P5sUi+
+# dQTf2E1c9gMQS45ynepJgR/w2G6BO3nwQLYCsPYIWUk3KtX8DmP341J42n4joEfQ
+# 5yVRtnV1VKUwInHdoL+EN8xcZjY57pR6S3W9gALLSPM9EsZzDHWuLhoKh9naLEL0
+# kIvvNdeNQ0LJ0mLLFgl5HXcWFaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMTMxODAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCBU6TnIetiZPI4BVPRp9Qy38qPOEmVz6A7DSmFf
-# FxURRTANBgkqhkiG9w0BAQEFAASCAgBZ2unWXiY3QBxkMUxC2bqUhPKWDDotpi1I
-# TCHGbT4zYo3mlCzNu90p5i1TqC/0Op3GQLUDaumMODHC5XACwh3LkZpxULJRQe1q
-# xfPpV5oksP2EHxfNasoqfFtult6JLd0uFWD1Ig5S5uuTuYsDAHLqaIhuyXTvjZUI
-# gwm9kpAC8xrcvHy+6AlBZV5J/+monIAjVgcPXE6pK1o2WpXirifeFmoo9yU6UiRa
-# 0Ru/L7EHR+UF3ZJoOl7vVOwkVHf9rPIBXqx7BXsGPP8i8/qEtoqRMLFlu0JRpZ+v
-# R7HXEOEHxQ8Mji61Hi4KhStA//MJLUCpDkrEv4rXjnuxhe8HFz0Wd6PWoQCHGUmP
-# zSVH8F7mMDAqn6zNVqCjToR4b8Iaywf8vSPdoSffge+vWOVKE9aNy1Gkf6W3qslE
-# gOVW7PrKZ5r6s7ox0Mbh8nKhUP36zV85B4lY+qCH9b6O9PK9eEGvXiCk2bZxevDi
-# 6W0vTBW2zYfS/Q6nS86YLG6mOhtszn7/jF0HElO/Ff8eV9Bg1nsQcOu/XlTbro9U
-# YWP3cUWjvBIcNsb/m9FvKBezfwZ455poMHWne6N9/I8nVVRSf66qbqAoGDbpPLaG
-# HR7whdgNsVNWB6j75670O8mwZfSbExLWwbENM8D33uDJtk2pKF2HWFZwcazXDelA
-# qyqsUJitgQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDAzMjIxNDAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCABOty/YTUdONH5jv3E27ovn8rSowElFLxReBFT
+# BCNQiTANBgkqhkiG9w0BAQEFAASCAgBSRz/4ruXra3dWIX3Cmzrfx8s/HDZADEb4
+# mROoVHAHHe6jUKZUI4TVnP44tHK1Z5sqYPBwNYZORo3Hbz6NK8byES3FMh+ChGB5
+# pG/eZkoOJ/urcYSJ1p2bG2qqfK2MbQ9wJHa1smVhOilCHq7k58+twGEEUJp1qDK4
+# WqxC5u6DF7Auswy8GsrANTP6TTqI6UZ9M//SVkf9Mn4HNndzuXDPvKMke7CtDzu4
+# 4X4qIbEnIBRyhF0sI1iTGrVZIaACfwz48c+98ChGUa/X/4S5CqoAMdsMlTWYqs4z
+# ZEeyuXyHFmrWRytrN/pjP1HiuaXJW3uJxYFqQICt0cMZ82uttdSSLucN18N33C6E
+# 65ShJVI3dvyWyTDKNYAEJPrxxhM9kNsBVbUMe8cduWHzFeoyPszBNfOEifRRUUOp
+# wHpZkaxQ1+CZhiJfJeQvqnohzH5wF8CdWq/yuLujXzYJAVi1IvyNnd8fh+xS5y9N
+# 1VCi5U8RiyzGI64L2POwmAyXP/xsF86nTDtr7yX4AIBuxiDYarGFH9KATC55P0aF
+# HI59aRjWVrmHPjKkYvD/FffQth/5iFDb6OvpLfOjYKacf5ktSiXug2QM96tx0Kld
+# N3nUrkw0ugEi5Jowxv4xlDF+/H4ZYU/pHWebEQU1IiHpdRo2C20DNrrnBWwYQtnH
+# YaUaHuFnFg==
 # SIG # End signature block
