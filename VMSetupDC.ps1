@@ -712,7 +712,13 @@ Begin
 
         $WinBuilds =
         [ordered]@{
+
+            #################
+            # Windows Server
+            #################
+
             # Build
+
             '14393' = # Windows Server 2016 / Windows 10 1607 (End of Support)
             @{
                 Version = '1607'
@@ -732,6 +738,7 @@ Begin
                     @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
+
             '17763' = # Windows Server 2019 / Windows 10 1809 (End of Support)
             @{
                 Version = '1809'
@@ -751,21 +758,7 @@ Begin
                     @{ Name = 'MSFT Windows Server 2019 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
-            '19045' = # Windows 10 22H2
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 10 22H2 (19045)'
-                WorkstationEndOfSupport = '2025-10-14'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
-                )
-            }
+
             '20348' = # Windows Server 2022
             @{
                 Version = '21H2'
@@ -785,6 +778,31 @@ Begin
                     @{ Name = 'MSFT Windows Server 2022 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
+
+            ##########
+            # Windows
+            ##########
+
+            # https://endoflife.date/windows
+
+            # Build
+
+            '19045' = # Windows 10 22H2
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 10 22H2 (19045)'
+                WorkstationEndOfSupport = '2025-10-14'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                )
+            }
+
             '22000' = # Windows 11 21H2
             @{
                 Version = '21H2'
@@ -800,6 +818,7 @@ Begin
                     @{ Name = 'MSFT Windows 11 21H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
+
             '22621' = # Windows 11 22H2
             @{
                 Version = '22H2'
@@ -2497,7 +2516,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";             Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
@@ -3569,8 +3588,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUT6zzBrIRxCbskwH2+FK4y0d6
-# PE6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyStgPo2D+y9XLSKtjbkRhJ5t
+# 4aagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3701,34 +3720,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT5TnW5
-# qdBUdwrQs2NGFlCDAsioKDANBgkqhkiG9w0BAQEFAASCAgCflL72nfc/pdsi8Qvd
-# 6n+plLSxn0OVhyz8hq0Rm7vmr2NlMHWskqk9RbaN8BMmILqi8+rKbHDRVvmLFiQI
-# snWyMB/8b0Y5lzvAcAoFWgw/YfeJe+SszURxaoaUuN6aJhZbxhLwT+0hiLJkcxWJ
-# +4yjikQfSvm9JTIJV4YKkKWkE0QdbPqi0hV4CmXbv92fi5+JNJkUSiOc7cHgwnZC
-# GvKAfDz4RRKnJr2fxZQ4POQu6KXGwmGRocFibq+Rs3tnJlb/SKRvkq3+Lw/JW2nE
-# UvKon1ImwCn+OmHDnxkvsCOvlB13ckqgBaGJpgVAJA8aLIPO0zESs178JqUC0WsY
-# EaEgJzEA+J/UPM0Nhn7Nys7gs8+fTkOnWjVdQP4OD17w2fLUMtDKf4RJUu+f8dZd
-# L4DiXDvWud/wWjl5HsSFNE4y+pHaXROunX+ifAE9U7nx8G/37aSACE/4gK6otM1T
-# 0g7jA/Vfeh5pla/jzlZDW2DhD9u+ZIQhc9Vpz0LMopLsUHwFo33YRNIXLh1+1qak
-# gTiIsYrXGVCRhoXAbKRqYeOTGL2uAYPDe0a9Zb1uGbxJ8hr47aZ7unia8DdVxB5A
-# apWn5fV7TMww11L13BBd6mrptvrIzRGzAbec8JitHoXXKfUH1EfF7A8m4KoKTO0a
-# mmTAZyenspv/t5dyCsb1qEC/jaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTKQUD5
+# k6SOJbDr2tpv9fOaAzfNmjANBgkqhkiG9w0BAQEFAASCAgCgKOTOBN0u6FkcHNlK
+# pZIYblNqKW0G7jRWpJQWFaWgzTDh+q2Xccr3bALEoLbW9usLYf3QG6LEDl2XplaC
+# hqVoIp984giO+8BJO/CFU96DW4fo3TLm8ZbIzHQ/6m1/PNlvL5LSxSdu7KtUz2MD
+# O/0QrOPAseW60VHDhV5nmFWDNNhSDBf6GdJO5PhPOVnlc1IgJIcsoidP5g3wgc1d
+# BBJyiUpTbU27Jz0phkV53VfTw8gDbqWVgpPw2oQ0pDcCiJcBwvaRrYgG7b9B8IsC
+# +zn22nFxSJxagv+8/2wbtyg8h8j9VS68TuowEOHR/n7+xzmbtdx1gb/44jSNFOjE
+# KIOAan+39LDjs5rbXMfDMso/DNEXEdWWdEqsBqF3ggi/C3g8hutYahD1lPUefUTC
+# Reg3RkLIO92px4kLyMEYLBgAgmgmYBGhOo81Uk0Is5T6ybEkdKn+tIZelMmro8qG
+# EkzDesPHNDdFA6zhKL/PWfpDj4wU34qEUUW1QqTP/E30NACdxQWiMTo3n9ZHrCwh
+# OSR55D+SaJp2fuCBfrPuvjVHOA635cRMiLb3a31A8hY+Zkx5Khtf/WqSF5AHKlE8
+# 3m+gUFk6MUIlY6US5HRa2k+IdSOWOUUnhkdAkk07PJGATo1xBstObEc5p7x9YIS/
+# +M1VAf31zSgCuzlIpHrXTgbkc6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjExMzAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCAT29Ix7HMj7knrHJ0kTLZE0xZu3z0JR4Yrjex7
-# p3q53DANBgkqhkiG9w0BAQEFAASCAgAOAlmOh6xrMqFcq8pnuj/ZA/RvDgqGPrJ8
-# 4dtWZjjXob8Z+KP1GkOf/QqGVvVn0Gp27FWJIaht8pRYqUsLjF2sTb4NTsNT/Hvy
-# z6dPTv1EtCrCPQI2zKzfbcdMaMGUbITtZ7vrS0KqDpe5GImHwUWrx08NTaxZ3XBd
-# xyayhGcWkpICFn32vLK1qZCNwxRuxrg+5lqJycrvjrVOtRVdTiLsYtgGgAvQrmeA
-# LkfB9nHX0oyy4uSe1U6plKDuXdTQm2vtW9XnMDWI6grqk3gEwDLrqN1jvPdB1fO7
-# XOn2JOZ+awE+HO21TVPrVCfIuPz5RT14dMgpuHCb+q8HLKvtyVOgmbCvBJtKcRsq
-# +DY/oRefceua0dTqeYawFq53ELlWFqcImEUZUfyvvP/2mS4OGpw1arekJ5LZCMDJ
-# cdekpE7+ZP+qbEbkh/0xMNfraWcmiepOI28hXko2apS+cV5G58q7JPQ0aLhY06PO
-# 23OG8i59z8mwAUAK7z6hqv83VzQ8JMwrnvzzneX+E9Eq+H4jIXgJL5qb/gCWw+vD
-# GjeLIJOiWkoYe4bhYi8TBbCapFJ1s1XfzEPjVJ+5ociEc8scHdXlOTRUGDCOraA9
-# g5HutsiOl8pQVOliWuhqFNR2LjF/444W5JHXznmOgmFJ1SMEfbvr2ae7i2Vo6HI7
-# TAAz7o9awA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjIwNzAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCBhmSUCyd+dTxPUZXNQvbJJjUKNfHQyFc2x+Sn8
+# RVhRmjANBgkqhkiG9w0BAQEFAASCAgAHakWidLm8zf4FixIs+HuCLVXVW/8RSPN7
+# J2nIdLaG9wKrX8T+dBDWKNbvPAsmFNtdnq2f0v+m9kP+UtCq3LhLIFjfzEjFolsN
+# 1DuE7f3IxqVDoCNtMQxcxn+uXkUQU+nDVTqMZSNY+oFQLOsq3yPoHIssiMe6K+ye
+# Mr0yWxzDSV/chinptAsR/n/DROvgiAljYggQPrqlpXEU5D6LQtJWp+aK3TMzCxby
+# DQHr2+oOI2EZ8h56VOkyEgUSkc8Ril6f8/rHc+g2q65pw1qPD5u30TjOc+VYw0Y8
+# 4KPcnWR/tR9Qkf6kRufwhBlSNSihZMAYLNCtQ6ogoUBJ3rXIuRyoprqtJ9hnz6Kw
+# 53diLbVsWUP31UdezR6WleGlzqPhfum7bufASzC+x+kLI69xeY4J29vPZ8fAYnEX
+# 7V+dNw06MoB/zuLekm7BbyqgqHSlblPu5RAKV6WiZWg0CvAwu5MC5ogjxd3DTs5D
+# lSbBfbTPmXdb1QjORdjQXjXEGqy8DGsiMagko3ENnw8OQMhszcKJzIf7gDh10Vda
+# AhmMCys0ByUwxyyPQ8d28Rx3cWGmOO/oABp4FpdzKF7hGmUKt3kZ8KsT3BZukb45
+# DVlRCfeq+CSlx+CDBw5d+lB03IAG6alO9PpVkeA1MAwHyB1M+/ixxjG2i/BBHrsk
+# RKh4m7u0mg==
 # SIG # End signature block
