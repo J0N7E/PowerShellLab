@@ -424,6 +424,13 @@ Begin
             Install-WindowsFeature -Name DHCP -IncludeManagementTools > $null
         }
 
+        # Check if RSAT-ADCS-Mgmt is installed
+        if (((Get-WindowsFeature -Name RSAT-ADCS-Mgmt).InstallState -notmatch 'Install') -and
+            (ShouldProcess @WhatIfSplat -Message "Installing RSAT-ADCS-Mgmt feature." @VerboseSplat))
+        {
+            Install-WindowsFeature -Name RSAT-ADCS-Mgmt > $null
+        }
+
         # Check if ADDS feature is installed
         if (((Get-WindowsFeature -Name AD-Domain-Services).InstallState -notmatch 'Install') -and
             (ShouldProcess @WhatIfSplat -Message "Installing AD-Domain-Services feature." @VerboseSplat))
@@ -710,6 +717,8 @@ Begin
         # ╚███╔███╔╝██║██║ ╚████║ ╚████╔╝ ███████╗██║  ██║
         #  ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
 
+        # https://endoflife.date/windows
+
         $WinBuilds =
         [ordered]@{
 
@@ -719,23 +728,23 @@ Begin
 
             # Build
 
-            '14393' = # Windows Server 2016 / Windows 10 1607 (End of Support)
+            '20348' = # Windows Server 2022
             @{
-                Version = '1607'
-                Server = 'Windows Server 2016 (14393)'
-                ServerEndOfSupport = '2027-01-12'
+                Version = '21H2'
+                Server = 'Windows Server 2022 (20348)'
+                ServerEndOfSupport = '2031-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2016 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
 
@@ -759,47 +768,61 @@ Begin
                 )
             }
 
-            '20348' = # Windows Server 2022
+            '14393' = # Windows Server 2016 / Windows 10 1607 (End of Support)
             @{
-                Version = '21H2'
-                Server = 'Windows Server 2022 (20348)'
-                ServerEndOfSupport = '2031-10-14'
+                Version = '1607'
+                Server = 'Windows Server 2016 (14393)'
+                ServerEndOfSupport = '2027-01-12'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
 
-            ##########
-            # Windows
-            ##########
-
-            # https://endoflife.date/windows
+            ########################
+            # Windows 11 Enterprise
+            ########################
 
             # Build
 
-            '19045' = # Windows 10 22H2
+            '22631' = # Windows 11 23H2
             @{
-                Version = '22H2'
-                Workstation = 'Windows 10 22H2 (19045)'
-                WorkstationEndOfSupport = '2025-10-14'
+                Version = '23H2'
+                Workstation = 'Windows 11 23H2 (22631)'
+                WorkstationEndOfSupport = '2026-11-10'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                )
+            }
+
+            '22621' = # Windows 11 22H2
+            @{
+                Version = '22H2'
+                Workstation = 'Windows 11 22H2 (22621)'
+                WorkstationEndOfSupport = '2025-10-14'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
 
@@ -819,35 +842,54 @@ Begin
                 )
             }
 
-            '22621' = # Windows 11 22H2
+            ########################
+            # Windows 10 Enterprise
+            ########################
+
+            # Build
+
+            '19045' = # Windows 10 22H2
             @{
                 Version = '22H2'
-                Workstation = 'Windows 11 22H2 (22621)'
+                Workstation = 'Windows 10 22H2 (19045)'
                 WorkstationEndOfSupport = '2025-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
                 )
             }
-            '22631' = # Windows 11 23H2
+
+            '19044' = # Windows 10 21H2 LTS
             @{
-                Version = '23H2'
-                Workstation = 'Windows 11 23H2 (22631)'
-                WorkstationEndOfSupport = '2026-11-10'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
-                )
+                Version = '21H2'
+                Workstation = 'Windows 10 21H2 (19044)'
+                WorkstationEndOfSupport = '2027-01-12'
+            }
+
+            '17763' = # Windows 10 1809 LTS
+            @{
+                Version = '1809'
+                Workstation = 'Windows 10 1809 (17763)'
+                WorkstationEndOfSupport = '2029-01-09'
+            }
+
+            '14393' = # Windows 10 1607 LTS
+            @{
+                Version = '1607'
+                Workstation = 'Windows 10 1607 (14393)'
+                WorkstationEndOfSupport = '2026-11-13'
+            }
+
+            '10240' = # Windows 10 1507 LTS
+            @{
+                Version = '1507'
+                Workstation = 'Windows 10 1507 (10240)'
+                WorkstationEndOfSupport = '2025-11-14'
             }
         }
 
@@ -3588,8 +3630,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyStgPo2D+y9XLSKtjbkRhJ5t
-# 4aagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWvkvEij9sdE86cvpvXbkuWpB
+# AT2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3720,34 +3762,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTKQUD5
-# k6SOJbDr2tpv9fOaAzfNmjANBgkqhkiG9w0BAQEFAASCAgCgKOTOBN0u6FkcHNlK
-# pZIYblNqKW0G7jRWpJQWFaWgzTDh+q2Xccr3bALEoLbW9usLYf3QG6LEDl2XplaC
-# hqVoIp984giO+8BJO/CFU96DW4fo3TLm8ZbIzHQ/6m1/PNlvL5LSxSdu7KtUz2MD
-# O/0QrOPAseW60VHDhV5nmFWDNNhSDBf6GdJO5PhPOVnlc1IgJIcsoidP5g3wgc1d
-# BBJyiUpTbU27Jz0phkV53VfTw8gDbqWVgpPw2oQ0pDcCiJcBwvaRrYgG7b9B8IsC
-# +zn22nFxSJxagv+8/2wbtyg8h8j9VS68TuowEOHR/n7+xzmbtdx1gb/44jSNFOjE
-# KIOAan+39LDjs5rbXMfDMso/DNEXEdWWdEqsBqF3ggi/C3g8hutYahD1lPUefUTC
-# Reg3RkLIO92px4kLyMEYLBgAgmgmYBGhOo81Uk0Is5T6ybEkdKn+tIZelMmro8qG
-# EkzDesPHNDdFA6zhKL/PWfpDj4wU34qEUUW1QqTP/E30NACdxQWiMTo3n9ZHrCwh
-# OSR55D+SaJp2fuCBfrPuvjVHOA635cRMiLb3a31A8hY+Zkx5Khtf/WqSF5AHKlE8
-# 3m+gUFk6MUIlY6US5HRa2k+IdSOWOUUnhkdAkk07PJGATo1xBstObEc5p7x9YIS/
-# +M1VAf31zSgCuzlIpHrXTgbkc6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTkXQXY
+# nBGgKRdLbad9eFQdAkQyMjANBgkqhkiG9w0BAQEFAASCAgArr3A93GY0xgLeYmnu
+# uTNLd/LGOkX+6MtTjrKPqueT903XutI24jsey2n/5+TgIxsZ00a78rWnw01r1tVP
+# kKPc3EjsNnAeBp74ntAekm0nyQFD7W5bcX1OfQWLzJp02cTIHIO7E8WRqYgrlhul
+# SS24oxOpzgSbH6fivBUfg9tdfids0WYAYAbyzeKfK5e5VWOVEh2ngiT6SvsgY5n9
+# IC7nkeV4GrY97PULJ4u1Ph1lfXlMfCsCWy0nPswLQYoWcDUCMS0+qNQZqKACkeDe
+# PbTuEK3tEEoz8s5Yk95E8GUFOyw10TnqPr1hjm5EwbPibY4jetCggjt7zhHyPbqX
+# K2jICLgFSyKl7vd9qYLeKqVj+6J3Ifw/kgsKgHVhvXuE7daebIrq+m3vHABHQdal
+# WzizFSnGSiEzR0bzz2bGhngXjzmqkoq3KqEl+uG2fcER/UNcKcCd4mUUfr6dW4tg
+# LKHdDzKMmYoor7mx+9e5qgwaBmjb8r5l0uzxEgyMJmCojartvwzBVIc8p3iqEWUO
+# jWmLeY2uJvzwPSdWpbvQH1QW73f1yXR+l8P/5GBxGjY1dJUjOmtmDDgc42JdvFlp
+# +X5AUemEqnI9UvP0O/31Tr9jURmP9x8aV0ZcbEG2nAVYPsvmesAUdYdP9YheLkx4
+# uRx9hEmgdyJX3iSU+3kXXF80JqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjIwNzAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCBhmSUCyd+dTxPUZXNQvbJJjUKNfHQyFc2x+Sn8
-# RVhRmjANBgkqhkiG9w0BAQEFAASCAgAHakWidLm8zf4FixIs+HuCLVXVW/8RSPN7
-# J2nIdLaG9wKrX8T+dBDWKNbvPAsmFNtdnq2f0v+m9kP+UtCq3LhLIFjfzEjFolsN
-# 1DuE7f3IxqVDoCNtMQxcxn+uXkUQU+nDVTqMZSNY+oFQLOsq3yPoHIssiMe6K+ye
-# Mr0yWxzDSV/chinptAsR/n/DROvgiAljYggQPrqlpXEU5D6LQtJWp+aK3TMzCxby
-# DQHr2+oOI2EZ8h56VOkyEgUSkc8Ril6f8/rHc+g2q65pw1qPD5u30TjOc+VYw0Y8
-# 4KPcnWR/tR9Qkf6kRufwhBlSNSihZMAYLNCtQ6ogoUBJ3rXIuRyoprqtJ9hnz6Kw
-# 53diLbVsWUP31UdezR6WleGlzqPhfum7bufASzC+x+kLI69xeY4J29vPZ8fAYnEX
-# 7V+dNw06MoB/zuLekm7BbyqgqHSlblPu5RAKV6WiZWg0CvAwu5MC5ogjxd3DTs5D
-# lSbBfbTPmXdb1QjORdjQXjXEGqy8DGsiMagko3ENnw8OQMhszcKJzIf7gDh10Vda
-# AhmMCys0ByUwxyyPQ8d28Rx3cWGmOO/oABp4FpdzKF7hGmUKt3kZ8KsT3BZukb45
-# DVlRCfeq+CSlx+CDBw5d+lB03IAG6alO9PpVkeA1MAwHyB1M+/ixxjG2i/BBHrsk
-# RKh4m7u0mg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjIwODAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDCTjvB7EhzRRGin0OHn/I3Z2MtTG35sGEk7NoQ
+# RnvpJTANBgkqhkiG9w0BAQEFAASCAgAFDrtB00Zaz4GGAsszjlSSRaQ1sbpiD1WP
+# GCiujrWGch/k23aeGRqALdwN82I6F5EQuz+VpZA4bB3hJ5HxeAAF7XimjJPke+Y7
+# WYCdKDxEB5i0rhOMGKIUgNy+y+QizOd42ay+8chzl2xq6xWcvDXipWjfGo0ZFSUe
+# R/9BzmnGSKHEgtcKCk3FYO6pAYPSNG9XtyBB0F1unZ7kb+KZSLL+hvYMhdtx/frf
+# YSRKoxVv9/H9/z+RNBhS7Rrr9fLqk5Oa8G3QYYgptvtzF1feusp5KzR5ccLoIbXk
+# 7BbBRD0w+s5b4wvnVYIjsMMtTDTvMIRxQf72Wnsrippw8Ncycwd/dIKjKQAf3Pim
+# qXCgxzZ5RNc9wjS4F7KZz9RBCnSjLEE1oIZ8hMXVXSrF4yyBooqprBLViDSJBm/M
+# 9A6DWjI9gM4+wTSlOzTxgxWR8yzFqg2AfR8P1pI1Wd7wxfqD7CG0sC6PcfLTZzyN
+# GcHEynlf1TSN4QIbHJAEp40yx/D73PSwEKlUwFJ4UNXQU5FWId3Zi7WZsCQp7mgU
+# 7D/nXAXzIl2Jdwohl5QifKBCayuGsXFyBV/Xkg3PTBV9M1YU6t/v01t49/rM+zcV
+# qNf6WvYFD+qXg511bDYIecGSlqHh1snWG8AzGwP7n7+w19AOosBMHTOdKIyzc+Xk
+# /c9YnmEdgw==
 # SIG # End signature block
