@@ -748,11 +748,13 @@ Begin
                 )
             }
 
-            '17763' = # Windows Server 2019 / Windows 10 1809 (End of Support)
+            '17763' = # Windows Server 2019 / Windows 10 1809 LTS
             @{
                 Version = '1809'
                 Server = 'Windows Server 2019 (17763)'
                 ServerEndOfSupport = '2029-01-09'
+                Workstation = 'Windows 10 1809 (17763)'
+                WorkstationEndOfSupport = '2029-01-09'
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2019 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
@@ -768,11 +770,13 @@ Begin
                 )
             }
 
-            '14393' = # Windows Server 2016 / Windows 10 1607 (End of Support)
+            '14393' = # Windows Server 2016 / Windows 10 1607 LTS
             @{
                 Version = '1607'
                 Server = 'Windows Server 2016 (14393)'
                 ServerEndOfSupport = '2027-01-12'
+                Workstation = 'Windows 10 1607 (14393)'
+                WorkstationEndOfSupport = '2026-11-13'
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2016 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
@@ -869,20 +873,6 @@ Begin
                 Version = '21H2'
                 Workstation = 'Windows 10 21H2 (19044)'
                 WorkstationEndOfSupport = '2027-01-12'
-            }
-
-            '17763' = # Windows 10 1809 LTS
-            @{
-                Version = '1809'
-                Workstation = 'Windows 10 1809 (17763)'
-                WorkstationEndOfSupport = '2029-01-09'
-            }
-
-            '14393' = # Windows 10 1607 LTS
-            @{
-                Version = '1607'
-                Workstation = 'Windows 10 1607 (14393)'
-                WorkstationEndOfSupport = '2026-11-13'
             }
 
             '10240' = # Windows 10 1507 LTS
@@ -1685,9 +1675,9 @@ Begin
                 Members             =
                 @(
                     @{
-                        Filter      = "Name -like 'ADFS*' -and ObjectCategory -eq 'Computer'"
-                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
+                        Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
                     }
                 )
             }
@@ -1717,7 +1707,8 @@ Begin
                         SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
                     }
-                )            }
+                )
+            }
 
             @{
                 Name                = 'Template NDES'
@@ -3630,8 +3621,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUWvkvEij9sdE86cvpvXbkuWpB
-# AT2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUd1FGrJga8ENWm/ctsKL7RWyq
+# 1u6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3762,34 +3753,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTkXQXY
-# nBGgKRdLbad9eFQdAkQyMjANBgkqhkiG9w0BAQEFAASCAgArr3A93GY0xgLeYmnu
-# uTNLd/LGOkX+6MtTjrKPqueT903XutI24jsey2n/5+TgIxsZ00a78rWnw01r1tVP
-# kKPc3EjsNnAeBp74ntAekm0nyQFD7W5bcX1OfQWLzJp02cTIHIO7E8WRqYgrlhul
-# SS24oxOpzgSbH6fivBUfg9tdfids0WYAYAbyzeKfK5e5VWOVEh2ngiT6SvsgY5n9
-# IC7nkeV4GrY97PULJ4u1Ph1lfXlMfCsCWy0nPswLQYoWcDUCMS0+qNQZqKACkeDe
-# PbTuEK3tEEoz8s5Yk95E8GUFOyw10TnqPr1hjm5EwbPibY4jetCggjt7zhHyPbqX
-# K2jICLgFSyKl7vd9qYLeKqVj+6J3Ifw/kgsKgHVhvXuE7daebIrq+m3vHABHQdal
-# WzizFSnGSiEzR0bzz2bGhngXjzmqkoq3KqEl+uG2fcER/UNcKcCd4mUUfr6dW4tg
-# LKHdDzKMmYoor7mx+9e5qgwaBmjb8r5l0uzxEgyMJmCojartvwzBVIc8p3iqEWUO
-# jWmLeY2uJvzwPSdWpbvQH1QW73f1yXR+l8P/5GBxGjY1dJUjOmtmDDgc42JdvFlp
-# +X5AUemEqnI9UvP0O/31Tr9jURmP9x8aV0ZcbEG2nAVYPsvmesAUdYdP9YheLkx4
-# uRx9hEmgdyJX3iSU+3kXXF80JqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTzfD09
+# IIBYWMs45DPgW2lrxm2UOzANBgkqhkiG9w0BAQEFAASCAgCeUk2sMPvBdFtHPg44
+# axM6/tS7zho0sgklleUWZj4L6/IIDwsmC84ap0VBHDXi5sdT/aCvdZMZVGoynO5N
+# zE5vLpb4RV9OZOqC5G38ftljtEvf+jgACvywaw3tgTreqJRTf47+7IYtvKtyLXaG
+# 5IVhUJ9gLywOxixeWytB6aUqLAWrIUPKB0yqhhCbSOhwUGKp+EjEG3jFKnKkDqO9
+# xjg3QtEpz3m0D/LAktbipUAjo8QXMYUL1FdoVHQl1gPB/kCoLZu7+xVPIZE18R+Y
+# vcfgp8FfHIsx1bBikfX8GeeAMiq4Ft6NNkF/5tI4tmQO8jz6bypLg/vBhyrOO6uq
+# KXnVaIk2uZSqY+XcBMOAzKzdwxVbikUzA2cHmlC7lbcMX+Q+JQ6O52WyNgsySV8k
+# 5sXyfh+LQCI65mQV3oOnfJotk/Qg5FvgbCi27dv+C+qn3fsz6VhW2iXbC6LqJ6P9
+# Ru98c9T/SfiJ8EL2HfMwe0raHtPH4VuZ2vcgyEQAzwSgA8osZ2PFUzjm0Rhhod48
+# RH9nSwNeAlLh4KegXANzqHPpR2cichdAvRw2lEGSYdt/grOSILCNExCRG1ihrtb9
+# pC3wiN2TNohtme9Cj2nx1DyK4y9OsjSu0us7P9/SAXpQ8uchfGzeMT2kndJI/lK0
+# an/Y3Brp6GjfkZzbt8HFUIG4vaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjIwODAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDCTjvB7EhzRRGin0OHn/I3Z2MtTG35sGEk7NoQ
-# RnvpJTANBgkqhkiG9w0BAQEFAASCAgAFDrtB00Zaz4GGAsszjlSSRaQ1sbpiD1WP
-# GCiujrWGch/k23aeGRqALdwN82I6F5EQuz+VpZA4bB3hJ5HxeAAF7XimjJPke+Y7
-# WYCdKDxEB5i0rhOMGKIUgNy+y+QizOd42ay+8chzl2xq6xWcvDXipWjfGo0ZFSUe
-# R/9BzmnGSKHEgtcKCk3FYO6pAYPSNG9XtyBB0F1unZ7kb+KZSLL+hvYMhdtx/frf
-# YSRKoxVv9/H9/z+RNBhS7Rrr9fLqk5Oa8G3QYYgptvtzF1feusp5KzR5ccLoIbXk
-# 7BbBRD0w+s5b4wvnVYIjsMMtTDTvMIRxQf72Wnsrippw8Ncycwd/dIKjKQAf3Pim
-# qXCgxzZ5RNc9wjS4F7KZz9RBCnSjLEE1oIZ8hMXVXSrF4yyBooqprBLViDSJBm/M
-# 9A6DWjI9gM4+wTSlOzTxgxWR8yzFqg2AfR8P1pI1Wd7wxfqD7CG0sC6PcfLTZzyN
-# GcHEynlf1TSN4QIbHJAEp40yx/D73PSwEKlUwFJ4UNXQU5FWId3Zi7WZsCQp7mgU
-# 7D/nXAXzIl2Jdwohl5QifKBCayuGsXFyBV/Xkg3PTBV9M1YU6t/v01t49/rM+zcV
-# qNf6WvYFD+qXg511bDYIecGSlqHh1snWG8AzGwP7n7+w19AOosBMHTOdKIyzc+Xk
-# /c9YnmEdgw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjIwOTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAE64baC4bOYBDzwvmJvRVpp90IZEcundDzg4Jd
+# uhxxRDANBgkqhkiG9w0BAQEFAASCAgCHlxBCYt5ChPgJNGbXx1R+paEY31k/RwHg
+# RIkRF/5kzBa7jvMBA6BwUBCVz6FUoIc8Kr1ZqZxO0chYWZPXixyqB+vVXZ+5+TxS
+# ZRCHzoBs75jzTYYZHmSkGnANv/iQPKBXGl66LGJzXUkGJdyuogcriJW0H5Yems+U
+# RDECsdKTZlLYxMYpHM8DHj9rTv9sPNOQ2adkTCu21XtaeBrMv4FU87aAZFLmA5/I
+# YH3T7woMjtsB5dXE6fQ9y/Kbl9fHSwpP1v199htsJyBSWgEFbqne3Y79yrwso2Xv
+# bc1I+50xyEHZ2mauKyAZ+gIhxS+SkECW9LnPecJAfyFR1vxVsloULBeKPWfY98P6
+# Tu8AHrBadHjueSY1GXU8xSe9u33YAjCOR4boO4cIpSx1exyFUnQXmJxJtFv4P+d7
+# PnHAb+C5ff8CX9395wOSDMRCY/ZAyAzndhmFulMO58z2aQlp91Uwn9W3aEZw2lFp
+# QOYlYtVCbxtLKaDUM3XxxBcjjO6NOe50XphkBnXpGIHLhGJpSY1rTu4OIJCvv10C
+# kN6cdio9F/dKwsLllKW3rrLtJbJ/nuZedVLqIDF6OwomkXeBBngQDMtXGrJugTRG
+# /WfFmslxT9rals6kGO4QEPoG71WP1/DR9nFWoxcl93aSaObVroPYzhlANvpvY9kj
+# CNPDOkJ/VA==
 # SIG # End signature block
