@@ -710,6 +710,7 @@ Begin
             }
         }
 
+        # ^.*# <!--(?!-?>)(?:[^<-]|<(?!!--(?!>))|-(?!-!>))*?(?<!<!-)-->
         # <!--
 
         # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
@@ -1008,7 +1009,7 @@ Begin
                 }
 
                 # Create OU
-                New-ADOrganizationalUnit -Name $Ou.Name -Path $Ou.Path @OuDescriptionSplat
+                New-ADOrganizationalUnit -Name $Ou.Name -Path $Ou.Path @OuDescriptionSplat # -->
 
                 if ($Ou.Path -eq "OU=$DomainName,$BaseDN")
                 {
@@ -1024,6 +1025,8 @@ Begin
                         redirusr "OU=$($Ou.Name),$($Ou.Path)" > $null
                     }
                 }
+
+                # <!--
             }
         }
 
@@ -1533,14 +1536,6 @@ Begin
                     Name                = "Tier $Tier - Rdp Access - $($Computer.Name)"
                     Scope               = 'Global'
                     Path                = "OU=Remote Desktop Access,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
-                            SearchBase  = "OU=Users,OU=Tier $Tier,OU=$DomainName,$BaseDN"
-                            SearchScope = 'OneLevel'
-                        }
-                    )
                 }
             }
         }
@@ -2766,6 +2761,7 @@ Begin
                                 @{ Name = "$DomainPrefix - Certificate Authority";           Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
+                        # -->
 
                         # Federation Services
                         $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN", @(
@@ -2782,7 +2778,9 @@ Begin
                                 @{ Name = "$DomainPrefix - Network Policy Server";           Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
+                        # <!--
                     }
+                    # -->
 
                     if ($Tier -eq 1)
                     {
@@ -2793,6 +2791,7 @@ Begin
                             )
                         )
                     }
+                    # <!--
 
                     # Web Servers
                     $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
@@ -3651,8 +3650,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzseU98xWR7qqP1xzUWNlaXLO
-# mk2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKMyyzuZodip35cwFduZCdH/g
+# JtWgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3783,34 +3782,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQOFyoS
-# kbY3tRUgp3nTUXKI0EPNqDANBgkqhkiG9w0BAQEFAASCAgBgnpm+PmtNIDLxmIEd
-# 5ZlSSDlk4F13ljmynbeAmjTLyEF4EhE/TIsFrYP+V6R75pT1CLg2pPQCJfcWL8L3
-# mlBVuwqLfqSUcXWBx6OlyvShKKdiLFshgjlwbGYrGFBF3PyCINbKXiYNVMIwDYUu
-# by0rsEtcxylr5Dveqwpl701dgBYRGsEUqCa+FrK/uxnm0mjSl2/iPRkjIj/pL6RI
-# mGZjr+9YD1kt86sCsa7boFVEo9oZHH4+s+ea1oFDlKkfygvJ2b9Z8sRNDSkDSKF+
-# zzjUQKnEmTWb5izD65BchIXBYr/3Mxy+zTLJsAhb/8y5uKqHOxUSLAVEMABjryJu
-# BGnB0uDPWahMtxCzUG/BH6AG6T/9Xuiz5s4iOBvn50VNfKs/Zu2gl3+Qgf9GgKdd
-# 9vXoV/V8fZMk7z58csiECZyGzYKnCAsvtljdXLkTIthMgAFdJnMlKMuj32AvSAF3
-# AMV2ysq8Bb/1Clu92IltXgdUWpEq30Rob4QpbaqUuGRrGd+33GCv251vbUxZDoPY
-# IhMd+3/idggXSgyBGZkmjDxPWmw1mhLgV44XSFuPg0EkCqmt+dtD7ZeoTjF7d9+E
-# //jBRgGjT1CANvFQg5Wk6FnfGPq8mx0O+BUhJy00o+hNXSjBY5ArUbNtWOYJUw0W
-# GoViJGF5joiBx5PW5gK8mFj5vqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTlYjU9
+# omjMuBtbUXHe5pnwXMSISzANBgkqhkiG9w0BAQEFAASCAgA/aoUyf8GF0Qu184NW
+# cdtJP1Dx6EoEombk8vvQtN0MHaTsnVFCFoVZhL15NoGPnCS3OuAE00wzC4Ry6TIT
+# +j0uVPyRP7fdF5eXc9gm1ZxkHuaKW3xNuiMI4cV2FpRXYMjaH70sbSvmNZJMDprS
+# 7ph/0DOeMXdLNgFCvpIj1BPkJE4t8J/TqLnyTGUbv8oPIxyozEagbQepNmnfp/Ag
+# PyES5Qsp9WV8412nNhwCMO0+D/Qby2iLtnK1pfAoi81dOU7zXWVNXN2Jqw3IRKgp
+# lMx/9vQS+qW6Bl2bduHGu4j8eDy+tvkQW0W1lVB8br0qW4jZuUE7HvDwIijexYJa
+# LDFv1PRbqgShcIzSF1/TwENG1LsLzIx6BCv7yv/4kI5vqbKgLmWkps0vtTDL20RH
+# GOTz+BV+QBBDblJ5gK2GiXwHWJDNqFN46xVtUvlMUfFl6KYZa6K7tuAIUBfAG8Bs
+# SEHAWI+8gs2QXnk8FtAlGiewPFN0aLXCqmT6Ed567CYRk3+ro25+6kQU5joPsF1+
+# d1kGjJ9orvfOtjTKL9Ygr6gkaHwbQ3cDwcMjHss50eBbN7Au60BjvPzwHbvHTuq0
+# 4j8BE35mPxNtqc/Axa6UCiJDToSi57kcbj5hKsqiTvCYFPtkbALj6688D9eXBcW3
+# /uitDuEqJi5muZ4yjKlWeM4Cv6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjkxMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCisHqpoh2P6+KoLenqq4f9dvozERpGR4iMg1cV
-# rvYrPTANBgkqhkiG9w0BAQEFAASCAgCBvbAKGhXJTsNilL2D5qIZ5dST2yaTkPb1
-# wrrcxBOS9wiOKcl9136i1w+7g0wmC65L+ZIgpm/gVY1d8T48ZXCzH9oxW8WrraB7
-# pmMsUJyIq5NyIWKFexiv+aoo3SFwZJ0VP26hnDp1haMBAU/vc24C6A2h3Z3esOrx
-# HzR5f/ogoboDn9t+lWjGc09WGvUlFxMZFftvUI3Cu440VLVNAQp5LA9tu3BWh10t
-# vy+kVQkSRaFsbolpVjDY6qKj1SpsLO4Rv0G5/f0Cwf1vaZLZWrVtf32DwxR1z6w4
-# lMLH1l8ff7FUDMRDG0JgtXa4cftQm2czI4pzBfyGAHmh0eNIqeA+aIybVfQ9qf2R
-# MrxP6IuFgHEVBJscGli2Gd/zp4jKj/XGXuIxAtErrBm9l2Yv5eRJihCHCBx9cYW6
-# sY/wVqNRsnc1ROiEmJ5X20qMxYjucUpzDzJkIXZEfiKIWAtETbozxCQ/QzHvhblO
-# 5hhIlKABdKUMvLzD9PyJJNxhrs9NDA0wRPmgBZAKw0RKQ1SDMXG3dtyiagajTCtW
-# SsYqhyjnOjtSWC2IokkSmvc9jGF3/+IZ57bNIFqtvzc4aUgBWLIrWlF8dkKw2Bpv
-# llj20cHmNe7evbeDeG+z2t0Wxk8Y4zDdtLUMhvQB2VsTuw4MQAshv37U0Gfan09p
-# 2JyWrpJ06w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjkxNDAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCCCgW9TOM96FsOXcKSFDCWx4ksDOsGgT4xEx0Xp
+# 0h9RGzANBgkqhkiG9w0BAQEFAASCAgBK7SDQ+lBk9j4ERHQ6Ts0dQcrzWfpwDutS
+# 37bYKqeX3PmgdMQiS9mr9x3xFzOo5Vak1jIwpSIz5+F4rJnZG5E1KelrP/o7w3pF
+# VyJN7xOT7seoOyGZ4s8iHL+FUryDynWZKImpfFYfz2+U6h0445pIUVpG/62fUDBd
+# 8sxApyQEMW5KZ3XzaL/zbmTmd1mm3cKMKOwYNpGMXnCijGZJZ4J2M4ZjBylsjhbG
+# ffBdAmslBjHN22q/+InaB4bqzNRal/3dW/VTQhrvH6zBGSB3xG7n3SbbfR3E9KFk
+# Gsapuu5Xi5hKJODMTQ6rBAEbXbsHHDEB/MEsyE7PnKmLrWeugGpF/j4gBlEqykq4
+# 5NNDwRMn6HpqfAKCQfqFaIK6WR8gRL5ZNG9CLsWOE4K98r2uNcXPWNi5rKOY/pgX
+# H7fm8N7pk5zoWPyyp1J5rSZIAPIZBm4fOZwBTOXZuOG8nkbzMEe7ijDoPLLzChnD
+# NZWyZZUQriON5ImGeXR4cBgC4d+4FZRMJomi15nkVFpUWXVodM1OgUDeRi7rC1Q4
+# HkvqVLqq7Qcf/UwElQGKboLizJeRzElermRM9E38qrPpTmpNY3lB993co5VTZSOp
+# 3jbVzEd339QJTjgue/IlX5IbygKx/vxED/PKndkDS4E7otRy4TfGGu+u2DKsOstl
+# cvpsoMuAaw==
 # SIG # End signature block
