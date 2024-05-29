@@ -710,6 +710,8 @@ Begin
             }
         }
 
+        # <!--
+
         # ██╗    ██╗██╗███╗   ██╗██╗   ██╗███████╗██████╗
         # ██║    ██║██║████╗  ██║██║   ██║██╔════╝██╔══██╗
         # ██║ █╗ ██║██║██╔██╗ ██║██║   ██║█████╗  ██████╔╝
@@ -1025,6 +1027,8 @@ Begin
             }
         }
 
+        # -->
+
         # ██╗   ██╗███████╗███████╗██████╗ ███████╗
         # ██║   ██║██╔════╝██╔════╝██╔══██╗██╔════╝
         # ██║   ██║███████╗█████╗  ██████╔╝███████╗
@@ -1287,16 +1291,12 @@ Begin
             }
         }
 
-        #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
-        # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
-        # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
-        # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
-        # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
-        #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
-
-        ##########
-        # Kds Key
-        ##########
+        # ██╗  ██╗██████╗ ███████╗
+        # ██║ ██╔╝██╔══██╗██╔════╝
+        # █████╔╝ ██║  ██║███████╗
+        # ██╔═██╗ ██║  ██║╚════██║
+        # ██║  ██╗██████╔╝███████║
+        # ╚═╝  ╚═╝╚═════╝ ╚══════╝
 
         if (-not (Get-KdsRootKey) -and
             (ShouldProcess @WhatIfSplat -Message "Adding KDS root key." @VerboseSplat))
@@ -1304,6 +1304,15 @@ Begin
             # DC computer object must not be moved from OU=Domain Controllers
             Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10)) > $null
         }
+
+        # <!--
+
+        #  ██████╗ ██████╗  ██████╗ ██╗   ██╗██████╗ ███████╗
+        # ██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔══██╗██╔════╝
+        # ██║  ███╗██████╔╝██║   ██║██║   ██║██████╔╝███████╗
+        # ██║   ██║██╔══██╗██║   ██║██║   ██║██╔═══╝ ╚════██║
+        # ╚██████╔╝██║  ██║╚██████╔╝╚██████╔╝██║     ███████║
+        #  ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚═╝     ╚══════╝
 
         ################
         # Global Groups
@@ -1624,6 +1633,8 @@ Begin
             }
         )
 
+        # -->
+
         #######
         # Adfs
         #######
@@ -1920,6 +1931,8 @@ Begin
         )
         #>
 
+        # <!--
+
         ###############
         # Build groups
         ###############
@@ -2064,6 +2077,8 @@ Begin
             }
         }
 
+        # -->
+
         #  █████╗ ██████╗ ███████╗███████╗    ██████╗ ██╗  ██╗███╗   ███╗
         # ██╔══██╗██╔══██╗██╔════╝██╔════╝    ██╔══██╗██║ ██╔╝████╗ ████║
         # ███████║██║  ██║█████╗  ███████╗    ██║  ██║█████╔╝ ██╔████╔██║
@@ -2205,6 +2220,7 @@ Begin
             }
         }
 
+        # <!--
 
         # ██████╗ ███████╗██╗     ███████╗ ██████╗  █████╗ ████████╗███████╗
         # ██╔══██╗██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
@@ -2260,6 +2276,8 @@ Begin
         # Set R/W on member object
         Set-Ace -DistinguishedName "CN=Cert Publishers,CN=Users,$BaseDN" -AceList $AddToGroup
         Set-Ace -DistinguishedName "CN=Pre-Windows 2000 Compatible Access,CN=Builtin,$BaseDN" -AceList $AddToGroup
+
+        # -->
 
         #################################
         # Adfs Dkm Container Permissions
@@ -2431,6 +2449,8 @@ Begin
             }
         }
 
+        # <!--
+
         #  ██████╗ ██████╗  ██████╗
         # ██╔════╝ ██╔══██╗██╔═══██╗
         # ██║  ███╗██████╔╝██║   ██║
@@ -2597,6 +2617,8 @@ Begin
 
         $GPOLinks =
         @{
+            # -->
+
             #######
             # Root
             #######
@@ -2620,6 +2642,8 @@ Begin
             #####################
 
             "OU=Domain Controllers,$BaseDN" = $DomainControllerGpos
+
+            # <!--
 
             ############
             # Domain OU
@@ -2957,6 +2981,8 @@ Begin
                 }
             }
         }
+
+        # -->
 
         # ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
         # ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -3625,8 +3651,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUsd4GLk97Kdh9iwjb66Rk7fC
-# 8JCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzseU98xWR7qqP1xzUWNlaXLO
+# mk2gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3757,34 +3783,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQM9fEa
-# LXuQLbiD2LR5VEVMjiPbiTANBgkqhkiG9w0BAQEFAASCAgBzO3leW6DW7BhRBrao
-# GXDUO9OnAGAe0r4hjf5Vr6oyVgNuCUvM06F9kHuyDuQroxHXPJu8yyBrzl8SCPmV
-# T951PhdtQFzTW2w8lGmx2WpMHpzYGquRvQqnWSoVk8m/IwHDk7H72UmltFCxQhUo
-# E/QCdMLTyecP68w2noAjhTOgCJsUkeFWO9sY2WSOWId2SeFgqyyHjIVSs73Yujvb
-# 8+/mb0yMMpw5s+NTYit9MBut6q4ewo1NQRSCVpB52GkOslNHWI03bUp6mv1RjjpQ
-# JMuI5dvkG2DjBt0zOJ1F62Nz7NIGEmrHB/9Mg8bCkiCsJJJOQxdRB1M3uvisr4iP
-# YVtvgxtJDuxnmsRoUa5c7jV5JFLwjJaaFGzoW82odojg0QXo6EjoT+jRYrJkeZ43
-# cXb9XIiU5ErMp00TD2Agcj/bLjcWlMo9in4bsIJvLTyjdQ/vtNgY0r8y6pbo2bdu
-# 3ksm5yrytFGElxruNsgBFZCl3W5TnQOUHeMJauaPWRrGggasuWq12davMjc0ZnAD
-# nhFxyaG8t0Ctx33aAU3I8A8uoCtqBjJ0S2kvqZVGsU1oFDiIF52tPhSM+A3HzsqV
-# 7/mYaTTZyclcUsH/ehJ7os7mfSYeEweQmBLkpZZLN1o3Fyylzf4Q8RJYSbQy91bE
-# TIBLW9YyHC0loQ3gpnyS1I3OraGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQOFyoS
+# kbY3tRUgp3nTUXKI0EPNqDANBgkqhkiG9w0BAQEFAASCAgBgnpm+PmtNIDLxmIEd
+# 5ZlSSDlk4F13ljmynbeAmjTLyEF4EhE/TIsFrYP+V6R75pT1CLg2pPQCJfcWL8L3
+# mlBVuwqLfqSUcXWBx6OlyvShKKdiLFshgjlwbGYrGFBF3PyCINbKXiYNVMIwDYUu
+# by0rsEtcxylr5Dveqwpl701dgBYRGsEUqCa+FrK/uxnm0mjSl2/iPRkjIj/pL6RI
+# mGZjr+9YD1kt86sCsa7boFVEo9oZHH4+s+ea1oFDlKkfygvJ2b9Z8sRNDSkDSKF+
+# zzjUQKnEmTWb5izD65BchIXBYr/3Mxy+zTLJsAhb/8y5uKqHOxUSLAVEMABjryJu
+# BGnB0uDPWahMtxCzUG/BH6AG6T/9Xuiz5s4iOBvn50VNfKs/Zu2gl3+Qgf9GgKdd
+# 9vXoV/V8fZMk7z58csiECZyGzYKnCAsvtljdXLkTIthMgAFdJnMlKMuj32AvSAF3
+# AMV2ysq8Bb/1Clu92IltXgdUWpEq30Rob4QpbaqUuGRrGd+33GCv251vbUxZDoPY
+# IhMd+3/idggXSgyBGZkmjDxPWmw1mhLgV44XSFuPg0EkCqmt+dtD7ZeoTjF7d9+E
+# //jBRgGjT1CANvFQg5Wk6FnfGPq8mx0O+BUhJy00o+hNXSjBY5ArUbNtWOYJUw0W
+# GoViJGF5joiBx5PW5gK8mFj5vqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjcxNDAw
-# MDVaMC8GCSqGSIb3DQEJBDEiBCBJz8WVz5xSqhVIFHi7/Xqi5uVlUg6InmNowHxY
-# JjG3hjANBgkqhkiG9w0BAQEFAASCAgAb8hEWIQiG1wFmK8EM52NqSsK+sJvT+7Wa
-# YaB8Gnw0LoKFIdwjNeUcAiUlEm4FdMAURWUs2I3V1YG8+NmMxpsMpowW8r3TVSwJ
-# FKw4G0truxDi7Epton20re0iWgY/+DOBQ/yaCtB2/cTs4wglEExA/8EdDy3lb3MB
-# I/34g0shHHw/TcqxJt2cey8k+/HI/ZhayxEnBwZHHaKzHL0VmxZ+4MN9/HeGKW+s
-# jGEP3QJQRgZ5WY73P1QUL1J8ZGlvHk1b96PClQnUeBwtf9vJdbG1KL6hsIpaTpvD
-# K3EDUJoPrBfRd8Mf74QaJlsGAUR0KwA/zEd0p5VrKEkWpOWXwcvd7L80igfbjZm+
-# 7rTjQ6yoYoOrgT4SCo5SbvPeOiECdmwxCllEdUWOHPMOOEd0Ek/ynRPDVOeVY967
-# hHFpPMgQmp3rBRKXUfn4B5pqGcBGyW67ghfepqyrzhYhpC+lDQWsn0q1KYMF23xl
-# H2hfxwl4W3zLrxz+ATtvMN5TgYIDcerjyICsycyaIpyMzQggIMi06yr6EsFkPXiH
-# s6nI/HzMUzW9ZeC8ejzTD6GWsswbdkLFX2NQ1CH7UO53S5U3iXdCwufMWhoSrITv
-# R1y5tPbZftqSmyylBLy5/pvDwnE3XScDp0a5ts58bKBDa1aD83EoJoXAJhb0ZY5a
-# c4rcDLmgvw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA1MjkxMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCCisHqpoh2P6+KoLenqq4f9dvozERpGR4iMg1cV
+# rvYrPTANBgkqhkiG9w0BAQEFAASCAgCBvbAKGhXJTsNilL2D5qIZ5dST2yaTkPb1
+# wrrcxBOS9wiOKcl9136i1w+7g0wmC65L+ZIgpm/gVY1d8T48ZXCzH9oxW8WrraB7
+# pmMsUJyIq5NyIWKFexiv+aoo3SFwZJ0VP26hnDp1haMBAU/vc24C6A2h3Z3esOrx
+# HzR5f/ogoboDn9t+lWjGc09WGvUlFxMZFftvUI3Cu440VLVNAQp5LA9tu3BWh10t
+# vy+kVQkSRaFsbolpVjDY6qKj1SpsLO4Rv0G5/f0Cwf1vaZLZWrVtf32DwxR1z6w4
+# lMLH1l8ff7FUDMRDG0JgtXa4cftQm2czI4pzBfyGAHmh0eNIqeA+aIybVfQ9qf2R
+# MrxP6IuFgHEVBJscGli2Gd/zp4jKj/XGXuIxAtErrBm9l2Yv5eRJihCHCBx9cYW6
+# sY/wVqNRsnc1ROiEmJ5X20qMxYjucUpzDzJkIXZEfiKIWAtETbozxCQ/QzHvhblO
+# 5hhIlKABdKUMvLzD9PyJJNxhrs9NDA0wRPmgBZAKw0RKQ1SDMXG3dtyiagajTCtW
+# SsYqhyjnOjtSWC2IokkSmvc9jGF3/+IZ57bNIFqtvzc4aUgBWLIrWlF8dkKw2Bpv
+# llj20cHmNe7evbeDeG+z2t0Wxk8Y4zDdtLUMhvQB2VsTuw4MQAshv37U0Gfan09p
+# 2JyWrpJ06w==
 # SIG # End signature block
