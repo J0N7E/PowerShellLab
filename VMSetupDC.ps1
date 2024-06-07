@@ -914,10 +914,10 @@ Begin
         )
 
         ###############
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             $OrganizationalUnits += @{ Name = "$Tier";                                                Path = "OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{  Name = 'Administrators';                             Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
@@ -934,7 +934,7 @@ Begin
         }
 
         ##########
-        # Tier DA
+        # Tier DC
         ##########
 
         # Server builds
@@ -944,8 +944,8 @@ Begin
             {
                 $ServerName = $Build.Value.Server
 
-                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Domain Admin,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
-                $OrganizationalUnits += @{ Name = 'Privileged Access Servers'; Path = "OU=$ServerName,OU=Computers,OU=Domain Admin,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
+                $OrganizationalUnits += @{ Name = 'Privileged Access Servers'; Path = "OU=$ServerName,OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN"; }
             }
         }
 
@@ -1000,11 +1000,11 @@ Begin
         }
 
         ###############
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
         # Workstation builds
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Workstation builds
             foreach ($Build in $WinBuilds.GetEnumerator())
@@ -1070,7 +1070,7 @@ Begin
         @(
             # Domain Admin
             @{
-                Name = 'Admin'
+                Name = 'tdcadm'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
                 NeverExpires = $false
@@ -1080,21 +1080,21 @@ Begin
 
             # Administrators
             @{
-                Name = 'Tier0Admin'
+                Name = 't0adm'
                 Password = 'P455w0rd'
                 NeverExpires = $false
                 AccountNotDelegated = $true
                 MemberOf = @()
             }
             @{
-                Name = 'Tier1Admin'
+                Name = 't1adm'
                 Password = 'P455w0rd'
                 NeverExpires = $false
                 AccountNotDelegated = $true
                 MemberOf = @()
             }
             @{
-                Name = 'Tier2Admin'
+                Name = 't2adm'
                 Password = 'P455w0rd'
                 NeverExpires = $false
                 AccountNotDelegated = $true
@@ -1175,8 +1175,8 @@ Begin
 
             # Domain Admin
             @{
-                Filter = "Name -like 'Admin' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Administrators,OU=Domain Admin,OU=$DomainName,$BaseDN"
+                Filter = "Name -like 'tdc*adm' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Administrators,OU=Tier DC,OU=$DomainName,$BaseDN"
             }
 
             #########
@@ -1185,7 +1185,7 @@ Begin
 
             # Admin
             @{
-                Filter = "Name -like 'Tier0Admin' -and ObjectCategory -eq 'Person'"
+                Filter = "Name -like 't0*adm' -and ObjectCategory -eq 'Person'"
                 TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
             }
 
@@ -1227,7 +1227,7 @@ Begin
 
             # Admin
             @{
-                Filter = "Name -like 'Tier1Admin' -and ObjectCategory -eq 'Person'"
+                Filter = "Name -like 't1*adm' -and ObjectCategory -eq 'Person'"
                 TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN"
             }
 
@@ -1242,7 +1242,7 @@ Begin
 
             # Admin
             @{
-                Filter = "Name -like 'Tier2Admin' -and ObjectCategory -eq 'Person'"
+                Filter = "Name -like 't2*adm' -and ObjectCategory -eq 'Person'"
                 TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
 
@@ -1475,10 +1475,10 @@ Begin
         }
 
         ###############
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Privileged Access Workstations
             $DomainGroups +=
@@ -2695,10 +2695,10 @@ Begin
         ###############
         # Computer
         # Base
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Set computer policy
             $ComputerPolicy = $DomainSecurity
@@ -2738,10 +2738,10 @@ Begin
 
         ###############
         # Privileged Access Workstations
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
 
             # Set PAW policy
@@ -2760,10 +2760,10 @@ Begin
         ################
         # Computer
         # By build
-        # Tier DA, 0, 1
+        # Tier DC, 0, 1
         ################
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1'))
         {
             foreach($Build in $WinBuilds.GetEnumerator())
             {
@@ -2787,7 +2787,7 @@ Begin
                     # Link server base
                     $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", $GpoBase)
 
-                    if ($Tier -ne 'Domain Admin')
+                    if ($Tier -ne 'Tier DC')
                     {
                         # Web Servers
                         $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", @(
@@ -2844,10 +2844,10 @@ Begin
         ###############
         # Privileged Access Workstations & Computer (Tier 2)
         # By build
-        # Tier DA, 0-2
+        # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             foreach($Build in $WinBuilds.GetEnumerator())
             {
@@ -2893,7 +2893,7 @@ Begin
         # Tier 0-2
         ###########
 
-        foreach($Tier in @('Domain Admin', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Link administrator policy
             $GPOLinks.Add("OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN", @(
@@ -3687,8 +3687,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQWek96bbg0e3AYFCNEZ7m5R3
-# DWmgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGcualFmw1RNRpHMH7mqusj5Y
+# L3CgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3819,34 +3819,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT4uwVx
-# SDbS6NPZ0XlB8h9yC8VOmjANBgkqhkiG9w0BAQEFAASCAgBJ9L5U2IffNAQOHrar
-# jx+xl5h0JnmGjngNCv2ZsyVeXa2fh08Wa3QbCMcLhb+Rq4iXaa2jbXomWy6LJz0v
-# lIXmD0aJxqe6Grro7ZKEeoLtkXSd6nPJj08eqdZz8ZAB1pA9ut4ytOT+OwwYaETJ
-# bd5gY3bAGzZo2yd9W+T+oxGNMLc9rxxiU6UD4ZvGHmHS99z1Xz4gCSl/b3ooPGNW
-# pkzmO11C8wszDDq2P21rl1qkHVdBr/LEqCQ0r0UQii4V3vb6Gywx6h13x7lbhETD
-# LQSjUIMws1b5IqrdM1HL8X3tv+tF+mt3tksasQ/7FV7YCD7iu8ZANi8pKWLYhmOm
-# GTIOk2PZGqXdZcy9mtl9ek8UJFxW2qvmOQ4/l0G73rj+GXd057ou8BTf11glO7I2
-# wnl9ZeumTIAhNpQqcxMArnXhlkB+hnEmuGnd3lGoQsk/XaHTkkD/euYOwrWfeLKC
-# haZ8zuPzPwuCxTRL7AxaEPgPFP2s+pDmCAh+dPzcpkFcAodvlUEv3TAJBIHoTamb
-# 4uxShkh8HfcRJ+n37FCo9Npnr+RSJ4rdPc7jymsl67g3vFLN84isuFcKZbU9v9M3
-# mgVnEgXpo2tIhY3Q5uudaun4I+tZN+Jv75yFuOye26F62hnDM4Cz+72VSfkcF/8P
-# znKfTUuEsKUZfWVDK8BedDyIJaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTu2G4c
+# /OVuSVqKyEoSMxAueTUC/TANBgkqhkiG9w0BAQEFAASCAgAyS64xptf3WWKXslH5
+# zUw6j4jC+Jqpmcynn8wFMCtzSLZk4+FtqbU+lMfm4WZuTgI3L1DI4JE7RUSEDOlm
+# XOhL1gq2EOOExkO/M/HcHmtmnw7LlodfZeGmAK9+mTQyldUBWTWe2kmLQMUowCwg
+# xdzq2DJPX6zEdLM2Jsfb1L/nN1mmMnd+XCilMeO45HCUkSMM+m/LhPkq0bqGOeH1
+# zZN20r6IH0WAcsnNMSDSTYxyuXMFpIyPas3eJWLMQNyjDgolHH327V3szUhxvlQY
+# YgVnrHXWJC4lx5hkclks1yRc6NTf38A3C7q9HzPlj0LG+tlp5WFlGHBty/m8Rv2/
+# f/js3cbRxohf4TAFPj7RFwso35KnPjfbLPadtmg3N3uSP8yF9dWS5G8+E/numomx
+# YkwOC/d1sJKYNnD+/eUWgeRjnbDRmPYG5/4NhAW2Md68KJcNB0eH6S6NDhhby7GW
+# AE1Z//Ux0yG8BSBWRAshBDqbZdQemXld8PYn74sJIEcScpg4Uw9a60Pe2/vsInyP
+# FKbAi1wrg6PFvtbqKhKxMt21EbQS4NFzSBU52Ny2kv6/PLAy4Mk57ekMuWxkY+eM
+# up1y5AF7ljU94oyUc9NxBj9J/vD7zONMc+/GzhTPhT1+hCQTJJIg6YoHEq6yEZPf
+# ybng2Ihk0rzZtruCE3hpsIQyVqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MDQwOTAw
-# MDFaMC8GCSqGSIb3DQEJBDEiBCDyHV4CQHAa2cej4zDvJCUjGZnE+Rk5bizd2GUj
-# k4qGSzANBgkqhkiG9w0BAQEFAASCAgBmbQz0niwbid6FH+GsiGI99/TsbOff3Dcy
-# 56d2cH2wpGB7yCgih7Lk9YfpH7P8Skl2BRWKv6LQts5SifJzsd/FsQman84r5keY
-# 42bk4XjsP8iH8G9fIEz5QyCClklZe73DwQBZFoq5hEHVMyXAND3/OQlXwexZiE8F
-# ubDNt6HKfcPkbb78jCW9aV41OI9x/bgGaxsEmCyhirSI4T2R0H75EA43F1YLmhy5
-# Pi7gXvomg7rNX/5pMx/pck+C86S1d+dZdaOyhNprIu5Yzle8rwII1oVtC/O398e3
-# IOyaormpS9WatLRq91tSsVIoHWQbz1tBiavh4jkU7wOHQceMhKmTaZvpUf2oACGy
-# 9//tNhyDbvZTKeHud+GvqSZCxFTpNxsBWGoc1Hy1pNRvbJzQbrDJJgftE5xT/tGk
-# oKCRTdCl1z6+JgtTc1UglYKX52UJmA2DaZpjVtZKTRj5oeJlRnZdFc9ycIDoauYj
-# rpDDz3n/rFxTBSDHjSnrwNckDOW21WhaSWACELMCeBQ6XZjESeRrISBEJYb66tM1
-# YSQzKjIftwSQEs4VpFvSitonYvIVqLKYHsgJaylr/eFv2BmvmSEJMFWJLTE9Kum3
-# e0dIhlauuxZXlqG+DByFG3zhuj8O9mYwduLqtY7PbRKR0h/zzGzUDdfCZ3hSbFQb
-# WLmJPZuUjw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MDcwOTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCB0dOSJ/cQEDeegiyyutd1osb+hndCCTsvHAk1V
+# vzLBSTANBgkqhkiG9w0BAQEFAASCAgBpG3+wQNuN8Cbo/udUzFWlvCUXf9vDsJMe
+# FVB9t+xLx7CpyRzPCToc2amXUDoD7HkUyjAoT5qqVDfshkDTOnG5roRI0CeC3+SB
+# M5vU0U3mD47T/RvJF7/ZWSzVV4NXDVCNsyjwbVMyEETLzU3GO3VMiE2C7I/Lem2u
+# nnslPV1lWQYfsVdWzudQKmxvaQG8uReRB5pF9+U5vDpSsxHQCOOYaH8T3OfpyrIa
+# 9l0WPGUNP6u3QOJfTfQHr6qXUtG7VQxDaeXOKWtDn1yGHaNNuiG1eqJu84qBD+Ux
+# IeChyQynfzcy7wSyg/mLslVaqp5kVDCLenShK6gfispSbxzFl5e9GitTu5kTJzXY
+# Vqqf0Ls8XDau+ZkrqTCuyByv7tKVTcCPoV+Hfx4PuWHqBkiduUpv49bSMZVLZVds
+# iYnAZCTKLrxownkJknrlrLmEB7+n0GQVzJS3R3zV+0UcgtRI3ZVJgPjdejsN8Trq
+# h0Dz//cVq8iQclZUBfP7O4gNpRlhSb3g3gYTFZwkZvCmcIKGR85gcbt818JH/ZBw
+# 3cEMyjdH+SU5BoZOT5Eo1rwyPEwBMaQS0GbdSCNDX8Jl6bY6qiLjSjTaa+ibaAWw
+# 4tTZ+cuNxkv3OBhxA9av+t8ez48nsSVIQhbp/fVWsOEDL8Fdakce17+Sv8lyi883
+# X8CzlSxkOg==
 # SIG # End signature block
