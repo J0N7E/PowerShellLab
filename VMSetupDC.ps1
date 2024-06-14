@@ -1606,6 +1606,8 @@ Begin
             # Laps
             #######
 
+            # FIX Move LAPS Access Control groups to respective tier
+
             $DomainGroups +=
             @(
                 @{
@@ -2268,6 +2270,72 @@ Begin
         Get-ADObject -SearchBase "CN=Schema,CN=Configuration,$BaseDN" -LDAPFilter "(schemaidguid=*)" -Properties lDAPDisplayName, schemaIDGUID | ForEach-Object { $SchemaID.Add($_.lDAPDisplayName, [System.GUID] $_.schemaIDGUID) }
 
         #https://learn.microsoft.com/en-us/dotnet/api/system.directoryservices.activedirectoryrights
+        # AccessSystemSecurity
+        # CreateChild
+        # Delete
+        # DeleteChild
+        # DeleteTree
+        # ExtendedRight
+        # GenericAll
+        # GenericExecute
+        # GenericRead
+        # GenericWrite
+        # ListChildren
+        # ListObject
+        # ReadControl
+        # ReadProperty
+        # Self
+        # Synchronize
+        # WriteDacl
+        # WriteOwner
+        # WriteProperty
+
+        ###############
+        # Tier DC, 0-2
+        ###############
+
+        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        {
+            $AdminAccessControl =
+            @(
+                @{
+                    ActiveDirectoryRights = 'CreateChild,DeleteChild,DeleteTree,GenericRead,GenericWrite,GenericExecute';
+                    InheritanceType       = 'All';
+                    ObjectType            = '00000000-0000-0000-0000-000000000000';
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate $Tier Admin Rights";
+                }
+            )
+
+            $AdminAccessControlRsopPlanning =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'All';
+                    ObjectType            = $AccessRight['Generate Resultant Set of Policy (Planning)'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate $Tier Admin Rights";
+                }
+            )
+
+            $AdminAccessControlRsopLogging =
+            @(
+                @{
+                    ActiveDirectoryRights = 'ExtendedRight';
+                    InheritanceType       = 'All';
+                    ObjectType            = $AccessRight['Generate Resultant Set of Policy (Logging)'];
+                    InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
+                    AccessControlType     = 'Allow';
+                    IdentityReference     = "$DomainNetbiosName\Delegate $Tier Admin Rights";
+                }
+            )
+
+            Set-Ace -DistinguishedName "OU=$Tier,OU=$DomainName,$BaseDN" -AceList $AdminAccessControl
+            Set-Ace -DistinguishedName "OU=$Tier,OU=$DomainName,$BaseDN" -AceList $AdminAccessControlRsopPlanning
+            Set-Ace -DistinguishedName "OU=$Tier,OU=$DomainName,$BaseDN" -AceList $AdminAccessControlRsopLogging
+        }
 
         ################################
         # Install Certificate Authority
@@ -3687,8 +3755,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUElssS6zLthflvNAcVWftMEE+
-# D2ugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2wmYNWzM5Ys9G2of4GByLzHU
+# cK+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3819,34 +3887,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRiLwbM
-# M2N7bdzeRWotr3JwxegzZDANBgkqhkiG9w0BAQEFAASCAgDNnBOBvRovHB+2Io7M
-# IT1wPprCtr6iwS9tMNeNFdhA+L3/5tbQAPRBRygTlaLUBriUuuoKd+bT5NBwkGcM
-# mbL9xfii6sPVLrsBryYke5e1HtFZOdxm4vUpYE8A1L6mzT5RiYJcgJ3qRB5Hi/D4
-# qWfuam0x44zs5XuA8CHo9haKDIUDxtZCfMprU7ptkXj808yjBSxSp0+9Jtkc9V6U
-# PO+UHK/twLuJz2yS7TUmsUTMZkmm2n/iqmhRFzBfvbxRj26oGQFT8zDateqx3wwX
-# /o0PIAlZd7HfIUEcSAJZvJ+TVaOQZVrbQnXNj+QEQle0o/21BFUwjSkBtbb1yfTY
-# DDInjfs2MWsRQXeijvKr2unWps/knggTxEO0yfKygLYnjNR0iMlRRTJM7qX+wu9e
-# n/qWcPFg1Z5vHLphSi8ozuUTmtEXmzx55JqOxB8WSe87hEY2niL+1oOC5xGlsPuz
-# IiNBAlgVer78KcV1vZ2hwXjd97i3npDWRo4a6rZwsPGUV9cV27QZmFwaYYrpEYPt
-# 7VMCNXPGDQMjM85HRu7Yd57iTjE2JbziG7jYr+WI8ZLqFJf+0ZzCPx1fH6b4cE/E
-# BDaxIhNsPmcWRWfFieQL79PwYqGNB9jsjIuogEWnnityFxlsNIHAFtMw7qsAowuO
-# HJ7mMXccirsE2Uq4RnAvfs6DF6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSoPGoR
+# h7UUAx1v8j/3T+UY66CveTANBgkqhkiG9w0BAQEFAASCAgBvBrjmzDlceMSNT9yK
+# rAcZKxQonyhmzFUOVGrUQD+i7jMiiakTjz6eqyIpK8mxefO/s2Ht4m/9xzA6wbNr
+# cOyqR7dp6wBRT+8G/mdhb7QA4FLiF+/O1lJwdoPKBMESfvztJiTKMIGr7tNDxByc
+# tiZpiCi9YcRKUVDyU/DFllPa8uuUwG+ixk9bqKhz+r/4cJaYisJ5dvwRgpYjNcI3
+# dQ3Pi8D4vvLPHQx8T0+KRy2xr8uwwecySTkW+MP/i13PCFyQ7WKCRQ+s7F5BZN0U
+# lDj54G5pfRD3Cm4IEtaYys1r8hCPl4p6ziOrPUnmKfE0Jg2zV7lkroRL0g+bA+be
+# Y1ugtJLI6omcEJBk2Xc1w/37X6/zSK0rsiJcHHYWyX3DZ9HUmyFJX1shITnlg3zv
+# DSPKMEjrezMEN2xXaaU4gpZbaBkCE7gLwXuE7dpyslO+sztIU3O3wtSAR124LUs7
+# NiUpRs8VcAvOcYxK020jeEjgTz2kYzGn1qZ8Vx1zconTngow8uveP4LLgV5HftlK
+# 8GeZ94wPTSwGpfrLfi0sk/r1sFXdgMpN2CtSAQ8ZkYsRHkgTQFrSrt38PWkTkjem
+# EJ8CVJwQ971m6KO4k+kv3cuCfM3kUI05IeQ8hOrgsJcauOTNeeQbBymSIZ5074DZ
+# UKyVgV9uK4eBOo1ivrqy1IIpvaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MDcxMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCB6rNK+oOnlBVCIp+/oFreeAARnuhLyi0CX+OoC
-# 6WEuGzANBgkqhkiG9w0BAQEFAASCAgA6nO5tFyMDSobRzfiB3EhZEfWeG3MhrUEn
-# 47odCgGEqj+7owjPIkohWPpTNttS5wpkGHLyb1W5RvZseFStYzgvaRDIALAWytVm
-# tAjkLSLoucV055I0E49oQT/tbdaB3+DhEpfpozXt5pGw7ZNl1m9cewItWXHX9Ce6
-# EdQrt7mLz5lWRLYl0aYvJOf/SdLr83EnDE0mJ22GHWQ1dHtUj9jpk8GXTDrOi9tP
-# aI10PHqtAGWhig4umCeBLIaZ5NuxARUVd5Ub3iO7goMbshMjgnNDrfp4SIr6Un/g
-# vBnEp1wGadnkrzL9e8y+S4CD2APkByVy10TQ2UWdFT0UQj9AnYCizHvSMDaVMgab
-# vU2jZz8d/EGsJR/nSBDlfpAG5NWt3NNIOIYxr9EojZFRrJDA5maumvZQnFxIep7d
-# VRYjUv6ssS4+VdScv4Bfg4preakPy1vE9UF6a/imOhkWCnkdIQSVpqyC5gxox6/f
-# yGzkut6qOsNvWNVseYSuu+8qYPEJUpjXwt8GstKaJKjcoDKBxZmEXCDEf+Rhw+bu
-# K2ABevM3ihJqoqrRJEEYtQWUCqYlY+2btfzJOjgvoe5mftUscUdRFAzDVtYgbOuW
-# GenvptJY6fWLHAHxXRdxhYN+hpvGjaEO9b0FbsTtCaTSxYQqPqNdUZfPixu0BlZQ
-# Iv8SP1fU/w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MTQxMDAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCA/mX7Etk/XTM/9dOsuDOWyhuqC+kWInDYQfaej
+# V0CLZzANBgkqhkiG9w0BAQEFAASCAgBNOSfBYqKs+WaOCodaZOATcczkbkacJA2X
+# A5p8NqiDSnKqNB9ZhCPxkc0mMw+xpzskwNHoivhMZokX24gctVcQh0XMBeDedFxT
+# Ty+q7WIOkKBpa7X9pXWbRqZOo1tNlwDVHu8YQuo+42JPyuOKapGwda81HIZrYYtB
+# Qk2+X2RCmbXcwDrly+bAzTPSXW9vbv0o9pb4D4CQvye/T7+qk5iA6ZLqoh5dYnsR
+# 5fHgk5X3ljxpPfQgGBXHOhLqStpVlwWc7DSeFkrrPOfw3TmaVDQlQlfZw6viuip9
+# jE7pRxFR7RqZc1N/zk1t5VZqarReGQ0p9O4vgw6hZnP+MY77OS7i7kB87rb4e25+
+# RcLURAROznDoL4jGWm1yeLffz3DzFXTpvQ5mD+t6nheg4HDB8safvAF7i5A3jWxA
+# In7W4Kn2ODpmZk7ORaDbp0ak6YFn3Nwh+bLEydRNE/wlP5heT0n7iS359NIb6u7e
+# QJ0g474K/N2g7eJUmXTr49F7vOWIoBBigW8f4dEyQ4u3DmVHzVhCkDcV/Gt7ldqA
+# F/8budF1R5YUC9s7LGYIzHD3eXHqht+Sbd5kAq7GLBodfTcRAlxSeu2B+y8kxDjG
+# IpX0gUfm11rFKP374ij2cJnUAbgjquDjmYsiDDgfVBvwjmBbGip51W/m94rz+nEn
+# YSlMGTPgkQ==
 # SIG # End signature block
