@@ -1082,6 +1082,7 @@ Begin
             @{
                 Name = 't0adm'
                 Password = 'P455w0rd'
+                Description = 'Account for administering Tier 0'
                 NeverExpires = $false
                 AccountNotDelegated = $true
                 MemberOf = @()
@@ -1089,6 +1090,7 @@ Begin
             @{
                 Name = 't1adm'
                 Password = 'P455w0rd'
+                Description = 'Account for administering Tier 1'
                 NeverExpires = $false
                 AccountNotDelegated = $true
                 MemberOf = @()
@@ -1096,6 +1098,7 @@ Begin
             @{
                 Name = 't2adm'
                 Password = 'P455w0rd'
+                Description = 'Account for administering Tier 2'
                 NeverExpires = $false
                 AccountNotDelegated = $true
                 MemberOf = @()
@@ -1568,11 +1571,11 @@ Begin
         # Domain Local Groups
         ######################
 
-        ###############
-        # Tier DC, 0-2
-        ###############
+        ###########
+        # Tier 0-2
+        ###########
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier 0', 'Tier 1', 'Tier 2'))
         {
             #########
             # Admins
@@ -1594,45 +1597,36 @@ Begin
                     )
                 }
             )
-        }
 
-        ############
-        # Tier 0-2
-        ############
-
-        foreach($Tier in @(0, 1, 2))
-        {
             #######
             # Laps
             #######
 
-            # FIX Move LAPS Access Control groups to respective tier
-
             $DomainGroups +=
             @(
                 @{
-                    Name                = "Delegate Tier $Tier Laps Read Password"
+                    Name                = "Delegate $Tier Laps Read Password"
                     Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
                 }
 
                 @{
-                    Name                = "Delegate Tier $Tier Laps Reset Password"
+                    Name                = "Delegate $Tier Laps Reset Password"
                     Scope               = 'DomainLocal'
-                    Path                = "OU=Access Control,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                    Path                = "OU=Access Control,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq 'Tier $Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                            Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
@@ -1654,7 +1648,7 @@ Begin
                 @(
                     @{
                         Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
                 )
@@ -2290,11 +2284,11 @@ Begin
         # WriteOwner
         # WriteProperty
 
-        ###############
-        # Tier DC, 0-2
-        ###############
+        ###########
+        # Tier 0-2
+        ###########
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier 0', 'Tier 1', 'Tier 2'))
         {
             $AdminAccessControl =
             @(
@@ -2666,7 +2660,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'No';   Enforced = 'Yes';  }
         )
 
         ####################
@@ -3755,8 +3749,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2wmYNWzM5Ys9G2of4GByLzHU
-# cK+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULiudTyl10d9ooTSRw+o9yGLH
+# NsOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3887,34 +3881,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSoPGoR
-# h7UUAx1v8j/3T+UY66CveTANBgkqhkiG9w0BAQEFAASCAgBvBrjmzDlceMSNT9yK
-# rAcZKxQonyhmzFUOVGrUQD+i7jMiiakTjz6eqyIpK8mxefO/s2Ht4m/9xzA6wbNr
-# cOyqR7dp6wBRT+8G/mdhb7QA4FLiF+/O1lJwdoPKBMESfvztJiTKMIGr7tNDxByc
-# tiZpiCi9YcRKUVDyU/DFllPa8uuUwG+ixk9bqKhz+r/4cJaYisJ5dvwRgpYjNcI3
-# dQ3Pi8D4vvLPHQx8T0+KRy2xr8uwwecySTkW+MP/i13PCFyQ7WKCRQ+s7F5BZN0U
-# lDj54G5pfRD3Cm4IEtaYys1r8hCPl4p6ziOrPUnmKfE0Jg2zV7lkroRL0g+bA+be
-# Y1ugtJLI6omcEJBk2Xc1w/37X6/zSK0rsiJcHHYWyX3DZ9HUmyFJX1shITnlg3zv
-# DSPKMEjrezMEN2xXaaU4gpZbaBkCE7gLwXuE7dpyslO+sztIU3O3wtSAR124LUs7
-# NiUpRs8VcAvOcYxK020jeEjgTz2kYzGn1qZ8Vx1zconTngow8uveP4LLgV5HftlK
-# 8GeZ94wPTSwGpfrLfi0sk/r1sFXdgMpN2CtSAQ8ZkYsRHkgTQFrSrt38PWkTkjem
-# EJ8CVJwQ971m6KO4k+kv3cuCfM3kUI05IeQ8hOrgsJcauOTNeeQbBymSIZ5074DZ
-# UKyVgV9uK4eBOo1ivrqy1IIpvaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSKM1l8
+# ezuxR/GNMsY+qvi/L+h5XzANBgkqhkiG9w0BAQEFAASCAgBKImoP91gXvXkSfYar
+# hgqJfqh6dEA/5mgGRlvoBLbe7A9WlCN2VAY90h/mlRUgxCrWd5+KwyqX7irH7msr
+# vfc4QC+48Ye2MMdPxiU9Kl46kZzNRFeVSWeNOjbarP5V9HFYakLtmaPEysjntzIB
+# sByWiJ75kRA7qfqZP0E9savth58IWsvG/tRqk2ofHUieg0qxOcZBYC/942A0+i+b
+# Z2muWEgMqjjdka7j4E5Uhr9YxOCkwI+DkdEU8x/Kyhr2cWwMhtIc9hUOZG4yUJTA
+# jf5QZdi3J9toPE4/x6WMhYxKnClYzJIZyMkCOC7g9+Zyiyjcne5e1ddlBEPBchLp
+# bYRRk34wPMa2U+H211HjhD2virB0qy2VZzsjjPEHfadyTBumIUv0e5VCkoPzMWxo
+# KCC5+u8s4QNTN96F69wkE83uOinVQ2CJGL6tCTxIoR2Ekkc78a7Cccjtp9vWpcIH
+# 9q9UKtpheEhdtFYBdUdjndeSL+w7k5V8n2Tl2b2Wn7f6FPyIuaw4d2EVwevqvLMc
+# qKKygOTrWOF9M6h3NGmCUHjAqNHbvWSzgEFPfk1vubozwfNmvniOo8GRGypigJh9
+# w+de4dwLVFe3T0hYJmjmNGOL65daaohrqdgTHflGNTuDS73GRP5IfVjJ53UrnmGD
+# FgYoiEc7PjDW6qS+m7Dg2IscDKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MTQxMDAw
-# MDJaMC8GCSqGSIb3DQEJBDEiBCA/mX7Etk/XTM/9dOsuDOWyhuqC+kWInDYQfaej
-# V0CLZzANBgkqhkiG9w0BAQEFAASCAgBNOSfBYqKs+WaOCodaZOATcczkbkacJA2X
-# A5p8NqiDSnKqNB9ZhCPxkc0mMw+xpzskwNHoivhMZokX24gctVcQh0XMBeDedFxT
-# Ty+q7WIOkKBpa7X9pXWbRqZOo1tNlwDVHu8YQuo+42JPyuOKapGwda81HIZrYYtB
-# Qk2+X2RCmbXcwDrly+bAzTPSXW9vbv0o9pb4D4CQvye/T7+qk5iA6ZLqoh5dYnsR
-# 5fHgk5X3ljxpPfQgGBXHOhLqStpVlwWc7DSeFkrrPOfw3TmaVDQlQlfZw6viuip9
-# jE7pRxFR7RqZc1N/zk1t5VZqarReGQ0p9O4vgw6hZnP+MY77OS7i7kB87rb4e25+
-# RcLURAROznDoL4jGWm1yeLffz3DzFXTpvQ5mD+t6nheg4HDB8safvAF7i5A3jWxA
-# In7W4Kn2ODpmZk7ORaDbp0ak6YFn3Nwh+bLEydRNE/wlP5heT0n7iS359NIb6u7e
-# QJ0g474K/N2g7eJUmXTr49F7vOWIoBBigW8f4dEyQ4u3DmVHzVhCkDcV/Gt7ldqA
-# F/8budF1R5YUC9s7LGYIzHD3eXHqht+Sbd5kAq7GLBodfTcRAlxSeu2B+y8kxDjG
-# IpX0gUfm11rFKP374ij2cJnUAbgjquDjmYsiDDgfVBvwjmBbGip51W/m94rz+nEn
-# YSlMGTPgkQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MjQxNzAw
+# MDZaMC8GCSqGSIb3DQEJBDEiBCClfAG1JS2cX78MJ0HYAVQI7X4DHBL+SXKUe3de
+# OLsTlDANBgkqhkiG9w0BAQEFAASCAgBJVsSOXylERHYZNR6cFDxCT5261tZQK/l1
+# zGjY3E73Fz977NJ+nvsEdXhYXDPM3mXcNf1VANLHHZBnJhJk8hmSYVPK6YBtXXWw
+# mKcxwI2dkSFvchIS/RWgWuyAMUeFvvmU78WG1vMw45Z0i9Sconq4UkTruiUl0WNv
+# qeufxORtoBlmb7EBIAFDpid5Y5x9LX42q9F4MKm8cMqkG+wQqu3SXmqcDrrJd+Ef
+# YrLCXSehE1/M496/khEke9ZRxU/fepxTSgB7/2dQ6N2mimuXhaASvfBxpHasPdhZ
+# wL6Kkith+YoTPHdonJqEyU8qjOPURZQ2ulJ6GLXwFLlVBIqFBvfO4Z7ssGJ8HTnh
+# Aao4xarY0BIiKOWzP+1FGlhtJyhrv39d2Q3N4Xeca93ndjBitroDT743xhKuwk6l
+# E94l9Agctj/2q5Qrd9LSx5yEtqhv3kqPDTFg40A9W2tQGM3PaVFJAUwETG+txnO6
+# yCNwTHBZDvA3ybZWMjcOH0Nau3mCpzckfVsiSmOXsrNxyJX/k7V5mB4QEVa7HogU
+# e0Q6GjG2L3tMjijZvUZEeVZmvHgjL+LyqmWFloSWPoVWeISRH6t+UMYjo9ErAhMY
+# fNO33ZqmRT+swcT4ePxs2vs3Rqrqr8NnWl0MAoIxmInYQ6qello9WJ25t0vuUkvt
+# 9Vaj6KmWcQ==
 # SIG # End signature block
