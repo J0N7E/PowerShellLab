@@ -928,8 +928,6 @@ Begin
             $OrganizationalUnits += @{   Name = 'Local Administrators';            Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{   Name = 'Remote Desktop Access';           Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{   Name = 'Security Roles';                  Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Privileged Access Workstations';  Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Privileged Access Workstations';             Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{  Name = 'Users';                                      Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
         }
 
@@ -945,7 +943,7 @@ Begin
                 $ServerName = $Build.Value.Server
 
                 $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
-                $OrganizationalUnits += @{ Name = 'Privileged Access Servers'; Path = "OU=$ServerName,OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Remote Desktop Servers';    Path = "OU=$ServerName,OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN"; }
             }
         }
 
@@ -966,10 +964,10 @@ Begin
 
                 $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
                 $OrganizationalUnits += @{ Name = 'Certificate Authorities';   Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Privileged Access Servers'; Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Remote Desktop Servers';    Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 # -->
-                $OrganizationalUnits += @{ Name = 'Network Policy Server';     Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 $OrganizationalUnits += @{ Name = 'Federation Services';       Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Network Policy Server';     Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
                 # <!--
                 $OrganizationalUnits += @{ Name = 'Web Servers';               Path = "OU=$ServerName,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"; }
             }
@@ -991,7 +989,7 @@ Begin
 
                 $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
                 $OrganizationalUnits += @{ Name = 'Application Servers';       Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
-                $OrganizationalUnits += @{ Name = 'Privileged Access Servers'; Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = 'Remote Desktop Servers';    Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 # -->
                 $OrganizationalUnits += @{ Name = 'Remote Access Servers';     Path = "OU=$ServerName,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"; }
                 # <!--
@@ -999,25 +997,16 @@ Begin
             }
         }
 
-        ###############
-        # Tier DC, 0-2
-        ###############
+        #########
+        # Tier 2
+        #########
 
         # Workstation builds
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($Build in $WinBuilds.GetEnumerator())
         {
-            # Workstation builds
-            foreach ($Build in $WinBuilds.GetEnumerator())
+            if ($Build.Value.Workstation)
             {
-                if ($Build.Value.Workstation)
-                {
-                    $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
-
-                    if ($Tier -eq 'Tier 2')
-                    {
-                        $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
-                    }
-                }
+                $OrganizationalUnits += @{ Name = $Build.Value.Workstation;    Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.WorkstationEndOfSupport)"; }
             }
         }
 
@@ -1499,51 +1488,12 @@ Begin
                 )
             }
 
-            # Privileged access users
+            # Remote access users
             $DomainGroups +=
             @{
-                Name                = "$Tier - PA Users"
+                Name                = "$Tier - RA Users"
                 Scope               = 'Global'
                 Path                = "OU=Security Roles,OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"
-            }
-
-            # Privileged Access Workstations
-            $DomainGroups +=
-            @{
-                Name                = "$Tier - Privileged Access Workstations"
-                Scope               = 'Global'
-                Path                = "OU=Privileged Access Workstations,OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"
-                Members             =
-                @(
-                    @{
-                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*'"
-                        SearchBase  = "OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN"
-                        SearchScope = 'Subtree'
-                    }
-                )
-            }
-
-            # Privileged Access Workstations by build
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Workstation)
-                {
-                    $DomainGroups +=
-                    @{
-                        Name                = "$Tier - PAW - $($Build.Value.Workstation)"
-                        Description         = "End of support $($Build.Value.WorkstationEndOfSupport)"
-                        Scope               = 'Global'
-                        Path                = "OU=Privileged Access Workstations,OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                SearchBase  = "OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN"
-                                SearchScope = 'Subtree'
-                            }
-                        )
-                    }
-                }
             }
 
             foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
@@ -2660,7 +2610,7 @@ Begin
             @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restricted Admin";                      Enabled = 'Yes';  Enforced = 'Yes';  }
         )
 
         ####################
@@ -2798,31 +2748,9 @@ Begin
             $GPOLinks.Add("OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
         }
 
-        ###############
-        # Privileged Access Workstations
-        # Tier DC, 0-2
-        ###############
-
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
-        {
-
-            # Set PAW policy
-            $PawPolicy = $DomainSecurity +
-            @(
-                @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - PAW - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - PAW - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
-            )
-
-            # Link paw policy
-            $GPOLinks.Add("OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN", $PawPolicy)
-
-        }
-
         ################
-        # Computer
-        # By build
         # Tier DC, 0, 1
+        # By build
         ################
 
         foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1'))
@@ -2848,6 +2776,13 @@ Begin
 
                     # Link server base
                     $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", $GpoBase)
+
+                    # Remote Desktop Servers
+                    $GPOLinks.Add("OU=Remote Desktop Servers,OU=$($Build.Value.Server),OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", @(
+
+                            @{ Name = "$DomainPrefix - $Tier - Remote Access User Rights Assignment";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                        )
+                    )
 
                     if ($Tier -ne 'Tier DC')
                     {
@@ -2903,36 +2838,26 @@ Begin
             }
         }
 
-        ###############
-        # Privileged Access Workstations & Computer (Tier 2)
+        ###########
+        # Tier 2
         # By build
-        # Tier DC, 0-2
-        ###############
+        ###########
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Build in $WinBuilds.GetEnumerator())
         {
-            foreach($Build in $WinBuilds.GetEnumerator())
+            # Check if workstation build
+            if ($Build.Value.Workstation -and
+                $Build.Value.Baseline -and
+                $Build.Value.WorkstationBaseline)
             {
-                # Check if workstation build
-                if ($Build.Value.Workstation -and
-                    $Build.Value.Baseline -and
-                    $Build.Value.WorkstationBaseline)
-                {
-                    $GpoBase = @(
+                $GpoBase = @(
 
-                        $Build.Value.Baseline +
-                        $Build.Value.WorkstationBaseline
-                    )
+                    $Build.Value.Baseline +
+                    $Build.Value.WorkstationBaseline
+                )
 
-                    # Link PAW
-                    $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Privileged Access Workstations,OU=$Tier,OU=$DomainName,$BaseDN", $GpoBase)
-
-                    if ($Tier -eq 'Tier 2')
-                    {
-                        # Link computers
-                        $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $GpoBase)
-                    }
-                }
+                # Link computers
+                $GPOLinks.Add("OU=$($Build.Value.Workstation),OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN", $GpoBase)
             }
         }
 
@@ -3749,8 +3674,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQULiudTyl10d9ooTSRw+o9yGLH
-# NsOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpWkKAgQuK6pD2bpHGONBp3/z
+# q8igghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3881,34 +3806,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSKM1l8
-# ezuxR/GNMsY+qvi/L+h5XzANBgkqhkiG9w0BAQEFAASCAgBKImoP91gXvXkSfYar
-# hgqJfqh6dEA/5mgGRlvoBLbe7A9WlCN2VAY90h/mlRUgxCrWd5+KwyqX7irH7msr
-# vfc4QC+48Ye2MMdPxiU9Kl46kZzNRFeVSWeNOjbarP5V9HFYakLtmaPEysjntzIB
-# sByWiJ75kRA7qfqZP0E9savth58IWsvG/tRqk2ofHUieg0qxOcZBYC/942A0+i+b
-# Z2muWEgMqjjdka7j4E5Uhr9YxOCkwI+DkdEU8x/Kyhr2cWwMhtIc9hUOZG4yUJTA
-# jf5QZdi3J9toPE4/x6WMhYxKnClYzJIZyMkCOC7g9+Zyiyjcne5e1ddlBEPBchLp
-# bYRRk34wPMa2U+H211HjhD2virB0qy2VZzsjjPEHfadyTBumIUv0e5VCkoPzMWxo
-# KCC5+u8s4QNTN96F69wkE83uOinVQ2CJGL6tCTxIoR2Ekkc78a7Cccjtp9vWpcIH
-# 9q9UKtpheEhdtFYBdUdjndeSL+w7k5V8n2Tl2b2Wn7f6FPyIuaw4d2EVwevqvLMc
-# qKKygOTrWOF9M6h3NGmCUHjAqNHbvWSzgEFPfk1vubozwfNmvniOo8GRGypigJh9
-# w+de4dwLVFe3T0hYJmjmNGOL65daaohrqdgTHflGNTuDS73GRP5IfVjJ53UrnmGD
-# FgYoiEc7PjDW6qS+m7Dg2IscDKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT6n+6X
+# wOeXlHPmqSrpHt6QP7cgwTANBgkqhkiG9w0BAQEFAASCAgCyOoJ3+pQyZgrEqKlZ
+# thE0KlAOyn3l5Uzef1fkf5xeROEYzSrD7og1qL6nymadScLlF/Jtx5JKvhtCe0Qi
+# giXfa+4A4PhhWPktNSarHGfkbZokU1eklaJYUNT79MjprobAUrgUyKgCJ1L6iRi1
+# xGMrEqtd+ncnwmHgLcOEW66OkCMiL7Aq6UhynI8GFL9tKqHBr6VwqYzHD+3A6nJN
+# kS+5H8vB27DmdpjwHB3JfX8f5G8pxwqUQHxfQa4FrI9CnYB/NqUlsYH3AwZnc9xB
+# ptgUZ1LpSDXbZX2UEm5DA3mQVr24mD+7wBLaCCZWpkp90gDbqk7elpg4qLOX/vHy
+# SRW4/zT1h3Ad5n4wptTV1Sys7pndEn/0wM2cFV48UmbT9DZO+NfKjjTCgmr7r/aR
+# MBCkLveoUENJB1HprNoK+jOedBou/Fq7KUf2OeAfcf3YvLExjSfpFx/9Z8dA3hv4
+# NYLv24CY+WZThR6I5iY3Rsz/CBfeh2V/DQwNAsIxUiahTwLgm6OKst1aYa0amZrg
+# brQNGlajZABI0azIBDS1lCeAuqARNSsEIrEoUq8s1oRKSthcXr4q5r2KPRO5A9Lq
+# DcblFLrV8Kv/7qA5qisUjhR+8qom2/IXmZCBH94vpzPnuw78rlp5INUeY5KccnHd
+# nccarn3NqqRVhaC415NpfvsMbKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MjQxNzAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCClfAG1JS2cX78MJ0HYAVQI7X4DHBL+SXKUe3de
-# OLsTlDANBgkqhkiG9w0BAQEFAASCAgBJVsSOXylERHYZNR6cFDxCT5261tZQK/l1
-# zGjY3E73Fz977NJ+nvsEdXhYXDPM3mXcNf1VANLHHZBnJhJk8hmSYVPK6YBtXXWw
-# mKcxwI2dkSFvchIS/RWgWuyAMUeFvvmU78WG1vMw45Z0i9Sconq4UkTruiUl0WNv
-# qeufxORtoBlmb7EBIAFDpid5Y5x9LX42q9F4MKm8cMqkG+wQqu3SXmqcDrrJd+Ef
-# YrLCXSehE1/M496/khEke9ZRxU/fepxTSgB7/2dQ6N2mimuXhaASvfBxpHasPdhZ
-# wL6Kkith+YoTPHdonJqEyU8qjOPURZQ2ulJ6GLXwFLlVBIqFBvfO4Z7ssGJ8HTnh
-# Aao4xarY0BIiKOWzP+1FGlhtJyhrv39d2Q3N4Xeca93ndjBitroDT743xhKuwk6l
-# E94l9Agctj/2q5Qrd9LSx5yEtqhv3kqPDTFg40A9W2tQGM3PaVFJAUwETG+txnO6
-# yCNwTHBZDvA3ybZWMjcOH0Nau3mCpzckfVsiSmOXsrNxyJX/k7V5mB4QEVa7HogU
-# e0Q6GjG2L3tMjijZvUZEeVZmvHgjL+LyqmWFloSWPoVWeISRH6t+UMYjo9ErAhMY
-# fNO33ZqmRT+swcT4ePxs2vs3Rqrqr8NnWl0MAoIxmInYQ6qello9WJ25t0vuUkvt
-# 9Vaj6KmWcQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MjcwOTAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCCcoyMf49dG3Gv8dD+oLiH3hbT9X3ksSPLq3q4S
+# 96RhJDANBgkqhkiG9w0BAQEFAASCAgBzbFSQgdos/0rhR9MPgjuG1gVC2xleRRUY
+# z1p9W75q1tY1Yab9204fFcqTmQ75MB10yrv0M1ef9TPHh9Os0xU+BNvK41P/f9A7
+# W3CIcNI98/Y/oliTfyDoqm4PZbentAEtW7FTA6JbYvoNgw3lSuw5U9fg/iWWkCvi
+# VfMQNUOGl07por538pyVNCm6GiPWLbynibqPSmTzGpfx9tjxLc1be/x7xiha+/Ib
+# qvo3WspHeIicxGlzTE9wlBtWAk93tgnzN8EpnYSLYoneCS26d9I0PPfQyG8K6Y+O
+# JZPLGFt+TjnWsRh9ajDqDQwHWF4OpEYUzM7UDqKBCAIfcHtrURC8j77E4sJo8Pri
+# 8S388T3LqAvFpflaAtUvHmRU3G74CTVR9Dbzjcppm9JsyayqBn1JWqWxm5iO7D8+
+# 8ywtX17hLZtOf8YCBKl522oCWwY0MX/Sob8zvNUKA7jyvRTr8t6CHeQ540x11r+E
+# RZsGwtMVJgaoN6Xx5WvCqKKKq0GZe0RAI9yC8fZyR8Pylg0RzjmgzST4c7FZLdG3
+# cc6ysKXdMhG9lh3/uY+eNf2a8yQh9m4PeqogDIoLtYcgDOqVgHWlXvzqJh9yBT3G
+# 5Hb1EfbAEYLtWwWslKD2Uue27+YG/sWTBR6CZ+0hEgtIivHOeNc8Na2e6PPY1IOJ
+# luS9AH6wAg==
 # SIG # End signature block

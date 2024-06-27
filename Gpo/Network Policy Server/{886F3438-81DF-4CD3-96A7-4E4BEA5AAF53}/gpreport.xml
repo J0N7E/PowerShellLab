@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{9008c539-93dc-4734-b405-ed1f78d3e0c8}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Network Policy Server</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2024-06-24T11:02:13</CreatedTime>
+  <ModifiedTime>2024-06-24T11:02:14</ModifiedTime>
+  <ReadTime>2024-06-26T13:26:40.3930974Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-892064349-2107864031-2513598360-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-892064349-2107864031-2513598360-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-892064349-2107864031-2513598360-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-892064349-2107864031-2513598360-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-892064349-2107864031-2513598360-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Auditing" xsi:type="q1:AuditSettings">
+        <q1:AuditSetting>
+          <q1:PolicyTarget>System</q1:PolicyTarget>
+          <q1:SubcategoryName>Audit Network Policy Server</q1:SubcategoryName>
+          <q1:SubcategoryGuid>{0cce9243-69ae-11d9-bed3-505054503030}</q1:SubcategoryGuid>
+          <q1:SettingValue>3</q1:SettingValue>
+        </q1:AuditSetting>
+      </Extension>
+      <Name>Advanced Audit Configuration</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/WindowsFirewall" xsi:type="q2:WindowsFirewallSettings">
+        <q2:GlobalSettings>
+          <q2:PolicyVersion>
+            <q2:Value>543</q2:Value>
+          </q2:PolicyVersion>
+        </q2:GlobalSettings>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@firewallapi.dll,-60407</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%systemroot%\system32\svchost.exe</q2:App>
+          <q2:Svc>ias</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>1813</q2:LPort>
+          <q2:Protocol>17</q2:Protocol>
+          <q2:Desc>@firewallapi.dll,-60408</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@firewallapi.dll,-60400</q2:EmbedCtxt>
+        </q2:InboundFirewallRules>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.31</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>@firewallapi.dll,-60405</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:App>%systemroot%\system32\svchost.exe</q2:App>
+          <q2:Svc>ias</q2:Svc>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>1812</q2:LPort>
+          <q2:Protocol>17</q2:Protocol>
+          <q2:Desc>@firewallapi.dll,-60406</q2:Desc>
+          <q2:Active>true</q2:Active>
+          <q2:EmbedCtxt>@firewallapi.dll,-60400</q2:EmbedCtxt>
+        </q2:InboundFirewallRules>
+      </Extension>
+      <Name>Windows Firewall</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q3="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q3:RegistrySettings">
+        <q3:Blocked>false</q3:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+  <LinksTo>
+    <SOMName>Network Policy Server</SOMName>
+    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 0/Computers/Windows Server 2022 (20348)/Network Policy Server</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Network Policy Server</SOMName>
+    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 0/Computers/Windows Server 2019 (17763)/Network Policy Server</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+  <LinksTo>
+    <SOMName>Network Policy Server</SOMName>
+    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 0/Computers/Windows Server 2016 (14393)/Network Policy Server</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
+</GPO>
