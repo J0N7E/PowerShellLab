@@ -1402,19 +1402,19 @@ Begin
         # Tier 0 + 1
         #############
 
-        foreach($Tier in @(0, 1))
+        foreach($t in @('DC', '0', '1'))
         {
             # Servers
             $DomainGroups +=
             @{
-                Name                = "Tier $Tier - Computers"
+                Name                = "Tier $t - Computers"
                 Scope               = 'Global'
-                Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
                 Members             =
                 @(
                     @{
                         Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
-                        SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
                     }
                 )
@@ -1427,15 +1427,15 @@ Begin
                 {
                     $DomainGroups +=
                     @{
-                        Name                = "Tier $Tier - Computers - $($Build.Value.Server)"
+                        Name                = "Tier $t - Computers - $($Build.Value.Server)"
                         Description         = "End of support $($Build.Value.ServerEndOfSupport)"
                         Scope               = 'Global'
-                        Path                = "OU=Computers,OU=Groups,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                        Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
                         Members             =
                         @(
                             @{
                                 Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                SearchBase  = "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN"
+                                SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
                                 SearchScope = 'Subtree'
                             }
                         )
@@ -1509,16 +1509,16 @@ Begin
                 )
             }
 
-            # Privileged access users
+            # Remote access users
             $DomainGroups +=
             @{
-                Name                = "Tier $t - Privileged Access Users"
+                Name                = "Tier $t - Remote Access Users"
                 Scope               = 'Global'
                 Path                = "OU=Security Roles,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
                 Members             =
                 @(
                     @{
-                        Filter      = "Name -like 't$tPa*' -and ObjectCategory -eq 'Person'"
+                        Filter      = "Name -like 't$tRa*' -and ObjectCategory -eq 'Person'"
                         SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
@@ -2806,13 +2806,6 @@ Begin
                     # Link server base
                     $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $GpoBase)
 
-                    # Remote Desktop Servers
-                    $GPOLinks.Add("OU=Remote Desktop Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
-
-                            @{ Name = "$DomainPrefix - Tier $t - Privileged Access User Rights Assignment";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                        )
-                    )
-
                     if ($t -ne 'DC')
                     {
                         # Web Servers
@@ -3703,8 +3696,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUk30gztR+qdn+6wx7EXngN25J
-# TxygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtDW7Ci6cErb83Qjcu8RTcRtU
+# GsSgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3835,34 +3828,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTk2Xnu
-# st5xpLPnwYgUM9xkda0F8zANBgkqhkiG9w0BAQEFAASCAgBfSw2FFw9o5ZaE3GYT
-# sBG6/vB4u1SnwX4feOyM41Cnkm3WfP7zLa0xbv1NlOGyYrV7HRcps6C1+11NBcjP
-# aLMY9CEG4+czg6KL2FRPuAZzEDDyP+ZxtTZKQ8m5Un0KJtAFtvPxY+Kz5dyZZv9y
-# OVo1blm0FT9qbEuzDbJKh+XkWgCiv4aEv686Ff6p37L3RJehlwAeAfqPYxjfg8JR
-# MFf7RDs/mL4h/0w+nwVlDzQdtpnwk6qC1h0gWsFR34KsJ4CFEbpraq1G3WIike5+
-# EpF6qhKqcDDwN8gXRB3AFsvwHn6K2deZAxc8GtD+7hde1/Ph47crvvHksvIISZwL
-# IIixc/gC/kqiubm+OHf3e2Qb33tJzfCQi38zCQXIkn2qDbl6egjrEgAEF0z3+4Jl
-# /JlGtljik19H/qjJftyQYnAGURc1g0sBjTqshqhg79n6NmZKLYDA3oFTfnGEeOT7
-# CkyyIhVBA014xkoyXXdfsYbwhoYH3S5QKilQfJrQypK1Hb8/p586jdk4ZRbIxt0+
-# oZFF+U/jLwjssrrJJGFX+5yj8ykZP44d/E/FrlwaKYRG0p/Dg2E6AuiS5TElFwqI
-# 8oYXqZqIEZ8cwf3UWuV7CpxSkvCQLqX5GvVEe5U+a2cmW8uO/htBuRwPqZcrpZaC
-# kFAPw+jPBLdF+bFlJPAtJ4YyQKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTRJegp
+# zc0gJh6h7q+qlMK2cQkX3TANBgkqhkiG9w0BAQEFAASCAgB5z2nXKfa0Tms0BRpY
+# cdWQaWV3b4N1Rh8wvyxU51DGx9WK4J1WhKc0dCtW09EC6rT5akkhXQHzCKJq2jby
+# kwZpDaU1RLFIZ3dMqpI3arW9h8Sei5ipuhHe8J8Xh6AcFrXIs5slN5DZHQ76gutX
+# B+FAt2btJcjs6quDfHp1coIziRWlJrZPt36n8LCoOBxSm+cOIZwvWgkslVSp/0sk
+# PU6XVBhaiumdKU1F5Fy9iQ0yVL1fhwwMHN0bljqqDOLGa6R6NUJKgqH7wg1V83tW
+# 2WQXNIbLrQ0NtCkhA6wSW6LhqDyUnNnK8Q2ONQrSy9B7ogxE3FBgEQmT+b67jRz6
+# lIssYF6jBsthL1lwbgx0XnkbKGI/p0mabcbHDGME07IdbEuc3YssCDheizMoROSw
+# ZAHueRM32ieQ7EJIR9ve0Z/UCHVlWkVJndYfC+0OC0JGJjiwaNYhYpofLLWU7A9l
+# Og4cb1+TdVBoPiRancvovaW2jV5G3ri/qq15WgjRuiy7dMp+UYslY+XsBaN0DFu9
+# R2mf/hyt4QOr7ptFeK8+YqvSnJin1oUxHKYvccT+0nSOY2NHJTgEtUeNHfy/CK+P
+# 45ZE/8w1w4QdYwnC/EZMz07UQxtxUUWB8PksJR9/HSQEMvbOY/nxT13XyXiS7ZQG
+# ULL8/cbZGS0NPDHzjXZVH6EPr6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MDUxNzAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCBX8uLIvi9w8OIcbRSQbNt/hPXqHHuxTOZBxOyo
-# m4yuyjANBgkqhkiG9w0BAQEFAASCAgCJ+REYJWGFeyNsHkflUbyByZkeaNRcHljQ
-# kJOaftRLQ/mbsksRywvU6CL8C7T0fOAatffEqZeGmTOgcUGjM3yllSMFXe1SeWkv
-# iRO0/9o4zf/fhEBMyd5ltpNwDMvIfsIEGkWXQ4cL0GOPhfnmyQoQ0RlZblWa/cLs
-# 5TwGRyUzd3iLmR1XYm8LTqyqeOg3120liw55wDLaW6LzfqEmJqmXfoosfzBhTfiF
-# PsC8HXTgnm2afWTHP7uTHctns/wKWaz3+l+LzW0YQVIU7+iZUzwz+/OdRVWT81RE
-# JK8+hgi1qH2yw1YEUEdty8rPexhxfcJCThMyGvRLLL77KgFXIeLG+T7uHxQ/8STy
-# 9LfMtpu4l+txPC3zU7x12WsDQ/SEzCfjnFmwrnf7ovZXClXHnY7N7LIuBYVnpd1+
-# LC3j2n2tAp5/Ya1dIICsMRMirxl36RdLL+ZJTwnZ497dNDanFgfHluKAPgktBvcx
-# 5L87Jevyt2m+I2vUKLsEBqzYN2V9EhSPTiBjHLMEuc0lBzAdfONiNsgCfQBzbVSO
-# YHLlgad3W6LoHyjMzXj3g+eZ6brXiAHLFvgFY4mr/JfamMcFEBAoZr2qHG7DL/K5
-# ej32jnkBgQYfqvJyMNSHE4iqtd/pFVJP0JUcddQfh3FNh360jbu/whprQnkFKIh7
-# Q5qzlZMTdg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MDgwMDAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCDTpfvIijJiMJyRfjKh0qwhofTfz7lLo457osd7
+# JZPiBTANBgkqhkiG9w0BAQEFAASCAgA4SA8XLXDdNWtsqq42STJC8CPYFEzkE2jN
+# u2FY0Z9az/Q6Z+U5aKwF8ZXyLfFy6E6A43+wJ0HftNo7XKm5ku8cjOvIBmwZCS7b
+# EGT8rf41iFggs4+AW6ifXdVGXXM4XRj6fRbmqtrkE+E34dmZPt/pDPDRpChAHcUT
+# ZL7lBoDkn3jbJIjIKamc0HJTbJpBtFcDOTyWmmvExV3n3SMhNAn2Y4UShg9c7cvY
+# BJR3qPXAmqK7ZGbcCgjTcGk3gPO1pGKnGXxtg+JWRL2bP+awjEgYA2kqhYroIinh
+# AKlGNP1P8eYVmSFzS2nAfY3tjkP0BGCMOQKSoGTUEmlpnT+zG1ZzViQJrjidItVZ
+# dB2ksxh3grD9EW7qq/iN3BIPJxKFgDFMwHF5Hp//qY6uoW3R2dwyE5MTbJwp6Rhr
+# IGkiMbRAwgsKWU67Sc2pSS+i+75Jk2KL8erS2ZGjFc59OooDXjsmW9Urye5usgm8
+# 58MC8Gu73AHcZkeIzZDLsfG+3BY9SQ+4kbXLcNxxIAls5y7S8wH+CRj0mo3jIv60
+# M6BamcASGBS3+E5ZN0kAwqJFib+8KFAx10DOrFxHLFUqCqyFFvKTtpwl9rYvI/tO
+# ph32l2FGBhCe2WzwTlpSXL6b9F4LOLE/3IDIysdD6sv2SYXtznoRohn6jx8CvADj
+# mkg7J6u9Ow==
 # SIG # End signature block
