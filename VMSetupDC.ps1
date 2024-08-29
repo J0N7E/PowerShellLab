@@ -1216,7 +1216,6 @@ Begin
             # Tier DC
             ##########
 
-
             # Admin
             @{
                 Filter = "Name -like 'tdc*adm' -and ObjectCategory -eq 'Person'"
@@ -1451,9 +1450,9 @@ Begin
             }
         }
 
-        ##############
-        # Tier DC - 2
-        ##############
+        ###############
+        # Tier DC, 0-2
+        ###############
 
         foreach($t in @('DC', '0', '1', '2'))
         {
@@ -1517,7 +1516,7 @@ Begin
                 }
             }
 
-            # Server by build Tier DC - 2
+            # Server by build Tier DC, 0-2
             foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 if ($Build.Value.Server)
@@ -2317,11 +2316,11 @@ Begin
         # WriteOwner
         # WriteProperty
 
-        ###########
-        # Tier 0-2
-        ###########
+        ###############
+        # Tier DC, 0-2
+        ###############
 
-        foreach($Tier in @('Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($Tier in @('Tier 0', 'Tier 1', 'Tier 2', 'Tier DC'))
         {
             $AdminAccessControl =
             @(
@@ -2953,10 +2952,10 @@ Begin
             )
         }
 
-        ###########
+        ###############
         # Users
-        # Tier 0-2
-        ###########
+        # Tier DC, 0-2
+        ###############
 
         foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
@@ -3257,7 +3256,6 @@ Begin
 
         $AuthenticationTires =
         @(
-            @{ Name = 'Domain Controllers';  Liftime = 45; }
             @{ Name = 'Tier DC';             Liftime = 45; }
             @{ Name = 'Tier 0';              Liftime = 45; }
             @{ Name = 'Tier 1';              Liftime = 45; }
@@ -3273,13 +3271,6 @@ Begin
 
             switch ($Tier.Name)
             {
-                'Domain Controllers'
-                {
-                    $PolicyUsers   = @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
-                    $SiloComputers = @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
-                    $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Domain Controllers Silo"))'
-                }
-
                 'Lockdown'
                 {
                     $PolicyUsers   = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
@@ -3295,6 +3286,12 @@ Begin
                     )
                     $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
                     $Condition     = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"$($Tier.Name) Silo`"))"
+
+                    if($Tier.Name -eq 'Tier DC')
+                    {
+                        $PolicyUsers += @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
+                        $SiloComputers += @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
+                    }
                 }
             }
 
@@ -3753,8 +3750,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU24S6rNogBj0IkqOurp1q+7KW
-# mEOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3gshHOdkYdUSwjWiy2f4qc01
+# r0WgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3885,34 +3882,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSljVBx
-# YOTo3mU6t8Y1hzdCF1+sfjANBgkqhkiG9w0BAQEFAASCAgCL3yU3txZqxvlFByMl
-# poskRQKeR6ML6wFwzzM9RKa3EkI25Wlpjzm/2BSOABHTiBkLHTIRUHWtI43kn+ba
-# eaTJ4o46i3wVy1wNsR6kUzpconraX7mYIizuHkirNa5YKBZ8jOH8dUFIYYJtT8W6
-# fT2APXli82Sc9IrYDGPai8QEaI4x3F5Bn5cG9aqbBAipgluSzF6qZRSpnwquNQ1v
-# TDxDORjeY7kKbZBTr40dpV7pTXBs0Kwz0ESwDW33xNSHz9ey4UuW6lByb1J26oce
-# fyegRjFKuSfNsyTnjYKziaZlhg2hc5aJw3NaoNVYtOW/2A7pDG06nEmxNjiT5F2h
-# WtRe78RTEf7Foz0AUKnPRTpG02u2GzWbqOyC3l4KWIA5/v7DQp8SuX4d4EJ6XQSo
-# H1I1PxwZQTPbtR2e+V3CBd41sHd34vxYvZ3OBnJQDnDu4u0py1ofFDijjLrFKXJp
-# 7elBDQfBXtVrXe2EHqH7JDondS0vtOs7k2erliAePpbhgKz3L8rqW4z6AsUXu0KA
-# /AxLCP1FG//n4QxL38oA4yP9sAtt7237yKe4IveBeXz7gkoFXXStEfFub81GlAKw
-# yJOsBeT/zMjP9fxW+U45TuQB7MWH4ZAJf3pqyxFDf7MoNRUUNuj9fvHIlM9+BmwG
-# +CcPrwtRFQXvPK1Nfvx2UGAw0aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ4eGKH
+# zbAwM6O1XfypJ3m9mRrPRDANBgkqhkiG9w0BAQEFAASCAgCXT5ZHzTVr9AhTbKv5
+# qKkPY1igs51ervYVR1x71Zj8EQ1FD2M8LPcXox/YHRvXSpLJgk523KX8vfhVFBgG
+# JKWmmIqabWlMcJJdJdsf2gB1oem5lD1ThJYNMxiZCC3v6ho3S2cCPLQ74wqmEBbE
+# mI4qUwxRlNMtVz/hET+3DARsW1vc0A49Uj7GJJxad51Cl+eEAufK5WJIZyB65D/n
+# /X5RO5wPrBQpDDQrzFzEpDCrX0ohr/Xw/122rqHlLiy/foM7ALtxSodJF3vyhwwl
+# db64opQjR44HQEuVEpsgTnHZf6bpKBDO5JxKibs+SSIF/46I2KJsA1IrTnmtZw8J
+# JKqBij0lQjo3bGdeOz5PgWrDJXD1u4YswHQGn94Z2g8aM/TaoALCBN1YqL9xrpG0
+# pU/1w9HkBYIn2AQdeV8JNeNv7I1KAjH1HnGBsY3zJ6zBKBvvNwABr7Vu/x/XlfXq
+# msJF+FECxwvkqpSveujomrIPY1sX0fm6H4SkoNJZgZ830leUe6LQ6aNBbSgdvEgm
+# V1HBBsi7LX5y+VhnoaW+coCeMVeE2m0UhtoD3lX8tjDfU3rnumF+CF5jH4YEl2a5
+# 1sxLDfIuhYgC7gcGdAMQVBHk5ADVO/sYjuhm1Tqt/xolkCwGeG2LOhR/NnC5GfPS
+# HaY7RIZFTToTUgpv7WKZd/nfm6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MjkxNTAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCCCg+FWrOIOSMvqVBuQ74Zd+jreIZdglPYWVGnp
-# XZtAjjANBgkqhkiG9w0BAQEFAASCAgAQJ2ghNJi2mBzLQAuGPunDinsWErYJa8Jp
-# U4680CQjUi1G0y+9KtEwTmuwsuPNodUUUFqUfWDXW0mhJBPMTYHQDh/TKJV21nF8
-# aS5jBm5iWupLzwbGdUUF2EsGc6bIO6h9qZbTqlR5Tjuo6DDks1hAOp+IUooAqpKG
-# K17OUZqgICOLhU4CpQ+h33/Gn07rR01TVn47Plr/XofAe9VNliYtGJS1mpA+5XvN
-# pzrH4kDcR4SyO+XWGj1tNQWte1Gl7So7JF4A+u/i1zC+obNqXSzt3fKDC8FJRpQC
-# GhEZcqUQ1T/Lk5PSIAdg7uBqjBw5MxaRFmy88f8ic7RaXanJQialbr6MFbuFNIwF
-# 0BiiG05Y8ugpHAMOQnKylYRQk575Z/BlVLlvm7N3F7BS5sz7Zj5HpgqirYnpB13Z
-# YJefcWfctuVpLvu7PGObC77SFzFN/Ih8/DfewH3QU1o1r53rqkxlIMNz8yTwk0Ms
-# FFvMpn6aa/c8+K8uwxhPeA83hW19C+tC65fc5F+RXRku9R6bvSBExyVEB3L4Sevh
-# yeIfpDTlYO2dPdWBfKQdYvuW5Hyfh/HMdqh5pH30tjO7Q7qnwdrzzV1crStJrx0C
-# dxbVqbsI4ZFb19iy0tkY+gCzNzHrcZlBQzwUs0Xzk7OUaZHWO6ahzP1unOvx07Vf
-# IU5mfzxtYw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MjkyMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCAHk2GnQ4UUcTlJunQgQ5Oh51pEWwjou+VAEURS
+# DRa2wDANBgkqhkiG9w0BAQEFAASCAgBp12LNmyjcpPPXS+5d0oOAy+ojmyBGKTqm
+# n+JhzDZG/LQ0ECP3fHbWIo3N17vDnD+5R3JRqRZEE75cHRooXzNRutqDYdjBKtyf
+# H333eLQJLcBu/fhyu/t7A4I5iWYHk4KkUs0vc/4hhJrJIebdDRP888CnITPhchGa
+# xklEg7tYLUePBqwkWUzGYaIoQ/ppF3tKkTpFolqZPhNh6aMhzgo0h/0rq42M8bxo
+# cyLVmkdZBRlC48sLXrKGgpbkzdqxbAnnbBtGJBUx3WA+Es2q1h1VIaXaMFUqbCOR
+# clB2vhUABLK5AGTJnVegxsZ9Wkmz2Y5X4N8kd7E+b3FowWjwAZ46vePhT5ggodcO
+# ofw/CfpMEXtsGu1vOIkz44Ms4UluPEZUvsllIkBVPWqfiqcLA82BBchfhEfqZR9h
+# r9sl7ByKfv1lsQGb0IRrgkmqzl0tCaDwxUZnuY+znUaboaaPUI0SCs35MS+z/9k5
+# /6QgQxrj0HPMigkjn1sZWUHsRzw+qEaY7z4JFSCn9oZhSoS8fpyCjAx6cfxXW9zw
+# A2ypg3dBVXdJ4bM8MIqe8PP9xls+wB9/rxevM1aN8xUn+/Nui+vwj/90GP62dqhT
+# 1kRh70Vao//HyX/ce9RA3tYg8c4Pxj4FS34YuzwTg4BHyUHbOxilmT/VYOHNqCEI
+# e7lAHQv9/g==
 # SIG # End signature block
