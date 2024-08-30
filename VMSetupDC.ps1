@@ -2184,6 +2184,8 @@ Begin
         # ██║  ██║██████╔╝██║     ███████║    ██║ ╚═╝ ██║███████║██║  ██║
         # ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══════╝    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
 
+        $AdfsSetupAccount = Get-ADUser -Filter "Name -eq 't0adm'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel
+
         $Principals =
         @(
             (Get-ADComputer -Filter "Name -like 'ADFS*'" -SearchBase "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope Subtree)
@@ -2191,7 +2193,31 @@ Begin
 
         if ($SetupAdfs -eq $true)
         {
-            $Principals += (Get-ADUser -Filter "Name -eq 'tier0admin'" -SearchBase "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN" -SearchScope OneLevel)
+            $Principals += $AdfsSetupAccount
+        }
+        else
+        {
+            # Get service account
+            $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
+
+            if ($MsaAdfs)
+            {
+                # Check PrincipalsAllowedToRetrieveManagedPassword
+                if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match $AdfsSetupAccount.Name }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Deny `"$AdfsSetupAccount.Name`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
+                {
+                    # Remove
+                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -notmatch $AdfsSetupAccount.Name } )
+                }
+
+                # Check PrincipalsAllowedToDelegateToAccount
+                if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({ $_ -match $AdfsSetupAccount.Name }) -and
+                    (ShouldProcess @WhatIfSplat -Message "Deny `"$AdfsSetupAccount.Name`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
+                {
+                    # Remove
+                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -notmatch $AdfsSetupAccount.Name } )
+                }
+            }
         }
 
         foreach($Principal in $Principals)
@@ -2234,31 +2260,6 @@ Begin
                         # Add
                         Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($PrincipalsAllowedToDelegateToAccount + $Principal.DistinguishedName)
                     }
-                }
-            }
-        }
-
-        if ($SetupAdfs -eq $false)
-        {
-            # Get service account
-            $MsaAdfs = Get-ADServiceAccount -Identity 'MsaAdfs' -Properties PrincipalsAllowedToRetrieveManagedPassword, PrincipalsAllowedToDelegateToAccount
-
-            if ($MsaAdfs)
-            {
-                # Check PrincipalsAllowedToRetrieveManagedPassword
-                if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match 'tier0admin' }) -and
-                    (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
-                {
-                    # Remove
-                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToRetrieveManagedPassword @($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword | Where-Object  { $_ -notmatch 'tier0admin' } )
-                }
-
-                # Check PrincipalsAllowedToDelegateToAccount
-                if ($MsaAdfs.PrincipalsAllowedToDelegateToAccount.Where({ $_ -match 'tier0admin' }) -and
-                    (ShouldProcess @WhatIfSplat -Message "Deny `"tier0admin`" to delegate to `"$($MsaAdfs.Name)`"." @VerboseSplat))
-                {
-                    # Remove
-                    Set-ADServiceAccount -Identity 'MsaAdfs' -PrincipalsAllowedToDelegateToAccount @($MsaAdfs.PrincipalsAllowedToDelegateToAccount | Where-Object  { $_ -notmatch 'tier0admin' } )
                 }
             }
         }
@@ -3739,8 +3740,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFST+Wa/vjAYjNCARd/TsrSyV
-# soagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxTqa5cZiSI6Tqk7W/ASm/w06
+# doKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3871,34 +3872,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTb6xHX
-# iuQPHbpcy+OqOiwEGG9BSjANBgkqhkiG9w0BAQEFAASCAgClKZtGpfOuifYTYBSf
-# D7kOBXIox9JG/aSj7MDNgbXyDj+sYmjJ0m8BqLVMPo8OMkAckUNuwxlcKFBbV+b5
-# jnAAlPUabrmeqM6UJ1GX+9jOp2zJT1LoTJe2OKR2p2fKp1qKjjALV4Q9xff72b/S
-# tWaUQtSBvkBNExmo2JwP5rt52HIKOIiOewzY73ZyaoV/iS5px5n4SmrbJ2pamfzS
-# Pybaiiw4QV726gFkdqXQcDiYQ89qb2LCjDgx5NvjbXYGKuz3Q/z2pM65/86v9yPH
-# TjGAYN/YlWQYgUJppbXvwpKAO+Mx97KB0g5oA5qw0D1ZiNcSD7GHAqhDUfTjJQaH
-# JLbQshFM9hJ8lY/8LylgtYVL520/8QBRpPXktOa1sRYa7rRrWMktXvP8iDGqWjP6
-# DrzX7kYoH4+6dy223INBemsyUeebHOChd0sCr8Kdto5GwfdDT6vtpwnkd1EirRL2
-# 1Ihvur1dQpAvxk64jf2RopeFsZkYpc1hasuwHbvrcw7NGk3FYtgJ36wXuCBipWVF
-# OguHJV87S1zEf53c1Ga7CUUvrmGuvKbIWzf7qc9e5kdFLAwbkM0GZ6MOXvTZs7nQ
-# C9jqNP0G/fnUDbsJCnz3hyRhhSmGKtklWkTVsDccwA+UTJ/Q4LRlbVb1xKP5Y//Y
-# GC791NzcOc8qejpjheThKdfxIqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRqHWw8
+# j/aD4LiHhVqoecqj1UScOjANBgkqhkiG9w0BAQEFAASCAgAa8IFh18NpgpKr4V6T
+# mfrYtvwnvN6bDN3p5RPwC6vgeU0Bn+D9OhEesGCs3yFyFksEPvilu0T/6q0qavKj
+# ZhoV0OuBerS9UASGjG8DTRKWZPlA+qN+6joUYTDiWN9nCdbYoA53X9lqi2MM3EF2
+# RKcV82fwDD0Kq5S0T9oxOcAtQj5O22DmYc4yc3pRrBEm+A0JCXZZephipwIOEKEv
+# OUMI25OxIuKWW1mu5ZMA9zqSszboJmFkhQ/FVncNB5X6Xc4zYDtMJkk+Ujk+FDRH
+# 6MeshA9G2T0oa6qm5gwEmjh4ZMRW41IXYWuWs2C8I+m+z612Z7jFcACN7BcTtYKH
+# ecT07IcbK91Jzt6PFF0EjMW57h4UhG2CghNgjc7Rjk4ckszQED3bAbyJ0OU7Uv2O
+# qTJ/17ZQwsj4oXaeZTKt9uN53gcHa4ZKg5rApoLIm8uP6gWcbkzkJ81wM3wL+cne
+# bZGfgda4jgwuOVT0CbHNoG5P2XK9ok5EQ943ZZk467Hjz59L4GGXiJvhnmwmaxX4
+# SITutzMvpgbeAyk9DJeiHzKIw7B3HCOmysi5FFVsqfFZRtl6hMstKUIOFwcOuLzT
+# aB1zjhy6+rgFK05Tuz4ZoDVhbZr4ChUzPlW8dHj82+oDwd9Q16REQ02zaLL2TrKM
+# i7/FLfqXbz/3OqDOqMbHMJSXRqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MzAwNjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCA5YqHCXTGsPgnxfUGcboDsUu8h6lX53lK1/1u6
-# Xr8sbjANBgkqhkiG9w0BAQEFAASCAgAore5IqNXWSdpGLGJEn3EekOc5Ff82nykr
-# pBrqF6v0G6vARKLaDBmGkISCtWdIYQCmC87yDUz7+pmeMv15AH8UlLLJzsr73h2x
-# PT/RO6xtXKc0lOCB9YvFwb1hAWfVpx3tEea5+eO/76wHWej0gdMVqvZIAcsfRKhc
-# hekTr0JUe8kaXsx3/R9gDj2U428ItnVgNWKPZKmLjwVR/UgVHJnzAk7IjSGbOZgp
-# EsL19GWcdKe6WCSd/sA69HrKs1wRbIGsqVZzwUxefT5gP44aMvyLa+vBV9+ZYl3S
-# VvoUIKhZ81pyFp0criGlOH3L0XB9Eyw4LpTNOOHRAIlMx0yHUkpjvgtBhwNxHUjl
-# E/ByuOAZ9X4anILSAaNXOiDfxWqRngLjSAUoDH+Nwg37ZUDxYlnaXsE5S54iKfQe
-# ZlzwybpmuSsYvFuuj/LUX1I5DA17Td2kQOVyXom7XKzOtVDrr0C6Nrq9v2Pjl5zr
-# 3vgBpLqF5mHQKypJQmjVMd+kLlJASo7b5jOHCTIaBlq/xiGv7Obta/23YymANSU6
-# iLP0rtSlD6fwhGT7yMbEanDg4K8z1OJ4cJXHHShuaHvsSxczy5fRxhRURwRe4ACO
-# Ez37XT51Az+aCiWoi4zcxkJhbk6qvKqNDHhDcqP8OZEHKf+nfwR/Sn5AMJ0JoCYP
-# OXbCjsRr9w==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MzAwODAw
+# MDJaMC8GCSqGSIb3DQEJBDEiBCCnO2YOtVXqFAmWB39ao8i6E/aBnmiqkNa+Z9YI
+# Wj7gHTANBgkqhkiG9w0BAQEFAASCAgCNjXax7PMCErGCJHVQEHBpraYZD25RziH2
+# LfdkR6fl50U80mikfsMyA8vEnDowGK3waPwctO7uIVbn5tgW8ZY1LSgp7OZPOkV+
+# eKQjvE4a2hHLQL6Gpu3V1gXrPgjWC2jKN6ke5oGSxdfyghj1e0NoW6TrlBX4iKLd
+# TS3qYp6OpIAm38/ax9D4NJGSFYqjIzIOo4dCmUPV7ZXc4EkZ6bwwtNSqCDkCDBy7
+# 5NusNp51HfpXgW5+HlZ7ksUkueJk4Nnnwa3aRez0VQt15/atj8rFmgkk1L4DoL5X
+# UcPwxRCZ3m7y7Unb1zluj1WUJ/gUUFY0mcnhahsToxJ9nXAd15AiTv/RuumX5nzt
+# O7dvbN4/qZbupYexIsBURjI+QVyxzn3mHCsFCS+Jlqul+8cvx59oCUkt2yDWht3x
+# JXuIrj+V5Qx5adYIkvhhlABDc+XBDyxTAcSySm3yIp891FBVxswdI4qtlnOmuImo
+# hdBnNWSOt4Y/pLzXdpz20v/bai9jNPuOSghpyIfN9xh4tgRMedfkm7Mio1KBxJck
+# OsULMwyFpQNiV5txAaM5ISrI5b6+QZG6k/1cWiBkC/bQ9uCIlQ6pBZB/pAQIkxAf
+# hZhNqP+At+0rPYrdzhEbxuhqyZGAFsWjh5QEYi1xFwFVDWjoifa3kH6THZMCK2Zt
+# X+iniYGdIQ==
 # SIG # End signature block
