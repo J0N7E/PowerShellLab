@@ -1612,7 +1612,7 @@ Begin
                     @(
                         @{
                             Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
@@ -1633,7 +1633,7 @@ Begin
                     @(
                         @{
                             Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
@@ -1647,7 +1647,7 @@ Begin
                     @(
                         @{
                             Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
-                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
+                            SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
                     )
@@ -1669,7 +1669,7 @@ Begin
                 @(
                     @{
                         Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier DC,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
                 )
@@ -1730,7 +1730,7 @@ Begin
                 @(
                     @{
                         Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
                 )
@@ -1777,7 +1777,7 @@ Begin
                     }
                     @{
                         Filter      = "Name -eq 'Tier 0 - Admins' -and ObjectCategory -eq 'Group'"
-                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
                 )
@@ -2810,7 +2810,7 @@ Begin
             @(
                 @{ Name = "$DomainPrefix - $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
                 # -->
                 @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
                 # <!--
@@ -3739,8 +3739,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcyFnWaYU9znGFFUcBYivTbEL
-# ewCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFST+Wa/vjAYjNCARd/TsrSyV
+# soagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3871,34 +3871,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRNxB1+
-# Y8q+E5YQzrL9NVLhUzVWZzANBgkqhkiG9w0BAQEFAASCAgAjsjo27faz/5E5dJop
-# jiPU38f1buAgau/N6TOO8sb6pJTLhRckJ8cGhyoEOccEVrMWCYGgYs2KCKDujGxH
-# NNOC4Mi+4+6CNmJxCQbru9/87YxYCemk5P0GRwoIC76663k4h14xoep9s9MJi5eP
-# RBo+UWeNy3M10sf70RSMSNzkW7Q4Lcl/Jfx8JEFZW0l6eY5WqJBHnxKTRb608Ira
-# laxQiLbyaHGll53OnDdTpplEcLr43bASE809c781/Bdy1sr6ISPnzBDy0EQkH/DG
-# AMBoNC95FixIjUQf1V4zy7YsNhkjkPAglUx+UKpv/Qw3BjZEvIb6oK8xoTsscrHr
-# p3/9FlFKf37SWiAZR79czPYyONM0Kgag+nV1cRv42cEYnDLFdqOWgGVo+Cit8uGE
-# ivSP2UrD34Sqb8UQAostm4/ScAuY2LBoidqmn7F0c1H7ppyafEBNYC3DgJk581+d
-# jUhll+FScDtjET+wAaF+XWLKrkCQfcNTXFugsOUGqG90VsYNhVGq1pH1fz5xI+Gz
-# QG7R+LLsKExSTRvLiu2+Hpavqam7v41IhI0hrcc/xKc/hV+xtLy95xJl36oOjDCX
-# 7uX1+MDsez3EV8al/2JErd11DJudV+isPPuRImSREomx5WqC/9+Yb5pjFxbpxMzM
-# TToXx3qggE4QeBCBwcsLLIFLgaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTb6xHX
+# iuQPHbpcy+OqOiwEGG9BSjANBgkqhkiG9w0BAQEFAASCAgClKZtGpfOuifYTYBSf
+# D7kOBXIox9JG/aSj7MDNgbXyDj+sYmjJ0m8BqLVMPo8OMkAckUNuwxlcKFBbV+b5
+# jnAAlPUabrmeqM6UJ1GX+9jOp2zJT1LoTJe2OKR2p2fKp1qKjjALV4Q9xff72b/S
+# tWaUQtSBvkBNExmo2JwP5rt52HIKOIiOewzY73ZyaoV/iS5px5n4SmrbJ2pamfzS
+# Pybaiiw4QV726gFkdqXQcDiYQ89qb2LCjDgx5NvjbXYGKuz3Q/z2pM65/86v9yPH
+# TjGAYN/YlWQYgUJppbXvwpKAO+Mx97KB0g5oA5qw0D1ZiNcSD7GHAqhDUfTjJQaH
+# JLbQshFM9hJ8lY/8LylgtYVL520/8QBRpPXktOa1sRYa7rRrWMktXvP8iDGqWjP6
+# DrzX7kYoH4+6dy223INBemsyUeebHOChd0sCr8Kdto5GwfdDT6vtpwnkd1EirRL2
+# 1Ihvur1dQpAvxk64jf2RopeFsZkYpc1hasuwHbvrcw7NGk3FYtgJ36wXuCBipWVF
+# OguHJV87S1zEf53c1Ga7CUUvrmGuvKbIWzf7qc9e5kdFLAwbkM0GZ6MOXvTZs7nQ
+# C9jqNP0G/fnUDbsJCnz3hyRhhSmGKtklWkTVsDccwA+UTJ/Q4LRlbVb1xKP5Y//Y
+# GC791NzcOc8qejpjheThKdfxIqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MjkyMTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCBgAEVeGuJicuGqyaPWdY0a81WldmBFZkia+1rP
-# zsdyEzANBgkqhkiG9w0BAQEFAASCAgAB2QoXCdA5p86e8T66wYjJGeG4XyGvmN2X
-# dd6T0J72C7X9AwTNip54By3LoCc1cQWbq/eYVi2ZGCSqEX1RnvFDYugcSN+fto7C
-# GbL2ZxgRApbLwk9oPs7keYC6C8Du/gALnsBlKD+cLBfN8bX4NO45WmpEpzzeAF+n
-# Dz24ZzPSoEfyZXVp0gfuKItaLgwlfaesy2Gte6/AhV9GdhMjLjySkWcL7GbdXXRJ
-# pqqDhvHItLfvj0uLPh2WlLT5KSJNX0ybLhNMW2wwpuwi4xJEnQNZ5Vto4z3M4RF5
-# tDtZ6ajz13VIDNoPPoaYZWkc6ndvi3aSC/95qO8eVuvGKBN4cERHuWbUyqkt0B8q
-# HWHUrzrDfWAqIcVE0heGVCz+cW2/yH1k84wx00ATFC3P321capFaQm6J4RPhUdAQ
-# GgNmAy0FgSze5Hvb8rMMd1GM85Lt+GitumbRYXiaeCyuMp9pDXfhO6U9N2AfkHms
-# AjGw9wIAwRiqHJCcgQexrsTS2CTw2o4ijxmFSuYVQFY8uMq7amrfj3uJ3T3JU9ZJ
-# AhrclqD0VXM50Pi1qhoIXpOmuEgK6DWaPXTB+j5OlQcQNe2/Ixjm+/pDasmisXbr
-# ifcCgd9838D9LdWlWCqYOk3cOfcjVnlzr34WM+c9cR6aMeocFvGdgh70UkQdmJ6m
-# eBmzk4iN3g==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MzAwNjAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCA5YqHCXTGsPgnxfUGcboDsUu8h6lX53lK1/1u6
+# Xr8sbjANBgkqhkiG9w0BAQEFAASCAgAore5IqNXWSdpGLGJEn3EekOc5Ff82nykr
+# pBrqF6v0G6vARKLaDBmGkISCtWdIYQCmC87yDUz7+pmeMv15AH8UlLLJzsr73h2x
+# PT/RO6xtXKc0lOCB9YvFwb1hAWfVpx3tEea5+eO/76wHWej0gdMVqvZIAcsfRKhc
+# hekTr0JUe8kaXsx3/R9gDj2U428ItnVgNWKPZKmLjwVR/UgVHJnzAk7IjSGbOZgp
+# EsL19GWcdKe6WCSd/sA69HrKs1wRbIGsqVZzwUxefT5gP44aMvyLa+vBV9+ZYl3S
+# VvoUIKhZ81pyFp0criGlOH3L0XB9Eyw4LpTNOOHRAIlMx0yHUkpjvgtBhwNxHUjl
+# E/ByuOAZ9X4anILSAaNXOiDfxWqRngLjSAUoDH+Nwg37ZUDxYlnaXsE5S54iKfQe
+# ZlzwybpmuSsYvFuuj/LUX1I5DA17Td2kQOVyXom7XKzOtVDrr0C6Nrq9v2Pjl5zr
+# 3vgBpLqF5mHQKypJQmjVMd+kLlJASo7b5jOHCTIaBlq/xiGv7Obta/23YymANSU6
+# iLP0rtSlD6fwhGT7yMbEanDg4K8z1OJ4cJXHHShuaHvsSxczy5fRxhRURwRe4ACO
+# Ez37XT51Az+aCiWoi4zcxkJhbk6qvKqNDHhDcqP8OZEHKf+nfwR/Sn5AMJ0JoCYP
+# OXbCjsRr9w==
 # SIG # End signature block
