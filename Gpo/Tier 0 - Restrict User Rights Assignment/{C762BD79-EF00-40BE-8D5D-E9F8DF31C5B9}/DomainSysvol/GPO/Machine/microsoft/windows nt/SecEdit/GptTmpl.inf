@@ -5,10 +5,10 @@ signature="$CHICAGO$"
 Revision=1
 [Privilege Rights]
 SeDenyNetworkLogonRight = %schema_admins%,%enterprise_admins%,%domain_admins%,*S-1-5-113
-SeDenyBatchLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,*S-1-5-21-892064349-2107864031-2513598360-1110,*S-1-5-21-892064349-2107864031-2513598360-1129
-SeDenyServiceLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_0_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,*S-1-5-21-892064349-2107864031-2513598360-1110,*S-1-5-21-892064349-2107864031-2513598360-1129
-SeDenyInteractiveLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,*S-1-5-21-892064349-2107864031-2513598360-1110,*S-1-5-21-892064349-2107864031-2513598360-1129
-SeDenyRemoteInteractiveLogonRight = *S-1-5-113,%domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,*S-1-5-21-892064349-2107864031-2513598360-1110,*S-1-5-21-892064349-2107864031-2513598360-1129
+SeDenyBatchLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,%tier_dc_admins%,%tier_dc_users%
+SeDenyServiceLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_0_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,%tier_dc_admins%,%tier_dc_users%
+SeDenyInteractiveLogonRight = %domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,%tier_dc_admins%,%tier_dc_users%
+SeDenyRemoteInteractiveLogonRight = *S-1-5-113,%domain_admins%,%enterprise_admins%,%schema_admins%,%tier_1_admins%,%tier_1_users%,%tier_2_admins%,%tier_2_users%,%tier_dc_admins%,%tier_dc_users%
 SeInteractiveLogonRight = *S-1-5-32-544,%tier_0_users%
 SeRemoteInteractiveLogonRight = *S-1-5-32-555,*S-1-5-32-544
 SeNetworkLogonRight = *S-1-5-11

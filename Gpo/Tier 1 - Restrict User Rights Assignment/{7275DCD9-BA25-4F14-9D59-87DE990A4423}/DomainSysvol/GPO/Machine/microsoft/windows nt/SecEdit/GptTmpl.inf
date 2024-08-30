@@ -4,11 +4,11 @@ Unicode=yes
 signature="$CHICAGO$"
 Revision=1
 [Privilege Rights]
-SeDenyNetworkLogonRight = *S-1-5-21-892064349-2107864031-2513598360-1129,*S-1-5-21-892064349-2107864031-2513598360-1110,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%,*S-1-5-113
-SeDenyBatchLogonRight = *S-1-5-21-892064349-2107864031-2513598360-1129,*S-1-5-21-892064349-2107864031-2513598360-1110,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
-SeDenyServiceLogonRight = *S-1-5-21-892064349-2107864031-2513598360-1129,*S-1-5-21-892064349-2107864031-2513598360-1110,%tier_2_users%,%tier_2_admins%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
-SeDenyInteractiveLogonRight = *S-1-5-21-892064349-2107864031-2513598360-1129,*S-1-5-21-892064349-2107864031-2513598360-1110,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
-SeDenyRemoteInteractiveLogonRight = *S-1-5-21-892064349-2107864031-2513598360-1129,*S-1-5-21-892064349-2107864031-2513598360-1110,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%,*S-1-5-113
+SeDenyNetworkLogonRight = %tier_dc_users%,%tier_dc_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%,*S-1-5-113
+SeDenyBatchLogonRight = %tier_dc_users%,%tier_dc_admins%,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyServiceLogonRight = %tier_dc_users%,%tier_dc_admins%,%tier_2_users%,%tier_2_admins%,%tier_1_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyInteractiveLogonRight = %tier_dc_users%,%tier_dc_admins%,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%
+SeDenyRemoteInteractiveLogonRight = %tier_dc_users%,%tier_dc_admins%,%tier_2_users%,%tier_2_admins%,%tier_0_users%,%tier_0_admins%,%schema_admins%,%enterprise_admins%,%domain_admins%,*S-1-5-113
 SeInteractiveLogonRight = %tier_1_users%,*S-1-5-32-544
 SeRemoteInteractiveLogonRight = *S-1-5-32-544,*S-1-5-32-555
 SeNetworkLogonRight = *S-1-5-11
