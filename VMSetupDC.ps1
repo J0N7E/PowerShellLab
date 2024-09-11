@@ -1082,43 +1082,9 @@ Begin
                 Name = 'admin'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
-                NeverExpires = $false
+                NeverExpires = $true
                 AccountNotDelegated = $true
                 MemberOf = @('Domain Admins', 'Protected Users')
-            }
-
-            # Administrators
-            @{
-                Name = 'tdcadm'
-                Description = 'Account for administering  Tier DC'
-                Password = 'P455w0rd'
-                NeverExpires = $false
-                AccountNotDelegated = $true
-                MemberOf = @('Protected Users')
-            }
-            @{
-                Name = 't0adm'
-                Password = 'P455w0rd'
-                Description = 'Account for administering Tier 0'
-                NeverExpires = $false
-                AccountNotDelegated = $true
-                MemberOf = @('Protected Users')
-            }
-            @{
-                Name = 't1adm'
-                Password = 'P455w0rd'
-                Description = 'Account for administering Tier 1'
-                NeverExpires = $false
-                AccountNotDelegated = $true
-                MemberOf = @('Protected Users')
-            }
-            @{
-                Name = 't2adm'
-                Password = 'P455w0rd'
-                Description = 'Account for administering Tier 2'
-                NeverExpires = $false
-                AccountNotDelegated = $true
-                MemberOf = @('Protected Users')
             }
 
             # Service accounts
@@ -1136,25 +1102,50 @@ Begin
             @{
                 Name = 'Alice'
                 Password = 'P455w0rd'
-                NeverExpires = $false
+                NeverExpires = $true
                 AccountNotDelegated = $false
                 MemberOf = @()
             }
             @{
                 Name = 'Bob'
                 Password = 'P455w0rd'
-                NeverExpires = $false
+                NeverExpires = $true
                 AccountNotDelegated = $false
                 MemberOf = @()
             }
             @{
                 Name = 'Eve'
                 Password = 'P455w0rd'
-                NeverExpires = $false
+                NeverExpires = $true
                 AccountNotDelegated = $false
                 MemberOf = @()
             }
         )
+
+        foreach($t in @('DC', '0', '1', '2'))
+        {
+            # Administrators
+            $Users +=
+            @{
+                Name = "t$($t.ToLower())adm"
+                Description = "Account for administering Tier $t"
+                Password = 'P455w0rd'
+                NeverExpires = $true
+                AccountNotDelegated = $true
+                MemberOf = @('Protected Users')
+            }
+
+            # Remote Access Users
+            $Users +=
+            @{
+                Name = "t$($t.ToLower())ra"
+                Description = "Account used for Remote Access to Tier $t"
+                Password = 'P455w0rd'
+                NeverExpires = $true
+                AccountNotDelegated = $true
+                MemberOf = @()
+            }
+        }
 
         # Setup users
         foreach ($User in $Users)
@@ -1220,38 +1211,11 @@ Begin
                 TargetPath = "OU=Domain Controllers,$BaseDN"
             }
 
-            ##########
-            # Tier DC
-            ##########
-
-            # Admin
-            @{
-                Filter = "Name -like 'tdc*adm' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Administrators,OU=Tier DC,OU=$DomainName,$BaseDN"
-            }
-
-            # Computers
-            @{
-                Filter = "Name -like 'RATDC' -and ObjectCategory -eq 'Computer'"
-                TargetPath = "OU=Remote Desktop Servers,%ServerPath%,OU=Computers,OU=Tier DC,OU=$DomainName,$BaseDN"
-            }
-
             #########
             # Tier 0
             #########
 
-            # Admin
-            @{
-                Filter = "Name -like 't0*adm' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Administrators,OU=Tier 0,OU=$DomainName,$BaseDN"
-            }
-
             # Computers
-            @{
-                Filter = "Name -like 'RAT0' -and ObjectCategory -eq 'Computer'"
-                TargetPath = "OU=Remote Desktop Servers,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
-            }
-
             @{
                 Filter = "Name -like 'CA*' -and ObjectCategory -eq 'Computer'"
                 TargetPath = "OU=Certificate Authorities,%ServerPath%,OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
@@ -1278,51 +1242,30 @@ Begin
                 TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
             }
 
-            @{
-                Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Service Accounts,OU=Tier 0,OU=$DomainName,$BaseDN"
-            }
-
             #########
             # Tier 1
             #########
 
-            # Admin
-            @{
-                Filter = "Name -like 't1*adm' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Administrators,OU=Tier 1,OU=$DomainName,$BaseDN"
-            }
-
             # Computers
-            @{
-                Filter = "Name -like 'RAT1' -and ObjectCategory -eq 'Computer'"
-                TargetPath = "OU=Remote Desktop Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
-            }
-
             @{
                 Filter = "Name -like 'RAS*' -and ObjectCategory -eq 'Computer'"
                 TargetPath = "OU=Remote Access Servers,%ServerPath%,OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
+            }
+
+            # Service accounts
+            @{
+                Filter = "Name -like 'Svc*' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Service Accounts,OU=Tier 1,OU=$DomainName,$BaseDN"
             }
 
             #########
             # Tier 2
             #########
 
-            # Admin
-            @{
-                Filter = "Name -like 't2*adm' -and ObjectCategory -eq 'Person'"
-                TargetPath = "OU=Administrators,OU=Tier 2,OU=$DomainName,$BaseDN"
-            }
-
             # Computers
             @{
                 Filter = "Name -like 'WIN*' -and ObjectCategory -eq 'Computer'"
                 TargetPath = "%WorkstationPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-            }
-
-            @{
-                Filter = "Name -like 'RAT2' -and ObjectCategory -eq 'Computer'"
-                TargetPath = "OU=Remote Desktop Servers,%ServerPath%,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
 
             # Users
@@ -1331,6 +1274,30 @@ Begin
                 TargetPath = "OU=Users,OU=Tier 2,OU=$DomainName,$BaseDN"
             }
         )
+
+        foreach($t in @('DC', '0', '1', '2'))
+        {
+            # Admins
+            $MoveObjects +=
+            @{
+                Filter = "Name -like 't$($t.ToLower())adm*' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Administrators,OU=Tier $t,OU=$DomainName,$BaseDN"
+            }
+
+            # Remote Access Users
+            $MoveObjects +=
+            @{
+                Filter = "Name -like 't$($t.ToLower())ra*' -and ObjectCategory -eq 'Person'"
+                TargetPath = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
+            }
+
+            # Remote Access Servers
+            $MoveObjects +=
+            @{
+                Filter = "Name -like 'RAT$t' -and ObjectCategory -eq 'Computer'"
+                TargetPath = "OU=Remote Desktop Servers,%ServerPath%,OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
+            }
+        }
 
         # Move objects
         foreach ($Obj in $MoveObjects)
@@ -1438,12 +1405,12 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($t in @('DC', '0', '1', '2'))
         {
             # Administrators
             $DomainGroups +=
             @{
-                Name                = "$Tier - Admins"
+                Name                = "Tier $t - Admins"
                 Scope               = 'Global'
                 Path                = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                 MemberOf            = @('Protected Users')
@@ -1451,37 +1418,53 @@ Begin
                 @(
                     @{
                         Filter      = "Name -like '*' -and ObjectCategory -eq 'Person'"
-                        SearchBase  = "OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN"
+                        SearchBase  = "OU=Administrators,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
                 )
             }
-        }
 
-        ###############
-        # Tier DC, 0-2
-        ###############
+            # Computers Tier DC, 0-2
+            $DomainGroups +=
+            @{
+                Name                = "Tier $t - Computers"
+                Scope               = 'Global'
+                Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'" # -and OperatingSystem -like '*Server*'"
+                        SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                )
+            }
 
-        foreach($t in @('DC', '0', '1', '2'))
-        {
+            # Servers by build Tier DC, 0-2
+            foreach ($Build in $WinBuilds.GetEnumerator())
+            {
+                if ($Build.Value.Server)
+                {
+                    $DomainGroups +=
+                    @{
+                        Name                = "Tier $t - Computers - $($Build.Value.Server)"
+                        Description         = "End of support $($Build.Value.ServerEndOfSupport)"
+                        Scope               = 'Global'
+                        Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                        Members             =
+                        @(
+                            @{
+                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                                SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
+                                SearchScope = 'Subtree'
+                            }
+                        )
+                    }
+                }
+            }
+
             if ($t -eq '2')
             {
-                # Workstations Tier 2
-                $DomainGroups +=
-                @{
-                    Name                = "Tier 2 - Computers"
-                    Scope               = 'Global'
-                    Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'"
-                            SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-
                 # Workstations by build Tier 2
                 foreach ($Build in $WinBuilds.GetEnumerator())
                 {
@@ -1505,71 +1488,8 @@ Begin
                     }
                 }
             }
-            else
-            {
-                # Servers
-                $DomainGroups +=
-                @{
-                    Name                = "Tier $t - Computers"
-                    Scope               = 'Global'
-                    Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
-                    Members             =
-                    @(
-                        @{
-                            Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*'"
-                            SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
-                            SearchScope = 'Subtree'
-                        }
-                    )
-                }
-            }
 
-            # Server by build Tier DC, 0-2
-            foreach ($Build in $WinBuilds.GetEnumerator())
-            {
-                if ($Build.Value.Server)
-                {
-                    $DomainGroups +=
-                    @{
-                        Name                = "Tier $t - Computers - $($Build.Value.Server)"
-                        Description         = "End of support $($Build.Value.ServerEndOfSupport)"
-                        Scope               = 'Global'
-                        Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
-                                SearchScope = 'Subtree'
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        ###############
-        # Tier DC, 0-2
-        ###############
-
-        foreach($t in @('DC', '0', '1', '2'))
-        {
-            # Users
-            $DomainGroups +=
-            @{
-                Name                = "Tier $t - Users"
-                Scope               = 'Global'
-                Path                = "OU=Security Roles,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
-                Members             =
-                @(
-                    @{
-                        Filter      = "Name -like 't$t*' -and ObjectCategory -eq 'Person'"
-                        SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
-                        SearchScope = 'OneLevel'
-                    }
-                )
-            }
-
+            # Local computer groups
             foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
             {
                 # Local admin
@@ -1589,6 +1509,38 @@ Begin
                     Path            = "OU=Remote Desktop Access,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
                 }
             }
+
+            # Users
+            $DomainGroups +=
+            @{
+                Name                = "Tier $t - Users"
+                Scope               = 'Global'
+                Path                = "OU=Security Roles,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 't$t*' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
+
+            # Remote Access Users
+            $DomainGroups +=
+            @{
+                Name                = "Tier $t - Remote Access Users"
+                Scope               = 'Global'
+                Path                = "OU=Security Roles,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                Members             =
+                @(
+                    @{
+                        Filter      = "Name -like 't$tra*' -and ObjectCategory -eq 'Person'"
+                        SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
+                        SearchScope = 'OneLevel'
+                    }
+                )
+            }
         }
 
         ######################
@@ -1599,22 +1551,19 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach($t in @('DC', '0', '1', '2'))
         {
-            #########
-            # Admins
-            #########
-
+            # Delegate Admins
             $DomainGroups +=
             @(
                 @{
-                    Name                = "Delegate $Tier Admin Rights"
+                    Name                = "Delegate Tier $t Admin Rights"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
+                            Filter      = "Name -eq 'Tier $t - Admins' -and ObjectCategory -eq 'group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1622,20 +1571,17 @@ Begin
                 }
             )
 
-            #######
-            # Laps
-            #######
-
+            # Delegate Laps
             $DomainGroups +=
             @(
                 @{
-                    Name                = "Delegate $Tier Laps Read Password"
+                    Name                = "Delegate Tier $t Laps Read Password"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
+                            Filter      = "Name -eq 'Tier $t - Admins' -and ObjectCategory -eq 'group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -1643,13 +1589,13 @@ Begin
                 }
 
                 @{
-                    Name                = "Delegate $Tier Laps Reset Password"
+                    Name                = "Delegate Tier $t Laps Reset Password"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                     Members             =
                     @(
                         @{
-                            Filter      = "Name -eq '$Tier - Admins' -and ObjectCategory -eq 'group'"
+                            Filter      = "Name -eq 'Tier $t - Admins' -and ObjectCategory -eq 'group'"
                             SearchBase  = "OU=Security Roles,OU=Groups,OU=Administration,OU=$DomainName,$BaseDN"
                             SearchScope = 'OneLevel'
                         }
@@ -3250,14 +3196,66 @@ Begin
         # ██║  ██║╚██████╔╝   ██║   ██║  ██║██║ ╚████║    ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        $AuthenticationTires =
+        $AuthenticationPolicies =
         @(
-            @{ Name = 'Tier DC';             Liftime = 45; }
-            @{ Name = 'Tier 0';              Liftime = 45; }
-            @{ Name = 'Tier 1';              Liftime = 45; }
-            @{ Name = 'Tier 2';              Liftime = 45; }
-            @{ Name = 'Lockdown';            Liftime = 45; }
+            @{
+                Name = 'Lockdown Policy';
+                Members = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName);
+                Liftime = 45;
+                Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown Silo"))';
+            }
         )
+
+        foreach($t in @('DC', '0', '1', '2'))
+        {
+            switch($t)
+            {
+                'DC'
+                {
+                    $AuthNPolicyMembers =
+                    @(
+                        @(Get-ADGroup -Identity "Tier $t - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
+                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                    )
+                }
+
+                default
+                {
+                    $AuthNPolicyMembers =
+                    @(
+                        @(Get-ADGroup -Identity "Tier $t - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
+                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                    )
+                }
+            }
+
+            $AuthenticationPolicies +=
+            @{
+                Name = "Tier $t Policy";
+                Members = $AuthNPolicyMembers
+                Liftime = 45;
+                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"Tier $t Silo`"))";
+            }
+
+            $AuthenticationPolicies +=
+            @{
+                Name = "Tier $t Remote Access Policy";
+                Members = @(Get-ADGroup -Identity "Tier $t - Remote Access Users" -Properties Members | Select-Object -ExpandProperty Members);;
+                Liftime = 45;
+                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"Tier $t Remote Access Silo`"))";
+            }
+        }
+
+
+        foreach ($AuthN in $AuthenticationPolicies)
+        {
+            Write-Host $AuthN.Name
+            Write-Host $AuthN.Members
+            Write-Host $AuthN.Condition
+        }
+
+        Write-Output "NOT IMPLEMENTED AUTHN"
+        return
 
         foreach ($Tier in $AuthenticationTires)
         {
@@ -3265,14 +3263,9 @@ Begin
             # Get members
             ##############
 
-            switch ($Tier.Name)
+            switch -Regex ($Tier.Name)
             {
-                'Lockdown'
-                {
-                    $PolicyUsers   = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
-                    $SiloComputers = $null
-                    $Condition     = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown"))'
-                }
+
                 default
                 {
                     $PolicyUsers =
@@ -3283,7 +3276,7 @@ Begin
                     $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
                     $Condition     = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"$($Tier.Name) Silo`"))"
 
-                    if($Tier.Name -eq 'Tier DC')
+                    if($Tier.Name -match 'Tier DC')
                     {
                         $PolicyUsers += @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
                         $SiloComputers += @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
@@ -3441,7 +3434,7 @@ Begin
             # Set permission
             Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
 
-            foreach ($Tier in @(0,1,2))
+            foreach ($Tier in @(0, 1, 2))
             {
                 Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Read Password" > $null
                 Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Reset Password" > $null
@@ -3746,8 +3739,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTHzm+zcz1h/ahUMI0HYBoMtj
-# PGKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj24DFs2Bx7xZw1FVKhZvkUJS
+# DkGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3878,34 +3871,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQwIhUW
-# VwTKmoRRYa7YrAtViA/2EDANBgkqhkiG9w0BAQEFAASCAgBrMRBAgjyyDeqcgobx
-# tcjyWYCaPimsqC0BYzQAd02m5a+p8ywAPVT+nNTesXOk2aNZww+IlwHQRm703IAP
-# c7f8hdDAI8MbtkXHJBzmDmcWKv5v/zuEJ5mVBvJOercRGNKXqkemSvyoVLkOnutp
-# scPqhkBzobGmE38+5bEmSvoNRqUKsNNoxVeOEgNg1gdiO4Yr08RpNGeAYED9pm3O
-# aD56DaWKgwXbyECcFQhfjLeMgh2OwcdyxKQh6kwDLqp5gFdXBotoxdB03GtUrweY
-# M7Nh8Zs754HVPTgNW1/ZGO6K70fBmYK6L+8ikLiiLGMgE8eTg5zT8jhj+I6YdUas
-# oUS2kWBee0BXx2nuqhbCNM5DbcG0o0qlxVqMrlCsMG3HVqNcB7kvi0M3yJZm7eed
-# QGSL/Ohb0Ih3c6exxV95bQN+/MzqweUae7UIrhb6PZLPvqU5GqrRFAzf/v+NRs5e
-# vXycDZW2wgg9mgLZrOhrHI5uilit2A9u7TU2uH0M1FkbamZSTCnEAqd3gASOSCjQ
-# Dz2M+G1voqpwMTUMC3ZCSMXqtd/RrNfK1vx2i0nbNlMaT1wFuOgk1W+cCQWPtxvz
-# vIe5NeikjfFEjXBCWSZdgHTWrilAb19lAIehdq5pRQgKErHd+HG+OyWk8ZkWcyEL
-# UYGA7k66d0egC/UuULfDX7J196GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTBiX/j
+# AniGO+R0nsuwteye6afRzjANBgkqhkiG9w0BAQEFAASCAgBTxzLwHkGIJ6zRcGGC
+# sJF5gfDrZ2O71bj7PFjKDfYFfItU6q4YswVbsPR3HHpp/JwtLva8/XiSzxt5rCIp
+# 0HQnVuMmNtOHkbgZOsh6Wan2kztgX/wDbpfZikypm0hwDb0ZF8vmyj28T1C6+1/J
+# YsCJNm9jgv+RdfNXjVXpT5/PBETAVxpGp+ASO1b6sF8giJiDfVsbnq31or3hLrQz
+# QN1IMclDf1AzUXSB6Mie/SC4ynnTRkTYqwYrmFCIS2pwHwGydmVKjLl2Ww3nIY1n
+# oxD0o3+vmVZ4Yk73LhHAGISwfvvRhNJwe6XsK3wzhR9Vh8TXgjN9HmKf5rzwLoHS
+# ioXKsRzhkxZAGj3QcFlOJ67sjQXO02mSE5ZZdIgfSWPanumy/fuYMdUSle0w4oGk
+# JKNRUg84DGttoqVI+si9puefVFmdgvdxV2H4JOmvARo5DIA0JpWzeuHQR1Hg3ws2
+# jchEinAHKoMDg0bfEWb/8/guEfRZkwyLIc7J8R9Q7g+qtRGt0qy2k+yYpJBLU8zl
+# fYzNbeSH3v3RQy3Tsg9XnOSNzDABZQqVcqB/FlRqTg6Pehh41JoqKhuj8I6x0rMj
+# wUv/bbrDov/pv4zLA1eKUjrY8bkRo4naJrFVVGmrrm9jcnczlaQQAz1LyQWsScEw
+# T2iYTK7YH4q6dW/C1f0tnKZbYaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA4MzAxNjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDB/dMY+zz4U9BeQ61XTPnVLAQbwDBoyF5507hd
-# WIzGuzANBgkqhkiG9w0BAQEFAASCAgANQc7XJgz/rBLJHpyjf15KJ8t4kch86mSI
-# P2G7JTw3w3sgGTI79MEMyg9MJ0daodb9utJMhTTX3AgZCxOKsMVqYav4XksB/RNb
-# 41eQWqtNZcmbDpIyBYNxyjoD0AzNHEDrTkoyCfRTSNaXBRF3dVvN6AttllRPYapP
-# Yh/4xwhPoPjkXXrYCaKL0cdX9+3y4oTChgdBAZiPNsVl9/ErQb4hOUX06uHlKSsN
-# KNtcGb1hjzullZ50tIOki9a8ZSQmLRyDn6O1Cd5XptWn96n8+D3dwQIhEK0sDows
-# GTnDyByCpAHUGoyrwl1SElkPf4pxDR1pYy8bs74eP1uNI9vpP5t4Eri+2HNIQkTG
-# P0Cjho0Rg7NNQ7leNr9RJOFbTfqyKxP0ee/2BoCc2Z+yaBRp6wzdb1OCNNG9Zwsw
-# PS+6JCT4WaSuwZWFCKoeZBMhNze3qI+VgYRfzpnNHyTm2ipVd6QSVdiFGYz3fqUF
-# Or2n9z7GA1mbaWQkcGyBuK4uB1xve/EdrkCRScwuTUc9dPF06UhZPU/AvchbNuvo
-# XXJLvv12115wZrNEqg1hhCXkgpWG/MjU/gzB9V5qVzUzf8f+yCnN/sQAP3GAc8lr
-# WfgxN4Il3Ws97yaV/L70XCX8FTQU3Ip2SzYrvBAq7uaJVcpPa1DzmN1E3gziVbPL
-# d7b9U48TfA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTExMzAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCB/mYLsHrbUc3osyoPcTMdz+iNfiJfRNsFfxbA4
+# TTq5tzANBgkqhkiG9w0BAQEFAASCAgBlDHIeT/X2C4CQyBEPw0BobTreIfFFMqGb
+# ARYBe6cojdehA/Tr+90UK6AGcMpLOE1y81/F4rA6JTIABulcB9syM4Gn+FRZsAG6
+# aOWh9+kOoDl8TsyeZ2Popkwqm+ziwQi2nBYAjzrcoEMDecqGP+HKLh1tzm38jmeZ
+# +gTPRwmRGNTvrD58kywgrkKfCv3At1IRJ7MLws875JIlCRm7v5E0oYxEa6DM+p+T
+# dmln1qkWLtbZoXUgxmNECUzgp1/fzLN4sQeNtKHYKayHs+elY+pr8vJX9ZeJKlcM
+# GV7F/69XGk5GOTC4CUvRBG4A1cTYusIfhe+/hAfX+LrcpWsyN54I/ucNXMFTicFr
+# MHQhblcCU/xiZzz0q4zob/bB36CSVsRW0YSD4TjpykJWECT9IQZ/hSuafKMf88jK
+# 2DX9soYeKHXc7/Gqh7kHOx/mn3XAPVnKnenVd5SSoHrqLblAKfZSLzSL272LcE3d
+# bBVJ2kLxAhaO3chIhRHW9nVq3zEXeC6SltQDDG6Bt0Rl4e8FP9luaizDmEkGonu5
+# eoRlFzRV+dUiaNIJpjvBhhQKDy4fRe9EssKBO5xGHLpMjHAEc3DV4hafdR+/Hcxx
+# Y+DJjJ44qy+5Y7gzYvQqy0U4Liyajpe2z6cg1428kByr9k1h4LV+afyzIue3FTK9
+# DNcgLLiO1Q==
 # SIG # End signature block
