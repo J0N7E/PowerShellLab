@@ -1519,7 +1519,7 @@ Begin
                 Members             =
                 @(
                     @{
-                        Filter      = "Name -like 't$t*' -and ObjectCategory -eq 'Person'"
+                        Filter      = "Name -like 't$($t.ToLower())*' -and ObjectCategory -eq 'Person'"
                         SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
@@ -1535,7 +1535,7 @@ Begin
                 Members             =
                 @(
                     @{
-                        Filter      = "Name -like 't$tra*' -and ObjectCategory -eq 'Person'"
+                        Filter      = "Name -like 't$($t.ToLower())ra*' -and ObjectCategory -eq 'Person'"
                         SearchBase  = "OU=Users,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'OneLevel'
                     }
@@ -3196,133 +3196,121 @@ Begin
         # ██║  ██║╚██████╔╝   ██║   ██║  ██║██║ ╚████║    ██║     ╚██████╔╝███████╗██║╚██████╗   ██║
         # ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝   ╚═╝
 
-        $AuthenticationPolicies =
+        $AuthNPolicies =
         @(
             @{
-                Name = 'Lockdown Policy';
-                Members = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName);
-                Liftime = 45;
-                Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== "Lockdown Silo"))';
+                Name = 'Lockdown'
+                Users = @(Get-ADUser -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Users,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
+                Computers = @(Get-ADComputer -Filter "Name -like '*'" -SearchScope 'OneLevel' -SearchBase "OU=Redirect Computers,OU=$DomainName,$BaseDN" | Select-Object -ExpandProperty DistinguishedName)
+                Liftime = 45
+                Condition = 'O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo == "Lockdown Silo"))'
             }
         )
 
         foreach($t in @('DC', '0', '1', '2'))
         {
+            # Get Remote Access Users (to exclude from users in tier policy)
+            $RemoteAccessUsers = @(Get-ADGroup -Identity "Tier $t - Remote Access Users" -Properties Members | Select-Object -ExpandProperty Members)
+            $RemoteAccessComputers = @(Get-ADComputer -Filter "Name -like 'RAT*'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree | Select-Object -ExpandProperty DistinguishedName)
+
+            # Get Policy Members
             switch($t)
             {
                 'DC'
                 {
-                    $AuthNPolicyMembers =
+                    $AuthNPolicyUsers =
                     @(
-                        @(Get-ADGroup -Identity "Tier $t - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
-                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                        @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
                     )
                 }
 
                 default
                 {
-                    $AuthNPolicyMembers =
+                    $AuthNPolicyUsers =
                     @(
                         @(Get-ADGroup -Identity "Tier $t - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
-                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members).Where({$_ -notin $RemoteAccessUsers}) # Exclude Remote Access Users
                     )
-                }
-            }
 
-            $AuthenticationPolicies +=
-            @{
-                Name = "Tier $t Policy";
-                Members = $AuthNPolicyMembers
-                Liftime = 45;
-                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"Tier $t Silo`"))";
-            }
-
-            $AuthenticationPolicies +=
-            @{
-                Name = "Tier $t Remote Access Policy";
-                Members = @(Get-ADGroup -Identity "Tier $t - Remote Access Users" -Properties Members | Select-Object -ExpandProperty Members);;
-                Liftime = 45;
-                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"Tier $t Remote Access Silo`"))";
-            }
-        }
-
-
-        foreach ($AuthN in $AuthenticationPolicies)
-        {
-            Write-Host $AuthN.Name
-            Write-Host $AuthN.Members
-            Write-Host $AuthN.Condition
-        }
-
-        Write-Output "NOT IMPLEMENTED AUTHN"
-        return
-
-        foreach ($Tier in $AuthenticationTires)
-        {
-            ##############
-            # Get members
-            ##############
-
-            switch -Regex ($Tier.Name)
-            {
-
-                default
-                {
-                    $PolicyUsers =
+                    $AuthNPolicyComputers =
                     @(
-                        @(Get-ADGroup -Identity "$($Tier.Name) - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
-                        @(Get-ADGroup -Identity "$($Tier.Name) - Users" -Properties Members | Select-Object -ExpandProperty Members)
+                        @(Get-ADGroup -Identity "Tier $t - Computers" -Properties Members | Select-Object -ExpandProperty Members).Where({$_ -notin $RemoteAccessComputers}) # Exclude Remote Access Computers
                     )
-                    $SiloComputers = @(Get-ADGroup -Identity "$($Tier.Name) - Computers" -Properties Members | Select-Object -ExpandProperty Members)
-                    $Condition     = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo== `"$($Tier.Name) Silo`"))"
-
-                    if($Tier.Name -match 'Tier DC')
-                    {
-                        $PolicyUsers += @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
-                        $SiloComputers += @(Get-ADDomainController -Filter '*' | Select-Object -ExpandProperty ComputerObjectDN)
-                    }
                 }
             }
 
+            # Tier n Policy
+            $AuthNPolicies +=
+            @{
+                Name = "Tier $t"
+                Users = $AuthNPolicyUsers
+                Computers = $AuthNPolicyComputers
+                Liftime = 45
+                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;((@USER.ad://ext/AuthenticationSilo == `"Tier $t Silo`") || (@USER.ad://ext/AuthenticationSilo == `"Tier $t Remote Access Silo`")))"
+            }
+
+            # Tier n Remote Access Policy
+            $AuthNPolicies +=
+            @{
+                Name = "Tier $t Remote Access"
+                Users = $RemoteAccessUsers
+                Computers = $RemoteAccessComputers
+                Liftime = 45
+                Condition = "O:SYG:SYD:(XA;OICI;CR;;;WD;(@USER.ad://ext/AuthenticationSilo == `"Tier $t Remote Access Silo`"))"
+            }
+        }
+
+        foreach ($Pol in $AuthNPolicies)
+        {
             ################
             # Create Policy
             ################
 
             # Get policy
-            $AuthPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Tier.Name) Policy'"
+            $ADAuthNPolicy = Get-ADAuthenticationPolicy -Filter "Name -eq '$($Pol.Name) Policy'"
 
-            if (-not $AuthPolicy -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Policy`"" @VerboseSplat))
+            if (-not $ADAuthNPolicy -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Pol.Name) Policy`"" @VerboseSplat))
             {
                 $Splat =
                 @{
-                    Name = "$($Tier.Name) Policy"
+                    Name = "$($Pol.Name) Policy"
                     Enforce = $false
                     ProtectedFromAccidentalDeletion = $false
-                    UserTGTLifetimeMins = $Tier.Liftime
-                    UserAllowedToAuthenticateFrom = $Condition
                 }
 
-                $AuthPolicy = New-ADAuthenticationPolicy @Splat -PassThru
+                $ADAuthNPolicy = New-ADAuthenticationPolicy @Splat -PassThru
             }
 
-            ################
-            # Add to Policy
-            ################
+            if ($ADAuthNPolicy.UserTGTLifetimeMins -ne $Pol.Liftime -and
+                (ShouldProcess @WhatIfSplat -Message "Setting `"$($Pol.Name) Policy`" UserTGTLifetimeMins = $($Pol.Lifetime)" @VerboseSplat))
+            {
+                Set-ADAuthenticationPolicy -Identity "$($Pol.Name) Policy" -UserTGTLifetimeMins $Pol.Liftime
+            }
+
+            if ($ADAuthNPolicy.UserAllowedToAuthenticateFrom -ne $Pol.Condition -and
+                (ShouldProcess @WhatIfSplat -Message "Setting `"$($Pol.Name) Policy`" UserAllowedToAuthenticateFrom = $($Pol.Condition)" @VerboseSplat))
+            {
+                Set-ADAuthenticationPolicy -Identity "$($Pol.Name) Policy" -UserAllowedToAuthenticateFrom $Pol.Condition
+            }
+
+            ############
+            # Add users
+            ############
 
             # Itterate all group members
-            foreach ($UserDN in $PolicyUsers)
+            foreach ($UserDN in $Pol.Users)
             {
                 # Get common name
                 $UserCN = $($UserDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
-                # Get assigned authentication policy
-                $AssignedPolicy = Get-ADObject -Identity $UserDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+                # Get assigned authn policy
+                $GetAssignedPolicy = Get-ADObject -Identity $UserDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
 
-                if (-not $AssignedPolicy -or $AssignedPolicy -notmatch $AuthPolicy.DistinguishedName -and
-                    (ShouldProcess -Message "Adding `"$UserCN`" to `"$($Tier.Name) Policy`"" @VerboseSplat))
+                if (-not $GetAssignedPolicy -or $GetAssignedPolicy -notmatch $ADAuthNPolicy.DistinguishedName -and
+                    (ShouldProcess -Message "Adding `"$UserCN`" to `"$($Pol.Name) Policy`"" @VerboseSplat))
                 {
-                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $AuthPolicy.DistinguishedName -Identity $UserDN
+                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $ADAuthNPolicy.DistinguishedName -Identity $UserDN
                 }
             }
 
@@ -3331,47 +3319,47 @@ Begin
             ##############
 
             # Get silo
-            $AuthSilo = Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Tier.Name) Silo'"
+            $ADAuthNSilo = Get-ADAuthenticationPolicySilo -Filter "Name -eq '$($Pol.Name) Silo'"
 
-            if (-not $AuthSilo -and
-                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Tier.Name) Silo`"" @VerboseSplat))
+            if (-not $ADAuthNSilo -and
+                (ShouldProcess @WhatIfSplat -Message "Adding `"$($Pol.Name) Silo`"" @VerboseSplat))
             {
                 $Splat =
                 @{
-                    Name = "$($Tier.Name) Silo"
+                    Name = "$($Pol.Name) Silo"
                     Enforce = $false
                     ProtectedFromAccidentalDeletion = $false
-                    UserAuthenticationPolicy = "$($Tier.Name) Policy"
-                    ServiceAuthenticationPolicy = "$($Tier.Name) Policy"
-                    ComputerAuthenticationPolicy = "$($Tier.Name) Policy"
+                    UserAuthenticationPolicy = "$($Pol.Name) Policy"
+                    ServiceAuthenticationPolicy = "$($Pol.Name) Policy"
+                    ComputerAuthenticationPolicy = "$($Pol.Name) Policy"
                 }
 
-                $AuthSilo = New-ADAuthenticationPolicySilo @Splat -PassThru
+                $ADAuthNSilo = New-ADAuthenticationPolicySilo @Splat -PassThru
             }
 
-            #####################
-            # Add/Assign to Silo
-            #####################
+            #######################
+            # Add/Assign computers
+            #######################
 
             # Itterate all group members
-            foreach ($ComputerDN in $SiloComputers)
+            foreach ($ComputerDN in $Pol.Computers)
             {
                 # Get common name
                 $ComputerCN = $($ComputerDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
-                if ($ComputerDN -notin ($AuthSilo | Select-Object -ExpandProperty Members) -and
-                    (ShouldProcess -Message "Adding $ComputerCN to `"$($Tier.Name) Silo`"" @VerboseSplat))
+                if ($ComputerDN -notin ($ADAuthNSilo | Select-Object -ExpandProperty Members) -and
+                    (ShouldProcess -Message "Adding $ComputerCN to `"$($Pol.Name) Silo`"" @VerboseSplat))
                 {
-                    Grant-ADAuthenticationPolicySiloAccess -Identity "$($Tier.Name) Silo" -Account "$ComputerDN"
+                    Grant-ADAuthenticationPolicySiloAccess -Identity "$($Pol.Name) Silo" -Account "$ComputerDN"
                 }
 
-                # Get assigned authentication policy silo
-                $AssignedPolicy = Get-ADObject -Identity $ComputerDN -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
+                # Get assigned authn policy silo
+                $GetAssignedSilo = Get-ADObject -Identity $ComputerDN -Properties msDS-AssignedAuthNPolicySilo | Select-Object -ExpandProperty msDS-AssignedAuthNPolicySilo
 
-                if (-not $AssignedPolicy -or $AssignedPolicy -notmatch "CN=$($Tier.Name) Silo" -and
-                    (ShouldProcess -Message "Assigning $ComputerCN with `"$($Tier.Name) Silo`"" @VerboseSplat))
+                if (-not $GetAssignedSilo -or $GetAssignedSilo -notmatch "CN=$($Pol.Name) Silo" -and
+                    (ShouldProcess -Message "Assigning $ComputerCN with `"$($Pol.Name) Silo`"" @VerboseSplat))
                 {
-                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Tier.Name) Silo" -Identity $ComputerDN
+                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicySilo "$($Pol.Name) Silo" -Identity $ComputerDN
                 }
             }
 
@@ -3383,35 +3371,35 @@ Begin
             {
                 $true
                 {
-                    # Auth policy enforced
-                    if ($AuthPolicy.Enforce -ne $true -and
-                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    # AuthN policy enforced
+                    if ($ADAuthNPolicy.Enforce -ne $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Pol.Name) Policy`"" @VerboseSplat))
                     {
-                        Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $true
+                        Set-ADAuthenticationPolicy -Identity "$($Pol.Name) Policy" -Enforce $true
                     }
 
-                    # Auth silo enforced
-                    if ($AuthSilo.Enforce -ne $true -and
-                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    # AuthN silo enforced
+                    if ($ADAuthNSilo.Enforce -ne $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Enforcing `"$($Pol.Name) Silo`"" @VerboseSplat))
                     {
-                        Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $true
+                        Set-ADAuthenticationPolicySilo -Identity "$($Pol.Name) Silo" -Enforce $true
                     }
                 }
 
                 $false
                 {
-                    # Auth policy NOT enforced
-                    if ($AuthPolicy.Enforce -eq $true -and
-                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Policy`"" @VerboseSplat))
+                    # AuthN policy NOT enforced
+                    if ($ADAuthNPolicy.Enforce -eq $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Pol.Name) Policy`"" @VerboseSplat))
                     {
-                        Set-ADAuthenticationPolicy -Identity "$($Tier.Name) Policy" -Enforce $false
+                        Set-ADAuthenticationPolicy -Identity "$($Pol.Name) Policy" -Enforce $false
                     }
 
-                    # Auth silo NOT enforced
-                    if ($AuthSilo.Enforce -eq $true -and
-                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Tier.Name) Silo`"" @VerboseSplat))
+                    # AuthN silo NOT enforced
+                    if ($ADAuthNSilo.Enforce -eq $true -and
+                        (ShouldProcess @WhatIfSplat -Message "Removing enforce from `"$($Pol.Name) Silo`"" @VerboseSplat))
                     {
-                        Set-ADAuthenticationPolicySilo -Identity "$($Tier.Name) Silo" -Enforce $false
+                        Set-ADAuthenticationPolicySilo -Identity "$($Pol.Name) Silo" -Enforce $false
                     }
                 }
             }
@@ -3739,8 +3727,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj24DFs2Bx7xZw1FVKhZvkUJS
-# DkGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiw1Tgy/Ww7bCmCWqM1GOfyzQ
+# LIegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3871,34 +3859,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTBiX/j
-# AniGO+R0nsuwteye6afRzjANBgkqhkiG9w0BAQEFAASCAgBTxzLwHkGIJ6zRcGGC
-# sJF5gfDrZ2O71bj7PFjKDfYFfItU6q4YswVbsPR3HHpp/JwtLva8/XiSzxt5rCIp
-# 0HQnVuMmNtOHkbgZOsh6Wan2kztgX/wDbpfZikypm0hwDb0ZF8vmyj28T1C6+1/J
-# YsCJNm9jgv+RdfNXjVXpT5/PBETAVxpGp+ASO1b6sF8giJiDfVsbnq31or3hLrQz
-# QN1IMclDf1AzUXSB6Mie/SC4ynnTRkTYqwYrmFCIS2pwHwGydmVKjLl2Ww3nIY1n
-# oxD0o3+vmVZ4Yk73LhHAGISwfvvRhNJwe6XsK3wzhR9Vh8TXgjN9HmKf5rzwLoHS
-# ioXKsRzhkxZAGj3QcFlOJ67sjQXO02mSE5ZZdIgfSWPanumy/fuYMdUSle0w4oGk
-# JKNRUg84DGttoqVI+si9puefVFmdgvdxV2H4JOmvARo5DIA0JpWzeuHQR1Hg3ws2
-# jchEinAHKoMDg0bfEWb/8/guEfRZkwyLIc7J8R9Q7g+qtRGt0qy2k+yYpJBLU8zl
-# fYzNbeSH3v3RQy3Tsg9XnOSNzDABZQqVcqB/FlRqTg6Pehh41JoqKhuj8I6x0rMj
-# wUv/bbrDov/pv4zLA1eKUjrY8bkRo4naJrFVVGmrrm9jcnczlaQQAz1LyQWsScEw
-# T2iYTK7YH4q6dW/C1f0tnKZbYaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ1SP+G
+# L22S4mBJrgZUvfJ9zgMjEzANBgkqhkiG9w0BAQEFAASCAgBy812L4pZcys1K4uA3
+# EnYHwc9xmn+sXcZNMDafKOJxRr0IVOJbi0zRccCEWVspHHldb8+0Qa1PDqh9HOzy
+# Pz/WdJKUmeM4kTigzarR/tE8C9K/BjcW6C/OmT5y3iZpM2vi6pOgPJHkF9w7jYtP
+# 3WlrtpByBUY+Sg0Occ56Sxuw1Op7FacDa4Ap3ciL8pmITVZ3ayXAGFalzFAMMLj8
+# fsAaBdX+JgfQgAn7/N6cZ2axWKkKcS5xnYL9q+M5loFJWfHKtXQO/JnAfVWMhqM5
+# KoyL2eMtLENDt6o5bTMWjTetnzAinFW2b8ArtshA6taDzGVz5G7WIeXDQNd3OTQS
+# lCEUTuXtLAeI5zOBJQZLeokBX3zsskY9UPYEIAuxCZPcnqwmTruyrBm2KlWJsaF5
+# YXm3WdmJxBYlz+Xv4MLepWboyNprU5xflGBGDW6KDi+JrAvCO69KFVQa8/+iSXsZ
+# +6KZiU6vXgVKHTsSw6bkmTyz4Tjupj4spdnymjlJBpwBoMrKYZifnfZsqBJR4zlx
+# DGfDDDPFFflDu2ir9rHshV5ckIrCeugk1SdLv3FvAt/9pnwiqNuPeHy2XMDmdhSR
+# cA0YNOGyy0kkg5rGfOZmM9kgrB4/S3hFHR0fcpCcHFnE7ydCHQKTeCY/qn6xur+G
+# FiW9SKwUCh34dONLdcKyXEB3cqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTExMzAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCB/mYLsHrbUc3osyoPcTMdz+iNfiJfRNsFfxbA4
-# TTq5tzANBgkqhkiG9w0BAQEFAASCAgBlDHIeT/X2C4CQyBEPw0BobTreIfFFMqGb
-# ARYBe6cojdehA/Tr+90UK6AGcMpLOE1y81/F4rA6JTIABulcB9syM4Gn+FRZsAG6
-# aOWh9+kOoDl8TsyeZ2Popkwqm+ziwQi2nBYAjzrcoEMDecqGP+HKLh1tzm38jmeZ
-# +gTPRwmRGNTvrD58kywgrkKfCv3At1IRJ7MLws875JIlCRm7v5E0oYxEa6DM+p+T
-# dmln1qkWLtbZoXUgxmNECUzgp1/fzLN4sQeNtKHYKayHs+elY+pr8vJX9ZeJKlcM
-# GV7F/69XGk5GOTC4CUvRBG4A1cTYusIfhe+/hAfX+LrcpWsyN54I/ucNXMFTicFr
-# MHQhblcCU/xiZzz0q4zob/bB36CSVsRW0YSD4TjpykJWECT9IQZ/hSuafKMf88jK
-# 2DX9soYeKHXc7/Gqh7kHOx/mn3XAPVnKnenVd5SSoHrqLblAKfZSLzSL272LcE3d
-# bBVJ2kLxAhaO3chIhRHW9nVq3zEXeC6SltQDDG6Bt0Rl4e8FP9luaizDmEkGonu5
-# eoRlFzRV+dUiaNIJpjvBhhQKDy4fRe9EssKBO5xGHLpMjHAEc3DV4hafdR+/Hcxx
-# Y+DJjJ44qy+5Y7gzYvQqy0U4Liyajpe2z6cg1428kByr9k1h4LV+afyzIue3FTK9
-# DNcgLLiO1Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTIxNTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCBfIW9zW12kakZJOMQnDjXjKc7tT7ztKpq2u5Jb
+# rcdtTjANBgkqhkiG9w0BAQEFAASCAgCg+ZhRYum7ujndZlq8+kahrTDxxfeaM1TR
+# c2sN3GReS5OdmzDpwhob0hQ99z4o8iWv1z+1PrbwxAh7MHqe7QqcDWLjavNJhTa/
+# EDnFYE5nYW6QZ9tezZumOU59PRXdYwyrk4dyRqtRBgEfXWG0ZYzLadzcU7l93xKs
+# 64tpQ/6eG9+/36MPjQi2hu7K1HWhBoWt23j43q4GMJ6K44Z1+wdCuvhxxCkkv+wo
+# O0iVIiW9Gx2bXkau59WE76JtNPEyT2KMDmDDrxa9f+s5XYnKuzRymo1x8y5YDyyT
+# 1wYGG2hawwMjcuSvhFS6wb/i+80ATqqE38aBYuyllA6um5YHkWpYp2+V44j5M3kE
+# 5BTW/kutuIIHs1cM7qRI14GOjqN1sbCydjI00Oq2SSf3L//cBETCsJMaLGj3dD6Y
+# l2dXGBnNj/pEh3UMOK54fkLdX6qbU6OUHK3636CsdO9D/GNR3kYM9cn+Exq9Pwpb
+# Nobn8HO/8GAaM6RIRRUZPfe1ZqjiVDf49ec66bp7jHShep/+YBiCldNnpKt9+Xh9
+# rLmD3fycKXrWRIeFnz+F+qMsEAkzjoh1tnaRwaKyfgmq20V61bQ+XAQhc+gPvQFe
+# tnMGjhn15ia4FTBI52z4bOPZ4kDyf2tASEHbo9U88eywTAZulbgk8mn4kTLamSpk
+# nkpOx2aIKg==
 # SIG # End signature block
