@@ -46,11 +46,11 @@ $Settings = @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -F
 # Credentials
 $Settings +=
 @{
-    Lac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ".\administrator", $Settings.Pswd
-    Dac   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\tdcadm')", $Settings.Pswd
-    Ac0   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\t0adm')", $Settings.Pswd
-    Ac1   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\t1adm')", $Settings.Pswd
-    Ac2   = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "$($DomainNetbiosName + '\t2adm')", $Settings.Pswd
+    Lac   = New-Object -ArgumentList ".\administrator", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Dac   = New-Object -ArgumentList "$($DomainNetbiosName + '\tdcadm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac0   = New-Object -ArgumentList "$($DomainNetbiosName + '\t0adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac1   = New-Object -ArgumentList "$($DomainNetbiosName + '\t1adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac2   = New-Object -ArgumentList "$($DomainNetbiosName + '\t2adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
 }
 
 $Settings +=
@@ -616,8 +616,8 @@ Start-Process $PowerShell -ArgumentList `
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxNcafqq5ycLN3BblUKmRmXtd
-# gWGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmYKr8v6E/jm/0CLclDmBggVb
+# Tj+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -748,34 +748,34 @@ Start-Process $PowerShell -ArgumentList `
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTSzoFJ
-# SBM2sHvqDmPi/cOWj/+kGjANBgkqhkiG9w0BAQEFAASCAgByUmvZFuz/J61gGPkW
-# xefKrblY3ZUUVleEQA8Dejj2EtQqWUW/iNkg03VXFRgd8xCu38Ik0gWUXFQNC6qV
-# KNt6eEUM1iu8fW62DNuYhpxohtV3SyBrxZQbp+DGoyBjGzY8RvrriMSpzdb7j4Ol
-# etRInL8X7+DPuIesxR8KUgZz232E4J5xLu0bgPpRQO97h3h9GTrE5DepyEq2lbh3
-# msUwpRQn7MZfxZNpa0WLXXr7GwbMoqDdFwyEAQX123d4E2B5Om65fZjYn7s8lbnR
-# HStk+Xxh4B0CJNQRZRzInZGgeDabc/3JhFuqcMudxPvgSltvvpvK6x2qtnCRVcwe
-# KclOqb1p9MnQ/LTcCN4bbhKBf925s2jiqbDwech1NHqxY34d+lHviDocMd6IrDU5
-# gWniuqORFmFcYwQYZvCeBahUEwDTD3cCRroNvGR6uh7snnAgAYDQXNAiLn5Q1EMi
-# icLgYpLhIjw3jmgqv8vcnaQ6d1qujZVFKork0m+osLGBBruz3kNqC+/+XoQpIb5S
-# PG9UwuzR+uZm+9xFgxC/eA1+XZpPKEjkcfOSSEvnHjevzcJr2AZKpU9iTeCcgrl0
-# 0KGLg8VsEq3++Qgd22matR8g9M+Jhrp2sC9FsJkLKAam7/CVN9p7NNUUORC0/J1q
-# HZmqAJcl2VwWUR9Tmy8jBJ72EaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRCIdAA
+# fTWckx8us3pff4tniz5FZjANBgkqhkiG9w0BAQEFAASCAgBX4HQCbkCFZnYACQUz
+# 76az7Fq1QBSa05Z/ltaRkjBFe9MjDCeTkoOzjWFKxr3wF4x+6YHPpSKaUa4y6Xgt
+# CeYrZq58oXjfXu7amGaUHG/D2RT8MqhW/+S/aH9FFr5KN+YEXmoZaRvBok5MqO8I
+# kI5/NEdm5r6LyjGXHEtghUn9ZFOF1ZINLDg20GMvZ65LlSdM/1cexodWVBkl1Pqi
+# v4wXH8oHNx6uEwJdpM84Rg/yII0kbSdUBAcWLnBhqmWrb3ApxFjwLKbnuAsqCXvS
+# N59JnZ2TQTSK1VjM901Ys4Ex9ayQyvsPOQZ1dAysnGJT5V6xZYDbfVegrRz/4X5P
+# U/l+WEGczSOjFW+7VXQijBXAZElaYqjsvhxArG7krPYklzCsKAIwkJW7DcgOKgyL
+# RWlUPRFzsOxASwsHGen7On8DGJ2EXgSE9kCnF+D+3IFhIKBINxvMyTJghng8JwLc
+# 7J1mwZbOZCXOEZ0WDtBDCSR97wQVM8Tp0KK5sxLqFrIlOwLb6eXwSyvZlbvwBQqc
+# GT8T4eYXwOZrZzmGEM8W+bGBLFO6yz1OA5w7S5Ai4nuEA5GqJMs9TgmT7bQZykGa
+# tYfYMkaaGLJ/4F5KiMhA9QQkt+dmcuc+8Zgcc2kimU/6Hmj6xx2DQwg0DZOQNxLJ
+# T3m+b3zs7DX5cpxXg3zjt56JYKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA2MjQxNzAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCCsiMu6XmkD96JMW4ppdDrOLhBtPlfcoNs76kpW
-# PE7KtzANBgkqhkiG9w0BAQEFAASCAgA1PgmHQmbKCJsJ8HNSSIzx1CqQLeiFmSms
-# iVkq6zItPpH62XdutSyAzA1slNPI2y2CzH3PCQdThpI77Glhu7v3wKSgetJ99Pkp
-# Pr3y8uVYK8P0q8zSj34xftYHMPnmHwFCoYrdT8K5HmvZSaCDRLiCuyJj2ohA3HAS
-# ir3OCu7qcX36rhlhA16WBjwAng6qcwPQQpzygiHRKj5sUMMkIK9QU5514fCEKjIV
-# eLMqJHFunimdZck8OUHnXVYwm08dZBf0AgkgmxIuQKU2Q1gmyRreSVDpQhYY4goi
-# vV7PryBBfLvOTCZedBOLIVs8PVmM8lZxj9D1DrFq6fW/MOk8y0UlOA94yOa0jiaA
-# APzZL2wV9euO3iPIJlEQrP4Vr5U+nTm1FeeYq4wkueBEifCbph/PrBhAAJDdpM/d
-# iAI4khuyLrNz+AKKeCBsTsAQ2E+TLcZBz8Pyc17ux1zrSphRovrRsf9aMXhz7oq5
-# mBVgkMavQNA4eiIRQE+K3pnMW5KVHTL1O5fuKKQCNlHlX0Rn1NN4AzE0N0EtJeDF
-# 4J5R1j541PDK8wghufB7N6NvSeCOyry6Qd1YKMQWWaFfJqQW8kK+9nlygjsT/UL2
-# /Emu7NQmHt2zDqg18d3ljp1LX4I0BAepZqd5txFwNU4OI5CCKDVUdG189rIg4Js3
-# 7+/RpFYRuQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTkxOTAw
+# MDdaMC8GCSqGSIb3DQEJBDEiBCBiBZLijCBPbDJE6xccfXCGowY+bFNUvfLWFIaC
+# m6VlfjANBgkqhkiG9w0BAQEFAASCAgB48poZaSXVBnS7W8mddhd2ajUiXptwgsKZ
+# OzdWfWaAs0O7Twk6Db58ukJnylzsrtAw+A5XUaQ4Kx3nvOxPzvvDnp32gaDfaJzN
+# 0WKLMiJ/gy5dFGStKtlDwO3PWrXAI7CpLaX7xMaAVum5o8Iwmpe6EeUESulmFPfu
+# OBpH/8DqKs5zrccIpRWqPfKly3U0Lxevf8g+Lnbsmoeaz8c6u5EHBCPTx8h9TELx
+# 3vQI8nAerwxsSp7fc7YBFHc3roZzm8wxV76zYRKOjm9Nf6D3V36E892RwnEjcSbM
+# VC/PzjWpSTEuOoXIirsxaAAXdfYf+RZGDiOI+89l2HGKPe1ds+Td34pswZGdPGU/
+# +PFdLPrw+io26JbxBZ8Q9C67EvUKebid1o370dV6aC9hR45RGKMaI+q7hU1wIzuX
+# +UGNAJ++EnFmGnJi8/3OniMp+M5488cwXz3mTbxQh/fCzD0fFqjnV8R4+iA6m8DD
+# QsvGbYJgRDmV3aGahEVolS7h9bdSMOrZ8/MEtk3KHbmxw3Gh28xrZSFSOmDSYuUV
+# givjsp9BFgDbD1t3AOhcpDoVGrDEWpFqjDzbmU0eyDqSQ8UQul8lh3HwYj2AURiR
+# 2iqCYU80rh4i9soWBIDBcdaDTcwDRprdnc9mwSyaJaGwpIxnYQtlpd52WJV6SduC
+# ++46/hjXJw==
 # SIG # End signature block

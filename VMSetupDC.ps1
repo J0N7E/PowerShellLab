@@ -65,8 +65,6 @@ Param
     [String]$TemplatePath,
 
     # Switches
-    [Switch]$SetupADDSOnly,
-
     [ValidateSet($true, $false, $null)]
     [Object]$SetupADFS,
     [ValidateSet($true, $false, $null)]
@@ -420,8 +418,7 @@ Begin
         # FIX Protect OU Domain Controllers
 
         # Check if DHCP windows feature is installed
-        if (-not $SetupADDSOnly.IsPresent -and
-            ((Get-WindowsFeature -Name DHCP).InstallState -notmatch 'Install') -and
+        if (((Get-WindowsFeature -Name DHCP).InstallState -notmatch 'Install') -and
             (ShouldProcess @WhatIfSplat -Message "Installing DHCP Windows feature." @VerboseSplat))
         {
             Install-WindowsFeature -Name DHCP -IncludeManagementTools > $null
@@ -460,12 +457,6 @@ Begin
             # Restart
             Restart-Computer -Force
 
-            return
-        }
-
-        # Check if to skip
-        if ($SetupADDSOnly.IsPresent)
-        {
             return
         }
 
@@ -741,16 +732,16 @@ Begin
                 ServerEndOfSupport = '2031-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Security';                       Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                    Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2022 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -763,20 +754,20 @@ Begin
                 WorkstationEndOfSupport = '2029-01-09'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2019 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 1809 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 1809 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -789,20 +780,20 @@ Begin
                 WorkstationEndOfSupport = '2026-11-13'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';   Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
                 )
                 ServerBaseline =
                 @(
-                    @{ Name = 'MSFT Windows Server 2016 - Member Server';       Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 1607 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -819,12 +810,12 @@ Begin
                 WorkstationEndOfSupport = '2026-11-10'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -835,12 +826,12 @@ Begin
                 WorkstationEndOfSupport = '2025-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -851,12 +842,12 @@ Begin
                 WorkstationEndOfSupport = '2024-10-08'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -873,12 +864,12 @@ Begin
                 WorkstationEndOfSupport = '2025-10-14'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
                     @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
@@ -1084,8 +1075,9 @@ Begin
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
                 NeverExpires = $true
-                AccountNotDelegated = $true
-                MemberOf = @('Domain Admins', 'Protected Users')
+                AccountNotDelegated = $false
+                #MemberOf = @('Domain Admins', 'Protected Users')
+                MemberOf = @()
             }
 
             # Service accounts
@@ -1132,8 +1124,9 @@ Begin
                 Description = "Account for administering Tier $t"
                 Password = 'P455w0rd'
                 NeverExpires = $true
-                AccountNotDelegated = $true
-                MemberOf = @('Protected Users')
+                AccountNotDelegated = $false
+                #MemberOf = @('Protected Users')
+                MemberOf = @()
             }
 
             # Remote Access Users
@@ -1143,7 +1136,7 @@ Begin
                 Description = "Account used for Remote Access to Tier $t"
                 Password = 'P455w0rd'
                 NeverExpires = $true
-                AccountNotDelegated = $true
+                AccountNotDelegated = $false
                 MemberOf = @()
             }
         }
@@ -1558,7 +1551,7 @@ Begin
             $DomainGroups +=
             @(
                 @{
-                    Name                = "Delegate Tier $t Admin Rights"
+                    Name                = "Delegate Tier $t - Admin Rights"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Domain Administration,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1576,7 +1569,7 @@ Begin
             $DomainGroups +=
             @(
                 @{
-                    Name                = "Delegate Tier $t Laps Read Password"
+                    Name                = "Delegate Tier $t - Laps Read Password"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Domain Administration,OU=$DomainName,$BaseDN"
                     Members             =
@@ -1590,7 +1583,7 @@ Begin
                 }
 
                 @{
-                    Name                = "Delegate Tier $t Laps Reset Password"
+                    Name                = "Delegate Tier $t - Laps Reset Password"
                     Scope               = 'DomainLocal'
                     Path                = "OU=Access Control,OU=Groups,OU=Domain Administration,OU=$DomainName,$BaseDN"
                     Members             =
@@ -2161,6 +2154,13 @@ Begin
 
             if ($MsaAdfs)
             {
+                # Set SPN
+                if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
+                    (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
+                {
+                    setspn -a host/adfs.$DomainName MsaAdfs > $null
+                }
+
                 # Check PrincipalsAllowedToRetrieveManagedPassword
                 if ($MsaAdfs.PrincipalsAllowedToRetrieveManagedPassword.Where({ $_ -match $AdfsSetupAccount.Name }) -and
                     (ShouldProcess @WhatIfSplat -Message "Deny `"$AdfsSetupAccount.Name`" to retrieve `"$($MsaAdfs.Name)`" password." @VerboseSplat))
@@ -2279,7 +2279,7 @@ Begin
                     ObjectType            = '00000000-0000-0000-0000-000000000000';
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
                     AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t Admin Rights";
+                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t - Admin Rights";
                 }
             )
 
@@ -2291,7 +2291,7 @@ Begin
                     ObjectType            = $AccessRight['Generate Resultant Set of Policy (Planning)'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
                     AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t Admin Rights";
+                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t - Admin Rights";
                 }
             )
 
@@ -2303,7 +2303,7 @@ Begin
                     ObjectType            = $AccessRight['Generate Resultant Set of Policy (Logging)'];
                     InheritedObjectType   = '00000000-0000-0000-0000-000000000000';
                     AccessControlType     = 'Allow';
-                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t Admin Rights";
+                    IdentityReference     = "$DomainNetbiosName\Delegate Tier $t - Admin Rights";
                 }
             )
 
@@ -2528,16 +2528,12 @@ Begin
 
         # <!--
 
-        #  ██████╗ ██████╗  ██████╗
-        # ██╔════╝ ██╔══██╗██╔═══██╗
-        # ██║  ███╗██████╔╝██║   ██║
-        # ██║   ██║██╔═══╝ ██║   ██║
-        # ╚██████╔╝██║     ╚██████╔╝
-        #  ╚═════╝ ╚═╝      ╚═════╝
-
-        #########
-        # Import
-        #########
+        # ██╗███╗   ███╗██████╗  ██████╗ ██████╗ ████████╗     ██████╗ ██████╗  ██████╗
+        # ██║████╗ ████║██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝    ██╔════╝ ██╔══██╗██╔═══██╗
+        # ██║██╔████╔██║██████╔╝██║   ██║██████╔╝   ██║       ██║  ███╗██████╔╝██║   ██║
+        # ██║██║╚██╔╝██║██╔═══╝ ██║   ██║██╔══██╗   ██║       ██║   ██║██╔═══╝ ██║   ██║
+        # ██║██║ ╚═╝ ██║██║     ╚██████╔╝██║  ██║   ██║       ╚██████╔╝██║     ╚██████╔╝
+        # ╚═╝╚═╝     ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝        ╚═════╝ ╚═╝      ╚═════╝
 
         #Initialize
         $GpoPaths = @()
@@ -2629,30 +2625,37 @@ Begin
             }
         }
 
+        #  ██████╗ ██████╗  ██████╗
+        # ██╔════╝ ██╔══██╗██╔═══██╗
+        # ██║  ███╗██████╔╝██║   ██║
+        # ██║   ██║██╔═══╝ ██║   ██║
+        # ╚██████╔╝██║     ╚██████╔╝
+        #  ╚═════╝ ╚═╝      ╚═════╝
+
         ###########
         # Security
         ###########
 
         $DomainSecurity =
         @(
-            @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable WDigest";                       Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable Client Kerberos Armoring";       Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Require Restricted Admin";              Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Block Untrusted Fonts";                 Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable LLMNR & mDNS";                  Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Net Session Enumeration";       Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Netbios";                       Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Telemetry";                     Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable TLS 1.0 & 1.1";                 Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable WDigest";                       Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable WPAD";                          Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable Client Kerberos Armoring";       Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable LSA Protection & LSASS Audit";   Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable SMB Encryption";                 Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Require Restricted Admin";              Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = '-';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = '-';  Enforced = 'Yes';  }
         )
 
         ####################
@@ -2662,14 +2665,14 @@ Begin
         $DomainControllerGpos =
         @(
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - Default Encryption Types";                Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Default Encryption Types";                Enabled = '-';    Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = 'Yes';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = 'No';   Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = '-';    Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = '-';    Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = '-';    Enforced = 'Yes';  }
         ) +
         $DomainSecurity
 
@@ -2681,15 +2684,15 @@ Begin
         {
             $DomainControllerGpos +=
             @(
-                @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";                              Enabled = '-';    Enforced = 'Yes';  }
             )
         }
 
         # Domain controller baselines & default
-        $DomainControllerGpos += @(@{ Name = "$DomainPrefix - Computer - Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }) +
+        $DomainControllerGpos += @(@{ Name = "$DomainPrefix - Computer - Display Settings";          Enabled = 'Yes';  Enforced = 'Yes';  }) +
                                  $WinBuilds.Item($DCBuild).DCBaseline +
                                  $WinBuilds.Item($DCBuild).BaseLine +
-                                 @{ Name = 'Default Domain Controllers Policy';  Enabled = 'Yes';  Enforced = 'No';  }
+                                 @{ Name = 'Default Domain Controllers Policy';                      Enabled = 'Yes';  Enforced = 'No';  }
 
         ########
         # Links
@@ -2705,15 +2708,16 @@ Begin
 
             $BaseDN =
             @(
-                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Secure WinRM HTTPS";                 Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = 'No';   }
             )
 
@@ -2732,17 +2736,18 @@ Begin
             "OU=$DomainName,$BaseDN" =
             @(
                 <#
-                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = 'Yes';  Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Secure WinRM HTTPS";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'No';   }
                 #>
-                @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = 'Yes';  Enforced = 'No';   }
-                @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = '-';  Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = '-';  Enforced = 'Yes';  }
             )
         }
 
@@ -2760,30 +2765,33 @@ Begin
             if ($Tier -eq 'Tier 2')
             {
                 # Workstations
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = '-';    Enforced = 'Yes';  }
             }
             else
             {
                 # Servers
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";  Enabled = 'Yes';  Enforced = 'Yes';  }
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler";             Enabled = 'Yes';  Enforced = 'Yes';  }
+                $ComputerPolicy +=
+                @(
+                    @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";                         Enabled = '-';    Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - Security - Disable Spooler";                                    Enabled = '-';    Enforced = 'Yes';  }
+                )
 
             }
 
             $ComputerPolicy +=
             @(
-                @{ Name = "$DomainPrefix - Computer - Display Settings";                   Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Computer - Display Settings";                                       Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
             )
 
             # Link tier gpos
             $ComputerPolicy +=
             @(
-                @{ Name = "$DomainPrefix - $Tier - Local Users and Groups";           Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - MSFT Overrule";                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";  Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - Local Users and Groups";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - MSFT Overrule";                                             Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";                           Enabled = '-';    Enforced = 'Yes';  }
                 # -->
-                @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                 Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                                          Enabled = 'No';   Enforced = 'Yes';  }
                 # <!--
             )
 
@@ -2814,7 +2822,7 @@ Begin
                     # Server 2016 disable SMB
                     if ($Build.Name -eq '14393')
                     {
-                        $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = 'Yes';  Enforced = 'Yes';  }) + $GpoBase
+                        $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = '-';  Enforced = 'Yes';  }) + $GpoBase
                     }
 
                     # Link server base
@@ -2825,8 +2833,8 @@ Begin
                         # Web Servers
                         $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - Firewall - Permit SMB In";        Enabled = 'Yes';  Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Firewall - Permit SMB In";         Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Web Server";                       Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                     }
@@ -2836,7 +2844,7 @@ Begin
                         # Certificate Authorities
                         $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - Certificate Authority";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Certificate Authority";            Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                         # -->
@@ -2844,16 +2852,16 @@ Begin
                         # Federation Services
                         $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - IPSec - Web Server";              Enabled = 'No';   Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Web Server";                      Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - IPSec - Web Server";               Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Web Server";                       Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
 
                         # Network Policy Server
                         $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - IPSec - Network Policy Server";   Enabled = 'No';   Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Network Policy Server";           Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - IPSec - Network Policy Server";    Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Network Policy Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                         # <!--
@@ -2865,7 +2873,7 @@ Begin
                         # Remote Access Servers
                         $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name= "$DomainPrefix - Remote Access Server";          Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name= "$DomainPrefix - Remote Access Server";             Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                     }
@@ -2907,7 +2915,7 @@ Begin
             # Link password policy
             $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
 
-                    @{ Name = "$DomainPrefix - Security - Service Password Policy";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - Security - Service Password Policy";  Enabled = '-';    Enforced = 'Yes';  }
                 )
             )
         }
@@ -2922,7 +2930,7 @@ Begin
             # Link administrator policy
             $GPOLinks.Add("OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN", @(
 
-                    @{ Name = "$DomainPrefix - User - Admin Display Settings";  Enabled = 'Yes';  Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
                 )
             )
 
@@ -2931,7 +2939,7 @@ Begin
                 # Link users policy
                 $GPOLinks.Add("OU=Users,OU=$Tier,OU=$DomainName,$BaseDN", @(
 
-
+                        # DO IT
                     )
                 )
             }
@@ -2976,7 +2984,12 @@ Begin
             # Itterate GPOs
             foreach($Gpo in ($GPOLinks.Item($Target)))
             {
-                $IsRestrictingGpo = $Gpo.Name -match 'Restrict User Rights Assignment'
+                if ($Gpo.Enabled -eq '-')
+                {
+                    $IsRestrictingGpo = $true
+                    $Gpo.Enabled = 'No'
+                }
+
                 $DoChangeRestriction = $IsRestrictingGpo -and $RestrictDomain -notlike $null
 
                 if ($DoChangeRestriction)
@@ -3449,10 +3462,10 @@ Begin
             # Set permission
             Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
 
-            foreach ($Tier in @(0, 1, 2))
+            foreach ($t in @('DC' '0', '1', '2'))
             {
-                Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Read Password" > $null
-                Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $Tier,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $Tier Laps Reset Password" > $null
+                Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $t - Laps Read Password" > $null
+                Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $t - Laps Reset Password" > $null
             }
         }
 
@@ -3505,17 +3518,6 @@ Begin
             (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
         {
             $Administrator | Set-ADUser -AccountNotDelegated $true
-        }
-
-        ######
-        # SPN
-        ######
-
-        # MsaAdfs
-        if (((setspn -L MsaAdfs) -join '') -notmatch "host/adfs.$DomainName" -and
-            (ShouldProcess @WhatIfSplat -Message "Setting SPN `"host/adfs.$DomainName`" for MsaAdfs." @VerboseSplat))
-        {
-            setspn -a host/adfs.$DomainName MsaAdfs > $null
         }
 
         #######
@@ -3640,7 +3642,6 @@ Process
             $DHCPScopeLeaseDuration = $Using:DHCPScopeLeaseDuration
 
             # Switches
-            $SetupADDSOnly = $Using:SetupADDSOnly
             $SetupADFS = $Using:SetupADFS
             $RestrictDomain = $Using:RestrictDomain
             $EnableIPSec = $Using:EnableIPSec
@@ -3754,8 +3755,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhDorkqnGu8GqE4SuYVrgVr2H
-# ZiqgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq3eINVXuRExPbaXu0GOgeuDV
+# qQegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3886,34 +3887,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSjxBW4
-# QUgCJfruZA09JhHGM4Vj6DANBgkqhkiG9w0BAQEFAASCAgBwoEzm33vEt8gbz5SA
-# LoxWq0swlMapNzj2IQGXkTAqwqEKXgjuqXCngIqBipdmVW2u3Aofii3h81SsXgXj
-# iQC4GIdCPB6Fli8eCNOyaHbiHkZkL3+tlQwuVB4rBnIdR8kIBaUuH61HSmQ//t/u
-# pIAJk3g/4oCBgYIW5n/9N8zmW7ykzCz05Bs6muSPjXoQm3mMZIBxx0tDaf7wWwFw
-# eCAYZy59cogF9E/EzeWMEohNfrXOODJ1hAIF3wmZTs5OljApU623zYIgGTNtqv1C
-# nqld2GIa3nhwmUJVWYfxayf8iBBEPpiTOhpRbRBoxZY/ERKqGfdcOnEH8/9B6g4E
-# J0DCPAjd5hQOUfAOUpLGpKyJO+qkfTbzFkx2HuuBfuA318jHNMsJEwlc2ol2k1Cr
-# SHaqR+gJXpQMkUuevYGn3403hNpMdp7zsUWxyWsyZBMIUOPdRgeKziUNdIBQdKM4
-# n3MTWh7BYI9qTaGRWiPQ2MtAj3g2/LALbQC2G6go0NW3L6Xoxorbm08xf1UVlSXF
-# URxfZsInQrXkxrJlKyz6yf9VDIpJNp6QOVPa5WobJB8UMuqnix8f8izTt0xXbqRi
-# zD63rwP4izCvEr32hl9iz5QK4WX/v5HolqiuDT1wKZCuTKscsx4t/akZSx0f+5SC
-# MtFmy2Pc2OVBjZIlNf8ezt0+8qGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSCF+kz
+# rcqcZMvtsUYnY0fcH+l6ZDANBgkqhkiG9w0BAQEFAASCAgCCVDWXqqlhTcUw+xKg
+# 9WaruuuSEg7gbilmSji8p6mLVjskEksnRtfbOlQYSHtpYo6kzIhtQmBAsHtVSI0j
+# 9bcG08sJLsNbvnS0ogLjnK6Rbjm6VoqB9Stkn/4tfAehvOcLi29PsalXDSkEs2nW
+# nhrsxcNw74zW9Z8qQmkOk6cnQ9G2ZJWEwihvR5hax+HMf3BlxKTfWFa9TNOFByn5
+# 1xyV4g743bPj7F0oIXFv192/4J+lzCJ+r/vHMmwviWXRSiO6vVK/SzFtskjM0T4/
+# 9FlSMqsQPTgCPK7DztT9kJKJAXiGDvSjG2MgfcZU0JPKk7ElumjWSdY2bNypI9yM
+# GU8ktpm2t+RrMn3kG5UHl4cIgWSh+skGJDG/V++LfQvz5GjCoK5QQnQy/awm++Uv
+# kIguYgh3TcrcZcH6jVPCciREWdy0desD0GVF1xVJF+PNEGdzCmMpSuriVPkw5JT1
+# q6NA9JTNeGPA9CgG0oqKjVfwOKntwR8uM8G4Q7ovwn/4Nv7Od2MMxmUuI6f1X8yn
+# DTlKv4Tgy9SkrtevOTDlh47tDBJC/DSZ3D6Jhi6Lm7YJ56P9Ha0lAKXNeclm8VJz
+# GZ8eqRcuhUUFzmOns6rsRCNQsH3/13sYa5nV+UqVO2s/xja5ngTEdiMvgx9KTpVL
+# 5K59lJMvNHvmb64aW5355LCiGaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTYxNjAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCrenNE8o8YtQxXdYc7Zq5zrRqswIl/rJE5aDJJ
-# L89JnDANBgkqhkiG9w0BAQEFAASCAgCKGSnrJuCTO1z9dyxhmwDUzBWKLv2t9I+O
-# nZfPmz7VBDeteCM/6SM0hh31NA0ZydGTJ4w/zVJZSKGkEYhyFRW7v7CCUkIB8kMd
-# dz7hhfmP3RgB5haw5H3BDCtvJuzCgGFC5zKV90jaOC+ppLmRe4EvJXphN0cM+AAb
-# c2Q9Zptwsh7PPYMCqflQnoLB5Tbr6qwL92zUI0FkLNrd4ZuwtfOQMeJyQSUSuiI0
-# mQVxUIB/dkAszNDHEzVXNa/ID4U8TxEjhfRXEGEvUZd5V3XOWEmqc+SUtzc35bsJ
-# IDUT9wiiZkfu4Tu4Ro8c5wGizkjFIvv3JLh/k1GvmxAPMoBGuakpVfN2yCMl3f8d
-# AN5K2Q9kO7gFIL9c6nuB6aesN+KNjoC6rZoFITewLE+7TwE9XYmI+pf5xX0lvWAY
-# DRJn4yVBR3CZrflKt68P32q/XliSQz6hwWchnbO43GnYAiMOdgPfH2hHmtXsq4cb
-# u6BFWQhdFReW3Q9kOHXnPjNo7nEyQOkRf1ZKJs9LXcCAED0hXxL1mseu61WZFyb1
-# 6mowlGEDCRE3VdIvps2rHPcN5U3KgxaQCdgeOi8i8uMZUnrV4/iS6am4V66nXAwK
-# N860gAq+hGjTFip9dVOr7PjT5mEN+IxdFp8J9bzZ3IPEJ3XqaDJggQjM27mfDLwx
-# JHSUzjs1BA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTkxOTAw
+# MDZaMC8GCSqGSIb3DQEJBDEiBCCiAxypTuNrlqh0JadW0w9gMC+ke0QJzxSLcX+o
+# 2LSyyDANBgkqhkiG9w0BAQEFAASCAgBmnwPJvhcm8qp4Rkxkpsbijh3UTkAoDbvq
+# LAs6TiAp2Id2p6kss21Ea9APb79Xtc5sbdYF4ZusZ6OZrOOtGWGyNCsoH31ZVPwN
+# E6NR0GEO61dAaVzIoW0+4W4AGePvk1gV6mZZdxhB6JVNHnJRDyBiEjGUiQL/22rS
+# UebzmpsTJ/mtEdvuKYkXifs5zhD6nnu33piJzOJVSd5IQ+ZkSaC4NZCxvwChz3/8
+# 9qkHeYMpAZ59Ri1aolrFW0c1RGYRNg5OTTp3h6T/T+uZiGRj6oGVUnWnOi7E10gv
+# dafrl856Gq5gdVaPkqX2BRKWzNqYZ6Y6WrObF/qMvxE+EdNusZx9eOAsXPyjVPgM
+# xhBzBqkMaSloU23J/WpufUY61Q+UoxcNQLbwEZ8qmgJGe1bTLIU6yWV5FHYIYjbx
+# 71/oG+S68ozF2+UR1cI4/0K/Es0pqszVx7JHFJ/OGuf3evtDtylGuIRU9S9QZ85h
+# DlnqIgXMoc1wu9i0D3SBI9Tykta83fT1Bl/IP+67H47d6BDpiqXC1t6JDMVt3IXJ
+# 2KhiOtvJ/+CL/7FTIvjulrJqLhrBq/1x6epW/6LaFwR8yBGyyLLk0AWAsbrIKEN2
+# 3Mfnl+4/Io1zP6l3RdC8UBVgMjXCkgx0q1BzzF1orZYhoCLswHX/HtzRobsBrPgt
+# YePY8+hMEA==
 # SIG # End signature block
