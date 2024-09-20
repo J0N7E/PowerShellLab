@@ -3014,8 +3014,8 @@ Begin
                     $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     # Check link
-                    if ((-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath)
-                         -and ($IsRestrictingGpo -and $RestrictDomain -eq $true)) -and
+                    if ((-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
+                        ($IsRestrictingGpo -and $RestrictDomain -eq $true)) -and
                         (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                     {
                         New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
@@ -3463,7 +3463,7 @@ Begin
             # Set permission
             Set-LapsADComputerSelfPermission -Identity "OU=$DomainName,$BaseDN" > $null
 
-            foreach ($t in @('DC' '0', '1', '2'))
+            foreach ($t in @('DC', '0', '1', '2'))
             {
                 Set-LapsADReadPasswordPermission -Identity "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $t - Laps Read Password" > $null
                 Set-LapsADResetPasswordPermission -Identity "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -AllowedPrincipals "$DomainNetbiosName\Delegate Tier $t - Laps Reset Password" > $null
@@ -3756,8 +3756,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU2F9EKStpnjvYGpxj/zuBRP0
-# T9SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpKy1gSxd/zA3v6YH5soBnlOd
+# PPCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3888,34 +3888,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT0z5gH
-# RQElCWVZh7TbrybkCkqZDTANBgkqhkiG9w0BAQEFAASCAgBTbO0Vv9Eq5O5DFZ2W
-# w0thpGmpI8Txwqqjlg67dCLOnDMgVFGrRhFuZiRWwHR6D1mPFTw8Syoj0RsNKI5o
-# xwTKkclViARGAxWqjJ1Nb0hYAFYrLrfS3L5Y+mqY3BUEpDb0AxZb/H+lHAhOOA2z
-# HPjYlbc+IziJJBagAyK06YbR29Cm5aJU9nwFzSyPjaQ2ltF4vkDoSF55FfwnRfeU
-# C15yH/bSLW6fqB+kjFo27G1rnvXBA7x3G0FgCi8e5EU+VWFkRPy2hJ4utrHvnO1U
-# 6xv8+V8sbfp8UEdpIIMX/bV710ldow9IOo8Mn6zpFBaO7onJTPzJpcQQ7T5yMIj5
-# M2HLlvro9snUNWN3mR42VOYr2WciJK75+diRUoDdR6UauU0Sat3lOn6mlIvMZgsf
-# Ty9BV4sflW/VZ/H9u78YbSG59g+wWaQg4wWOqIi5PueUcOW5dBvp4EH8AnLqd2uo
-# kQZdqmiqQJpnPbxmXKGafNEvFDAfUcNBawQzhO8CPBdwL9OnQaIQw/kk7rvvFMPf
-# sHzP3gAIEy3mCxgDD78QYttqX4NVAFapxf1YRD0jzNfWDDi3+fjrSTPqtPzO5fAl
-# Q1zLLElAF1sWqo3rvz0jSk3E1p3w0OAdReBFZ2ls4bO4QasQZvsUrtHGu28p6DV1
-# RSbj/hfWCgBQyexwfgemSEagMqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSMmRbq
+# cHdUsCKRWoGd9R0akNaiNjANBgkqhkiG9w0BAQEFAASCAgCsRDj/K7VxRd4+639o
+# qfy4XZoymq/lUL0PnJnQnR1sxILCihR+FFV0y0y+CfzUm4iWVl0dS6pO0dsu9FtT
+# fMBpG9VtYXLm39nKR/9zceHIe32RNUWKij5AdJWsJ07uUVIMD7NGiqMBNluB6h7S
+# sPabgtq6AU/L9DdevwOwmFYDyPfFyVyMAlU9/WV1kWOGqA9vzQt8AqN3Bz6Bheyx
+# DnyuP1n9PaHNvWCRUhYZNA+cOA2NChq2q3vS6D2sPfNG6xcdYN50HcLehIJQoEpT
+# XNqh2Px2zAKi0PM6VJVjgd7VBVfbLd0xyqoQNeZGodB/SvBS26QpZc4tROO8wHUp
+# MHokTlfmCojvsIX4/7B49CcbjXDP7K0pLF0+S6OBiXyJlIrkxyx6o5yJu7zjAp5G
+# eD7bhGPUTn3u7FiKNLIC0Y3ZAxz21QjWE9SXlFFh4sTnm/+XUitIEnRmMqgLxTLl
+# n50ibvlF+jQmgiOt3R4VbtPKXVLEMNqIKKKiKWh0H1n37GQLSIDtHK5sFBaj1Thp
+# 70sjAxFxrqD65pIEE7djz4SZ2xGfsv+6jx07W6ZJV9zIXDOVyWjYO8ihr2mc7CWD
+# mTXQFtwpGr1f+nPVAzxhisfgCn40jFDoS+IC5ks1pTeRoG9BABACfWBdIYko/cQb
+# VcfoHlFazpYluZLB5u3ZH11ACKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjAwOTAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCDYtWuS1gWZItKnGOThaQNdb9+6E9Qhymppj8vm
-# I11i9jANBgkqhkiG9w0BAQEFAASCAgB+o2qxqBIIoelBDwgQ/FoQ+nzigjd4mt0f
-# vy1kGCFAYgiqjRHyHKtPClJ7iV8+Xd9GZchJ06lbmnQmdhFzJQQw+GHFMGOkhQgw
-# i2ch0iPm02z69x7xwarvvXhOj++trK9AEwOTehPq4OJZb9su4Ng1peHnqR0FX/Or
-# aCiBNyMPJrEQrRdbM6TlJsLLFSfE+xwtTq3cDCK32chqcbBL/tYsVr/p/dNSEdrs
-# UOBVNsDVsxni6E3P/0ZBM9zOtdAhbm3B9dsJ3GK7sUeXu7XYjqxdc/zW588YVMWi
-# 4w5LZA4jnPXgMRRlWJYHfGuyUK5Q/hltxu88iUVaffNoBGgf8cO1paCnWtQ3iaZ0
-# S9p+DQLLymXE9MDBEwLR9aHPU543p3OwTjCB6SXkYWpShGuzS8Gr54OvLp1t5WBG
-# N8hLo+ues/ORVurvZf9tw3X+/qOeZaDourtKi7si9bKaX3AyTXUASSJMV5U4VlHu
-# ycgr5vpP3EVDw9kjKNR/tpD8hxXqpyhnrGsZBd6vXACLPuhXn3B870CRk7K2KrrY
-# NXSi2/5g6zg7J3WJ5SrcDMzfwyGlDC1Zlgxgm5lCC1PzgKbEfd/r1t46IaxTz/CE
-# 1k2A7ccnlIjLaFt6x2dPGZNSrt7awLwnDrAfegn0/Xn/9pXpwafq7LCkFoFs5hsj
-# 4YWexNElTg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjAxMDAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBwD4DBus9zrglcib3QmdT7qfNRrAcbxr7ytVTS
+# PUyoVzANBgkqhkiG9w0BAQEFAASCAgAM2wY//+hCkMlcDB3uFUE3diXFz5Hg6GVV
+# Wx5zCpl0IPD/f+vi1gh4HElCY8qwL56/XROZp51BCvBHUVCtqFtvP4lVu6n0CQw3
+# Weye3i7UCpeJJGk0jsqGzEFILyr1JW6NRcL4vEaQu5xXBXEF446C9jVv+M31ctMU
+# tNhaE5lYLpHXwDC8EItJZaRYvKBPhWMPB1Y0uXDg6eJ7e5FsLNcAemwQYLyfLmzr
+# xr6XTJVMXN6Wl2dwQf3N1pEkQi1uqWrc9nMfZoBCEc8j4dJHb+xxr8b1Ce7Tl3KU
+# +PjPXpACWMbieiC/S012XDQ3YNd3cpnA/dhlbL0ofImhKjr4s79JbWMgDst7ihQx
+# 31n/CqnQr6tfm+Yanhik/rhVF9u+UhXi+nFu8iZx0TDc0+pUt/bvbgZKN47luGfw
+# m2RFpwofwLvh71rBRNi46F2eB2AR6YIJ6arLtmqNUhUIoMiEpK1rdHP8GJJgDSM4
+# CnE8lKVSm99wJyaRb7Xpq+4yvaTK9bjLiFwAjek1hv2QwZYShWWus6e6cMkzse1C
+# v90UYQpN3jscj5Zzvo5RnHA1Zes3j5A2s6JhvWtzHmTcpGoz9kXSymdsLIOgOKsN
+# 3nqfike+3VlcVHt1JKfGG+7UynDsn8d64KZzpH13YtOE+Q3o7dTaGwZhTAEOzR44
+# 69pIXCY7oQ==
 # SIG # End signature block
