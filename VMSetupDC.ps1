@@ -2671,7 +2671,7 @@ Begin
             @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = '-';    Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = 'No';   Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - IPSec - Request";                         Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Disable Spooler";                                  Enabled = '-';    Enforced = 'Yes';  }
         ) +
         $DomainSecurity
@@ -2710,7 +2710,7 @@ Begin
             @(
                 @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure WinRM HTTPS";                 Enabled = '-';    Enforced = 'Yes';  }
@@ -2791,7 +2791,7 @@ Begin
                 @{ Name = "$DomainPrefix - $Tier - MSFT Overrule";                                             Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";                           Enabled = '-';    Enforced = 'Yes';  }
                 # -->
-                @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                                          Enabled = 'No';   Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                                          Enabled = '-';    Enforced = 'Yes';  }
                 # <!--
             )
 
@@ -2852,7 +2852,7 @@ Begin
                         # Federation Services
                         $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - IPSec - Web Server";               Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - IPSec - Web Server";               Enabled = '-';    Enforced = 'Yes';  }
                                 @{ Name = "$DomainPrefix - Web Server";                       Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
@@ -2860,7 +2860,7 @@ Begin
                         # Network Policy Server
                         $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - IPSec - Network Policy Server";    Enabled = 'No';   Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - IPSec - Network Policy Server";    Enabled = '-';    Enforced = 'Yes';  }
                                 @{ Name = "$DomainPrefix - Network Policy Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
@@ -3014,7 +3014,8 @@ Begin
                     $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     # Check link
-                    if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
+                    if ((-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath)
+                         -and ($IsRestrictingGpo -and $RestrictDomain -eq $true)) -and
                         (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                     {
                         New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
@@ -3755,8 +3756,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUq3eINVXuRExPbaXu0GOgeuDV
-# qQegghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU2F9EKStpnjvYGpxj/zuBRP0
+# T9SgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3887,34 +3888,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSCF+kz
-# rcqcZMvtsUYnY0fcH+l6ZDANBgkqhkiG9w0BAQEFAASCAgCCVDWXqqlhTcUw+xKg
-# 9WaruuuSEg7gbilmSji8p6mLVjskEksnRtfbOlQYSHtpYo6kzIhtQmBAsHtVSI0j
-# 9bcG08sJLsNbvnS0ogLjnK6Rbjm6VoqB9Stkn/4tfAehvOcLi29PsalXDSkEs2nW
-# nhrsxcNw74zW9Z8qQmkOk6cnQ9G2ZJWEwihvR5hax+HMf3BlxKTfWFa9TNOFByn5
-# 1xyV4g743bPj7F0oIXFv192/4J+lzCJ+r/vHMmwviWXRSiO6vVK/SzFtskjM0T4/
-# 9FlSMqsQPTgCPK7DztT9kJKJAXiGDvSjG2MgfcZU0JPKk7ElumjWSdY2bNypI9yM
-# GU8ktpm2t+RrMn3kG5UHl4cIgWSh+skGJDG/V++LfQvz5GjCoK5QQnQy/awm++Uv
-# kIguYgh3TcrcZcH6jVPCciREWdy0desD0GVF1xVJF+PNEGdzCmMpSuriVPkw5JT1
-# q6NA9JTNeGPA9CgG0oqKjVfwOKntwR8uM8G4Q7ovwn/4Nv7Od2MMxmUuI6f1X8yn
-# DTlKv4Tgy9SkrtevOTDlh47tDBJC/DSZ3D6Jhi6Lm7YJ56P9Ha0lAKXNeclm8VJz
-# GZ8eqRcuhUUFzmOns6rsRCNQsH3/13sYa5nV+UqVO2s/xja5ngTEdiMvgx9KTpVL
-# 5K59lJMvNHvmb64aW5355LCiGaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBT0z5gH
+# RQElCWVZh7TbrybkCkqZDTANBgkqhkiG9w0BAQEFAASCAgBTbO0Vv9Eq5O5DFZ2W
+# w0thpGmpI8Txwqqjlg67dCLOnDMgVFGrRhFuZiRWwHR6D1mPFTw8Syoj0RsNKI5o
+# xwTKkclViARGAxWqjJ1Nb0hYAFYrLrfS3L5Y+mqY3BUEpDb0AxZb/H+lHAhOOA2z
+# HPjYlbc+IziJJBagAyK06YbR29Cm5aJU9nwFzSyPjaQ2ltF4vkDoSF55FfwnRfeU
+# C15yH/bSLW6fqB+kjFo27G1rnvXBA7x3G0FgCi8e5EU+VWFkRPy2hJ4utrHvnO1U
+# 6xv8+V8sbfp8UEdpIIMX/bV710ldow9IOo8Mn6zpFBaO7onJTPzJpcQQ7T5yMIj5
+# M2HLlvro9snUNWN3mR42VOYr2WciJK75+diRUoDdR6UauU0Sat3lOn6mlIvMZgsf
+# Ty9BV4sflW/VZ/H9u78YbSG59g+wWaQg4wWOqIi5PueUcOW5dBvp4EH8AnLqd2uo
+# kQZdqmiqQJpnPbxmXKGafNEvFDAfUcNBawQzhO8CPBdwL9OnQaIQw/kk7rvvFMPf
+# sHzP3gAIEy3mCxgDD78QYttqX4NVAFapxf1YRD0jzNfWDDi3+fjrSTPqtPzO5fAl
+# Q1zLLElAF1sWqo3rvz0jSk3E1p3w0OAdReBFZ2ls4bO4QasQZvsUrtHGu28p6DV1
+# RSbj/hfWCgBQyexwfgemSEagMqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MTkxOTAw
-# MDZaMC8GCSqGSIb3DQEJBDEiBCCiAxypTuNrlqh0JadW0w9gMC+ke0QJzxSLcX+o
-# 2LSyyDANBgkqhkiG9w0BAQEFAASCAgBmnwPJvhcm8qp4Rkxkpsbijh3UTkAoDbvq
-# LAs6TiAp2Id2p6kss21Ea9APb79Xtc5sbdYF4ZusZ6OZrOOtGWGyNCsoH31ZVPwN
-# E6NR0GEO61dAaVzIoW0+4W4AGePvk1gV6mZZdxhB6JVNHnJRDyBiEjGUiQL/22rS
-# UebzmpsTJ/mtEdvuKYkXifs5zhD6nnu33piJzOJVSd5IQ+ZkSaC4NZCxvwChz3/8
-# 9qkHeYMpAZ59Ri1aolrFW0c1RGYRNg5OTTp3h6T/T+uZiGRj6oGVUnWnOi7E10gv
-# dafrl856Gq5gdVaPkqX2BRKWzNqYZ6Y6WrObF/qMvxE+EdNusZx9eOAsXPyjVPgM
-# xhBzBqkMaSloU23J/WpufUY61Q+UoxcNQLbwEZ8qmgJGe1bTLIU6yWV5FHYIYjbx
-# 71/oG+S68ozF2+UR1cI4/0K/Es0pqszVx7JHFJ/OGuf3evtDtylGuIRU9S9QZ85h
-# DlnqIgXMoc1wu9i0D3SBI9Tykta83fT1Bl/IP+67H47d6BDpiqXC1t6JDMVt3IXJ
-# 2KhiOtvJ/+CL/7FTIvjulrJqLhrBq/1x6epW/6LaFwR8yBGyyLLk0AWAsbrIKEN2
-# 3Mfnl+4/Io1zP6l3RdC8UBVgMjXCkgx0q1BzzF1orZYhoCLswHX/HtzRobsBrPgt
-# YePY8+hMEA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjAwOTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCDYtWuS1gWZItKnGOThaQNdb9+6E9Qhymppj8vm
+# I11i9jANBgkqhkiG9w0BAQEFAASCAgB+o2qxqBIIoelBDwgQ/FoQ+nzigjd4mt0f
+# vy1kGCFAYgiqjRHyHKtPClJ7iV8+Xd9GZchJ06lbmnQmdhFzJQQw+GHFMGOkhQgw
+# i2ch0iPm02z69x7xwarvvXhOj++trK9AEwOTehPq4OJZb9su4Ng1peHnqR0FX/Or
+# aCiBNyMPJrEQrRdbM6TlJsLLFSfE+xwtTq3cDCK32chqcbBL/tYsVr/p/dNSEdrs
+# UOBVNsDVsxni6E3P/0ZBM9zOtdAhbm3B9dsJ3GK7sUeXu7XYjqxdc/zW588YVMWi
+# 4w5LZA4jnPXgMRRlWJYHfGuyUK5Q/hltxu88iUVaffNoBGgf8cO1paCnWtQ3iaZ0
+# S9p+DQLLymXE9MDBEwLR9aHPU543p3OwTjCB6SXkYWpShGuzS8Gr54OvLp1t5WBG
+# N8hLo+ues/ORVurvZf9tw3X+/qOeZaDourtKi7si9bKaX3AyTXUASSJMV5U4VlHu
+# ycgr5vpP3EVDw9kjKNR/tpD8hxXqpyhnrGsZBd6vXACLPuhXn3B870CRk7K2KrrY
+# NXSi2/5g6zg7J3WJ5SrcDMzfwyGlDC1Zlgxgm5lCC1PzgKbEfd/r1t46IaxTz/CE
+# 1k2A7ccnlIjLaFt6x2dPGZNSrt7awLwnDrAfegn0/Xn/9pXpwafq7LCkFoFs5hsj
+# 4YWexNElTg==
 # SIG # End signature block
