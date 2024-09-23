@@ -3024,58 +3024,64 @@ Begin
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath))
                     {
                         if (((-not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
-                           ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                           ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
-                           (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                            ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
+                            ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
+                            (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
                             New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
 
-                            $Order++;
+                            $Order++
                         }
                     }
                     else
                     {
-                        $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
+                        if ((-not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                            ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
+                            ($IsIPSecGpo -and $EnableIPSec -eq $true))
+                        {
+                            Write-Host "EDIT"
 
-                            if ((('No', 'Yes')[$_.NoOverride -eq 'true'] -ne $Gpo.Enforced) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link [Enforced=$($Gpo.Enforced)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                            {
-                                Set-GPLink -Name $Gpo.Name -Target $Target -Enforced $Gpo.Enforced > $null
+                            $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
+
+                                if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                                {
+                                    Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
+                                }
+
+                                if ((('No', 'Yes')[$_.NoOverride -eq 'true'] -ne $Gpo.Enforced) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Link [Enforced=$($Gpo.Enforced)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                                {
+                                    Set-GPLink -Name $Gpo.Name -Target $Target -Enforced $Gpo.Enforced > $null
+                                }
+
+                                if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $Gpo.Name } | Select-Object -ExpandProperty Order) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Link [Order=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`" " @VerboseSplat))
+                                {
+                                    Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
+                                }
                             }
 
-                            if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $Gpo.Name } | Select-Object -ExpandProperty Order) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link [Order=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`" " @VerboseSplat))
-                            {
-                                Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
-                            }
-
-                            if (((-not $IsRestrictingGpo -and -not $IsIPSecGpo -and (('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled)) -or
-                               ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                               ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
-                               (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                            {
-                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
-                            }
-                            elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
-                                   ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
-                                   (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                            {
-                                Remove-GPLink -Name $Gpo.Name -Target $Target > $null
-                            }
-
-                            <#
-                            $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
-v
-                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
-                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec))) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                            {
-                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
-                            }
-                            #>
+                            $Order++
+                        }
+                        elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
+                                 ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
+                                (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                        {
+                            Write-Host "REMOVE"
+                            Remove-GPLink -Name $Gpo.Name -Target $Target > $null
                         }
 
-                        $Order++;
+                        <#
+                        $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
+v
+                        if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                             ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec))) -and
+                            (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                        {
+                            Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
+                        }
+                        #>
                     }
                 }
                 else
@@ -3785,8 +3791,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyNhe/fcdxRObSuWrJTDJ9PMh
-# PPygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOpA2KZnv6ykoTmSXagu5p1DN
+# KiigghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3917,34 +3923,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRtos+G
-# A8pbotpEtIB3+vuKPJ4zCjANBgkqhkiG9w0BAQEFAASCAgASksPwNhYK+RhV1xJL
-# EU8bZp/6QQPUac5z5uQ95iyXDrX7MAKtEB/kwoWKbBxKzEV9D2TycdTFY3MbgGWJ
-# Jg+TnEDcoxZwqdA5d+J2oi7YjgTe41sKMjHhFq8SEh1Dgq9YYqbhTBcA59IIDllx
-# EOhxuEAzgrOHSLyxBYslnTG+IIYo4rCSgq84Za9/yNgps/K3/VQs/kvRh8KIaOEu
-# tmyKclbxY/K2mSGVSOSb/P/aGwApCNMOtTnO10mD0jhS21ewc7GITLItAr+li6Cy
-# yqKDvj5QU4RygIzi7e3m3TViW5EUzB4MwVt8SdlWbnuHGOKTx5YFqMNDkWyDr82U
-# sz/c1YtN7il6499CM1Nr785fP5sUgFv1LJihWy2WAqOMvvtF/f0tKtJyEBWJct3m
-# hqlPjn9tSUYneZ2BIrejbHU6Y9wLTqbQtr3bH3vB1jVVQNlh1EWgbN9Yifin79i8
-# pZSRztQWndfJU51VSXak0J4Ba6m6dQhsqlRHLHoQMGHhBiaJhad7BwAIXH6Fydb9
-# nG9yieoOXKFjQyzqUswcd4XKtDv0o5i2Z/Fbyl7ajMpI5xXX6urQQ1N+oGEsSuDk
-# 7QZqatOxo+Nqx1rW+0yIjYLWdVRSjxddWY7mvtRBIFZab/qyVRc652PdKvy5W4sg
-# CDI0RACMzHT+QRUug+T6WrtlfqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ4SSU+
+# YI9nYRjBjb59mZ0w7ME7xzANBgkqhkiG9w0BAQEFAASCAgBxO77PTAJTbi+xGlOp
+# uymBmEIejn7ogDgjmqPo5PL/BDPOlrNXRRrePwd4AG1NNOe/VRVqO8L471RQXKUW
+# hxgJmv5b2QvQCy3CwduDs0kbE8kNkx7imAQbKKx1hsx4yMKwU2THtYiGHRsfP0FM
+# WOAAN1SDJ1vHavQk0AOkCcRGMj3Jdtd/pFC4DynZOlWtme9qYyqR5eNBQ/pqKhhg
+# JTLk2+tHDaT/njYdafoqTh/LZkPAYVjBE5yq4ZeJIYcStHPVCUbQA4j6radGNwbH
+# +tP/YYjCYy4C/guiSYdr0mRtFYpG94i/R9cFAgFqd02b94kDm7xDMWyWe0nOkyeZ
+# jrGgjtfWWm5/e2Vt7aDi0IUfE9t3/U26ghBp1SxIRUgon+Z+3pU+/309gzLtaQw0
+# x4T4meXTbuKhpcT0r9mELrS1bWsZvTfzoCtBPN3z6zCPoxMpu2Gz1MIstOa54Tw8
+# gC0KJMfBooo1yx85P7os9KZmPCTXFOvodeNIoDV7k6BR6HEQ/nr8pRkH6mhkR0Sq
+# URQDdvUBovLiyEUsbFTDpavmE0asBLrcCeG89NCHwd0+3rs2/hcUQ+vle+CjBb5Q
+# yn5Gxua2XKkIFMO3KGxKwSCiHWItypfubWtRs790X3xEyCBYJJpsVav3iKwH16wQ
+# gpBTkrRBzppso0XPYFN/cEzKQqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMxMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCDbwio/p/UwyBVMPOzPTC13Z7HOz2qf9eIpmc/i
-# WmWWhDANBgkqhkiG9w0BAQEFAASCAgB1ksTXb0I67ZJi5bT+bgYmM/AV4kRjaggM
-# J5ymPeGW5J59RMQIZ9wgMANlSxft2gdUldejMc/QSXxS0f11zyA0wmKZqrB3EPqV
-# lrzVeSaI+Ry0FOiJYYWfqPgkOasIq7LU9f2vdGY47gNDaTYMyujGMrSBhnR+EUhd
-# 5yaLuJkk4mmclZezAxl6sUD26Uq4DFzXNx3R5pjLJC/xmBY83RriYF65qPRopnGJ
-# 1kBBH5PSHUcLlduV96BaMpXzxxP0KvEY3mCG2G9vTm+VQIn6VhBrlfpB4mMac8fo
-# 6ZchxXpZuY8nkPTyXPCkDjBgwXixNw3eWYbLVUvrc5PGGHsunkVCQOs966nj/yH2
-# yno9oN2fA6nOUToHzB7Jxfwvn2sDue1w2PkfAebIeEuZBbD3iPl4/lUCJplsWmXm
-# gcM68/Sbjk+kQut6FPB+aaBjgxVhzg9yge/BYT/qZi/1wtMyFzrQvVwotxZ4b/+k
-# kikBgBasOWGzbSZOlcvsNMX1e6StSije3E4kioARKDL/2CSJphL8wKI2ds6HT8DS
-# 77GQXl7b+Nsy7/f8+lXCVCJGcyKocP8IdXkGEh9Yy3YipCNO7cnH53D/0cGcDRJT
-# FL46bh28p+9PNcyn1bWL9YQORjUyKE5yzWZNvP2sdb6EBEgOkiOlU+SMeKLpOOHM
-# QRPhidjN4Q==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMxMTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCBzpkuI4G3ZBxrzSKjqiKr/yZtjVK7Au1s27Tqj
+# neusyDANBgkqhkiG9w0BAQEFAASCAgBx4mh/ap5v9aVRFK+5UgxpLKS7Ydjxn74d
+# J/aGmOa7/p7UvxrbaABDTrihzoV47SFEiAkMZys4BAUPOmykK0gXWQJW7KhzwaIH
+# ehKRxPcLUtDmjH9j5n6NA7VvhQCeZlLjwf59JWzPA6Bfk7dfzSwE4HZzWYAjBDKc
+# JRotX4uUUDqKHZhrb4J0CEqFofjiAJaIwC+wP4zjykVKGPJAhl41Jj5vI6nDTyMK
+# iLiY+ItzPvuaFPNnXdMbq2oJM6YQ7Pi/GYUzNY9kRFZ9L1sJS0Ft+4T2+RRFw92k
+# RsPWcPVMa0gqpbnTYzD4PaWFrob1Xrz6dxGHxBHPWYtFf2Hi2Kcr4xLkpb8aRZfz
+# Y+MRm0TJ/h04dvnVc8t9G++lt+a7jYQFffjavS4g1pLoijKAhtNAsbabl9pTVPOP
+# ybpIavutMKE6fczGEBgPIOa0AD0Kgz90gtk60nIccVtupwtBdnbSsydAw1yp2d/d
+# UwFbDcq5iRDzq89Afvv8bPJAyZBate91jMdHwuJOa5OEJwigzEbtZjFV5IdT4YtI
+# pzTCnMJ+BpQ8VfCZqaZIMb90/B6nVtEB4zfnip4w9o4mS07nE7t9X4D7EnDxLvty
+# vGof/tT73xANmKuX4yL64Vho6t8dHJFdxiylG5nnbcBqYLSWeIW8YmkUf6uFiuif
+# CPI/hpZVrg==
 # SIG # End signature block
