@@ -316,7 +316,7 @@ Begin
             New-Item -Path "$env:TEMP\GpoBackup" -ItemType Directory > $null
 
             # Export
-            foreach($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
+            foreach ($Gpo in (Get-GPO -All | Where-Object { $_.DisplayName.StartsWith($DomainPrefix) }))
             {
                 Write-Verbose -Message "Backing up $($Gpo.DisplayName)..." @VerboseSplat
 
@@ -361,7 +361,7 @@ Begin
                 }
             }
 
-            foreach($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
+            foreach ($file in (Get-ChildItem -Recurse -Force -Path "$env:TEMP\GpoBackup"))
             {
                 if ($file.Attributes.ToString().Contains('Hidden'))
                 {
@@ -387,7 +387,7 @@ Begin
             New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
 
             # Export
-            foreach($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+            foreach ($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
             {
                 # Remove domain prefix
                 $Name = $Template.Name.Replace($DomainPrefix, '')
@@ -528,7 +528,7 @@ Begin
                 @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.90" }
             )
 
-            foreach($Rec in $DnsRecords)
+            foreach ($Rec in $DnsRecords)
             {
                 switch($Rec.Type)
                 {
@@ -674,7 +674,7 @@ Begin
                 @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.90"; }
             )
 
-            foreach($Reservation in $DhcpReservations)
+            foreach ($Reservation in $DhcpReservations)
             {
                 # Get clientId from dhcp active leases
                 $ClientId = (Get-DhcpServerv4Lease -ScopeID $DHCPScope | Where-Object { $_.HostName -eq $Reservation.Name -and $_.AddressState -eq 'Active' } | Sort-Object -Property LeaseExpiryTime | Select-Object -Last 1).ClientId
@@ -916,7 +916,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             $OrganizationalUnits += @{ Name = "$Tier";                                                Path = "OU=$DomainName,$BaseDN"; }
             $OrganizationalUnits += @{  Name = 'Administrators';                             Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
@@ -1023,7 +1023,7 @@ Begin
         }
 
         # Build ou
-        foreach($Ou in $OrganizationalUnits)
+        foreach ($Ou in $OrganizationalUnits)
         {
             # Check if OU exist
             if (-not (Get-ADOrganizationalUnit -SearchBase $Ou.Path -Filter "Name -like '$($Ou.Name)'" -SearchScope OneLevel -ErrorAction SilentlyContinue) -and
@@ -1115,7 +1115,7 @@ Begin
             }
         )
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Administrators
             $Users +=
@@ -1168,7 +1168,7 @@ Begin
             if ($User.MemberOf)
             {
                 # Itterate other groups
-                foreach($OtherName in $User.MemberOf)
+                foreach ($OtherName in $User.MemberOf)
                 {
                     # Get other group
                     $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Members
@@ -1269,7 +1269,7 @@ Begin
             }
         )
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Remote Access Servers
             $MoveObjects +=
@@ -1323,7 +1323,7 @@ Begin
                     # Set targetpath with server version
                     if ($Obj.TargetPath -match '%ServerPath%')
                     {
-                        if(-not $WinBuilds.Item($Build).Server)
+                        if (-not $WinBuilds.Item($Build).Server)
                         {
                             ShouldProcess @WhatIfSplat -Message "Missing winver server build $Build for $($CurrentObj.Name), skiping move." -WriteWarning > $null
                             continue
@@ -1335,7 +1335,7 @@ Begin
                     # Set targetpath with windows version
                     if ($Obj.TargetPath -match '%WorkstationPath%')
                     {
-                        if(-not $WinBuilds.Item($Build).Workstation)
+                        if (-not $WinBuilds.Item($Build).Workstation)
                         {
                             ShouldProcess @WhatIfSplat -Message "Missing winver workstation build $Build for $($CurrentObj.Name), skiping move." -WriteWarning > $null
                             continue
@@ -1399,7 +1399,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Administrators
             $DomainGroups +=
@@ -1484,7 +1484,7 @@ Begin
             }
 
             # Local computer groups
-            foreach($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
+            foreach ($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
             {
                 # Local admin
                 $DomainGroups +=
@@ -1545,7 +1545,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Delegate Admins
             $DomainGroups +=
@@ -1932,7 +1932,7 @@ Begin
         # Build groups
         ###############
 
-        foreach($Group in $DomainGroups)
+        foreach ($Group in $DomainGroups)
         {
             # Check if group managed service account
             $IsGmsa = ($Group.Path -match 'Group Managed Service Accounts')
@@ -2000,7 +2000,7 @@ Begin
                         $PrincipalsAllowedToRetrieveManagedPassword = @()
 
                         # Retrive password
-                        if($ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
+                        if ($ADGroup.DistinguishedName -notin $Msa.PrincipalsAllowedToRetrieveManagedPassword -and
                            (ShouldProcess @WhatIfSplat -Message "Allow `"$ADGroup_Name`" to retrieve `"Msa$($Group.Name)`" password." @VerboseSplat))
                         {
                             # Populate and strip old sids
@@ -2018,7 +2018,7 @@ Begin
                 if ($Group.MemberOf)
                 {
                     # Itterate other groups
-                    foreach($OtherName in $Group.MemberOf)
+                    foreach ($OtherName in $Group.MemberOf)
                     {
                         # Get other group
                         $OtherGroup = Get-ADGroup -Filter "Name -eq '$OtherName'" -Properties Members
@@ -2051,7 +2051,7 @@ Begin
                         }
 
                         # Get members
-                        foreach($NewMember in (Get-ADObject @GetObjectSplat))
+                        foreach ($NewMember in (Get-ADObject @GetObjectSplat))
                         {
                             # Check if member is part of group
                             if ((-not $ADGroup.Members.Where({ $_ -match "CN=$($NewMember.Name)," })) -and
@@ -2179,7 +2179,7 @@ Begin
             }
         }
 
-        foreach($Principal in $Principals)
+        foreach ($Principal in $Principals)
         {
             if ($Principal)
             {
@@ -2269,7 +2269,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             $AdminAccessControl =
             @(
@@ -2309,7 +2309,7 @@ Begin
 
             Set-Ace -DistinguishedName "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN" -AceList $AdminAccessControl
 
-            if($t -eq '0' -or $t -eq '1')
+            if ($t -eq '0' -or $t -eq '1')
             {
                 Set-Ace -DistinguishedName "OU=Service Accounts,OU=Tier $t,OU=$DomainName,$BaseDN" -AceList $AdminAccessControl
             }
@@ -2541,10 +2541,10 @@ Begin
         $GPoPaths += Get-ChildItem -Path "$env:TEMP\Baseline" -Directory -ErrorAction SilentlyContinue
 
         # Itterate gpo paths
-        foreach($GpoPath in $GpoPaths)
+        foreach ($GpoPath in $GpoPaths)
         {
             # Read gpos
-            foreach($Gpo in (Get-ChildItem -Path "$($GpoPath.FullName)" -Directory))
+            foreach ($Gpo in (Get-ChildItem -Path "$($GpoPath.FullName)" -Directory))
             {
                 # Get gpo Id
                 $GpoId = (Get-ChildItem -Path $Gpo.FullName -Directory).FullName -match '{(.*?)}' | ForEach-Object { $Matches[1] }
@@ -2757,7 +2757,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Set computer policy
             $ComputerPolicy = $DomainSecurity
@@ -2804,9 +2804,9 @@ Begin
         # By build
         ################
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
-            foreach($Build in $WinBuilds.GetEnumerator())
+            foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 # Check if server build
                 if ($Build.Value.Server -and
@@ -2873,7 +2873,7 @@ Begin
                         # Remote Access Servers
                         $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name= "$DomainPrefix - Remote Access Server";             Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name= "$DomainPrefix - Remote Access Server";              Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                     }
@@ -2888,7 +2888,7 @@ Begin
         # By build
         ###########
 
-        foreach($Build in $WinBuilds.GetEnumerator())
+        foreach ($Build in $WinBuilds.GetEnumerator())
         {
             # Check if workstation build
             if ($Build.Value.Workstation -and
@@ -2910,7 +2910,7 @@ Begin
         # Service Accounts
         ###################
 
-        foreach($Tier in @(0, 1))
+        foreach ($Tier in @(0, 1))
         {
             # Link password policy
             $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
@@ -2925,7 +2925,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
         {
             # Link administrator policy
             $GPOLinks.Add("OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN", @(
@@ -2982,28 +2982,35 @@ Begin
             $Order = 1
 
             # Itterate GPOs
-            foreach($Gpo in ($GPOLinks.Item($Target)))
+            foreach ($Gpo in ($GPOLinks.Item($Target)))
             {
-                if ($Gpo.Enabled -eq '-')
-                {
-                    $IsRestrictingGpo = $true
-                    $Gpo.Enabled = 'No'
-                }
+                $IsRestrictingGpo = $Gpo.Enabled -eq '-'
 
-                $DoChangeRestriction = $IsRestrictingGpo -and $RestrictDomain -notlike $null
+                if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
+                {
+                    $Gpo.Enabled = ('No', 'Yes')[$RestrictDomain -eq $true]
+                }
+                <#$DoChangeRestriction = $IsRestrictingGpo -and $RestrictDomain -notlike $null
 
                 if ($DoChangeRestriction)
                 {
                     $Gpo.Enabled = ('No', 'Yes')[$RestrictDomain -eq $true]
                 }
+                #>
 
                 $IsIPSecGpo = $Gpo.Name -match 'IPSec'
-                $DoChangeIPSec = $IsIPSecGpo -and $EnableIPSec -notlike $null
+
+                if ($IsIPSecGpo -and $EnableIPSec -notlike $null)
+                {
+                    $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec -eq $true]
+                }
+                <#$DoChangeIPSec = $IsIPSecGpo -and $EnableIPSec -notlike $null
 
                 if ($DoChangeIPSec)
                 {
                     $Gpo.Enabled = ('No', 'Yes')[$EnableIPSec -eq $true]
                 }
+                #>
 
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
@@ -3016,7 +3023,9 @@ Begin
                     # Check link
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath))
                     {
-                        if(($IsRestrictingGpo -and $RestrictDomain -eq $true) -and
+                        if (((-not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                           ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
+                           ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
                            (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
                             New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
@@ -3027,15 +3036,6 @@ Begin
                     else
                     {
                         $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
-
-                            $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
-
-                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
-                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec))) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                            {
-                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
-                            }
 
                             if ((('No', 'Yes')[$_.NoOverride -eq 'true'] -ne $Gpo.Enforced) -and
                                 (ShouldProcess @WhatIfSplat -Message "Link [Enforced=$($Gpo.Enforced)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
@@ -3048,6 +3048,31 @@ Begin
                             {
                                 Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
                             }
+
+                            if (((-not $IsRestrictingGpo -and -not $IsIPSecGpo -and (('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled)) -or
+                               ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
+                               ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
+                               (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                            {
+                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
+                            }
+                            elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
+                                   ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
+                                   (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                            {
+                                Remove-GPLink -Name $Gpo.Name -Target $Target > $null
+                            }
+
+                            <#
+                            $DoChangeGpo = ('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled
+v
+                            if ((($DoChangeGpo -and -not $IsRestrictingGpo -and -not $IsIPSecGpo) -or
+                                 ($DoChangeGpo -and ($DoChangeRestriction -or $DoChangeIPSec))) -and
+                                (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                            {
+                                Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
+                            }
+                            #>
                         }
 
                         $Order++;
@@ -3244,7 +3269,7 @@ Begin
             }
         )
 
-        foreach($t in @('DC', '0', '1', '2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Get Remote Access Users (to exclude from users in tier policy)
             $RemoteAccessUsers = @(Get-ADGroup -Identity "Tier $t - Remote Access Users" -Properties Members | Select-Object -ExpandProperty Members)
@@ -3708,11 +3733,11 @@ Process
     {
         $ResultParsed = @{}
 
-        foreach($Row in $Result)
+        foreach ($Row in $Result)
         {
             if ($Row -is [Hashtable])
             {
-                foreach($Item in $Row.GetEnumerator())
+                foreach ($Item in $Row.GetEnumerator())
                 {
                     switch ($Item.Key)
                     {
@@ -3760,8 +3785,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsi+Nw7AsxcuN8UdiikJFizCD
-# XDCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyNhe/fcdxRObSuWrJTDJ9PMh
+# PPygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3892,34 +3917,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSsagjs
-# M1oRlhK3cedeeVYarwbqRTANBgkqhkiG9w0BAQEFAASCAgAt9Q4uCGlfUfncaesE
-# 7rmeVrtmq414WzwO0Sgp51kYiibIV1lWbLh2FXF4spExjESWoevb3ZkOrbc4YEin
-# VxiRR7SVgEo1kil1k1yvz7Drk3SXK1k0Nv+2WqA+iVdK3Gs8coSsOShvHh1/oK2h
-# qtAiYfyVesTmstmjLjdN2u0zkkckbrIP6cK24Fp7fJvij3bBwogRKlw+KSIDOVUC
-# EZ2mKKaU7MV0lwXK6Wg4DswzzRNseCx2ifR7YZATNbwy1A2WHbCDT6BsFlv+OVqc
-# nD/NtpOrst0ZuzPZ/wOTlq5XKycWZRKmf/z7FlhdMg/flwANE5E8ARwdyX7xpltU
-# 8fBAPSWG3QyxaAux+15bMs0jfUuFKmKGMlGLVXOCFe8zMz+SoBkZLsh2zogd8Lba
-# f+PMpHonZpuDt1Xse8C+sKm8JJbdDsimDXPZ4MaLMLG03/SdvBepoqZDpi7hUhrY
-# xY5K5D/JbTOJOTk9ULyjchPR9Iy7HxsJWA3fhjkxbsC5bIYPODXyqG5Oj/a41pSr
-# d940lKXdjyx255qnz4TxnU1IC6gciFT78y8/SFmD1RWyCay0ojlf1Zr1/Cr+WcVq
-# AN0kRa5ij527GxKZrvpiaERP5av4GYL4rDGkeVEstnt9nnoxIZHjFKhzkOl60NIS
-# 0XWNikofn/yS/01RSwOwxTitHqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRtos+G
+# A8pbotpEtIB3+vuKPJ4zCjANBgkqhkiG9w0BAQEFAASCAgASksPwNhYK+RhV1xJL
+# EU8bZp/6QQPUac5z5uQ95iyXDrX7MAKtEB/kwoWKbBxKzEV9D2TycdTFY3MbgGWJ
+# Jg+TnEDcoxZwqdA5d+J2oi7YjgTe41sKMjHhFq8SEh1Dgq9YYqbhTBcA59IIDllx
+# EOhxuEAzgrOHSLyxBYslnTG+IIYo4rCSgq84Za9/yNgps/K3/VQs/kvRh8KIaOEu
+# tmyKclbxY/K2mSGVSOSb/P/aGwApCNMOtTnO10mD0jhS21ewc7GITLItAr+li6Cy
+# yqKDvj5QU4RygIzi7e3m3TViW5EUzB4MwVt8SdlWbnuHGOKTx5YFqMNDkWyDr82U
+# sz/c1YtN7il6499CM1Nr785fP5sUgFv1LJihWy2WAqOMvvtF/f0tKtJyEBWJct3m
+# hqlPjn9tSUYneZ2BIrejbHU6Y9wLTqbQtr3bH3vB1jVVQNlh1EWgbN9Yifin79i8
+# pZSRztQWndfJU51VSXak0J4Ba6m6dQhsqlRHLHoQMGHhBiaJhad7BwAIXH6Fydb9
+# nG9yieoOXKFjQyzqUswcd4XKtDv0o5i2Z/Fbyl7ajMpI5xXX6urQQ1N+oGEsSuDk
+# 7QZqatOxo+Nqx1rW+0yIjYLWdVRSjxddWY7mvtRBIFZab/qyVRc652PdKvy5W4sg
+# CDI0RACMzHT+QRUug+T6WrtlfqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMwOTAw
-# MDVaMC8GCSqGSIb3DQEJBDEiBCAaX0ONsGjXhL7QjhKBatNemc6x/Ux19/i25vpl
-# DOgKyjANBgkqhkiG9w0BAQEFAASCAgCOdA830VFXGNZvt6EaaxGSAMCfRvRX473r
-# M9wY9soRH4ZKWh1N/luhaRcD2anVWgku2vsWEoABlP8tYk/JdJqffHA6sMBbn6Zj
-# 5KHwjVDXDZaxs0kqCRSgYLaqJcvuA3hMcyx7orE5i77zqDTurCwsHKC9xG54Vn/M
-# b3cYq10KpSRKTIClqowX1K21AcW/OI24wJC9Lyln8osFEv6k34h7bw8F/2RDQEcD
-# nrWc86P2HPnVYCMgvCLes4OusPxdD+dQVOLuRaBzGbC86+Mu8mw7dgq3JPU/GYJ6
-# +26x4VCnM0nIy9AtEYLES28xFhA/BkaemvnhpiMFuGO0E+GPOMBAYx+IaoqWd/GZ
-# 5gRhVA23fxZcQ+YtLpXkvtxIIht7bQ3UbT8r6R6Lg8XLUSH4Pf1nAxgQRPuiyzyp
-# Mugr4hONZhI+Zc6rTyav7oidt7puoDzTjBVyIAPrEOMbR3CsVgBP4ooz9k/4HLjt
-# OprSeHSC+IdMZajix13NQLpf2wgTUsCYL7T/DXYd0VYpCL7RH0nMXS7lqlNPXisg
-# uDbaTZNKpM8VOI3qPSTfbJfacDr8pQ7me95aHkhavooYgYAQ9LR3ZQvlm74ZPbgE
-# nacHH71PqIKbnWaGVZlipVqx2cU2Nf8rPxF5Tz4ZSibVCF3iKIusJca2/SR5W5us
-# lEkZ3VGHwQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMxMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDbwio/p/UwyBVMPOzPTC13Z7HOz2qf9eIpmc/i
+# WmWWhDANBgkqhkiG9w0BAQEFAASCAgB1ksTXb0I67ZJi5bT+bgYmM/AV4kRjaggM
+# J5ymPeGW5J59RMQIZ9wgMANlSxft2gdUldejMc/QSXxS0f11zyA0wmKZqrB3EPqV
+# lrzVeSaI+Ry0FOiJYYWfqPgkOasIq7LU9f2vdGY47gNDaTYMyujGMrSBhnR+EUhd
+# 5yaLuJkk4mmclZezAxl6sUD26Uq4DFzXNx3R5pjLJC/xmBY83RriYF65qPRopnGJ
+# 1kBBH5PSHUcLlduV96BaMpXzxxP0KvEY3mCG2G9vTm+VQIn6VhBrlfpB4mMac8fo
+# 6ZchxXpZuY8nkPTyXPCkDjBgwXixNw3eWYbLVUvrc5PGGHsunkVCQOs966nj/yH2
+# yno9oN2fA6nOUToHzB7Jxfwvn2sDue1w2PkfAebIeEuZBbD3iPl4/lUCJplsWmXm
+# gcM68/Sbjk+kQut6FPB+aaBjgxVhzg9yge/BYT/qZi/1wtMyFzrQvVwotxZ4b/+k
+# kikBgBasOWGzbSZOlcvsNMX1e6StSije3E4kioARKDL/2CSJphL8wKI2ds6HT8DS
+# 77GQXl7b+Nsy7/f8+lXCVCJGcyKocP8IdXkGEh9Yy3YipCNO7cnH53D/0cGcDRJT
+# FL46bh28p+9PNcyn1bWL9YQORjUyKE5yzWZNvP2sdb6EBEgOkiOlU+SMeKLpOOHM
+# QRPhidjN4Q==
 # SIG # End signature block
