@@ -67,8 +67,9 @@ Param
     # Switches
     [ValidateSet($true, $false, $null)]
     [Object]$SetupADFS,
-    [ValidateSet($true, $false, $null)]
-    [Object]$RestrictDomain,
+    #[ValidateSet($true, $false, $null)]
+    #[Object]$RestrictDomain,
+    [nullable[bool]]$RestrictDomain,
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
 
@@ -1074,10 +1075,9 @@ Begin
                 Name = 'admin'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
-                #MemberOf = @('Domain Admins', 'Protected Users')
-                MemberOf = @()
+                NeverExpires = $(-not $RestrictDomain)
+                AccountNotDelegated = $(-not $RestrictDomain)
+                MemberOf = @('Domain Admins')
             }
 
             # Service accounts
@@ -1124,7 +1124,7 @@ Begin
                 Description = "Account for administering Tier $t"
                 Password = 'P455w0rd'
                 NeverExpires = $true
-                AccountNotDelegated = $false
+                AccountNotDelegated = $(-not $RestrictDomain)
                 #MemberOf = @('Protected Users')
                 MemberOf = @()
             }
@@ -1144,7 +1144,7 @@ Begin
         # Setup users
         foreach ($User in $Users)
         {
-            $ADUser = Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue
+            $ADUser = Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue -Properties AccountNotDelegated, PasswordNeverExpires
 
             if (-not $ADUser -and
                (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
@@ -1162,6 +1162,13 @@ Begin
                 {
                     Add-ADPrincipalGroupMembership -Identity $User.Name -MemberOf $User.MemberOf
                 }
+            }
+
+            # Check AccountNotDelegated
+            if ($User.AccountNotDelegated -ne $ADUser.AccountNotDelegated -and
+               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" AccountNotDelegated = $($User.AccountNotDelegated)" @VerboseSplat))
+            {
+                Set-ADUser -Identity $User.Name -AccountNotDelegated $User.AccountNotDelegated
             }
 
             # Check if user should be member of other groups
@@ -3767,8 +3774,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/1wMjf4XzdQC5ryfqAGtd83k
-# vj+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2pyhMiie+qcSoQEtlA96qdCf
+# HS+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3899,34 +3906,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQVpzrU
-# sbAXgpAGNfj4fATOCregCTANBgkqhkiG9w0BAQEFAASCAgAF5KVfJFERItSy6bZV
-# UQeTqyObX4kFbvzARNJ/cOGYQxQqMvZbEnWqna1cNDeURwe9da9E8lJQqmuBLEiq
-# Bp0Q5tU4JVqwIArNJ96SUMnzPTf0V433Dxd1GvQXzSim0V8nL3xDsnOwbzkf7eT/
-# fgaAHUxx37ukLNR9kwP9ZScdU+ypfFf7qjod03UwBlOazqHe7teHqpnBGGtqB1Q5
-# 6yrpMeiAZSt2H2ASGodd/pINNTInbCIivBhAh6a7EovaoAt8tqVRtolFskllX/Mb
-# DSyb4KJHIUBPlaiRrNQSX+yxTYhdJqzwQpArBW6h9XsNjHZa42vBRd3CAqOiutKZ
-# 8gEX+h4d7bPTHK4M6hlCxEyRrrzFRSePt+85vQi2EBKgmbrtl832MNGfCvyA0TYG
-# iAwTyfdzXhbqJf4qvRvf8vnlQ05FNRGOY/ZWAtXVVUX21g1b1+5Dx4chjm5eF48G
-# AuYiWDjKA6oJ6nB5Ft4uO6iIBGYl/lzvR7KfszKGk1TYE86DtmPCMYEniAOX5/7e
-# g/DHByq4q5asNhVWdKj4e7U63yJS+UHXPbhKE9EjDtzG+I3tkcY2pbh6F+AFd7WA
-# 41tsw7SOFxa0swjc7fuDm/90bBVvgnkrdZ73W4S4Nm0qd6N2J++sfw6AogOa46mc
-# XyBIxSu+6w0hfd8zoKme94ASbqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS3/X4m
+# 2FmWsWGQpnvSkWQ4TWctKzANBgkqhkiG9w0BAQEFAASCAgCjI6Iw8r3BitU3i6gk
+# Ss7lf7jlILSkgjFdl5/79YR2aVvAhI5jtsmprd5hJRsNgJhxopfKhGt+NO8SMarz
+# wjKRM9NvSZ6V1K2ZudwkBKKxh2eIHi/fytbjai5Mofw5L0y0enPrEZ7bH+0cYEJR
+# DHN9n5IZFS6Q7JwBjezWebNh9xOcBljqamvXqUqQ65IBTZxg+bPR8HKe+kXw998f
+# CB9+i+2zHFW8F7z1dAPYxAZdhMVz3qplgMBWxAeQirFk8Pueiqhkwb2moqhCVZt+
+# y3Eh5FRKsMTW10JU4sFnUAz4uyBIbUVpWfwX2oEdF7z1Jy4WAP/IMCeGTqRyO5Mx
+# IO/Ipaa+/ME/tFB5S/jmj8WXN8/i7HDe0sOZWrU8eqYJtejb3LyI06JdUUHT0MKM
+# Ewby5j0wauol6U7jgZksjBAGEFlTuJRLI2Eqafxg74ar9GxHWQyIu6DltI1dxwZg
+# K8KeeucS4/4Ms3GA2MgmJ84ETiTwiGWRTiZ4gs0IesS1tpCnY/4EnOTdSM/QjM2r
+# pb2CtxwEnRuEKa4b1qwMlwJHrwFDZE7eGc+vn8d9asDKEjD9QlVtVK4KcXVZc0Rh
+# w8spbPqSFEZyrnXF/P0oR2swAfHnTyC0cNkjQOdFBd6WoDyol73vP4qSHLiCeIJx
+# LpKcgBlawaceracSy/5hghH+u6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMxMzAw
-# MDVaMC8GCSqGSIb3DQEJBDEiBCCUL+aJh4Gm3J3RJDw40xUfyWZ9XVa9CYKnerSS
-# ZFogDTANBgkqhkiG9w0BAQEFAASCAgBWT4mO1RlCFyZWUPU0ne9Fvgz/EXXUHHWa
-# G9wGq6+vlYpk+CnK+7cu98GABZRCMfSaVgk8i30cVZxJKGujw/KYxecfrnb2mXw6
-# 3noGkgZ8/gHxyO10zLqYpVDJ5W6EoP9/Bvx2iMHfZmbWdbHKSnZi0KPJbDoKjazX
-# uEyVTw95bNaBaP3sTT3leG+7nDzky9qyi/ImB54bvP77iUeSSOViP7tcV3EU83HC
-# sw5M5eaifpQUaGqEFedhWUx9iLoLHFP2XqEMRIoqTx1rQB91dDiH++C8tvXmTfCq
-# RM+8PADZOLxYdrDKQPVIlAHBHR2VrtOfW6ZIIfbQ0MYhuJKzMyvoMZCFpYSZ8W/0
-# cyaECD35QQllP3iLriVayXFpHucWMeE/vLC3Xh+uMcYUKKl5PX2nc9Ltk3o28tFw
-# Qn3f+FEM8tkDLaPEulEHTBp68PRYR79eSglf7LLe1rZ6cUc5xKZw4VymIyNRwcSD
-# u1lUVJCh8KcEe7/ZWeqfG3FitGJRmjy6EG3iHvoWwFgIIk/rtBY2625GlauTKuBp
-# eyTJ6Zkopa5wLexU/1thrtN18RvOxsqdO6oA4V3uTz3Yb539WhI/27JJX1Wi8zpl
-# bUq18SeuFMVQgtUzifKKa7y4rnLtb7jhQ1kAvCgB0u03bM+lLnkXlQ8vPk7f0zdD
-# wiZsiV67Cw==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMyMTAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCBAoGbJCb1NJyIlXBbztstmk11Jl3cw7MpeVm3U
+# rgqePTANBgkqhkiG9w0BAQEFAASCAgBH+ebEIVUUUekR/2Cxq+nfwkqjg1tfRHfA
+# 6WQ8JTgO1e3mXO6XQk1swVT2WQ+vFUwjENehmtzvqDouaMdgyNCJSXMgt54YCLOH
+# JPQ5C3kNSIDpfRzIrK+szITsQ0Ucn/erGaDF7oSCCdEnaKOoQQFNdqL1gQyxhbLO
+# aUHfmbe+iJ+WokgFQVuVPDc2Y7CtInv7Eh2SJiPthKWiLUb0OgTlweQLsTNIUwEo
+# 3nhqAXHswWO5vGdMtn2Meg4dLKjlrr0OUTS7b6K301dDVCAXTG5sM29wCh9D96kg
+# OeGAfAq9VdLr32YGQGnHVQGL3UmDC2XQ+OyofNJC3srX2nxoS7A3Uf3bX1dMW/8x
+# KRcjZnKXArcKFGDHGQBib3lB+0oUlig3Mjd3IaebMrgfPC+QzFnVNU3WAaGxNBNV
+# HkRrRpnhxGaClZuOq/CG1zOs8MoS+9Yc+frKjJbFCGUqAKIs4wulFg/ghqXflo8g
+# v4C8muRhg7iMyOv1Xe4O+mMw1mZtxsrQRt5INBBJymoo1qeMziqlr0xAIRMfiy6Y
+# NYmJ/wz1KAzDTXCLS8/EZ0PqqYCkIIIV8oThuDa2YX4rnz2zEKX68ViBRtFLpVLM
+# yRSWK4/JSzDQ/lFOP/ydyyrOMUJf9CXkFaF1SzFMpH2zophVzyZWjR28pz98IhCa
+# dFVJLL3++g==
 # SIG # End signature block
