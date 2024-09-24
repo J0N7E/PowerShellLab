@@ -1067,6 +1067,24 @@ Begin
         # ╚██████╔╝███████║███████╗██║  ██║███████║
         #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
 
+        Write-Host "RestrictDomain = $RestrictDomain"
+
+        if ($RestrictDomain -notlike $null)
+        {
+            Write-Host "RestrictDomain NOT NULL"
+            $UserNeverExpires = -not $RestrictDomain
+            $UserNotDelegated = $RestrictDomain
+        }
+        else
+        {
+            Write-Host "RestrictDomain NULL"
+            $UserNeverExpires = $true
+            $UserNotDelegated = $false
+        }
+
+        Write-Host "UserNeverExpires = $UserNeverExpires"
+        Write-Host "UserNotDelegated = $UserNotDelegated"
+
         $Users =
         @(
             # Domain Admin
@@ -1074,8 +1092,8 @@ Begin
                 Name = 'admin'
                 Description = 'Account for administering domain controllers/domain'
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $UserNotDelegated
                 MemberOf = @('Domain Admins')
             }
 
@@ -1085,7 +1103,7 @@ Begin
                 Name = 'AzADDSConnector'
                 Password = 'PHptNlPKHxL0K355QsXIJulLDqjAhmfABbsWZoHqc0nnOd6p'
                 NeverExpires = $true
-                AccountNotDelegated = $false
+                NotDelegated = $false
                 MemberOf = @()
             }
             #>
@@ -1094,22 +1112,22 @@ Begin
             @{
                 Name = 'Alice'
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $false
                 MemberOf = @()
             }
             @{
                 Name = 'Bob'
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $false
                 MemberOf = @()
             }
             @{
                 Name = 'Eve'
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $false
                 MemberOf = @()
             }
         )
@@ -1122,8 +1140,8 @@ Begin
                 Name = "t$($t.ToLower())adm"
                 Description = "Account for administering Tier $t"
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $UserNotDelegated
                 MemberOf = @()
             }
 
@@ -1133,8 +1151,8 @@ Begin
                 Name = "t$($t.ToLower())ra"
                 Description = "Account used for Remote Access to Tier $t"
                 Password = 'P455w0rd'
-                NeverExpires = $true
-                AccountNotDelegated = $false
+                NeverExpires = $UserNeverExpires
+                NotDelegated = $false
                 MemberOf = @()
             }
         }
@@ -1142,7 +1160,7 @@ Begin
         # Setup users
         foreach ($User in $Users)
         {
-            $ADUser = Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue -Properties AccountNotDelegated, PasswordNeverExpires
+            $ADUser = Get-ADUser -Filter "Name -eq '$($User.Name)'" -SearchBase "$BaseDN" -SearchScope Subtree -ErrorAction SilentlyContinue -Properties PasswordNeverExpires, AccountNotDelegated
 
             if (-not $ADUser -and
                (ShouldProcess @WhatIfSplat -Message "Creating user `"$($User.Name)`"." @VerboseSplat))
@@ -1162,11 +1180,18 @@ Begin
                 }
             }
 
-            # Check AccountNotDelegated
-            if ($User.AccountNotDelegated -ne $ADUser.AccountNotDelegated -and
-               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" AccountNotDelegated = $($User.AccountNotDelegated)" @VerboseSplat))
+            # Check PasswordNeverExpires
+            if ($User.NeverExpires -ne $ADUser.PasswordNeverExpires -and
+               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" PasswordNeverExpires = $($User.NeverExpires)" @VerboseSplat))
             {
-                Set-ADUser -Identity $User.Name -AccountNotDelegated $User.AccountNotDelegated
+                Set-ADUser -Identity $User.Name -PasswordNeverExpires $User.NeverExpires
+            }
+
+            # Check AccountNotDelegated
+            if ($User.NotDelegated -ne $ADUser.AccountNotDelegated -and
+               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" AccountNotDelegated = $($User.NotDelegated)" @VerboseSplat))
+            {
+                Set-ADUser -Identity $User.Name -AccountNotDelegated $User.NotDelegated
             }
 
             # Check if user should be member of other groups
@@ -3789,8 +3814,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU+3xwgybBFAHyIAvaPjmytlwX
-# 0xagghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMsNQH9NwXxAR2wT6dqkPLog7
+# zeCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3921,34 +3946,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBS0Qixu
-# AjauXmIzBqmGrviC/yGpgDANBgkqhkiG9w0BAQEFAASCAgAK7gDhBR988up9aXK4
-# 2T/v/1WDOO43lWm7sgd/SMspYs+edQCBRiiS75E5vVPakAZNR4oDw0WT8soVPqst
-# MmKWVoVfi1VetmRufTU47inMnG3Rl9OABQu+j6pK8R9ix6hqGoCliZvZ2Sg3J0D/
-# rA+lZyJ3tLD0fjwLB5m+KWLeb7jHB6EjYE0o8/LBsKPsPgmODZQtd1v5nM5Y/iVj
-# rVGEW2SAITy07h808GLz2K2zGNRmOG1Fe7DE+0qOUu9nLT+2eUDpCETZp2sW6K5d
-# FStWpNIxh30HAtdvHG32mylYc/24DAOCGdbQ6VjY6IadeOkXA8c87o/qCV9ZmoWJ
-# kmxDRmaP0E4ysoPZentS1n9xNEK48h6mYaJYORuqEJ7YSXpuMYMJVvqWpGr4Qzm5
-# PmvflYGjJpTjk72WlKgANPyCJkHnOwobB58vt6d2rjMR/4V/l4xm0bqqby24MTuj
-# TDjA5J1GB9Jm2mBdNGpp8ohQi7CjZO63wpXMmIOUmwG1s9YuSrMHEGCHMe8i/rMJ
-# Q8qrgzlZVzdlZunq5b44ZS7lN/woKhWUT44WMAoKBWJ1vpvWlhgGx2WGIpmy8+OH
-# thlH1wvy2QZaj0j0nAzjqglTs1JwAO30/EMdkjOhRAeWFcurdVT14/M+OA2FoZAk
-# EwGpKYmxzmyQXI9qDB51MHH/aKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTfiz1G
+# bcxlVF0pK5/4gGTS2f5BYDANBgkqhkiG9w0BAQEFAASCAgB58MMAbHp3NakrUNJi
+# gKvVDlI16ePUM9wSWSAaDPlF8nxGtDu36bKVxqRKMOvMb9vhSSXfWGwBKFPFZvkQ
+# 1feiVAYLNmtOvfQndCwT8aLd9M9bCffkO0opTou3X5ZWucOleVd8lvilb/70QiYv
+# lWc92qNn0ZY/xYihX3JBbuhIi0eEaj6zlJFW14H/LGmDYzHZ69OB2eIZEH6os7zh
+# 9La3b0jdmT/MQRIjWSaHs21rSqaBbLUUBmRSpRsuOcGugPad4dM0HfcDFEUPJ7GD
+# 9YVDEUykSb7FUfiMejYWbCXGcjrsot36pb5tv3bSudpvd4slYMEzwcnaZ57PSm3t
+# YnJtY0mnNsUBObOksyZeAl7T/NvyFTT1ACCGhD0hCcETUJE6PNpcGuOjnR/BWPhT
+# Yw1RHu919t66sXgQylEfaJOfut4T2QJSNOBQ3YfR4ks1vEldMFyMUnVU0Zsiovff
+# ygF5IqEcUlqhMptiocbTEHsSLuoiNkZUV+T5V0SMokCZp5D2Exd0PPIQz2HKY3CV
+# Gyzzo2nWMNhW+ys7THNQNK41KPQYgESrhfiDzN7h2YkC8GT5mX16S9X7p5B94s++
+# FB6oyGpklATulXZWJx+FBCohyAfSj64QCiD09NpgnzvN6v+ovFkekMTKk+BiElQ3
+# mDnc+lFVV6ePabMRzNlEMfOio6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjMyMjAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCD+fe7dlVW0qBDDvDZ/u1xF+867gLNFXEJ4aS6m
-# s9UfADANBgkqhkiG9w0BAQEFAASCAgCi5YbvWyG1Xz6roZhzgme0QYyy4xEzdC7e
-# s9XXDrIaRlYGyGgYcIQU2BFSRtAkwy/qZaUca3LVnvwAsBoJGOeuxIMGzP/8nBqc
-# 0yPjmALXKmNly73VZIeScUOeEHA1U8mZVCWYKpyGxVLHrOKx/KyyKOUWEpC+a/3N
-# ApeeS7A8cry7s0QtGbtjqXTeA5YU+2W+awYQqeq4xN6Ew9pPS0s2rU229JOp0Obl
-# ccm8tDBIRR4kdsJpyAZdi/ZElRfqFmq45KQKw2sCsfIPU6LGpOJ7dBftBbUwB2gl
-# SEcCx5m6PqiUXOLM0o6vMiPAmzNMx5TsV7HD2d4jQueN778PW9Gc7AyyAKzfNdJn
-# CzOvJMLtsGzcN39qiAhdhMdVyKcGA+rPeAyxGgVt49+pG4e3OuA4uFHvFHP56Hjh
-# B93aQ8Yg0C3hjigjZfns6mBrj77kMjq5DlrkswimX1nVbyDaYwuIz7g9xyc2wTw9
-# hQ88dG6Jxgq1Y3ZFSibNVHxXdfdj5XE1MpcS23F5dKfiecZUssVuUxhhRbGnBEkD
-# dKA+VVbt2JGcVrrRgDUmMfWz7wgjU5nJrVgATFBa8hhCb0VEg6nPVOa2ev3VWE4d
-# dOjQub3NyqKrUSW6xrJqA+mn187+R/d5jzO4cYZf0r3i7yJulvGDzf8BI5EtmNNw
-# scBBUgFjoQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQwODAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCCdFaaPFvBfTLpMvRm/UPTev2bHHL3Rx1Q2q6eu
+# IPSWPTANBgkqhkiG9w0BAQEFAASCAgAkOjf7Fnmit+eEUTO5zfzsKuUmjBz/7/Lu
+# MKBTcYPdIoPD8vPRSxljlpZ6w+j38DhePsKhcWMAiZFpPNPKO/DcIzM32pzRheq/
+# SO0m1bdXz+XxGzP1YnAeeTt4l19XR2DNrsIvRn4glSgTx69gkxRPwCMzh8W8x5AV
+# qeHu6RU6QdT/fY8oW2cY/coOXhWtCiXajN/GtMbND8dwEfLNwZd/UEOaTK3g+eiq
+# fPgbHPwqTzzouu0ouW/Z9aUtorXVxflUtQ01ZFp9k4080AIZDCA58Dh409ynZ3jw
+# y3kYwy/uzE6BdJw+xBWAnxXBIPv8eo5YKHgiGGiKWSV0r0VnesYu+5BvMgTusr5c
+# jOjtVed/E2rAUqT6xlhVzgJw4dCXUPCNT+Ls8U6lENjOub7FjU3/SgqYxLLJOV/g
+# InTHjMFkIRBRpIjloQIKc6X1P7GSlqRYgJ0qOV4BzJc1PlVcvr/2R5UJgdV5W/zT
+# fM21ePSrDCfIIGVLrg7PeQuTKaBYKaIdNO8ZjkacCyhcGGp9pwpjT/FIyiP4Xzay
+# cbGot71T7jF7nCFUWY8Vz23VmXWCGyXpp9RTCJGKs+lRcP/jr6Rh8VzsY3qWor1p
+# lj9IY+xcWk7cVAnOt3LJiIsdjUOqxwhTCplHM9rx77nJT5JEXDEcuV4xgC8MRV+M
+# 4lE5NYleow==
 # SIG # End signature block
