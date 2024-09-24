@@ -3025,21 +3025,21 @@ Begin
             # Itterate GPOs
             foreach ($Gpo in ($GPOLinks.Item($Target)))
             {
-                $IsRestrictingGpo = $Gpo.Enabled -eq '-'
+                $GpoEnabled = $Gpo.Enabled
 
-                if ($IsRestrictingGpo -and $RestrictDomain -eq $true)
+                $IsRestrictingGpo = $GpoEnabled -eq '-'
+
+                if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
                 {
-                    $Gpo.Enabled = 'Yes'
+                    $GpoEnabled = ('No', 'Yes')[$RestrictDomain]
                 }
 
                 $IsIPSecGpo = $Gpo.Name -match 'IPSec'
 
-                if ($IsIPSecGpo -and $EnableIPSec -eq $true)
+                if ($IsIPSecGpo -and $EnableIPSec -notlike $null)
                 {
-                    $Gpo.Enabled = 'Yes'
+                    $GpoEnabled = ('No', 'Yes')[$EnableIPSec]
                 }
-
-                $Gpo.Enabled = 'Yes'
 
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
@@ -3049,36 +3049,27 @@ Begin
                     $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
                     $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
-                    # Check if link exist
-                    if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath))
+                    if (-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
+                        ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
+                        ($IsIPSecGpo -and $EnableIPSec -eq $true))
                     {
-                        if ((-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
-                             ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                             ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
+                        # Link dont exist
+                        if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
-                            Write-Host "ASDF"
-
                             # Create link
-                            New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
-
-                            $Order++
+                            New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $GpoEnabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
                         }
-                    }
-                    else
-                    {
-                        if (-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
-                            ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                            ($IsIPSecGpo -and $EnableIPSec -eq $true))
+                        # Link exist, check settings...
+                        else
                         {
                             $GpoXml.GPO.LinksTo | Where-Object { $_.SOMPath -eq $TargetCN } | ForEach-Object {
 
                                 # Check Enabled/Disabled
-                                if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled) -and
-                                    (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                                if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $GpoEnabled) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($GpoEnabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                                 {
-                                    Write-host "EWRT"
-                                    Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
+                                    Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $GpoEnabled > $null
                                 }
 
                                 # Check Enforced
@@ -3095,15 +3086,15 @@ Begin
                                     Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
                                 }
                             }
+                        }
 
-                            $Order++
-                        }
-                        elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
-                                 ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
-                                (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
-                        {
-                            Remove-GPLink -Name $Gpo.Name -Target $Target > $null
-                        }
+                        $Order++
+                    }
+                    elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
+                             ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
+                            (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
+                    {
+                        Remove-GPLink -Name $Gpo.Name -Target $Target > $null
                     }
                 }
                 else
@@ -3813,8 +3804,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9qyvAoTt6/AR0e1McxjsFatw
-# rk6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVLR6RWYHjLwQa5l+vkoBdhzr
+# Q9+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3945,34 +3936,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRsPc4d
-# YIsw+X80ZbwaajD5AWGNDTANBgkqhkiG9w0BAQEFAASCAgA0OuhvVAzHVj321jh7
-# Acdm7HlBYp89ta9ay6nW5ZeW18xnjWGVUyK5iQ+/W0Q5xKfE1VUGaV9o3r6DBOnS
-# KlXwAc0Rs2TXsLfe5n9NuuZxjvmIMuXAZEssgPRxHjKUiaBn1VG7rORAlhWJLT/I
-# If5+J2fyJZqy5VfiVptqKTEVUuI2s4TiDsKpmyR4oL95b6u9L//nzOoVYQeuNwZr
-# ds3X7fl7/4HgouJm76LJ6VbJtHi5EHOa/4RgKtp5bDSnDtLAolSwzPbOaHjRH/58
-# P/agdCbCFDQN8RJPgDMxdRlUr4VatNgxgwbZ19MyZSaGzt0TgnCh1FJEd6dtH8Xc
-# kkK9n8+8Fp6SK/qPRulxnazu49bu5pgUJ4fZ6qE8oMLFO65vepf/UkEteAgz8eZ7
-# CCsNtmDBJYYBp6FfhJeefh+PiFPjKEPEkTEez7TMD8f1GfMzDG8JvWCNsbmq2hjT
-# 5O1i5ZbvHDZmCIREltbzZ1jJczcYhZxYkxZcrodSByC8UNgHpqfnMT0KfD+kV9FM
-# xCMs3SMzYM06UIStLZSKugVRhjJ5eL+vXYL3n4mSVKc9xi/SSJj5YPjmzayeEe/H
-# zKJWl0gSn1Mn+axj9yohGaPykZyIeG9lF7zqHUfh2B938phewu+DLd2OG28ERJxw
-# Rg2KpW5ZuDZPkpurdT9UjA7McqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQuxgAt
+# XLUpJ8WtJPmODWW2VQLoPjANBgkqhkiG9w0BAQEFAASCAgCCJMXqAIyyJ7XqRWKp
+# hSDSPDp98s9Cba/M2gQDMfqbe/EKZzYvR20NbH08PCu31VW8fwX3F83pHWVwhaoy
+# 7ZVGOzBUv2nxcemrP/BHCbNw/jsqXA5ZRTM4HE6x+0XHJZ7UsLZ/v6EMi6m8MUQQ
+# Uf7LEIp+Nm6Ip7DbTXIKcxo300qEFdo9sH8oYiK1RCjWrcvJaDU5EA+ifwiO3nDY
+# xjGfqVlXZPn1iiqkEIEuFyFfIEsxvq0DGtiA3isHi1XRtZ82MSTSN7Zn8GOMLlB7
+# RCc0ZprKB0cLaJZA6bojkWH/V+S0OQSs3gmdkUVNMoMOHLsZ6rLq6WJOZ0PyZ/d9
+# gypDHOu/4washErK0p3F/7jhiEP0aCHzGgiXa6yGzEDEZUHCrAQuiP6vJkYUBJYG
+# AIgKVZCUDxVOtjlpPp+DVIhjOV9t+W3HRb8VkAw0MWhBlohMg9NyFIla+4/DckOl
+# oVQGBRwpEQyy3wDaso97H0xpGmaHxVdz4hOlVTAKMNP377gxoG/8+j/kI+54cuOV
+# akvpEcIlSSRE2va4LbDrx7WfpfCLSV2oNrZPjKxUBaCU8TRRXdJFzaQo6zfHnhir
+# VSaLszwpWf2qkrjtiRr1kV47VN7Wp+P0BJSOskkhpaAltCZJ6Le0s7CWojVlWDIJ
+# 3K6saIgv39OE0CJpfpigTVIbQ6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMDAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCAgIXEEjTAVHwLUX1JtYqhLSCx0qmGjsg2F8XrW
-# 6d3TdTANBgkqhkiG9w0BAQEFAASCAgBLbb3bRylvmpcEYqHCfRURvE3M/ZOC5Gol
-# MX/kcheDw3mz64PSDXOMjKpG3W+lEKuGstn64hnGHQ17P4dtoco9G4+SaE31QFch
-# qVnDIUNF6VgFc2SprPpne5B65cQxVtdifEwN/Nfwm/VudUemX2xJM7ReeHw8QbyM
-# W4AlldmHoGh00Gtoiz4MVZKr6yFQwl4hMwEdssbhXxOvS5MYYFOqOVnvuRwHeQh2
-# 9aF7EBwoAOcuB1FHEGm9jJfjLh85hXOYCj60+/y/wd6P6tGMWRqDGYUkFPKa32Xx
-# o+2fyTTvA83bRmKZw9AfUa/SAgbPfyMcA8WKALr1IHlFNcmJWUeayovP85d/zvi5
-# 4NPB24fOHL8CtnEA2sXOMFVoDSdC45pb0PFRFe6qBobvIJB8OxYPuAdHmbxRjeRv
-# Nu53pRECefC5UkRiXo3JDfd3TxGEjEisTpxpPDOzhXf/pPDcTAWbm2Rl+YeeN2xN
-# osT3faT30NCv91HBCHsfvQK2BXcmdgB3EybAQpSI4sgaQuqQjRk9MA3ZtEhRKlBL
-# 9M6zRzBnw0ZbxuXrXfmKswtlwhrBIwmTXUU3SiS22UfjYwJy0z9NW67zfJrKkAZe
-# DT0SIdr6+GujdgcnXOyVYlFxrdA2y2pt9kXFqRGi1EoFaXo/Trojiqe0VgO9IgaE
-# j028TVivIg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCD9lsAqdIO0eIOzRj0hHieqi/6y8OoWxOxUSg6E
+# P0aOfTANBgkqhkiG9w0BAQEFAASCAgAmlW3qSs49MDneKFIWdq2aQItK0AKfPaL5
+# ArMVXRd5M4voqRGl0OoidbEMxH2TJJXCTFjwylU8o6gady20SupPQtdZ9rSpcsGL
+# xYkfQeaXm29M30/vS7GQpgB1FQnrKVRYmZ7D9UNnza1G196unL4HgtDKZq3RPcO9
+# cOKe3bbWfumooPBHSHNePw95uOSRjk5I6eezVxvyCn9EOsyzsq8Sf6MUI0wCUFij
+# Q/IvtW5zddUjXrFwN9SYS1a8h7UkEdRV5px5WvOt3Sp0P6qDxwNomN4FNWsgEelz
+# a55QoWWEA4AAlGEaxvwryLHV03SxyC0uY6Xgo+axqdy/lf96eklAtHRe3jQHo04L
+# ySjAmrSjBxsd+PgLfmhgP1fnI/YpGFCB1zaoiVZUJ3pWHkuT49uhhpLdxCSakyZH
+# GhQ1MlbWESLflHGGGvAzmbHebYgGTTaF5cbKVeCTePq73W9Dedz0hf6jktmw3Cjr
+# z8sckCIe7K4Sh0ptrUMud23nnX80GDSGjXMaK8IjLPNb+rQj1umOIWtvmYIDYSRP
+# pdZMZb9lMzqxkORi/cDqzylzEoAbtJMURVNndheEVRmZG3sk9d/dUBNcuEuxTYQ8
+# zIBBunn5f1K70pBIXGfnzM1HlOs1DgosCbCuB5lzWrEZp33z/nFAhETeA58ko787
+# tvVbXZzbDA==
 # SIG # End signature block
