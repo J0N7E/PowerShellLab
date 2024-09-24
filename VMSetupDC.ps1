@@ -1174,18 +1174,21 @@ Begin
                 }
             }
 
-            # Check PasswordNeverExpires
-            if ($User.NeverExpires -ne $ADUser.PasswordNeverExpires -and
-               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" PasswordNeverExpires = $($User.NeverExpires)" @VerboseSplat))
+            if ($RestrictDomain -notlike $null)
             {
-                Set-ADUser -Identity $User.Name -PasswordNeverExpires $User.NeverExpires
-            }
+                # Check PasswordNeverExpires
+                if ($User.NeverExpires -ne $ADUser.PasswordNeverExpires -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" PasswordNeverExpires = $($User.NeverExpires)" @VerboseSplat))
+                {
+                    Set-ADUser -Identity $User.Name -PasswordNeverExpires $User.NeverExpires
+                }
 
-            # Check AccountNotDelegated
-            if ($User.NotDelegated -ne $ADUser.AccountNotDelegated -and
-               (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" AccountNotDelegated = $($User.NotDelegated)" @VerboseSplat))
-            {
-                Set-ADUser -Identity $User.Name -AccountNotDelegated $User.NotDelegated
+                # Check AccountNotDelegated
+                if ($User.NotDelegated -ne $ADUser.AccountNotDelegated -and
+                   (ShouldProcess @WhatIfSplat -Message "Setting `"$($User.Name)`" AccountNotDelegated = $($User.NotDelegated)" @VerboseSplat))
+                {
+                    Set-ADUser -Identity $User.Name -AccountNotDelegated $User.NotDelegated
+                }
             }
 
             # Check if user should be member of other groups
@@ -3029,16 +3032,16 @@ Begin
 
                 $IsRestrictingGpo = $GpoEnabled -eq '-'
 
-                if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
+                if ($IsRestrictingGpo -and $RestrictDomain -ne $false)
                 {
-                    $GpoEnabled = ('No', 'Yes')[$RestrictDomain]
+                    $GpoEnabled = 'Yes'
                 }
 
                 $IsIPSecGpo = $Gpo.Name -match 'IPSec'
 
-                if ($IsIPSecGpo -and $EnableIPSec -notlike $null)
+                if ($IsIPSecGpo -and $EnableIPSec -ne $false)
                 {
-                    $GpoEnabled = ('No', 'Yes')[$EnableIPSec]
+                    $GpoEnabled = 'Yes'
                 }
 
                 # Get gpo report
@@ -3050,8 +3053,8 @@ Begin
                     $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     if (-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
-                        ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                        ($IsIPSecGpo -and $EnableIPSec -eq $true))
+                        ($IsRestrictingGpo -and $RestrictDomain -ne $false) -or
+                        ($IsIPSecGpo -and $EnableIPSec -ne $false))
                     {
                         # Link dont exist
                         if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
@@ -3092,6 +3095,7 @@ Begin
                     }
                     elseif ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
                              ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
+                            ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath) -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                     {
                         Remove-GPLink -Name $Gpo.Name -Target $Target > $null
@@ -3804,8 +3808,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVLR6RWYHjLwQa5l+vkoBdhzr
-# Q9+gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUvmxCs0lzirAbU4VXUire3/nC
+# eOOgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3936,34 +3940,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQuxgAt
-# XLUpJ8WtJPmODWW2VQLoPjANBgkqhkiG9w0BAQEFAASCAgCCJMXqAIyyJ7XqRWKp
-# hSDSPDp98s9Cba/M2gQDMfqbe/EKZzYvR20NbH08PCu31VW8fwX3F83pHWVwhaoy
-# 7ZVGOzBUv2nxcemrP/BHCbNw/jsqXA5ZRTM4HE6x+0XHJZ7UsLZ/v6EMi6m8MUQQ
-# Uf7LEIp+Nm6Ip7DbTXIKcxo300qEFdo9sH8oYiK1RCjWrcvJaDU5EA+ifwiO3nDY
-# xjGfqVlXZPn1iiqkEIEuFyFfIEsxvq0DGtiA3isHi1XRtZ82MSTSN7Zn8GOMLlB7
-# RCc0ZprKB0cLaJZA6bojkWH/V+S0OQSs3gmdkUVNMoMOHLsZ6rLq6WJOZ0PyZ/d9
-# gypDHOu/4washErK0p3F/7jhiEP0aCHzGgiXa6yGzEDEZUHCrAQuiP6vJkYUBJYG
-# AIgKVZCUDxVOtjlpPp+DVIhjOV9t+W3HRb8VkAw0MWhBlohMg9NyFIla+4/DckOl
-# oVQGBRwpEQyy3wDaso97H0xpGmaHxVdz4hOlVTAKMNP377gxoG/8+j/kI+54cuOV
-# akvpEcIlSSRE2va4LbDrx7WfpfCLSV2oNrZPjKxUBaCU8TRRXdJFzaQo6zfHnhir
-# VSaLszwpWf2qkrjtiRr1kV47VN7Wp+P0BJSOskkhpaAltCZJ6Le0s7CWojVlWDIJ
-# 3K6saIgv39OE0CJpfpigTVIbQ6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTwwyJV
+# ucYtZCYMk95SChHzhxbBGjANBgkqhkiG9w0BAQEFAASCAgCIvocSUtiEcpia58ve
+# 0pQhH44bCFpYBPXw0iQpNTiy4jXaTjZPJm9pWx6hI9eBDa/eWfdedl7CNpQsxeAu
+# 140s0lYB67Ct1OKZtSqWZOml642hh2O1qDLjVfABvmq/fIMV/ukLtRRWqJ94x6J9
+# dYoEskAWXd2Zo8ndGjlfqVGaRw+5aRonBL/Tfw0mVGLM2AYD9NmOHKqS1MUwAT5L
+# 7XNnX0dDZ4ViG5fW8ZdKYjwnm6Vgo82Yj3werkL7aP2Qt9A819qPK2JeRk5CiNs4
+# KUV6UXHtZWTvtKWLPN777FJXzG/sIzBXY+p5ClClsiK9XizLDj+DBHrDR1URsDwB
+# bMj5EplQph5q0xPR5kjO+XUb6tJoxCEoiUHqv2guXGHtmp8CSPuJeH2lH70Zow1X
+# 04SYUh4/8kIGlCi2yV88CF/mp+K//8+mKdry+yPABZOX7BAGt1SaBWEb58KgrWY9
+# ILFtqZaaRb3iI2dniUO4q3OnYGjKA8PdACNIz7OgAQ2WfJKzSrVUJ3adHvUIwCqh
+# M8+TfFWU+w0hZhndkOqhcAa57r1lPgD80GtC1w+XuBEeEMOcwgFi78xS+hWq2T2v
+# Zpt5trUMnWt4ftdlWWHGLFBM6C+KhI16AH1r1RhZqI0hi8maeE6ZCtTQpb/sHHB4
+# Da4AHUN6PPrpRq3rLvJgkix7eqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCD9lsAqdIO0eIOzRj0hHieqi/6y8OoWxOxUSg6E
-# P0aOfTANBgkqhkiG9w0BAQEFAASCAgAmlW3qSs49MDneKFIWdq2aQItK0AKfPaL5
-# ArMVXRd5M4voqRGl0OoidbEMxH2TJJXCTFjwylU8o6gady20SupPQtdZ9rSpcsGL
-# xYkfQeaXm29M30/vS7GQpgB1FQnrKVRYmZ7D9UNnza1G196unL4HgtDKZq3RPcO9
-# cOKe3bbWfumooPBHSHNePw95uOSRjk5I6eezVxvyCn9EOsyzsq8Sf6MUI0wCUFij
-# Q/IvtW5zddUjXrFwN9SYS1a8h7UkEdRV5px5WvOt3Sp0P6qDxwNomN4FNWsgEelz
-# a55QoWWEA4AAlGEaxvwryLHV03SxyC0uY6Xgo+axqdy/lf96eklAtHRe3jQHo04L
-# ySjAmrSjBxsd+PgLfmhgP1fnI/YpGFCB1zaoiVZUJ3pWHkuT49uhhpLdxCSakyZH
-# GhQ1MlbWESLflHGGGvAzmbHebYgGTTaF5cbKVeCTePq73W9Dedz0hf6jktmw3Cjr
-# z8sckCIe7K4Sh0ptrUMud23nnX80GDSGjXMaK8IjLPNb+rQj1umOIWtvmYIDYSRP
-# pdZMZb9lMzqxkORi/cDqzylzEoAbtJMURVNndheEVRmZG3sk9d/dUBNcuEuxTYQ8
-# zIBBunn5f1K70pBIXGfnzM1HlOs1DgosCbCuB5lzWrEZp33z/nFAhETeA58ko787
-# tvVbXZzbDA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMjAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCC5V6Wdg51uqDKzL2APIr7XoP1I066woyJqMBFf
+# 3NBtBjANBgkqhkiG9w0BAQEFAASCAgA/1vvQRKg8G0MfFDieSu29dcZkmr50yXJq
+# 97gLtw9xfNOyHvu6GvUUXc+O7rUJL9SDYu6xoeH/6Y+IZ9RSbuwiy9uREGMJilE9
+# 1zequbThBmC2J4IcJOgm1MDxhBrjaMllq3zyhEmnRaPRqvbSzLU+SleebnFAnNql
+# 1dA9ijcgP0R04BugPvqaic+5MTpE4X4A28kdD8FQF/+74uuYPheaJGXITFpES9US
+# jCD6QJOpiMpkd+cd7BZeagJbF6obhk1Sex90dl4HjkrfkO7bxl4swoA5IYdJWcJ6
+# 6GmfPP5jB0e6SlIUsaB6DiitKyzVB+v9aBXyPPXfwz8AYsJtWg80CCnwoN5cNbPt
+# sbZPsS6H+ioTP83sCZXb6KA2lPXv+TqdnzR3D/neR9UbxLDRugfDF9dWMaunTqro
+# N1LMJC6bsYTz+PGBN5utlrV0jmmRJRN/7eNddEluCA+9oRHwhoIIV3N6KhJYAUFq
+# 7g3ojh8w2HcGFEVjkGwf40Zm2ipqW/v/iruU8DMQX51MkDlqdAaJTYDklvVa3Jf0
+# K4vGJj3d9Ly34aQIKsFjpRAWbzMaCnAOxx1R6AgPUVCRamqgQZ7/0uVNn9WwtEL0
+# iTWNG0M+SSlSSL/1/3+hapxttDluLTdUVOv0PQ2jwgL8zPZaswn/C4xT5ZJ5mx0e
+# nCmG8SBzog==
 # SIG # End signature block
