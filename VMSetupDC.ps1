@@ -67,8 +67,10 @@ Param
     # Switches
     [ValidateSet($true, $false, $null)]
     [Object]$SetupADFS,
-    [ValidateSet($true, $false, $null)]
-    [Object]$RestrictDomain,
+
+    #[ValidateSet($true, $false, $null)]
+    [Nullable[Boolean]]$RestrictDomain,
+
     [ValidateSet($true, $false, $null)]
     [Object]$EnableIPSec,
 
@@ -94,11 +96,13 @@ Begin
 
     $Serializable =
     @(
-        @{ Name = 'Session';                                      },
-        @{ Name = 'Credential';             Type = [PSCredential] },
-        @{ Name = 'DomainLocalPassword';    Type = [SecureString] },
-        @{ Name = 'DHCPScopeDNSServer';     Type = [Array]        },
-        @{ Name = 'DomainJoin';             Type = [Array]        }
+        @{ Name = 'Session';                                    },
+        @{ Name = 'Credential';           Type = [PSCredential] },
+        @{ Name = 'DomainLocalPassword';  Type = [SecureString] },
+        @{ Name = 'DNSScavengingState';   Type = [Bool]         },
+        @{ Name = 'DHCPScopeDNSServer';   Type = [Array]        },
+        @{ Name = 'RestrictDomain';       Type = [Nullable[Boolean]]        },
+        @{ Name = 'DomainJoin';           Type = [Array]        }
 
     )
 
@@ -119,6 +123,7 @@ Begin
         {
             throw "$_ $( $_.ScriptStackTrace)"
         }
+
     } -NoNewScope
 
     #################
@@ -1069,15 +1074,16 @@ Begin
 
         Write-Host "RestrictDomain = $RestrictDomain"
 
+
         if ($RestrictDomain -notlike $null)
         {
-            Write-Host "RestrictDomain NOT NULL"
+            Write-Host "Type = $($RestrictDomain.GetType())"
             $UserNeverExpires = -not $RestrictDomain
             $UserNotDelegated = $RestrictDomain
         }
         else
         {
-            Write-Host "RestrictDomain NULL"
+            Write-Host "Type = `$null"
             $UserNeverExpires = $true
             $UserNotDelegated = $false
         }
@@ -3814,8 +3820,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMsNQH9NwXxAR2wT6dqkPLog7
-# zeCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHCeNglGGUuNJ2r+JxqGaMhhY
+# 81WgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3946,34 +3952,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTfiz1G
-# bcxlVF0pK5/4gGTS2f5BYDANBgkqhkiG9w0BAQEFAASCAgB58MMAbHp3NakrUNJi
-# gKvVDlI16ePUM9wSWSAaDPlF8nxGtDu36bKVxqRKMOvMb9vhSSXfWGwBKFPFZvkQ
-# 1feiVAYLNmtOvfQndCwT8aLd9M9bCffkO0opTou3X5ZWucOleVd8lvilb/70QiYv
-# lWc92qNn0ZY/xYihX3JBbuhIi0eEaj6zlJFW14H/LGmDYzHZ69OB2eIZEH6os7zh
-# 9La3b0jdmT/MQRIjWSaHs21rSqaBbLUUBmRSpRsuOcGugPad4dM0HfcDFEUPJ7GD
-# 9YVDEUykSb7FUfiMejYWbCXGcjrsot36pb5tv3bSudpvd4slYMEzwcnaZ57PSm3t
-# YnJtY0mnNsUBObOksyZeAl7T/NvyFTT1ACCGhD0hCcETUJE6PNpcGuOjnR/BWPhT
-# Yw1RHu919t66sXgQylEfaJOfut4T2QJSNOBQ3YfR4ks1vEldMFyMUnVU0Zsiovff
-# ygF5IqEcUlqhMptiocbTEHsSLuoiNkZUV+T5V0SMokCZp5D2Exd0PPIQz2HKY3CV
-# Gyzzo2nWMNhW+ys7THNQNK41KPQYgESrhfiDzN7h2YkC8GT5mX16S9X7p5B94s++
-# FB6oyGpklATulXZWJx+FBCohyAfSj64QCiD09NpgnzvN6v+ovFkekMTKk+BiElQ3
-# mDnc+lFVV6ePabMRzNlEMfOio6GCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSOqz86
+# JtaUHKdh/7kuA/xJHcEWOjANBgkqhkiG9w0BAQEFAASCAgAtHVuD7sfJ1A+If0Lv
+# F9m+4Bi/qofkN0xHWQ1BQfnzOAvCzW5dZzW1E2IGttx2DDVzzm83sWvMqUuJMSQZ
+# t40gicqQ5m3adf0B5SCeW3eygjgkzHq6Tn1+PnDHiNY2AI1SWKeYnnhNTI4YBs4t
+# /7pCcvmgTfdqsHqpVHCNwyd1W7Dtu67cE93G241siDjT3u1wCChIqO5ah6JYKBte
+# 9wIuoYJBX2uSU/DxceP3zfSELICmxCPa0aOVImbzNBeZLbWu49xaXQ+3s0Pcu94I
+# hTGHE8j5ougP3CftQvhiZygXaxfbo3zUVoNxNygIpAhe/CkTN6+fapWmSbBdZBxL
+# vwAeMfe380cDMlzLoPHc+Xi91/sFIp7tNZGmVOK6IOwC0cgEiKohVZVwOphM6RUE
+# RZ1UAMP0ig5P/fzORylCJ7f69vz1YNnNn6i0rTvaWdr2Su+f0mvdiSioBP0Y5BmG
+# pm8LCE7nvLS0tWAaSC5bEq0TSXiyAWAjgOV7g0rAgo/SwJFCaAHUNsALAjnFGKUm
+# mPTiv8HEbAo02i9dF6Otk0QZt861QwcJ6LtfGD/VhElfEzJWF74O9G+i1lEzfkJC
+# Hzj5Cy/UbpUuly1UHydqefPupHrgf/q9TdZvoMKQGoUvMsl1MWFjA0gxgOxfMlsb
+# hLABh2xZ6049RZfTBdXb/jkJFKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQwODAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCdFaaPFvBfTLpMvRm/UPTev2bHHL3Rx1Q2q6eu
-# IPSWPTANBgkqhkiG9w0BAQEFAASCAgAkOjf7Fnmit+eEUTO5zfzsKuUmjBz/7/Lu
-# MKBTcYPdIoPD8vPRSxljlpZ6w+j38DhePsKhcWMAiZFpPNPKO/DcIzM32pzRheq/
-# SO0m1bdXz+XxGzP1YnAeeTt4l19XR2DNrsIvRn4glSgTx69gkxRPwCMzh8W8x5AV
-# qeHu6RU6QdT/fY8oW2cY/coOXhWtCiXajN/GtMbND8dwEfLNwZd/UEOaTK3g+eiq
-# fPgbHPwqTzzouu0ouW/Z9aUtorXVxflUtQ01ZFp9k4080AIZDCA58Dh409ynZ3jw
-# y3kYwy/uzE6BdJw+xBWAnxXBIPv8eo5YKHgiGGiKWSV0r0VnesYu+5BvMgTusr5c
-# jOjtVed/E2rAUqT6xlhVzgJw4dCXUPCNT+Ls8U6lENjOub7FjU3/SgqYxLLJOV/g
-# InTHjMFkIRBRpIjloQIKc6X1P7GSlqRYgJ0qOV4BzJc1PlVcvr/2R5UJgdV5W/zT
-# fM21ePSrDCfIIGVLrg7PeQuTKaBYKaIdNO8ZjkacCyhcGGp9pwpjT/FIyiP4Xzay
-# cbGot71T7jF7nCFUWY8Vz23VmXWCGyXpp9RTCJGKs+lRcP/jr6Rh8VzsY3qWor1p
-# lj9IY+xcWk7cVAnOt3LJiIsdjUOqxwhTCplHM9rx77nJT5JEXDEcuV4xgC8MRV+M
-# 4lE5NYleow==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQwOTAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCDCLkFqA8H+gL45XFA7vu/dDPkQoN4Si6AW2q1q
+# Sb29SDANBgkqhkiG9w0BAQEFAASCAgCF+4IGsoN+g76lezjvoJV1cD0qGcCbwdKk
+# 4mAdPKT0jcWmF336kM1VtpcztQjp82Ym3thyrubwGSDfCvyiVlwWZuDV3vT3LZvP
+# dSqOSPRmYBMhGPZAiw++8yHKKO3Poa743UOzfZqJi2jyl7MQdOrwKITKc9Bpsoz2
+# oSPVkeiJjwRE+9Nwv2Q1MoMGlnkg6ZU4Z52P0JwdbMpgTM337oOswCrWFjVjo7Q+
+# m3Uvf0K/+/vlS5AfATg+y82FpSefyQAUKD7ucn7I96z2UawNsaSjfnzrNUQvs+mh
+# haFh7PzJq9HqRTtIGzXTuPSVouN6eUXh4qLnmSGieciu8br+KDeFiR26/0dwxnng
+# ZBiaxpD13N9VH7FwHhVMa0xbS7nm3tQPXjIDVlT/B4KNCkoeIKanqVbXx5K+VEE7
+# KVzKvaPRiFyWsJm1liMCJoAgECtPH2KH/BTfAlNK9oEfL3pzXTwNzXczV01Wh7cR
+# IcbEQV4t+sW3uhgGtRaD0fzLCS/BSzhi+razLD2DHNWJEns19cA41G3++ZSsU4Y0
+# eZSwyCi15e85/JrR68kriNsyO9TnRkFOVp0Zxsd/w+WTfGOiOmsQJo2mF8Q0IYg7
+# UcdHQeZUluIZ0FsgATYFL152hdFuWqd5CTPHCp18kVW6XcRKiR1wFKihm9vHtOwX
+# IRrt0uKnvg==
 # SIG # End signature block
