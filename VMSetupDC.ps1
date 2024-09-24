@@ -18,9 +18,8 @@ Param
     # Force
     [Switch]$Force,
 
-    # Serializable parameters
-    $Session,
-    $Credential,
+    <# Serializable #>$Session,
+    <# Serializable #>$Credential,
 
     # Type of DC
     #[Parameter(Mandatory=$true)]
@@ -41,14 +40,14 @@ Param
 
     # Local admin password on domain controller
     [Parameter(Mandatory=$true)]
-    $DomainLocalPassword,
+    <# Serializable #>$DomainLocalPassword,
 
     # DNS
     [String]$DNSReverseLookupZone,
     [TimeSpan]$DNSRefreshInterval,
     [TimeSpan]$DNSNoRefreshInterval,
     [TimeSpan]$DNSScavengingInterval,
-    [Bool]$DNSScavengingState,
+    <# Serializable #>$DNSScavengingState,
 
     # DHCP
     [String]$DHCPScope,
@@ -56,7 +55,7 @@ Param
     [String]$DHCPScopeEndRange,
     [String]$DHCPScopeSubnetMask,
     [String]$DHCPScopeDefaultGateway,
-    [Array]$DHCPScopeDNSServer,
+    <# Serializable #>$DHCPScopeDNSServer,
     [String]$DHCPScopeLeaseDuration,
 
     # Path to gpos
@@ -65,20 +64,16 @@ Param
     [String]$TemplatePath,
 
     # Switches
-    [ValidateSet($true, $false, $null)]
-    [Object]$SetupADFS,
 
-    #[ValidateSet($true, $false, $null)]
-    [Nullable[Boolean]]$RestrictDomain,
-
-    [ValidateSet($true, $false, $null)]
-    [Object]$EnableIPSec,
+    <# Serializable #>$SetupADFS,
+    <# Serializable #>$RestrictDomain,
+    <# Serializable #>$EnableIPSec,
 
     [Switch]$BackupGpo,
     [Switch]$BackupTemplates,
 
-    # Domain join
-    [Array]$DomainJoin
+    # Array of computers to join domain
+    <# Serializable #>$DomainJoin
 )
 
 Begin
@@ -96,14 +91,15 @@ Begin
 
     $Serializable =
     @(
-        @{ Name = 'Session';                                    },
-        @{ Name = 'Credential';           Type = [PSCredential] },
-        @{ Name = 'DomainLocalPassword';  Type = [SecureString] },
-        @{ Name = 'DNSScavengingState';   Type = [Bool]         },
-        @{ Name = 'DHCPScopeDNSServer';   Type = [Array]        },
-        @{ Name = 'RestrictDomain';       Type = [Nullable[Boolean]]        },
-        @{ Name = 'DomainJoin';           Type = [Array]        }
-
+        @{ Name = 'Session';              Type = [System.Management.Automation.Runspaces.PSSession] },
+        @{ Name = 'Credential';           Type = [PSCredential]   },
+        @{ Name = 'DomainLocalPassword';  Type = [SecureString]   },
+        @{ Name = 'DNSScavengingState';   Type = [Bool]           },
+        @{ Name = 'DHCPScopeDNSServer';   Type = [Array]          },
+        @{ Name = 'SetupADFS';            Type = [Nullable[Bool]] },
+        @{ Name = 'RestrictDomain';       Type = [Nullable[Bool]] },
+        @{ Name = 'EnableIPSec';          Type = [Nullable[Bool]] },
+        @{ Name = 'DomainJoin';           Type = [Array]          }
     )
 
     #########
@@ -1072,24 +1068,16 @@ Begin
         # ╚██████╔╝███████║███████╗██║  ██║███████║
         #  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝
 
-        Write-Host "RestrictDomain = $RestrictDomain"
-
-
-        if ($RestrictDomain -notlike $null)
+        if ($RestrictDomain -like $null)
         {
-            Write-Host "Type = $($RestrictDomain.GetType())"
-            $UserNeverExpires = -not $RestrictDomain
-            $UserNotDelegated = $RestrictDomain
-        }
-        else
-        {
-            Write-Host "Type = `$null"
             $UserNeverExpires = $true
             $UserNotDelegated = $false
         }
-
-        Write-Host "UserNeverExpires = $UserNeverExpires"
-        Write-Host "UserNotDelegated = $UserNotDelegated"
+        else
+        {
+            $UserNeverExpires = -not $RestrictDomain
+            $UserNotDelegated = $RestrictDomain
+        }
 
         $Users =
         @(
@@ -3051,6 +3039,8 @@ Begin
                     $Gpo.Enabled = 'Yes'
                 }
 
+                $Gpo.Enabled = 'Yes'
+
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
 
@@ -3067,6 +3057,8 @@ Begin
                              ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
+                            Write-Host "ASDF"
+
                             # Create link
                             New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $Gpo.Enabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
 
@@ -3085,6 +3077,7 @@ Begin
                                 if ((('No', 'Yes')[$_.Enabled -eq 'true'] -ne $Gpo.Enabled) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($Gpo.Enabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                                 {
+                                    Write-host "EWRT"
                                     Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $Gpo.Enabled > $null
                                 }
 
@@ -3820,8 +3813,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHCeNglGGUuNJ2r+JxqGaMhhY
-# 81WgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9qyvAoTt6/AR0e1McxjsFatw
+# rk6gghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3952,34 +3945,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSOqz86
-# JtaUHKdh/7kuA/xJHcEWOjANBgkqhkiG9w0BAQEFAASCAgAtHVuD7sfJ1A+If0Lv
-# F9m+4Bi/qofkN0xHWQ1BQfnzOAvCzW5dZzW1E2IGttx2DDVzzm83sWvMqUuJMSQZ
-# t40gicqQ5m3adf0B5SCeW3eygjgkzHq6Tn1+PnDHiNY2AI1SWKeYnnhNTI4YBs4t
-# /7pCcvmgTfdqsHqpVHCNwyd1W7Dtu67cE93G241siDjT3u1wCChIqO5ah6JYKBte
-# 9wIuoYJBX2uSU/DxceP3zfSELICmxCPa0aOVImbzNBeZLbWu49xaXQ+3s0Pcu94I
-# hTGHE8j5ougP3CftQvhiZygXaxfbo3zUVoNxNygIpAhe/CkTN6+fapWmSbBdZBxL
-# vwAeMfe380cDMlzLoPHc+Xi91/sFIp7tNZGmVOK6IOwC0cgEiKohVZVwOphM6RUE
-# RZ1UAMP0ig5P/fzORylCJ7f69vz1YNnNn6i0rTvaWdr2Su+f0mvdiSioBP0Y5BmG
-# pm8LCE7nvLS0tWAaSC5bEq0TSXiyAWAjgOV7g0rAgo/SwJFCaAHUNsALAjnFGKUm
-# mPTiv8HEbAo02i9dF6Otk0QZt861QwcJ6LtfGD/VhElfEzJWF74O9G+i1lEzfkJC
-# Hzj5Cy/UbpUuly1UHydqefPupHrgf/q9TdZvoMKQGoUvMsl1MWFjA0gxgOxfMlsb
-# hLABh2xZ6049RZfTBdXb/jkJFKGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRsPc4d
+# YIsw+X80ZbwaajD5AWGNDTANBgkqhkiG9w0BAQEFAASCAgA0OuhvVAzHVj321jh7
+# Acdm7HlBYp89ta9ay6nW5ZeW18xnjWGVUyK5iQ+/W0Q5xKfE1VUGaV9o3r6DBOnS
+# KlXwAc0Rs2TXsLfe5n9NuuZxjvmIMuXAZEssgPRxHjKUiaBn1VG7rORAlhWJLT/I
+# If5+J2fyJZqy5VfiVptqKTEVUuI2s4TiDsKpmyR4oL95b6u9L//nzOoVYQeuNwZr
+# ds3X7fl7/4HgouJm76LJ6VbJtHi5EHOa/4RgKtp5bDSnDtLAolSwzPbOaHjRH/58
+# P/agdCbCFDQN8RJPgDMxdRlUr4VatNgxgwbZ19MyZSaGzt0TgnCh1FJEd6dtH8Xc
+# kkK9n8+8Fp6SK/qPRulxnazu49bu5pgUJ4fZ6qE8oMLFO65vepf/UkEteAgz8eZ7
+# CCsNtmDBJYYBp6FfhJeefh+PiFPjKEPEkTEez7TMD8f1GfMzDG8JvWCNsbmq2hjT
+# 5O1i5ZbvHDZmCIREltbzZ1jJczcYhZxYkxZcrodSByC8UNgHpqfnMT0KfD+kV9FM
+# xCMs3SMzYM06UIStLZSKugVRhjJ5eL+vXYL3n4mSVKc9xi/SSJj5YPjmzayeEe/H
+# zKJWl0gSn1Mn+axj9yohGaPykZyIeG9lF7zqHUfh2B938phewu+DLd2OG28ERJxw
+# Rg2KpW5ZuDZPkpurdT9UjA7McqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQwOTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCDCLkFqA8H+gL45XFA7vu/dDPkQoN4Si6AW2q1q
-# Sb29SDANBgkqhkiG9w0BAQEFAASCAgCF+4IGsoN+g76lezjvoJV1cD0qGcCbwdKk
-# 4mAdPKT0jcWmF336kM1VtpcztQjp82Ym3thyrubwGSDfCvyiVlwWZuDV3vT3LZvP
-# dSqOSPRmYBMhGPZAiw++8yHKKO3Poa743UOzfZqJi2jyl7MQdOrwKITKc9Bpsoz2
-# oSPVkeiJjwRE+9Nwv2Q1MoMGlnkg6ZU4Z52P0JwdbMpgTM337oOswCrWFjVjo7Q+
-# m3Uvf0K/+/vlS5AfATg+y82FpSefyQAUKD7ucn7I96z2UawNsaSjfnzrNUQvs+mh
-# haFh7PzJq9HqRTtIGzXTuPSVouN6eUXh4qLnmSGieciu8br+KDeFiR26/0dwxnng
-# ZBiaxpD13N9VH7FwHhVMa0xbS7nm3tQPXjIDVlT/B4KNCkoeIKanqVbXx5K+VEE7
-# KVzKvaPRiFyWsJm1liMCJoAgECtPH2KH/BTfAlNK9oEfL3pzXTwNzXczV01Wh7cR
-# IcbEQV4t+sW3uhgGtRaD0fzLCS/BSzhi+razLD2DHNWJEns19cA41G3++ZSsU4Y0
-# eZSwyCi15e85/JrR68kriNsyO9TnRkFOVp0Zxsd/w+WTfGOiOmsQJo2mF8Q0IYg7
-# UcdHQeZUluIZ0FsgATYFL152hdFuWqd5CTPHCp18kVW6XcRKiR1wFKihm9vHtOwX
-# IRrt0uKnvg==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMDAw
+# MDRaMC8GCSqGSIb3DQEJBDEiBCAgIXEEjTAVHwLUX1JtYqhLSCx0qmGjsg2F8XrW
+# 6d3TdTANBgkqhkiG9w0BAQEFAASCAgBLbb3bRylvmpcEYqHCfRURvE3M/ZOC5Gol
+# MX/kcheDw3mz64PSDXOMjKpG3W+lEKuGstn64hnGHQ17P4dtoco9G4+SaE31QFch
+# qVnDIUNF6VgFc2SprPpne5B65cQxVtdifEwN/Nfwm/VudUemX2xJM7ReeHw8QbyM
+# W4AlldmHoGh00Gtoiz4MVZKr6yFQwl4hMwEdssbhXxOvS5MYYFOqOVnvuRwHeQh2
+# 9aF7EBwoAOcuB1FHEGm9jJfjLh85hXOYCj60+/y/wd6P6tGMWRqDGYUkFPKa32Xx
+# o+2fyTTvA83bRmKZw9AfUa/SAgbPfyMcA8WKALr1IHlFNcmJWUeayovP85d/zvi5
+# 4NPB24fOHL8CtnEA2sXOMFVoDSdC45pb0PFRFe6qBobvIJB8OxYPuAdHmbxRjeRv
+# Nu53pRECefC5UkRiXo3JDfd3TxGEjEisTpxpPDOzhXf/pPDcTAWbm2Rl+YeeN2xN
+# osT3faT30NCv91HBCHsfvQK2BXcmdgB3EybAQpSI4sgaQuqQjRk9MA3ZtEhRKlBL
+# 9M6zRzBnw0ZbxuXrXfmKswtlwhrBIwmTXUU3SiS22UfjYwJy0z9NW67zfJrKkAZe
+# DT0SIdr6+GujdgcnXOyVYlFxrdA2y2pt9kXFqRGi1EoFaXo/Trojiqe0VgO9IgaE
+# j028TVivIg==
 # SIG # End signature block
