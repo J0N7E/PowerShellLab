@@ -3028,36 +3028,38 @@ Begin
             # Itterate GPOs
             foreach ($Gpo in ($GPOLinks.Item($Target)))
             {
-                $GpoEnabled = $Gpo.Enabled
-
-                $IsRestrictingGpo = $GpoEnabled -eq '-'
-
-                if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
-                {
-                    $GpoEnabled = ('No', 'Yes')[$RestrictDomain]
-                }
-
-                $IsIPSecGpo = $Gpo.Name -match 'IPSec'
-
-                if ($IsIPSecGpo -and $EnableIPSec -notlike $null)
-                {
-                    $GpoEnabled = ('No', 'Yes')[$EnableIPSec]
-                }
-
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
 
                 if ($GpoXml)
                 {
+                    $GpoEnabled = $Gpo.Enabled
+
+                    $IsRestrictingGpo = $GpoEnabled -eq '-'
+
+                    if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
+                    {
+                        $GpoEnabled = ('No', 'Yes')[$RestrictDomain]
+                    }
+
+                    $IsIPSecGpo = $Gpo.Name -match 'IPSec'
+
+                    if ($IsIPSecGpo -and $EnableIPSec -notlike $null)
+                    {
+                        $GpoEnabled = ('No', 'Yes')[$EnableIPSec]
+                    }
+
+                    $IsStandardGpo = -not ($IsRestrictingGpo -or $IsIPSecGpo)
+                    $DoRestriction = ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or ($IsIPSecGpo -and $EnableIPSec -eq $true)
+                    $UndoRestriction = ($IsRestrictingGpo -and $RestrictDomain -eq $false) -or ($IsIPSecGpo -and $EnableIPSec -eq $false)
+
                     $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
                     $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     # Link dont exist
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath))
                     {
-                        if ((-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
-                             ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                             ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
+                        if (($IsStandardGpo -or $DoRestriction) -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
                             # Create link
@@ -3067,8 +3069,7 @@ Begin
                     }
                     else
                     {
-                        if ((($IsRestrictingGpo -and $RestrictDomain -eq $false) -or
-                             ($IsIPSecGpo -and $EnableIPSec -eq $false)) -and
+                        if ($UndoRestriction -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
                             Remove-GPLink -Name $Gpo.Name -Target $Target > $null
@@ -3079,9 +3080,7 @@ Begin
 
                                 # Check Enabled/Disabled
                                 if (('No', 'Yes')[$_.Enabled -eq 'true'] -ne $GpoEnabled -and
-                                    (-not ($IsRestrictingGpo -or $IsIPSecGpo) -or
-                                     ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or
-                                     ($IsIPSecGpo -and $EnableIPSec -eq $true)) -and
+                                    ($IsStandardGpo -or $DoRestriction) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($GpoEnabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                                 {
                                         Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $GpoEnabled > $null
@@ -3533,87 +3532,87 @@ Begin
         # ██║     ╚██████╔╝███████║   ██║
         # ╚═╝      ╚═════╝ ╚══════╝   ╚═╝
 
-        ###############
-        # Empty Groups
-        ###############
-
-        $EmptyGroups =
-        @(
-            'Account Operators',
-            'Backup Operators',
-            'Print Operators',
-            'Server Operators',
-            'Pre-Windows 2000 Compatible Access',
-            'Enterprise Admins',
-            'Schema Admins'
-        )
-
-        # Remove members
-        foreach ($Group in $EmptyGroups)
+        if ($RestrictDomain)
         {
-            foreach ($Member in (Get-ADGroupMember -Identity $Group))
+            ###############
+            # Empty Groups
+            ###############
+
+            $EmptyGroups =
+            @(
+                'Account Operators',
+                'Backup Operators',
+                'Print Operators',
+                'Server Operators',
+                'Pre-Windows 2000 Compatible Access',
+                'Enterprise Admins',
+                'Schema Admins'
+            )
+
+            # Remove members
+            foreach ($Group in $EmptyGroups)
             {
-                if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
+                foreach ($Member in (Get-ADGroupMember -Identity $Group))
                 {
-                    if ($Group -eq 'Pre-Windows 2000 Compatible Access' -and
-                        $Member.Name -eq 'Authenticated Users')
+                    if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
                     {
-                        net localgroup "Pre-Windows 2000 Compatible Access" "Authenticated Users" /delete > $null
-                    }
-                    else
-                    {
-                        Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
+                        if ($Group -eq 'Pre-Windows 2000 Compatible Access' -and
+                            $Member.Name -eq 'Authenticated Users')
+                        {
+                            net localgroup "Pre-Windows 2000 Compatible Access" "Authenticated Users" /delete > $null
+                        }
+                        else
+                        {
+                            Remove-ADPrincipalGroupMembership -Identity $Member.DistinguishedName -MemberOf $Group -Confirm:$false
+                        }
                     }
                 }
             }
-        }
 
-        $Administrator = Get-ADUser -Filter 'Name -eq "administrator"' -SearchBase "CN=Users,$BaseDN" -SearchScope OneLevel -Properties AccountNotDelegated
+            ################
+            # Administrator
+            ################
 
-        # Set administrator account sensitive and cannot be delegated
-        if (($Administrator | Select-Object -ExpandProperty AccountNotDelegated) -ne $true -and
-            (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
-        {
-            $Administrator | Set-ADUser -AccountNotDelegated $true
-        }
+            $Administrator = Get-ADUser -Filter 'Name -eq "administrator"' -SearchBase "CN=Users,$BaseDN" -SearchScope OneLevel -Properties AccountNotDelegated
 
-        #######
-        # Misc
-        #######
+            # Set administrator account sensitive and cannot be delegated
+            if (($Administrator | Select-Object -ExpandProperty AccountNotDelegated) -ne $true -and
+                (ShouldProcess @WhatIfSplat -Message "Setting administrator account sensitive and cannot be delegated." @VerboseSplat))
+            {
+                $Administrator | Set-ADUser -AccountNotDelegated $true
+            }
 
-        # Join domain quota
-        if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
-            (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
-        {
-            Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
-        }
+            #######
+            # Misc
+            #######
 
-        # DsHeuristics
-        if ((Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Properties dsHeuristics).dsHeuristics -ne '00000000010000000002000000011' -and
-            (ShouldProcess @WhatIfSplat -Message "Settings dsHeuristics to `"00000000010000000002000000011`"" @VerboseSplat))
-        {
-            Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Replace @{ 'dsHeuristics' = '00000000010000000002000000011' }
-        }
+            # Join domain quota
+            if ((Get-ADObject -Identity "$BaseDN" -Properties 'ms-DS-MachineAccountQuota' | Select-Object -ExpandProperty 'ms-DS-MachineAccountQuota') -ne 0 -and
+                (ShouldProcess @WhatIfSplat -Message "Setting ms-DS-MachineAccountQuota = 0" @VerboseSplat))
+            {
+                Set-ADObject -Identity $BaseDN -Replace @{ 'ms-DS-MachineAccountQuota' = 0 }
+            }
 
-        # Protect Domain Controllers OU from accidental deletion
-        if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
-            (ShouldProcess @WhatIfSplat -Message "Protecting Domain Controllers OU from accidental deletion." @VerboseSplat))
-        {
-            Set-ADObject "OU=Domain Controllers,$BaseDN" -ProtectedFromAccidentalDeletion $true
-        }
+            # DsHeuristics
+            if ((Get-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Properties dsHeuristics).dsHeuristics -ne '00000000010000000002000000011' -and
+                (ShouldProcess @WhatIfSplat -Message "Settings dsHeuristics to `"00000000010000000002000000011`"" @VerboseSplat))
+            {
+                Set-ADObject "CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,$BaseDN" -Replace @{ 'dsHeuristics' = '00000000010000000002000000011' }
+            }
 
-        # Default site subnet
-        if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
-            (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
-        {
-            New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
-        }
+            # Protect Domain Controllers OU from accidental deletion
+            if (-not (Get-ADObject "OU=Domain Controllers,$BaseDN" -Properties ProtectedFromAccidentalDeletion).ProtectedFromAccidentalDeletion -and
+                (ShouldProcess @WhatIfSplat -Message "Protecting Domain Controllers OU from accidental deletion." @VerboseSplat))
+            {
+                Set-ADObject "OU=Domain Controllers,$BaseDN" -ProtectedFromAccidentalDeletion $true
+            }
 
-        # Register schema mmc
-        if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
-            (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
-        {
-            regsvr32.exe /s schmmgmt.dll
+            # Default site subnet
+            if (-not (Get-ADReplicationSubnet -Filter "Name -eq '$DomainNetworkId.0/24'") -and
+                (ShouldProcess @WhatIfSplat -Message "Adding subnet `"$DomainNetworkId.0/24`" to `"Default-First-Site-Name`"." @VerboseSplat))
+            {
+                New-ADReplicationSubnet -Name "$DomainNetworkId.0/24" -Site 'Default-First-Site-Name'
+            }
         }
 
         # Recycle bin
@@ -3621,6 +3620,13 @@ Begin
             (ShouldProcess @WhatIfSplat -Message "Enabling Recycle Bin Feature." @VerboseSplat))
         {
             Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target $DomainName -Confirm:$false > $null
+        }
+
+        # Register schema mmc
+        if (-not (Get-Item -Path "Registry::HKEY_CLASSES_ROOT\CLSID\{333FE3FB-0A9D-11D1-BB10-00C04FC9A3A3}\InprocServer32" -ErrorAction SilentlyContinue) -and
+            (ShouldProcess @WhatIfSplat -Message "Registering schmmgmt.dll." @VerboseSplat))
+        {
+            regsvr32.exe /s schmmgmt.dll
         }
 
         # ██████╗ ███████╗████████╗██╗   ██╗██████╗ ███╗   ██╗
@@ -3812,8 +3818,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAOkkDvX/NxGstu8gFLYCjcCi
-# gWKgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwIHfzWcor+2UyYngQphlxGYU
+# b1ygghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3944,34 +3950,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQZnvjc
-# QmjmnNQTfCaxMxRVq2CTuzANBgkqhkiG9w0BAQEFAASCAgAFIU0q0wW+bbIvnrjJ
-# gnY1UmieM+bQMB1CXzVMNUyvY2/ul8BF3NwLpJ53V4xph1lX2vEAmh9Xei90fGBl
-# n91PfXSeinugsIb3QNkuuuKITxlN63Ux0EYKY+x7UkfVEawUV+dqVYvqknmJwWfv
-# nUGJanrzxgjcLOxokSU8mOvUxJOwu5oen+STc8ryicgY7DUCwtKW8a1GffGqEtPA
-# LHPUtWHnf82VIcSy5rbWyhQYD3ILl48VkjK2T1VKA3KdZJMzn6DqitflFT62eXrG
-# 39YfturOtVdrlRjT6zz58YomxpRqLl1GI/yABH/YsiPnWgdFhgPO0SFU4K6m3ATz
-# KrUZxu+zuPnSFZfbVILEDPDTc7IXKowfMlxmnc4E9lpB3KzME1O8Woj1YGVSEeYl
-# ZiVs3cqB3F+Ss4RV3p/oIKqXsS234iDIrCI3CcFQ1lif8SLJiIEwTrs5Weyk3kRV
-# hNf4UmZnLnV+yDa5uJaRNspc9c8NulGTM5dNRstRHn5VNrcfB05658iRn18gOvjI
-# 2CRAdMa3t1NmOFcBKaXKYyC47UdK5LzyJxwAnwxbaqkW7/10J0tLpxGFIAusTtlp
-# TGBtOPMKFjoI/PNLGccnky4gh0paJRNN0/2FSdCsT62r1+NV8xp3n2VChHR3VIGE
-# ReKmLU+SZqAJ5AqwAnNqS3usUqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSOLwsh
+# nQV6bcWWPAZnCTY0bgLEvjANBgkqhkiG9w0BAQEFAASCAgA0qsVrt0i/ygYF3hqQ
+# V3bwRPQ+OStJYPBYkLlXOuiJHSfdc3+2YZFxWhG4Vy4rrCUfkWRsR0pl8lV9Gzub
+# Hno52gMXdxOjPT2JmzUEjg6OPrCAthq3YL1UDUk82+W1YVqgFQWg3jnjsq7yjFdy
+# Fe7XhnUqVlulR9RreA2P4kQKRV/SChf1n6FhaZYCCanldi6qILUgYgSuBmJt4EDY
+# ZT00jiTcnQH7IhLYjEPaKwB8MbnS5bD1s/4HEFT1z+FjJ8EOOG7H3tefEd2Q/HK/
+# wVIVMPvKibaZF+xhUgzBhE/hZZe/DJZBoSaPAhmuTmY1LhWTyQCQjzslN9csbeHM
+# 7BwDJ71cxw1SIprMsEAe707JGZggYg1KSF52agovD0se5Nx4Cpuv1f7YxB2VYoqC
+# D4NAaT7TlyMt7oaYizM5MKYhs0f+a0vW7zKqeuTxDALd35KRn3pkLM36m/kXYKQc
+# yh4hYAwTjFb2k7Bxnk5EOag9qoIKQNtrw8QPpTM92IidWYDbpOHXeW1twxrWwzB5
+# O9A1/XBrxoprvaPP0yqQy2T1ft86X5Cqev2LWVUsfOmaC2VvjHimfxaknb8zWXB9
+# VbfPXiEgYQcN0dl+a9FM6Yi0TsQEgQXe7EUVG0n3Ok6njbv9tBY3rhYLrIE+rUAJ
+# YEjKlWVvOqPt+BM6+G7fUvk2bqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjQxMzAw
-# MDVaMC8GCSqGSIb3DQEJBDEiBCBsSvRbDUPZ+j7MDs6BclzfYNHH/4aw69Klq2ec
-# bz/4gTANBgkqhkiG9w0BAQEFAASCAgA0lBGeApOMu5XdRKeWqyYJLYws5qYEa85M
-# Q3f3v7ORHIMc++8xGUu45tXNDYmLX+VxrMyJPC037pCwvFg+6jShg6fSwfykglEh
-# o8rh/J353YFhJmdNt1zfjXBXdc7jVsVm8tE+q2cm4zzcxScpOAJW4KZSld4BqWg3
-# BqmpymiobCWP8qjJnmb21n7UFaDNOxwZQA/mpZffAI9QzOppPC+KLCFACqjXOMmR
-# RKcxQJvRNM+IxADLETQhrbd4TikVB+QOphZQchBu1HW+TcsCnVb8B26Otw6xg8iY
-# yvsf1ov7z5iTwQwUy16cblR7WaujZwrfsAXNZvFEOjUk3w1ST8T43IG+Q7W+NZQl
-# T7ODtEerHjybQcNQ7EXr2VqiyENTblO4YitSF3Qu2/dqUub+ADkQfrZSOFRFzydQ
-# cjO3vJIj2tJCDdfw1iF4vkAYk7240DHzeUC0605dfspSzlT4B0+/lhUJxgw4lSQz
-# boCpgvgd3KF+6Bx3dinnSkgA5lOHdkyO3tuwH8n4ZzIqI+LWiEYWVfO6uIgXekni
-# 8NdYzZrVKPBlx2tfx4uKqHbUPrwBYCKSKKMqcW0UEWWP/9mDUGM/PkCldBQpzK2K
-# S6300hqhlU7kaGqp5OjIo1SzdanBitKZyRLsD2nJ8kH4/7ktWjeWf3MfHYcbfeMY
-# 7IH+CKHXeA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjUwOTAw
+# MDVaMC8GCSqGSIb3DQEJBDEiBCDCK0D3+H0sb2dTtBrZvkDWy0unQtmZq34Esur3
+# 5RavojANBgkqhkiG9w0BAQEFAASCAgBRanK7mQyvLNA5u0wgNskrdyQv/GQV0Gmz
+# fSJqJPO7lpUjWDAv7xuPOlIe3U5yFWSmzflJbJTA18iUUXQ4TMA09R9OQSR1/ix2
+# ycuOkTbAwcqZ/HEQIhZtQLy/FWnH4rWkltNOcDemPdY3pcjw1Q0Bs4N5CgTb27B9
+# W/dOxkc3U2duMdl3A1IkOVbr56892/8P6vRs2Z9l0oscPmEa1V9cD/T3W1eiFQC2
+# YrVTH55tQBkK1f5umzRAaQIog9Eqce6Offi5FA+9MAsrqIZnSCPxnYB1U2TYjeAC
+# zAclIJD1X1I5O0NTkx2v6tkN4nJL0XBZNfOaWQuFxACmYoDG8lZwT11VECclYpEi
+# B1ib4fxvhHaz/3kN6es/lD946uuRiEJ8jNaeMNjUJsHXMWFsj6kS5DLgyjB6a0Xj
+# TlSkOisF5UdQtkAY9PaxO0GpLBLmpbQcSVOMsf5dBVhewlOIsdLLHKlcIv+cX+y+
+# XJ8R/W0+JWxz6HfProJDowC/iea8b2nIethWrf4lMJPyxYjzRKryvsuBKs5S1TuO
+# o/KggDRyoMnXmr+ZBKL/5jlp811S5Y3uA4fr2RxPJ1tNmCLqovLPbE4DJSDbVXiP
+# FZAQG2U98/l4Vq8uND5XHxJUtbnin2SbvFcfRMW4DGVXPVGLhQIh0QdsaiTVsV3a
+# yvSflHRGPg==
 # SIG # End signature block
