@@ -130,13 +130,6 @@ Begin
     @{
         ADDSForest =
         @{
-            # DNS
-            DNSReverseLookupZone = (($DomainNetworkId -split '\.')[-1..-3] -join '.') + '.in-addr.arpa'
-            DNSRefreshInterval = '4.00:00:00'
-            DNSNoRefreshInterval = '4.00:00:00'
-            DNSScavengingInterval = '2.00:00:00'
-            DNSScavengingState = $true
-
             # DHCP
             DHCPScope = "$DomainNetworkId.0"
             DHCPScopeStartRange = "$DomainNetworkId.100"
@@ -145,6 +138,13 @@ Begin
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
             #DHCPScopeDNSServer defaults to domain controll ip address
             DHCPScopeLeaseDuration = '8.00:00:00'
+
+            # DNS
+            DNSReverseLookupZone = (($DomainNetworkId -split '\.')[-1..-3] -join '.') + '.in-addr.arpa'
+            DNSRefreshInterval = '4.00:00:00'
+            DNSNoRefreshInterval = '4.00:00:00'
+            DNSScavengingInterval = '2.00:00:00'
+            DNSScavengingState = $true
         }
     }
 
@@ -521,8 +521,9 @@ Begin
                 @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.20" }
                 @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.20" }
                 @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.20" }
-                @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.30" }
+                @{ Name = 'curity';                  Type = 'A';      Data = "$DomainNetworkId.30" }
                 @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
+                @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.80" }
                 @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.90" }
             )
 
@@ -3817,8 +3818,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUivP5TMZs7kLk1KYrsuLNqLm4
-# RVCgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1uwu21XW2Ym7JjDQ1sDRb5lQ
+# CjugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3949,34 +3950,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBSOmZAt
-# rBPptT5dYAkhfNOOe/6SZTANBgkqhkiG9w0BAQEFAASCAgANVKyNk1tQPnm+nLMg
-# bITw6fGcztCJ6e93/lOpdYwqba5409DLfAWtc7K/kkBoypmSUKZ6NA+PIKwrG+B2
-# 6I3lfHCQeIn9QK8Oppte+KX+CRwUXwLDO9SCH1SXNc/2ebjEpHaNoeZVMSYaRl7h
-# IA8+7zKpGb4YgBklP4uP+EpY5E0bzu19DpHurYVDHQh1a6WR4FlhceDgz35Vz4ZU
-# hUVw069eSlJYAfw1xv3YewqesbzJ7FZWFAv94aHDMAMuGPv6+smTrCPbCWrc+X0r
-# h3sjmlfXqZVOMp2xZfSTbO5fZe8xkKdgJfS47YEMiSH9BaFQ79Ef+XDfSVNr/cIo
-# ajeLWOVxdfIuUAdLG1Rlgb4CXUC0j7OASF5F62E59s1KULsMxiQXmG5IFmrHcCS8
-# OPCeHn7gSWH5WubhgGg1wRKxidBW/dGSkRXV57zK65n9xXF1/kyRei1CJfKxRv7T
-# BxL63vJDFEfHmUMgYQCwGYcES48cUVJUSI+2qGg7yu/cMLbiSNIXYcZBRou58Oki
-# ry6AbAjJPI2gdfUhJPuoFheCmjYdVSTkv95ImdfGldp/rb31LYoM88GgEHC2GTT4
-# NS2KfdN6/l7o7baZ1mkma0M1CldvSzIcVvJPPcNCBMF83aNcZB6qM/guzY94x6Eb
-# U5gFRRZSPH90JbWoqzsJCqCB6KGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ6YejW
+# wf44Ws+jwp9FbGOVH0dK/TANBgkqhkiG9w0BAQEFAASCAgB0PMla5V2aNOSiuvYE
+# iVhBMmPnDnuxLIExCweoyDoGKcAcOFOZsKRSW3zYTQq1lY+26icUgn9cReykUcl6
+# sn2PpzXjuzr2lZtXk6XqXhU80rxux5ORX+s3zfw7ILy/evJze62PM7uOiQBPtVRG
+# t9oqbOmQ9C7eoFOmxDRdGe8Z8Q2JTYHM8v6h3X5h5rjxlHeKWIW8+p5QymirMBwT
+# gdIxw94nNj27vrtgkATOkQwJL3/0b+Zm9dszLYHGWMD3tRB9pC2iqhtCk6VBdrK4
+# 59D+v/8VHyEQ/NaR9PotWGFRHgUah0UWUzFb4ylCbW9wXJms/L8RFa+5QoAEqKJg
+# kx6ruUHDHmQbNFaCeeM6nyeYpI46aU/NwGW59PbObFYlr4ZsdCl4TMbAmEGUOi3D
+# KtqLQIjeKYR5B5myd5REdUsdx6fdC1Yvme9dODccDqONmtx3oEq89Vy+t9H1oeID
+# mLkpSob1Mxk9KY9BnGytvTn8Zx88lshoMH2kP5tunFVP9bBtDKftuCL0cdV3s8VU
+# nxYvUGpES7TbWHS+ZT7wyN8fim7S1wH3Mhxb7XD8C8AWshEOtfwVzppktxTsGfqo
+# ssDSuwlwjR9bwLxQuKvexi5Q6ygyQG3CIyPM9h9WiR/rWSSVEOSAOvyvzfyTNX5P
+# FVUT/rcvVspqWZM/cABB67FqYaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDA5MjUxMTAw
-# MDRaMC8GCSqGSIb3DQEJBDEiBCCqGqBN8CWh90735PpotdBiA8MAId7vIygiRbqF
-# RtrrhTANBgkqhkiG9w0BAQEFAASCAgBjIADEOHaYw1lvLCrZoe/OpFTZ6TfBVoF8
-# mXHRpuxLHyr5hV/g1lQSRrS6Ve5/+/nBJTaquIhGbsICpHwcQvv/i7LrTEowP2cq
-# mtF0laDD+iA3ug86ELYzRnG+RmfIBt1rV/2IEFq9y3/vYuaQ3FxvaMiQruj/uVsa
-# dY0cfT2aOeSxp8Ka7lEtka7yPU6eMCdzbqh2C/nENyz/qLeZxI8vWVpXHw+6wUEH
-# cQQDlkKzac5CvS5GRxH9knFZbKV78b4jqHKutbWyPCiM+X3IP4ZiBI0CTIH9lUIe
-# 1isCXLOQKVh0G7pPAwIn1CyEq4uCEVcNta7BGbWKcqjmhSVGZuSW3cUBjxZLgqsr
-# UFDF8M0YH2XHKPwl7oCAumdtF4+i9AGnAiaYeEOCxNsUuJr49vqzhHPzJ0c5d+gv
-# 5GEJIrh3fFjyuiksl4Szye+a6Z34yg8MNDzAVgF8KzghiZG5LhsLg2QSrta0HXc+
-# fRmTxjbLnCWGmsAuySD8xGNw58v/tPmfdpXDbq61FWZx8oejv4ONUjLxmkoB23jK
-# CHn1WcR7i4p4DBv9MSpnUD4r/8DWptIPQn+sFJsOGcH2dhyrPS+jEaeSjPFwbotc
-# h+k1ot9gH1hWNNcuTI1cI7nCkvCpHpArKy4k29IG1QLqHPvHO4s4QMjfS4PoenI6
-# RpZODt5wZQ==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMDMwODAw
+# MDNaMC8GCSqGSIb3DQEJBDEiBCCLvWWfHvFri9jIBoyrP58wnI8y7j/oHRnkj4Mc
+# AiIXrDANBgkqhkiG9w0BAQEFAASCAgCCOg73t2hY9NdZU2wgPNDGo19xQTgXOSbm
+# ZiXQiZ74gKVAlJsN2CgHSU/BTY4rrPaw5+dz3I8/xdtsCCljck0lU5Pj4tEequoU
+# 3BuHOZyzScwWJOdEkIwdKRjDfx3CDPWu3HwT3p08NLWKWMDuQIZGllzxAW+Oo9Un
+# sIRVQUofPKzNUtmXZDjX4KACF+jsd+5tMd73kkeqRbrW9gy3vBc/4K6ZtxOa7xv/
+# Uvs2VUD3fjYGMOJ2Lvlo/j1IO6dk7VUNjxs+U+KGYppqutSWf4tfELT7MlH11BWB
+# 9WT+OR702UFpp23XPukWsiJxhsggOb9lAMyRFOOYIyRCpBAdldV5bhRXJnTyRop1
+# 04rd2WS/15gsn5pxsSpYYyIDqoVsR2nlPWhHrbN3A5C/i+fSYuhVI2/RyYUoE5xl
+# gtZHPuJsKvJC5dDIpYCuROL13uuirP4l+jJngXqc2j7shekCCGKyXva/iyD2CFAC
+# X04Yyk96epBIL3UBM+J5K8qmyIPkiqY7MhoIj/kHyS/9MJ53ZzKRvHz7nhpFZEt9
+# X7SN15Cp6D7G2gSa+apEFk5AOcCS76IdYp53m0HlpXjkha7QXvKzm63nvcPwTea9
+# NpSR5Z5cxSsLI7jaYkt5J4QLqPm/Ehn8eZG9NN6MLL26786lZd5kIwebTn2CFGwR
+# reBhtjRttA==
 # SIG # End signature block
