@@ -132,7 +132,7 @@ Begin
         @{
             # DHCP
             DHCPScope = "$DomainNetworkId.0"
-            DHCPScopeStartRange = "$DomainNetworkId.100"
+            DHCPScopeStartRange = "$DomainNetworkId.200"
             DHCPScopeEndRange = "$DomainNetworkId.254"
             DHCPScopeSubnetMask = '255.255.255.0'
             DHCPScopeDefaultGateway = "$DomainNetworkId.1"
@@ -667,10 +667,11 @@ Begin
 
             $DhcpReservations =
             @(
-                @{ Host = 'ADFS01';  Name = "ADFS01.$DomainName";  IPAddress = "$DomainNetworkId.20"; }
-                @{ Host = 'NPS01';   Name = "NPS01.$DomainName";   IPAddress = "$DomainNetworkId.30"; }
-                @{ Host = 'AS01';    Name = "AS01.$DomainName";    IPAddress = "$DomainNetworkId.50"; }
-                @{ Host = 'RAS01';   Name = "RAS01.$DomainName";   IPAddress = "$DomainNetworkId.90"; }
+                @{ Host = 'ADFS01';      Name = "ADFS01.$DomainName";      IPAddress = "$DomainNetworkId.20"; }
+                @{ Host = 'bcl-curity';  Name = "bcl-curity.$DomainName";  IPAddress = "$DomainNetworkId.30"; }
+                @{ Host = 'AS01';        Name = "AS01.$DomainName";        IPAddress = "$DomainNetworkId.50"; }
+                @{ Host = 'NPS01';       Name = "NPS01.$DomainName";       IPAddress = "$DomainNetworkId.80"; }
+                @{ Host = 'RAS01';       Name = "RAS01.$DomainName";       IPAddress = "$DomainNetworkId.90"; }
             )
 
             foreach ($Reservation in $DhcpReservations)
@@ -3818,8 +3819,8 @@ End
 # SIG # Begin signature block
 # MIIekwYJKoZIhvcNAQcCoIIehDCCHoACAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1uwu21XW2Ym7JjDQ1sDRb5lQ
-# CjugghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUnmDiWZGB61aVAuRT+ahVuOX5
+# EMGgghgUMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3950,34 +3951,34 @@ End
 # c7aZ+WssBkbvQR7w8F/g29mtkIBEr4AQQYoxggXpMIIF5QIBATAkMBAxDjAMBgNV
 # BAMMBUowTjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEE
 # AYI3AgEMMQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwG
-# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQ6YejW
-# wf44Ws+jwp9FbGOVH0dK/TANBgkqhkiG9w0BAQEFAASCAgB0PMla5V2aNOSiuvYE
-# iVhBMmPnDnuxLIExCweoyDoGKcAcOFOZsKRSW3zYTQq1lY+26icUgn9cReykUcl6
-# sn2PpzXjuzr2lZtXk6XqXhU80rxux5ORX+s3zfw7ILy/evJze62PM7uOiQBPtVRG
-# t9oqbOmQ9C7eoFOmxDRdGe8Z8Q2JTYHM8v6h3X5h5rjxlHeKWIW8+p5QymirMBwT
-# gdIxw94nNj27vrtgkATOkQwJL3/0b+Zm9dszLYHGWMD3tRB9pC2iqhtCk6VBdrK4
-# 59D+v/8VHyEQ/NaR9PotWGFRHgUah0UWUzFb4ylCbW9wXJms/L8RFa+5QoAEqKJg
-# kx6ruUHDHmQbNFaCeeM6nyeYpI46aU/NwGW59PbObFYlr4ZsdCl4TMbAmEGUOi3D
-# KtqLQIjeKYR5B5myd5REdUsdx6fdC1Yvme9dODccDqONmtx3oEq89Vy+t9H1oeID
-# mLkpSob1Mxk9KY9BnGytvTn8Zx88lshoMH2kP5tunFVP9bBtDKftuCL0cdV3s8VU
-# nxYvUGpES7TbWHS+ZT7wyN8fim7S1wH3Mhxb7XD8C8AWshEOtfwVzppktxTsGfqo
-# ssDSuwlwjR9bwLxQuKvexi5Q6ygyQG3CIyPM9h9WiR/rWSSVEOSAOvyvzfyTNX5P
-# FVUT/rcvVspqWZM/cABB67FqYaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
+# CisGAQQBgjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBQsTnRn
+# Tj/vioxb1OU7L67+D6egfjANBgkqhkiG9w0BAQEFAASCAgCkAPjTS/eUb5Gi2n6c
+# MFtILXMnp4FE1yPQjCIAz+Jeh53P0DlXjlg3X35SGdNdSbWqamy1d8oOiDWGmNdj
+# iII3bXH+I8I1KuPvnNZdKUW+bA2yNimWjYNJAcluEUanECL5KvxdogRBoA8rkEx2
+# j3C3SlLbnl2ocM6GZ2OL+kE2nVjuUdZR5akW/nBJT5CqMp4szdRl2LPdg2u2HENM
+# Yqn9hqPn+yAUqpovrhNpWI6hdCY85g5SqVCX8XCWvyFkmfArBLufUBi9DDYAOlDl
+# VA2p14aKr+ql5hA0SA/P7hWb+dji5+lhZ13oSdcqMQEdDAmcNOSVycpGSc2lc22Y
+# Ar8RIYvne27kz53l4nrBlH5MFx2P1lmE1K3feMus8/TndV2XOsP4Zes5QNjlr8Mn
+# GfzE+YrZodeVxoJVD/1Uw+qNEmmPqjpHFh6LFvhaJb/QhWB0L3L/7gTtut0acRkN
+# F/qHqTbtrj/HqeRKV0I359DSFBmacBW6PJCEKtJ4nnxGnS7RpKDN4aFUf/IQA3gX
+# dwq8L8PFEE9Szdd3rZ8fvvfcJ/wSyrzpblmmXRijWPJAUEl9kMH6Y6M3EzBd+Fct
+# a0K19WvIHPO4YO2F1euBLYeBQ9g0XIVnzSkLCY8TjBYNNf3Dxmw5BMIBmTmQxBji
+# 6FVlf51QP2CuTrsmgnfPImJe1aGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIB
 # ATB3MGMxCzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkG
 # A1UEAxMyRGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3Rh
 # bXBpbmcgQ0ECEAVEr/OUnQg5pr/bP1/lYRYwDQYJYIZIAWUDBAIBBQCgaTAYBgkq
-# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMDMwODAw
-# MDNaMC8GCSqGSIb3DQEJBDEiBCCLvWWfHvFri9jIBoyrP58wnI8y7j/oHRnkj4Mc
-# AiIXrDANBgkqhkiG9w0BAQEFAASCAgCCOg73t2hY9NdZU2wgPNDGo19xQTgXOSbm
-# ZiXQiZ74gKVAlJsN2CgHSU/BTY4rrPaw5+dz3I8/xdtsCCljck0lU5Pj4tEequoU
-# 3BuHOZyzScwWJOdEkIwdKRjDfx3CDPWu3HwT3p08NLWKWMDuQIZGllzxAW+Oo9Un
-# sIRVQUofPKzNUtmXZDjX4KACF+jsd+5tMd73kkeqRbrW9gy3vBc/4K6ZtxOa7xv/
-# Uvs2VUD3fjYGMOJ2Lvlo/j1IO6dk7VUNjxs+U+KGYppqutSWf4tfELT7MlH11BWB
-# 9WT+OR702UFpp23XPukWsiJxhsggOb9lAMyRFOOYIyRCpBAdldV5bhRXJnTyRop1
-# 04rd2WS/15gsn5pxsSpYYyIDqoVsR2nlPWhHrbN3A5C/i+fSYuhVI2/RyYUoE5xl
-# gtZHPuJsKvJC5dDIpYCuROL13uuirP4l+jJngXqc2j7shekCCGKyXva/iyD2CFAC
-# X04Yyk96epBIL3UBM+J5K8qmyIPkiqY7MhoIj/kHyS/9MJ53ZzKRvHz7nhpFZEt9
-# X7SN15Cp6D7G2gSa+apEFk5AOcCS76IdYp53m0HlpXjkha7QXvKzm63nvcPwTea9
-# NpSR5Z5cxSsLI7jaYkt5J4QLqPm/Ehn8eZG9NN6MLL26786lZd5kIwebTn2CFGwR
-# reBhtjRttA==
+# hkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMDMwOTAw
+# MDFaMC8GCSqGSIb3DQEJBDEiBCC6+LO/wW4tkYbuFlW78xKuKXgI579sr9XpodDn
+# GnXe8DANBgkqhkiG9w0BAQEFAASCAgCVJoLMgXmKD+nJ6O8hKxUUooi/K+hxVQ3Z
+# 4yv+7mv/oy+2z1EqrV+n+5LqCXd/DGyBJRsQoYs9a3sCSOydUXBARLv3l82iZZiF
+# LlG4vNKtfTr9oOe2t/2ZPMTReIAxZ9EtjTYSZNssXD9Qh3dMGwkBUWeKc6rBZY9X
+# 4BNqbIqr9GF3vryw1BELRSD4BIGtvM1yD/cfZv+l0vABlaC1aPuyTh2l4PaA/ndY
+# k2xMUKQkX4wI5TAl7axK07v16juDWzFcUp4WzhJjuYZh5QaSgxxV+e/F/E1O9HDT
+# CzIKo3jgpD5SXMjtTeNql1zbWOa7gX13cC979O1f0/xsXrnlJi4GjJn3OnSW6nTQ
+# ldL5q+ERy3CL60uofupe65OKOD46i1ItKCelrIXdx9vrozYfHgOyyyw2r1BTMXGB
+# ngU2lME07fvMMcbc+EF54ycQdxO4Qf5FaGZH6C8XZF1Bu5eB01DnxTIzmoHJdAqK
+# D5vhxhStSW4wUhiRk4bVaztuDZO2Wit00jKt15VYYaHLR1mlJTJVrPc0arID5j2p
+# pZMqyzUChTPPh8fHj7jB3oQyjvR2SZTZKz7wzu7ESpv8zci/xiNawO081dJ1dUGh
+# QhLae+no2X67GA+bCd/JDU/di2aG8JX1Rk1GD+fmcyv3uBEnUYz46E/qYmZfrCbD
+# WquhCz464A==
 # SIG # End signature block
