@@ -2003,7 +2003,7 @@ Begin
             }
 
             # Get group
-            $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'" -Properties Members
+            $ADGroup = Get-ADGroup -Filter "Name -eq '$ADGroup_Name'"
 
             # Check if group exist
             if (-not $ADGroup -and
@@ -2073,45 +2073,51 @@ Begin
 
                         # Check if member of other group
                         if (($OtherGroup -and -not $OtherGroup.Members.Where({ $_ -match $ADGroup.Name })) -and
-                            (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup.Name)`" to `"$OtherName`"." @VerboseSplat))
+                            (ShouldProcess @WhatIfSplat -Message "Adding `"$($ADGroup_Name)`" to `"$OtherName`"." @VerboseSplat))
                         {
                             # Add group to other group
-                            Add-ADPrincipalGroupMembership -Identity $ADGroup.Name -MemberOf @("$OtherName")
+                            Add-ADPrincipalGroupMembership -Identity $ADGroup_Name -MemberOf @("$OtherName")
                         }
                     }
                 }
 
-                foreach ($Member in $Group.Members)
+
+                if  ($Group.Members)
                 {
-                    # Check if filter exist
-                    if ($Member.Filter)
+                    $ADGroup_Members = @(Get-ADGroupMember -Identity $ADGroup_Name)
+
+                    foreach ($Member in $Group.Members)
                     {
-                        $GetObjectSplat = @{ 'Filter' = $Member.Filter }
-
-                        if ($Member.SearchScope)
+                        # Check if filter exist
+                        if ($Member.Filter)
                         {
-                            $GetObjectSplat.Add('SearchScope', $Member.SearchScope)
-                        }
+                            $GetObjectSplat = @{ 'Filter' = $Member.Filter }
 
-                        if ($Member.SearchBase)
-                        {
-                            $GetObjectSplat.Add('SearchBase', $Member.SearchBase)
-                        }
-
-                        # Get members
-                        foreach ($NewMember in (Get-ADObject @GetObjectSplat))
-                        {
-                            # Check if member is part of group
-                            if ((-not $ADGroup.Members.Where({ $_ -match "CN=$($NewMember.Name)," })) -and
-                                (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
+                            if ($Member.SearchScope)
                             {
-                                # Add new member
-                                Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$ADGroup_Name")
+                                $GetObjectSplat.Add('SearchScope', $Member.SearchScope)
+                            }
 
-                                # Remember computer objects added to group
-                                if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
+                            if ($Member.SearchBase)
+                            {
+                                $GetObjectSplat.Add('SearchBase', $Member.SearchBase)
+                            }
+
+                            # Get members
+                            foreach ($NewMember in (Get-ADObject @GetObjectSplat))
+                            {
+                                # Check if member is part of group
+                                if ((-not $ADGroup_Members.Where({ $_ -match "CN=$($NewMember.Name)," })) -and
+                                    (ShouldProcess @WhatIfSplat -Message "Adding `"$($NewMember.Name)`" to `"$ADGroup_Name`"." @VerboseSplat))
                                 {
-                                    $UpdatedObjects.Add($NewMember.Name, $true)
+                                    # Add new member
+                                    Add-ADPrincipalGroupMembership -Identity $NewMember.DistinguishedName -MemberOf @("$ADGroup_Name")
+
+                                    # Remember computer objects added to group
+                                    if ($NewMember.ObjectClass -eq 'Computer' -and -not $UpdatedObjects.ContainsKey($NewMember.Name))
+                                    {
+                                        $UpdatedObjects.Add($NewMember.Name, $true)
+                                    }
                                 }
                             }
                         }
@@ -3306,6 +3312,7 @@ Begin
         {
             # Get Remote Access Users (to exclude from users in tier policy)
             $RemoteAccessUsers = @(Get-ADGroupMember -Identity "Tier $t - Remote Access Users")
+
             $RemoteAccessComputers = @(Get-ADComputer -Filter "Name -like 'RAT*'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree | Select-Object -ExpandProperty DistinguishedName)
 
             # Get Policy Members
@@ -3313,29 +3320,16 @@ Begin
             {
                 'DC'
                 {
-                    $AuthNPolicyUsers =
-                    @(
-                        @(Get-ADGroupMember -Identity "Domain Admins")
-                    )
-
-                    $AuthNPolicyComputers =
-                    @(
-                        @(Get-ADGroupMember -Identity "Domain Controllers")
-                    )
+                    $AuthNPolicyUsers = @(Get-ADGroupMember -Identity "Domain Admins")
+                    $AuthNPolicyComputers = @(Get-ADGroupMember -Identity "Domain Controllers")
                 }
 
                 default
                 {
-                    $AuthNPolicyUsers =
-                    @(
-                        @(Get-ADGroupMember -Identity "Tier $t - Admins") +
-                        @(Get-ADGroupMember -Identity "Tier $t - Users").Where({$_ -notin $RemoteAccessUsers}) # Exclude Remote Access Users
-                    )
+                    $AuthNPolicyUsers = @(Get-ADGroupMember -Identity "Tier $t - Admins") +
+                                        @(Get-ADGroupMember -Identity "Tier $t - Users").Where({$_ -notin $RemoteAccessUsers}) # Exclude Remote Access Users
 
-                    $AuthNPolicyComputers =
-                    @(
-                        @(Get-ADGroupMember -Identity "Tier $t - Computers").Where({$_ -notin $RemoteAccessComputers}) # Exclude Remote Access Computers
-                    )
+                    $AuthNPolicyComputers = @(Get-ADGroupMember -Identity "Tier $t - Computers").Where({$_ -notin $RemoteAccessComputers}) # Exclude Remote Access Computers
                 }
             }
 
@@ -3409,16 +3403,16 @@ Begin
             # Itterate all group members
             foreach ($UserDN in $Pol.Users)
             {
-                # Get common name
-                $UserCN = $($UserDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
-
                 # Get assigned authn policy
                 $GetAssignedPolicy = Get-ADObject -Identity $UserDN -Properties msDS-AssignedAuthNPolicy | Select-Object -ExpandProperty msDS-AssignedAuthNPolicy
+
+                # Get common name
+                $UserCN = $($UserDN -match 'CN=(.*?),' | ForEach-Object { $Matches[1] })
 
                 if (-not $GetAssignedPolicy -or $GetAssignedPolicy -notmatch $ADAuthNPolicy.DistinguishedName -and
                     (ShouldProcess -Message "Adding `"$UserCN`" to `"$($Pol.Name) Policy`"" @VerboseSplat))
                 {
-                    Set-ADAccountAuthenticationPolicySilo -AuthenticationPolicy $ADAuthNPolicy.DistinguishedName -Identity $UserDN
+                    Set-ADAccountAuthenticationPolicySilo -Identity $UserDN -AuthenticationPolicy $ADAuthNPolicy.DistinguishedName
                 }
             }
 
@@ -3566,7 +3560,7 @@ Begin
             # Remove members
             foreach ($Group in $EmptyGroups)
             {
-                foreach ($Member in (Get-ADGroupMember -Identity $Group))
+                foreach ($Member in @(Get-ADGroupMember -Identity $Group))
                 {
                     if ((ShouldProcess @WhatIfSplat -Message "Removing `"$($Member.Name)`" from `"$Group`"." @VerboseSplat))
                     {
@@ -3832,8 +3826,8 @@ End
 # SIG # Begin signature block
 # MIIejQYJKoZIhvcNAQcCoIIefjCCHnoCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMzB16++jmgesVq/rGooSChmo
-# pUKgghgOMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUY5ntbde7xJ3FjFbdstDa3G4
+# VNWgghgOMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3964,34 +3958,34 @@ End
 # 4Q1zZKDyHcp4VQJLu2kWTsKsOqQxggXpMIIF5QIBATAkMBAxDjAMBgNVBAMMBUow
 # TjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEEAYI3AgEM
 # MQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQB
-# gjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTVEhqyAhGdt86n
-# 8pM7yaSUMXuA1zANBgkqhkiG9w0BAQEFAASCAgAKUBLoMqtTg4iCcquGcKFQs6rc
-# RzaCoIhz6XxjZAlFjERB2sye4RxAxS1DrI6bo0V8Kp55teWMlNayNlJsgdc32X+X
-# f2NsUBx18BJZkOFQdeWeGtEttoXcOYlF+xk0NW+0pt345+i2hBUIgCSVEo7NAjnN
-# 95g4kgrYq0SOkPf7XNxQgoE263b0mkLGJC1W8zcfFYRZK/UN3XoPnL73WFe0guuK
-# hsZoIMLkTjiFY1I2TZBxlM7WPlxAwaqMvrK6Zf5myoxcLE8j37OBBKO9hfBq0+C8
-# 65wZt5tSG/OW8IPxhVkkm82LLkvBzhmuakDBJp9daFFrF6TgZTSOPE2l9CnGW1xn
-# 14Ms4R3h+vXN2l9gmf67fuS6BQLvD65XHL0xVvlgaIVwRWDZI4mELgMQ8W+3Bex5
-# cpZakzuQBJwpbJMosjszlMOksxVMY6XDitRgoFmd5peJdzYlk2R9Zh1RFPkUP8Pk
-# qo5pMic9dBgOK8KSoKm5ZI2Yi6FuX3Z+t/M3mQQ04fEAOJFDtbaWl7k/PrSC/uc1
-# XuaCTVxkm5DxJOE/p5JlMVDMT8aOWaLHpqvKnyQd8yAjvvtLk/NI5Qa9K1fS5mod
-# n/KWAbn++aZXQudmuhmGhKwHglrZmIBuoTuXUx5jk8c8cAAQHA4XGCV/p+XuDH+f
-# tA+hEkLFx6J8V+2DqqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIBATB3MGMx
+# gjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBRmJ80fvbt4AniJ
+# KgNPUy+yOf+/vzANBgkqhkiG9w0BAQEFAASCAgC9xT0P+LKHwRe3tQFHPaRZdIWe
+# EYnHsg8x1wLWpg37FdWYrq41o3NLkPLVT/zMPlnW1JzzFZsJLxsRmpsG3vfqlsrV
+# soSFc60gUkdlN8krUyQgkz3+Fd27LhwxN/9sD94cHP6cWCY+JBFeIZv40jlHG7ph
+# 6LaOR2rDT7b+k+Y73VFoFBmn3Tj5wZNSfo8ypSqZ/bgU0ccvPlgD9AUpdRvEXmE1
+# rFyb4aa/olm4nZX+bB57Qhi/MfXS61bWvFGocdWECz1+AaNwtfne+uerjpuzcRWA
+# DPtMwsscTAFGXH0ascLF/EesSEgreG+1CL/lob5TJncVDX3ErxQEWvcZtBnkv1Ii
+# KH5q61F67iNDrimvsY6Ad8PcgvKMp0jIEtdSoCYmP8a2XSD0TBtCmu5eoSi6dWoN
+# wTW89Cu7g3EisIDJLyVCid5U145JHlRu0fUwOPIx8YwSXDdqQcvyz44NnNY9O/u2
+# 9BBdZhBltRHl0+O3WZFuikRlI9A2GKtJOCm/wh8IsakUqOS8L2hABhBSI6r1UxqT
+# n2CkjQn3j8fukzf3GfOnyenOd9/ENRQZHYnkpZ3GmZwUdP+PI6Y45pZ5GSsCfcjS
+# /VdPYu0QDxx3kIsIT3jCey8B/xu7LCIxwDQuEBZjvmwp3fLGBryKsu05ijpqxKpU
+# gsGwcJxXyxCkTmz2UaGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIBATB3MGMx
 # CzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkGA1UEAxMy
 # RGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3RhbXBpbmcg
 # Q0ECEAuuZrxaun+Vh8b56QTjMwQwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0B
-# CQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMTEwODAwMDRaMC8G
-# CSqGSIb3DQEJBDEiBCBfymE2AAE1Nc+X5ye1ziZuFgP90lSt20bzq6t4feK2cDAN
-# BgkqhkiG9w0BAQEFAASCAgBsJrOEMcKizEFLi65SKVQeS5GCwApMZYALO4W44kfp
-# +82mKjq8bVjtEI7rxGceqzpwHMPPQ2BQU4WICjNXkezTCaiXnJuJLknX8V26iJmq
-# dSfYJ0H8UiBES+LPdEaatUaFz1AyDJKtS1Xs2txjMW/J8hZHJpMcig647fBvx6Jp
-# S3xkSXGtVIeM21VXclmEw+6Kic4/T5e7aSTmr75FiFiy+C8tw2D1QipHjppAoElP
-# tcRMGFOyFZZs0aii4z3qgHb8ke4YX6tdj1Kx9BuUeKmYL3ft2PIsN87Ym1Hxn7fP
-# w+QCyB+WnWDHMsK1AF+ob/mREM2dE9Y6ZPQg68NeK0ekqic2O+uluzI//s2dy4Zt
-# xmmhe41WlrhDROTuiX/zQXvZL7R35quq2qJtLbA+bvwB2GwJ7lG93emnhXbh2Jpi
-# F6LUoitQ8V1+ormgzM1OowCF4AFTpefXh60ZfR2cbzb6JoiOZ75njwGHF8a1BQI1
-# 1PTUB8lP+QFMz+FsBLhwL1SahMDAtTnqtdaPDW4QBIBzZKvymq3rMm7Qw5dI/jUs
-# IbJPYmQT4KymQyw/btzvKrq4VPVq0yqXlXbo87m+Vxx0Kkh1rNEkpemCgoDPwEls
-# OHuKSYRHGtsyv/jRfO9rw+9dvX1Paj3c969qwWp6aVkYghXZRLZ9nfnf+7WrnswP
-# Vg==
+# CQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMTEwOTAwMDRaMC8G
+# CSqGSIb3DQEJBDEiBCD94AS18vt3Hj3CugUx8scKS7ATsLAGA6n7CQW3gWiknzAN
+# BgkqhkiG9w0BAQEFAASCAgAUrRb26a600C/yv3KFX+uwG7oOxhajdmZGOm3ru4QL
+# EcqkVm35uIC8/IydL/yOYE8tY4tcdRmqChXXwAQ7kIK/WVTPwtCaIuwVrerj8iaT
+# kNvsVNeEH25icKTHEMp2vQzxjNLM/yiCjDamjUL2PcVbzS+/VT1bObZ1RDRplIMO
+# QIjQjhptr3EM1yaddU7Hv9P126phVrj7FpyK+LJnFmR+HEk+TDtYDgc5Ca8ywAcR
+# izJvAcdkX4zphq8Oz1lMs4QoHVMQbxXJmpKvlFZYvqExPa4FxRAr3zGqrW6e3kWC
+# X/sMwuuR5m+jqtGbUJdjhG6ph0QRQR8GYatMEKlDzWd4gOhHKUcNxUmWqY/PNVWU
+# FXN4lxkWHSYRq60PnfSIw3iSNVqtEPX5pB6uEvieRNuYe1PGxwFliiYzWonhFBvu
+# y3JWPWteJiyc6gDys3CllmF9LbiX2FBEq7c7BWQV1AbaxUBARubsDvtUdaTuFycJ
+# yzQ8+7vmPUhLp/XNgPgfG+rwaQKU3xN62SDeN8WupUi+mtDoHM0hZgNU5X9Bpd+n
+# 5AppWwDfp72UG8WLwYgXoNLtMld2gneZpZaZjLYgGiVx8uBLnMJ51F5RxOxJK0Ek
+# OqwBvEjOEzTtx0fL//o0w4sgmtk2sqVbmqXolThHke5rFMHmszdMTgKHnNrHwNrm
+# 7w==
 # SIG # End signature block
