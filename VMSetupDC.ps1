@@ -3305,7 +3305,7 @@ Begin
         foreach ($t in @('DC', '0', '1', '2'))
         {
             # Get Remote Access Users (to exclude from users in tier policy)
-            $RemoteAccessUsers = @(Get-ADGroup -Identity "Tier $t - Remote Access Users" -Properties Members | Select-Object -ExpandProperty Members)
+            $RemoteAccessUsers = @(Get-ADGroupMember -Identity "Tier $t - Remote Access Users")
             $RemoteAccessComputers = @(Get-ADComputer -Filter "Name -like 'RAT*'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree | Select-Object -ExpandProperty DistinguishedName)
 
             # Get Policy Members
@@ -3315,12 +3315,12 @@ Begin
                 {
                     $AuthNPolicyUsers =
                     @(
-                        @(Get-ADGroup -Identity "Domain Admins" -Properties Members | Select-Object -ExpandProperty Members)
+                        @(Get-ADGroupMember -Identity "Domain Admins")
                     )
 
                     $AuthNPolicyComputers =
                     @(
-                        @(Get-ADGroup -Identity "Domain Controllers" -Properties Members | Select-Object -ExpandProperty Members)
+                        @(Get-ADGroupMember -Identity "Domain Controllers")
                     )
                 }
 
@@ -3328,13 +3328,13 @@ Begin
                 {
                     $AuthNPolicyUsers =
                     @(
-                        @(Get-ADGroup -Identity "Tier $t - Admins" -Properties Members | Select-Object -ExpandProperty Members) +
-                        @(Get-ADGroup -Identity "Tier $t - Users" -Properties Members | Select-Object -ExpandProperty Members).Where({$_ -notin $RemoteAccessUsers}) # Exclude Remote Access Users
+                        @(Get-ADGroupMember -Identity "Tier $t - Admins") +
+                        @(Get-ADGroupMember -Identity "Tier $t - Users").Where({$_ -notin $RemoteAccessUsers}) # Exclude Remote Access Users
                     )
 
                     $AuthNPolicyComputers =
                     @(
-                        @(Get-ADGroup -Identity "Tier $t - Computers" -Properties Members | Select-Object -ExpandProperty Members).Where({$_ -notin $RemoteAccessComputers}) # Exclude Remote Access Computers
+                        @(Get-ADGroupMember -Identity "Tier $t - Computers").Where({$_ -notin $RemoteAccessComputers}) # Exclude Remote Access Computers
                     )
                 }
             }
@@ -3832,8 +3832,8 @@ End
 # SIG # Begin signature block
 # MIIejQYJKoZIhvcNAQcCoIIefjCCHnoCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUGsQqngK0rx+jZl19XXjO4PYf
-# oWKgghgOMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMzB16++jmgesVq/rGooSChmo
+# pUKgghgOMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -3964,34 +3964,34 @@ End
 # 4Q1zZKDyHcp4VQJLu2kWTsKsOqQxggXpMIIF5QIBATAkMBAxDjAMBgNVBAMMBUow
 # TjdFAhB0XMs0val9mEnBo5ekK6KYMAkGBSsOAwIaBQCgeDAYBgorBgEEAYI3AgEM
 # MQowCKACgAChAoAAMBkGCSqGSIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQB
-# gjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTwichpRPFmQgo8
-# W+TG2HHgNCqUOzANBgkqhkiG9w0BAQEFAASCAgCD/VRTRYwGSDuJTOGmJsgBA24x
-# r/Ia1/QPXAaRkdy0OKRKmpDHifaMcWzG8YPEqCiod3NdY1fkoVihfDO6dQ4gf5/U
-# HleejVwRxITf+0lo65C17px/i6zbRsGPdG2mmONeFo5f00LvOXcdTulkdrSN8md7
-# HTRhN2YNQ9i+JGU1cI5eYWlvRmY1CRVe5F9xf8rSwPN8ewuoHHCPIetZZnjxcsOO
-# wvknikag9CWT3KYXwXPUk6G4W40YLZzT7KMBuEqK1Dky1FeKPFfgp/Q/jbKqPHie
-# jkDyCiBDiagQCSfL7Vw0HurMKemj0RVWctEsxC2uxBrk26QM1zYSSUm+WUUJmwHJ
-# XIG/XTrmF0QA7VBafZIBS0Sn+pKQVGUys1LGBrxvlqN+iFSRNIehXyfBT/aoMRF4
-# bJlEoMvmq1pHEG3mrJpxX1dAdDyU2IDc9H78iTZYKvz0BtfjnSzbp7LYiuUHzDOA
-# c21qvPEnKb/uAjcvRhcWJuodvCPLn0T4rxzJY9L+H6hVBtkky/Ds9V4d9oDDZkPe
-# TRF60xx7yJbEgLww1hefhGqSWXqSHwDMFVjsN11c0axPsFWC6v8CAQdR1ilV2hBq
-# 0PnFup1By9kRcrGyoQjesYw5VkrnUyJ9Vtgv0HTR5szDLHUbgUkUHXxmr2PDM6x+
-# 15jFO3wjzOgXbjUklqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIBATB3MGMx
+# gjcCAQsxDjAMBgorBgEEAYI3AgEVMCMGCSqGSIb3DQEJBDEWBBTVEhqyAhGdt86n
+# 8pM7yaSUMXuA1zANBgkqhkiG9w0BAQEFAASCAgAKUBLoMqtTg4iCcquGcKFQs6rc
+# RzaCoIhz6XxjZAlFjERB2sye4RxAxS1DrI6bo0V8Kp55teWMlNayNlJsgdc32X+X
+# f2NsUBx18BJZkOFQdeWeGtEttoXcOYlF+xk0NW+0pt345+i2hBUIgCSVEo7NAjnN
+# 95g4kgrYq0SOkPf7XNxQgoE263b0mkLGJC1W8zcfFYRZK/UN3XoPnL73WFe0guuK
+# hsZoIMLkTjiFY1I2TZBxlM7WPlxAwaqMvrK6Zf5myoxcLE8j37OBBKO9hfBq0+C8
+# 65wZt5tSG/OW8IPxhVkkm82LLkvBzhmuakDBJp9daFFrF6TgZTSOPE2l9CnGW1xn
+# 14Ms4R3h+vXN2l9gmf67fuS6BQLvD65XHL0xVvlgaIVwRWDZI4mELgMQ8W+3Bex5
+# cpZakzuQBJwpbJMosjszlMOksxVMY6XDitRgoFmd5peJdzYlk2R9Zh1RFPkUP8Pk
+# qo5pMic9dBgOK8KSoKm5ZI2Yi6FuX3Z+t/M3mQQ04fEAOJFDtbaWl7k/PrSC/uc1
+# XuaCTVxkm5DxJOE/p5JlMVDMT8aOWaLHpqvKnyQd8yAjvvtLk/NI5Qa9K1fS5mod
+# n/KWAbn++aZXQudmuhmGhKwHglrZmIBuoTuXUx5jk8c8cAAQHA4XGCV/p+XuDH+f
+# tA+hEkLFx6J8V+2DqqGCAyAwggMcBgkqhkiG9w0BCQYxggMNMIIDCQIBATB3MGMx
 # CzAJBgNVBAYTAlVTMRcwFQYDVQQKEw5EaWdpQ2VydCwgSW5jLjE7MDkGA1UEAxMy
 # RGlnaUNlcnQgVHJ1c3RlZCBHNCBSU0E0MDk2IFNIQTI1NiBUaW1lU3RhbXBpbmcg
 # Q0ECEAuuZrxaun+Vh8b56QTjMwQwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0B
-# CQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMDkxNTAwMDVaMC8G
-# CSqGSIb3DQEJBDEiBCBFywVwEVDnGXhCCyQYwLHz+m7GYJXsOlPIEt0l0U29UzAN
-# BgkqhkiG9w0BAQEFAASCAgAazle17gexkgiXg5FOIcdTyvc8AB28Dyxy9YbMj0wS
-# g2F/jIkaNh7RxsT2oJMOwtzW2y0SfC/KfF0N1nLmDlFes8wJ3KhfZ6z0Ir8zcgfz
-# JI2NkVYz4HD890z74B1ebDCIkV50jzfUWdJlswgH1LYtPwnhIZxRVNOtpbv1BeAo
-# srSKokg/sKZ/feUcGAlvmzfj1u3Xqfxy3dbnpMuM5I2Cc/5RyWdFmgJwq/DfaP5T
-# Lpt6eZz9AmJUUrOXgzE1dV8gAc0sdvbQhOZHYX5fToScbgO9w43V5XjcBroCk51A
-# vHu4hz/9XOuNu6GnktLBrXObHsMGltq1tPZRNvm+SUqYJCM+XurFlvOT42hC6sXA
-# lFhSwKc1aszuznT8UaAQQH9KsCBXrhHfD6Q3yA4UpFtuuP64PXoQX22eY8eb0Q+H
-# eB58z5/myDphlP18KkPN0O3owK/W1bhNGgeTCNosJBZ8R10xj9UXPYlhG0K8Ij3h
-# DS3Xs2cxwTFj52xUdx3HXWnkX9NmIuJrU4qhAuC6DGQXqAGv/juZH4biQ6ZNTw+M
-# b1x1jq52ukhxOfObBDSSgvEoU2Xg1yenrbiZdqisqnwPKU8EIdfm4Dw9mxEuatSQ
-# faihXG3OI9mSvveTQWvT+h831xf6RdlrZpe6dRw8G8WRMQGBKTDxlM5LE/xBXFTc
-# cw==
+# CQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNDEwMTEwODAwMDRaMC8G
+# CSqGSIb3DQEJBDEiBCBfymE2AAE1Nc+X5ye1ziZuFgP90lSt20bzq6t4feK2cDAN
+# BgkqhkiG9w0BAQEFAASCAgBsJrOEMcKizEFLi65SKVQeS5GCwApMZYALO4W44kfp
+# +82mKjq8bVjtEI7rxGceqzpwHMPPQ2BQU4WICjNXkezTCaiXnJuJLknX8V26iJmq
+# dSfYJ0H8UiBES+LPdEaatUaFz1AyDJKtS1Xs2txjMW/J8hZHJpMcig647fBvx6Jp
+# S3xkSXGtVIeM21VXclmEw+6Kic4/T5e7aSTmr75FiFiy+C8tw2D1QipHjppAoElP
+# tcRMGFOyFZZs0aii4z3qgHb8ke4YX6tdj1Kx9BuUeKmYL3ft2PIsN87Ym1Hxn7fP
+# w+QCyB+WnWDHMsK1AF+ob/mREM2dE9Y6ZPQg68NeK0ekqic2O+uluzI//s2dy4Zt
+# xmmhe41WlrhDROTuiX/zQXvZL7R35quq2qJtLbA+bvwB2GwJ7lG93emnhXbh2Jpi
+# F6LUoitQ8V1+ormgzM1OowCF4AFTpefXh60ZfR2cbzb6JoiOZ75njwGHF8a1BQI1
+# 1PTUB8lP+QFMz+FsBLhwL1SahMDAtTnqtdaPDW4QBIBzZKvymq3rMm7Qw5dI/jUs
+# IbJPYmQT4KymQyw/btzvKrq4VPVq0yqXlXbo87m+Vxx0Kkh1rNEkpemCgoDPwEls
+# OHuKSYRHGtsyv/jRfO9rw+9dvX1Paj3c969qwWp6aVkYghXZRLZ9nfnf+7WrnswP
+# Vg==
 # SIG # End signature block
