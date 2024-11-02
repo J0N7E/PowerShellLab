@@ -12,7 +12,7 @@
 Param
 (
     # Hyper-V drive
-    [String]$HvDrive = "$env:SystemDrive",
+    [String]$HvLab = "$env:SystemDrive\HvLab",
 
     # OSDBuilder path
     [String]$OsdPath = "$env:SystemDrive\OSDBuilder",
@@ -512,12 +512,17 @@ Process
     # Install VMs
     ##############
 
+    if (-not (Test-Path -Path "$HvLab" -PathType Container))
+    {
+        New-Item -Path "$HvLab" -ItemType Directory > $null
+    }
+
     $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
         # Set variables
         $VM           = $_
         $OsdPath      = $Using:OsdPath
-        $HvDrive      = $Using:HvDrive
+        $HvLab        = $Using:HvLab
         $VerboseSplat = $Using:VerboseSplat
         $Settings     = $Using:Settings
         $NewVMs       = $Using:NewVMs
@@ -540,7 +545,7 @@ Process
         {
             $NewVMSplat =
             @{
-                LabFolder = "$HvDrive\HvLab"
+                LabFolder = "$HvLab"
             }
 
             if ($VM.Switch.Length -gt 0)

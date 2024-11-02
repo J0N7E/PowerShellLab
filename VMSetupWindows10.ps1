@@ -82,7 +82,7 @@ Begin
 
         $Folders =
         @(
-            "$DataDrive\Desktop",
+            "C:\Desktop",
             "$DataDrive\Downloads"
         )
 
@@ -115,8 +115,8 @@ Begin
 
         $EnvironmentVariables =
         @(
+           @{ Name = 'Desktop';            Value = "C:\Desktop" },
            @{ Name = 'DataDrive';          Value =  $DataDrive },
-           @{ Name = 'Desktop';            Value = "$DataDrive\Desktop" },
            @{ Name = 'Downloads';          Value = "$DataDrive\Downloads" },
            @{ Name = 'SendTo';             Value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -Name 'SendTo').SendTo },
            @{ Name = 'StartMenu';          Value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -Name 'Start Menu').'Start Menu' },
@@ -177,7 +177,7 @@ Begin
 
         $ShellFolders =
         @(
-            @{ Name = 'Desktop';                                 Value = "$DataDrive\Desktop";            PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
+            @{ Name = 'Desktop';                                 Value = "C:\Desktop";                    PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
             @{ Name = '{374DE290-123F-4565-9164-39C4925E467B}';  Value = "$DataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' },
             @{ Name = '{7D83EE9B-2244-4E70-B1F5-5393042AF1E4}';  Value = "$DataDrive\Downloads";          PropertyType = 'ExpandString';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' }
         )
@@ -310,11 +310,13 @@ Begin
         # ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝
 
         # Culture
-        if ((Get-Culture).Name -ne 'sv-SE' -and
+        # FIX Not neccessary?
+        <#        if ((Get-Culture).Name -ne 'sv-SE' -and
             (ShouldProcess @WhatIfSplat -Message "Setting culture to sv-SE" @VerboseSplat))
         {
             Set-Culture -CultureInfo sv-SE
         }
+        #>
 
         # Location
         if ((Get-WinHomeLocation).GeoId -ne 221 -and
@@ -353,16 +355,9 @@ Begin
 
         $Result = Set-Registry -Settings @(
 
-            # Set no sound scheme
-            @{ Name = '(Default)';              Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
-
-            # Disable accessibility keys
-            @{ Name = 'Flags';                  Value = 122;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response' },
-            @{ Name = 'Flags';                  Value = 506;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys' },
-            @{ Name = 'Flags';                  Value = 58;          PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys' },
-
-            # Hide search icon
-            @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
+            ###########
+            # Explorer
+            ###########
 
             # Hide recently used files in quick access
             @{ Name = 'ShowRecent';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer' },
@@ -385,17 +380,67 @@ Begin
             # Show file extensions
             @{ Name = 'HideFileExt';            Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
+            ########
+            # Start
+            ########
+
+            # Disable recently added
+            @{ Name = 'ShowRecentList';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start' }
+
+            # Disable most used
+            @{ Name = 'ShowFrequentList';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Start' }
+
+            # Disable recommendations
+            @{ Name = 'Start_IrisRecommendations';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' }
+
+            #########
+            # Search
+            #########
+
+            # Disable safe search
+            @{ Name = 'SafeSearchMode';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' }
+
+            # Disable search ms account
+            @{ Name = 'IsMSACloudSearchEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' }
+
+            # Disable search work/school account
+            @{ Name = 'IsAADCloudSearchEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' }
+
+            # Disable search history
+            @{ Name = 'IsDeviceSearchHistoryEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' }
+
+            # Disable app search
+            @{ Name = 'IsGlobalWebSearchProviderToggleEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings' }
+
+            # Disable bing search
+            @{ Name = 'Microsoft.BingSearch_8wekyb3d8bbwe!App';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\SearchSettings\WebSearchProviders' }
+
+            ##########
+            # Taskbar
+            ##########
+
             # Hide task view button
             @{ Name = 'ShowTaskViewButton';     Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Hide widgets button
-            @{ Name = 'TaskbarDa';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+            # FIX admin?
+            #@{ Name = 'TaskbarDa';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            # Hide search icon
+            @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
 
             # Hide chat button
             @{ Name = 'TaskbarMn';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
+            # Taskbar left
+            @{ Name = 'TaskbarAl';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
             # Show taskbar buttons where window is open
             @{ Name = 'MMTaskbarMode';          Value = 2;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
+            ##########
+            # Windows
+            ##########
 
             # Disable snap assist
             @{ Name = 'SnapAssist';             Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
@@ -407,21 +452,39 @@ Begin
             @{ Name = 'DITest';                 Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Disable snap flyout
-            @{ Name = 'EnableSnapAssistFlyout';  Value = 0;          PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+            @{ Name = 'EnableSnapAssistFlyout'; Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
             # Use dark theme
             @{ Name = 'SystemUsesLightTheme';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
             @{ Name = 'AppsUseLightTheme';      Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' },
 
             # Set accent color
-            @{ Name = 'AccentPalette';      Value = $AccentPalette;  PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'StartColorMenu';     Value = 0xff333536;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
-            @{ Name = 'AccentColorMenu';    Value = 0xff484a4c;      PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'AccentPalette';          Value = $AccentPalette; PropertyType = 'Binary';  Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'StartColorMenu';         Value = 0xff333536;     PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
+            @{ Name = 'AccentColorMenu';        Value = 0xff484a4c;     PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent' },
 
             # Set accent color
             @{ Name = 'AccentColor';            Value = 0xff484a4c;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' },
             @{ Name = 'ColorizationColor';      Value = 0xc44c4a48;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' },
             @{ Name = 'ColorizationAfterglow';  Value = 0xc44c4a48;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM' }
+
+            #######
+            # Misc
+            #######
+
+            # Set no sound scheme
+            @{ Name = '(Default)';              Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
+
+            # Disable accessibility keys
+            @{ Name = 'Flags';                  Value = 122;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response' },
+            @{ Name = 'Flags';                  Value = 506;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys' },
+            @{ Name = 'Flags';                  Value = 58;          PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys' },
+
+            # Disable prtsc open snipp
+            @{ Name = 'PrintScreenKeyForSnippingEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Control Panel\Keyboard' }
+
+            # Disable game bar
+            @{ Name = 'UseNexusForGameBarEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\GameBar' }
         )
 
         if ($Result)
@@ -444,12 +507,11 @@ Begin
                 # Disable metadata signing
                 @{ Name = 'PreventDeviceMetadataFromNetwork';  Value = '1';  PropertyType = 'DWord';  Path = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Device Metadata' }
 
+                # Enable pin sign-in
+                @{ Name = 'AllowDomainPINLogon';  Value = '1';  PropertyType = 'DWord';  Path = 'HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\System' }
+
             ) > $null
         }
-
-        # Appx
-        # MicrosoftWindows.Client.WebExperience
-
 
         # ████████╗ █████╗ ███████╗██╗  ██╗███████╗
         # ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝
