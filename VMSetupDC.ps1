@@ -803,6 +803,23 @@ Begin
 
             # Build
 
+            '26100' = # Windows 11 24H2
+            @{
+                Version = '24H2'
+                Workstation = 'Windows 11 24H2 (26100)'
+                WorkstationEndOfSupport = '2027-10-12'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 24H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Credential Guard';        Enabled = '-';    Enforced = 'No';  }
+                )
+            }
+
             '22631' = # Windows 11 23H2
             @{
                 Version = '23H2'
@@ -832,22 +849,6 @@ Begin
                 WorkstationBaseline =
                 @(
                     @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
-                )
-            }
-
-            '22000' = # Windows 11 21H2
-            @{
-                Version = '21H2'
-                Workstation = 'Windows 11 21H2 (22000)'
-                WorkstationEndOfSupport = '2024-10-08'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 21H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 21H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
 
