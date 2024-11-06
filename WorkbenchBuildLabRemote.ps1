@@ -58,7 +58,6 @@ $Settings +=
     Switches =
     @(
         @{ Name = 'Lab';     Type = 'Private';   NetworkId = '192.168.0';  GW = '192.169.0.1';  DNS = '192.168.0.10' }
-        @{ Name = 'LabDmz';  Type = 'Internal';  NetworkId = '10.1.1';     GW = '10.1.1.1';     DNS = '10.1.1.1'     }
     )
     VMs = [ordered]@{
 
