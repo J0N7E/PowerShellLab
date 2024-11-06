@@ -12,7 +12,7 @@
 Param
 (
     # Hyper-V drive
-    [String]$HvLab = "$env:SystemDrive\HvLab",
+    [String]$HvDrive = "$env:SystemDrive",
 
     # OSDBuilder path
     [String]$OsdPath = "$env:SystemDrive\OSDBuilder",
@@ -132,7 +132,7 @@ Begin
             SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
             AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
             ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-            WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 24H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
+            WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
             #RATDC  = @{ Name = 'RATDC';   Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.AcDc; }
             #RAT0   = @{ Name = 'RAT0';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
             #RAT1   = @{ Name = 'RAT1';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac1; }
@@ -512,17 +512,12 @@ Process
     # Install VMs
     ##############
 
-    if (-not (Test-Path -Path "$HvLab" -PathType Container))
-    {
-        New-Item -Path "$HvLab" -ItemType Directory > $null
-    }
-
     $Settings.VMs.Values | ForEach-Object @VerboseSplat @ThrottleSplat -Parallel {
 
         # Set variables
         $VM           = $_
         $OsdPath      = $Using:OsdPath
-        $HvLab        = $Using:HvLab
+        $HvDrive      = $Using:HvDrive
         $VerboseSplat = $Using:VerboseSplat
         $Settings     = $Using:Settings
         $NewVMs       = $Using:NewVMs
@@ -545,7 +540,7 @@ Process
         {
             $NewVMSplat =
             @{
-                LabFolder = "$HvLab"
+                LabFolder = "$HvDrive\HvLab"
             }
 
             if ($VM.Switch.Length -gt 0)

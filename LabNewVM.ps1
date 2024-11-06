@@ -96,13 +96,13 @@ Begin
     # Check if lab folder exist
     if (-not (Test-Path -Path "$LabFolder" -PathType Container))
     {
-        throw "$LabFolder don't exist."
+        New-Item -Path "$LabFolder" -ItemType Directory > $null
     }
 
     # Check if Vhdx exist
     if (-not (Test-Path -Path $Vhdx))
     {
-        throw "$Vhdx don't exist."
+        throw "$Vhdx don't exist"
     }
 }
 
