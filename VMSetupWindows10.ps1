@@ -22,7 +22,7 @@ Param
     $Session,
     $Credential,
 
-    $DataDrive = 'E:'
+    $DataDrive = 'M:'
 )
 
 Begin
@@ -472,7 +472,7 @@ Begin
             # Misc
             #######
 
-            # Set no sound scheme
+            # Set nosounds scheme
             @{ Name = '(Default)';              Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
 
             # Disable accessibility keys
@@ -480,11 +480,15 @@ Begin
             @{ Name = 'Flags';                  Value = 506;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys' },
             @{ Name = 'Flags';                  Value = 58;          PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys' },
 
-            # Disable prtsc open snipp
+            # Disable prtscr open snipp
             @{ Name = 'PrintScreenKeyForSnippingEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Control Panel\Keyboard' }
 
             # Disable game bar
             @{ Name = 'UseNexusForGameBarEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\GameBar' }
+
+            # Powershell black background
+            @{ Name = 'ScreenColors';  Value = 6;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Console\%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe' }
+
         )
 
         if ($Result)
@@ -673,6 +677,16 @@ Begin
         # ██║╚██╔╝██║██║╚════██║██║
         # ██║ ╚═╝ ██║██║███████║╚██████╗
         # ╚═╝     ╚═╝╚═╝╚══════╝ ╚═════╝
+
+        if ($Admin)
+        {
+            # Install Hyper-V
+            if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State -ne 'Enabled' -and
+                (ShouldProcess @WhatIfSplat -Message "Adding Hyper-V." @VerboseSplat))
+            {
+                Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart > $null
+            }
+        }
 
         <#
         # Clear recent
