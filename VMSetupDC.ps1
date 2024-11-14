@@ -2983,7 +2983,7 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        $GPOLinks.Add("OU=Domain Admins,OU=Tier DC,OU=$DomainName,$BaseDN", @(
+        $GPOLinks.Add("OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN", @(
 
                 @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
             )
