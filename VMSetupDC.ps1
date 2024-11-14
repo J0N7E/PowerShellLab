@@ -1,4 +1,4 @@
-<##
+<#
  .DESCRIPTION
     Setup Domain Controller
  .NOTES
