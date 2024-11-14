@@ -2971,7 +2971,7 @@ Begin
         foreach ($Tier in @(0, 1))
         {
             # Link password policy
-            $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
+            $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", @(
 
                     @{ Name = "$DomainPrefix - Security - Service Password Policy";  Enabled = '-';    Enforced = 'Yes';  }
                 )
@@ -2983,24 +2983,19 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        $GPOLinks.Add("OU=Domain Admins,OU=Tier DC,OU=$DomainName,$BaseDN", @(
+
+                @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
+            )
+        )
+
+        foreach ($Tier in @('Tier 0', 'Tier 1', 'Tier 2'))
         {
-            # Link administrator policy
             $GPOLinks.Add("OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN", @(
 
                     @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
                 )
             )
-
-            if ($Tier -eq 'Tier 2')
-            {
-                # Link users policy
-                $GPOLinks.Add("OU=Users,OU=$Tier,OU=$DomainName,$BaseDN", @(
-
-                        # DO IT
-                    )
-                )
-            }
         }
 
         ############
