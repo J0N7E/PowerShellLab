@@ -22,7 +22,7 @@ Param
     $Session,
     $Credential,
 
-    $DataDrive = 'M:'
+    $DataDrive = 'E:'
 )
 
 Begin
@@ -422,6 +422,10 @@ Begin
             # Hide task view button
             @{ Name = 'ShowTaskViewButton';     Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
 
+            # Hide widgets button
+            # FIX admin?
+            #@{ Name = 'TaskbarDa';              Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' },
+
             # Hide search icon
             @{ Name = 'SearchboxTaskbarMode';   Value = 0;           PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Search' },
 
@@ -468,23 +472,19 @@ Begin
             # Misc
             #######
 
-            # Set nosounds scheme
-            @{ Name = '';                       Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
+            # Set no sound scheme
+            @{ Name = '(Default)';              Value = '.None';     PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\AppEvents\Schemes' },
 
             # Disable accessibility keys
             @{ Name = 'Flags';                  Value = 122;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\Keyboard Response' },
             @{ Name = 'Flags';                  Value = 506;         PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys' },
             @{ Name = 'Flags';                  Value = 58;          PropertyType = 'String';  Path = 'HKEY_CURRENT_USER\Control Panel\Accessibility\ToggleKeys' },
 
-            # Disable prtscr open snipp
+            # Disable prtsc open snipp
             @{ Name = 'PrintScreenKeyForSnippingEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Control Panel\Keyboard' }
 
             # Disable game bar
             @{ Name = 'UseNexusForGameBarEnabled';  Value = 0;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Software\Microsoft\GameBar' }
-
-            # Powershell black background
-            @{ Name = 'ScreenColors';  Value = 6;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Console\%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe' }
-
         )
 
         if ($Result)
@@ -673,16 +673,6 @@ Begin
         # ██║╚██╔╝██║██║╚════██║██║
         # ██║ ╚═╝ ██║██║███████║╚██████╗
         # ╚═╝     ╚═╝╚═╝╚══════╝ ╚═════╝
-
-        if ($Admin)
-        {
-            # Install Hyper-V
-            if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State -ne 'Enabled' -and
-                (ShouldProcess @WhatIfSplat -Message "Adding Hyper-V." @VerboseSplat))
-            {
-                Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart > $null
-            }
-        }
 
         <#
         # Clear recent
