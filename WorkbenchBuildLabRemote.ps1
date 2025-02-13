@@ -47,10 +47,11 @@ $Settings = @{ Pswd = (ConvertTo-SecureString -String 'P455w0rd' -AsPlainText -F
 $Settings +=
 @{
     Lac   = New-Object -ArgumentList ".\administrator", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
-    Dac   = New-Object -ArgumentList "$($DomainNetbiosName + '\tdcadm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
-    Ac0   = New-Object -ArgumentList "$($DomainNetbiosName + '\t0adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
-    Ac1   = New-Object -ArgumentList "$($DomainNetbiosName + '\t1adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
-    Ac2   = New-Object -ArgumentList "$($DomainNetbiosName + '\t2adm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Dac   = New-Object -ArgumentList "$($DomainNetbiosName + '\admin')",  $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    AcDc  = New-Object -ArgumentList "$($DomainNetbiosName + '\tdcadm')", $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac0   = New-Object -ArgumentList "$($DomainNetbiosName + '\t0adm')",  $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac1   = New-Object -ArgumentList "$($DomainNetbiosName + '\t1adm')",  $Settings.Pswd -TypeName System.Management.Automation.PSCredential
+    Ac2   = New-Object -ArgumentList "$($DomainNetbiosName + '\t2adm')",  $Settings.Pswd -TypeName System.Management.Automation.PSCredential
 }
 
 $Settings +=
@@ -61,12 +62,13 @@ $Settings +=
     )
     VMs = [ordered]@{
 
-        RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @();       Credential = $Settings.Lac; }
-        DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Dac; }
-        SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 23H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
+        RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Experience x64 24H2*';     Switch = @();       Credential = $Settings.Lac; }
+        RootCA2= @{ Name = 'CA03';    Domain = $false;  OSVersion = '*Experience x64 24H2*';     Switch = @();       Credential = $Settings.Lac; }
+        DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Dac; }
+        SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 24H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
     }
 }
 
@@ -406,7 +408,7 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCA.ps1 $RootCA $Lac -Verbose",
     "-Force",
-    #"-AlwaysPrompt",
+    "-AlwaysPrompt",
     "-StandaloneRootCA",
     "-CACommonName `"$DomainPrefix Root $($Settings.VMs.RootCA.Name)`"",
     "-CADistinguishedNameSuffix `"O=$DomainPrefix,C=SE`"",
@@ -510,7 +512,7 @@ Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupCA.ps1 $SubCA $Ac0 -Verbose",
     "-Force",
-    #"-AlwaysPrompt",
+    "-AlwaysPrompt",
     "-EnterpriseSubordinateCA",
     "-CACommonName `"$DomainPrefix Enterprise $($Settings.VMs.SubCA.Name)`"",
     "-CADistinguishedNameSuffix `"O=$DomainPrefix,C=SE`"",

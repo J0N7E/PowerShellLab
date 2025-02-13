@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{33cd1905-2049-4bdd-98b7-79886d728050}</Identifier>
-    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{6e4aeb90-8127-445d-b07b-59fdb1c6d2f8}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
   </Identifier>
   <Name>%domain_prefix% - User - Admin Display Settings</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2024-09-19T13:56:45</CreatedTime>
-  <ModifiedTime>2024-09-19T13:56:46</ModifiedTime>
-  <ReadTime>2024-09-23T08:21:25.5781769Z</ReadTime>
+  <CreatedTime>2025-01-22T20:00:46</CreatedTime>
+  <ModifiedTime>2025-01-22T20:23:39</ModifiedTime>
+  <ReadTime>2025-01-26T00:16:27.0720055Z</ReadTime>
   <SecurityDescriptor>
-    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3054853400-333700339-638850539-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-633837844-2332349866-4234530673-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-633837844-2332349866-4234530673-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
     </Owner>
     <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-633837844-2332349866-4234530673-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
     </Group>
     <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
     <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
       <InheritsFromParent>false</InheritsFromParent>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-633837844-2332349866-4234530673-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
           <PermissionType>Allow</PermissionType>
@@ -84,26 +84,6 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-519</SID>
-          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
-        </Trustee>
-        <Type xsi:type="PermissionType">
-          <PermissionType>Allow</PermissionType>
-        </Type>
-        <Inherited>false</Inherited>
-        <Applicability>
-          <ToSelf>true</ToSelf>
-          <ToDescendantObjects>false</ToDescendantObjects>
-          <ToDescendantContainers>true</ToDescendantContainers>
-          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
-        </Applicability>
-        <Standard>
-          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
-        </Standard>
-        <AccessMask>0</AccessMask>
-      </TrusteePermissions>
-      <TrusteePermissions>
-        <Trustee>
           <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
         </Trustee>
@@ -119,6 +99,26 @@
         </Applicability>
         <Standard>
           <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-633837844-2332349866-4234530673-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
         </Standard>
         <AccessMask>0</AccessMask>
       </TrusteePermissions>
@@ -138,8 +138,8 @@
     </ExtensionData>
   </Computer>
   <User>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>15</VersionDirectory>
+    <VersionSysvol>15</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
       <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Windows/Registry" xsi:type="q2:RegistrySettings">
@@ -228,29 +228,36 @@
             </q2:Properties>
             <q2:Filters />
           </q2:Registry>
-          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="MMTaskbarMode" status="MMTaskbarMode" image="12" changed="2023-12-21 18:01:33" uid="{9C023A80-E161-4F9B-AC2C-DA8948E30B5C}">
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="TaskbarAl" status="TaskbarAl" image="12" changed="2025-01-22 20:23:39" uid="{6D5D53C6-1EF9-432A-B822-D49EA664ED45}">
             <q2:GPOSettingOrder>13</q2:GPOSettingOrder>
+            <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="TaskbarAl" type="REG_DWORD" value="00000000">
+              <q2:Values />
+            </q2:Properties>
+            <q2:Filters />
+          </q2:Registry>
+          <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="MMTaskbarMode" status="MMTaskbarMode" image="12" changed="2023-12-21 18:01:33" uid="{9C023A80-E161-4F9B-AC2C-DA8948E30B5C}">
+            <q2:GPOSettingOrder>14</q2:GPOSettingOrder>
             <q2:Properties action="U" displayDecimal="0" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="MMTaskbarMode" type="REG_DWORD" value="00000002">
               <q2:Values />
             </q2:Properties>
             <q2:Filters />
           </q2:Registry>
           <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="SnapAssist" status="SnapAssist" image="12" changed="2020-03-29 21:18:11" uid="{CBFA2C51-E636-4C8E-8E56-1B7F57D6C4D0}">
-            <q2:GPOSettingOrder>14</q2:GPOSettingOrder>
+            <q2:GPOSettingOrder>15</q2:GPOSettingOrder>
             <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" name="SnapAssist" type="REG_DWORD" value="00000000">
               <q2:Values />
             </q2:Properties>
             <q2:Filters />
           </q2:Registry>
           <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="SystemUsesLightTheme" status="SystemUsesLightTheme" image="12" changed="2021-11-19 10:40:07" uid="{2DCF47BC-0ABC-4E58-B223-7654D983AF43}">
-            <q2:GPOSettingOrder>15</q2:GPOSettingOrder>
+            <q2:GPOSettingOrder>16</q2:GPOSettingOrder>
             <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" name="SystemUsesLightTheme" type="REG_DWORD" value="00000000">
               <q2:Values />
             </q2:Properties>
             <q2:Filters />
           </q2:Registry>
           <q2:Registry clsid="{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}" name="AppsUseLightTheme" status="AppsUseLightTheme" image="12" changed="2020-03-29 21:20:57" uid="{4A90834F-E7E0-4B19-9090-89C64E15BC5C}">
-            <q2:GPOSettingOrder>16</q2:GPOSettingOrder>
+            <q2:GPOSettingOrder>17</q2:GPOSettingOrder>
             <q2:Properties action="U" displayDecimal="1" default="0" hive="HKEY_CURRENT_USER" key="Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" name="AppsUseLightTheme" type="REG_DWORD" value="00000000">
               <q2:Values />
             </q2:Properties>
@@ -303,26 +310,26 @@ Note: This setting does not apply to remote desktop server sessions.</q3:Explain
     </ExtensionData>
   </User>
   <LinksTo>
-    <SOMName>Administrators</SOMName>
-    <SOMPath>work.bcl.nu/work.bcl.nu/Tier DC/Administrators</SOMPath>
+    <SOMName>Domain Admins</SOMName>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Domain Administration/Domain Admins</SOMPath>
     <Enabled>true</Enabled>
     <NoOverride>true</NoOverride>
   </LinksTo>
   <LinksTo>
     <SOMName>Administrators</SOMName>
-    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 0/Administrators</SOMPath>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 0/Administrators</SOMPath>
     <Enabled>true</Enabled>
     <NoOverride>true</NoOverride>
   </LinksTo>
   <LinksTo>
     <SOMName>Administrators</SOMName>
-    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 1/Administrators</SOMPath>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 1/Administrators</SOMPath>
     <Enabled>true</Enabled>
     <NoOverride>true</NoOverride>
   </LinksTo>
   <LinksTo>
     <SOMName>Administrators</SOMName>
-    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 2/Administrators</SOMPath>
+    <SOMPath>home.bcl.nu/home.bcl.nu/Tier 2/Administrators</SOMPath>
     <Enabled>true</Enabled>
     <NoOverride>true</NoOverride>
   </LinksTo>

@@ -1,47 +1,27 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{efd088c9-4c81-400a-9d9d-8fee6dcd7810}</Identifier>
-    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{fb4ea4dd-15a6-45ee-9f01-22771e916ba0}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">home.bcl.nu</Domain>
   </Identifier>
-  <Name>%domain_prefix% - Domain - Secure WinRM HTTPS</Name>
+  <Name>%domain_prefix% - Domain - Enable WinRM HTTPS</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2024-09-20T22:59:51</CreatedTime>
-  <ModifiedTime>2024-09-23T08:05:14</ModifiedTime>
-  <ReadTime>2024-09-23T08:21:32.0157392Z</ReadTime>
+  <CreatedTime>2025-02-12T18:16:36</CreatedTime>
+  <ModifiedTime>2025-02-13T07:36:01</ModifiedTime>
+  <ReadTime>2025-02-13T07:36:27.1150818Z</ReadTime>
   <SecurityDescriptor>
-    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3054853400-333700339-638850539-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-642602785-838739203-381797279-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-642602785-838739203-381797279-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
     </Owner>
     <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-642602785-838739203-381797279-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
     </Group>
     <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
     <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
       <InheritsFromParent>false</InheritsFromParent>
-      <TrusteePermissions>
-        <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-512</SID>
-          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
-        </Trustee>
-        <Type xsi:type="PermissionType">
-          <PermissionType>Allow</PermissionType>
-        </Type>
-        <Inherited>false</Inherited>
-        <Applicability>
-          <ToSelf>true</ToSelf>
-          <ToDescendantObjects>false</ToDescendantObjects>
-          <ToDescendantContainers>true</ToDescendantContainers>
-          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
-        </Applicability>
-        <Standard>
-          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
-        </Standard>
-        <AccessMask>0</AccessMask>
-      </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
           <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
@@ -59,6 +39,26 @@
         </Applicability>
         <Standard>
           <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-642602785-838739203-381797279-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
         </Standard>
         <AccessMask>0</AccessMask>
       </TrusteePermissions>
@@ -84,8 +84,8 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3054853400-333700339-638850539-519</SID>
-          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-642602785-838739203-381797279-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">home\Domain Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
           <PermissionType>Allow</PermissionType>
@@ -127,8 +127,8 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>2</VersionDirectory>
+    <VersionSysvol>2</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
       <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/ScheduledTasks" xsi:type="q1:ScheduledTasksSettings">
@@ -188,10 +188,42 @@
       </Extension>
       <Name>Scheduled Tasks</Name>
     </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/WindowsFirewall" xsi:type="q2:WindowsFirewallSettings">
+        <q2:GlobalSettings>
+          <q2:PolicyVersion>
+            <q2:Value>545</q2:Value>
+          </q2:PolicyVersion>
+        </q2:GlobalSettings>
+        <q2:InboundFirewallRules>
+          <q2:Version>2.33</q2:Version>
+          <q2:Action>Allow</q2:Action>
+          <q2:Name>Windows Remote Management (HTTPS-In)</q2:Name>
+          <q2:Dir>In</q2:Dir>
+          <q2:Profile>Domain</q2:Profile>
+          <q2:LPort>5986</q2:LPort>
+          <q2:Protocol>6</q2:Protocol>
+          <q2:Active>true</q2:Active>
+        </q2:InboundFirewallRules>
+      </Extension>
+      <Name>Windows Firewall</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q3="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q3:RegistrySettings">
+        <q3:Blocked>false</q3:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
   </Computer>
   <User>
     <VersionDirectory>1</VersionDirectory>
     <VersionSysvol>1</VersionSysvol>
     <Enabled>false</Enabled>
   </User>
+  <LinksTo>
+    <SOMName>home</SOMName>
+    <SOMPath>home.bcl.nu</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
 </GPO>

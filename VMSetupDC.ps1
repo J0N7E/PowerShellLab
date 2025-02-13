@@ -388,7 +388,7 @@ Begin
             New-Item -Path "$env:TEMP\TemplatesBackup" -ItemType Directory > $null
 
             # Export
-            foreach ($Template in (Get-ADObject -Filter "Name -like '$DomainPrefix*' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
+            foreach ($Template in (Get-ADObject -Filter "displayName -like '$DomainPrefix *' -and objectClass -eq 'pKICertificateTemplate'" -SearchBase "CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,$BaseDN" -SearchScope Subtree -Property *))
             {
                 # Remove domain prefix
                 $Name = $Template.Name.Replace($DomainPrefix, '')
@@ -518,11 +518,11 @@ Begin
             # Initialize
             $DnsRecords =
             @(
-                @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.20" }
-                @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.20" }
-                @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.20" }
-                @{ Name = 'curity';                  Type = 'A';      Data = "$DomainNetworkId.30" }
+                @{ Name = 'adfs';                    Type = 'A';      Data = "$DomainNetworkId.40" }
+                @{ Name = 'certauth.adfs';           Type = 'A';      Data = "$DomainNetworkId.40" }
+                @{ Name = 'enterpriseregistration';  Type = 'A';      Data = "$DomainNetworkId.40" }
                 @{ Name = 'pki';                     Type = 'A';      Data = "$DomainNetworkId.50" }
+                @{ Name = 'curity';                  Type = 'A';      Data = "$DomainNetworkId.70" }
                 @{ Name = 'nps';                     Type = 'A';      Data = "$DomainNetworkId.80" }
                 @{ Name = 'ras';                     Type = 'A';      Data = "$DomainNetworkId.90" }
             )
@@ -667,9 +667,9 @@ Begin
 
             $DhcpReservations =
             @(
-                @{ Host = 'ADFS01';      Name = "ADFS01.$DomainName";      IPAddress = "$DomainNetworkId.20"; }
-                @{ Host = 'bcl-curity';  Name = "bcl-curity.$DomainName";  IPAddress = "$DomainNetworkId.30"; }
+                @{ Host = 'ADFS01';      Name = "ADFS01.$DomainName";      IPAddress = "$DomainNetworkId.40"; }
                 @{ Host = 'AS01';        Name = "AS01.$DomainName";        IPAddress = "$DomainNetworkId.50"; }
+                @{ Host = 'bcl-curity';  Name = "bcl-curity.$DomainName";  IPAddress = "$DomainNetworkId.70"; }
                 @{ Host = 'NPS01';       Name = "NPS01.$DomainName";       IPAddress = "$DomainNetworkId.80"; }
                 @{ Host = 'RAS01';       Name = "RAS01.$DomainName";       IPAddress = "$DomainNetworkId.90"; }
             )
@@ -719,11 +719,86 @@ Begin
         $WinBuilds =
         [ordered]@{
 
+            # Build
+
+            '26100' = # Windows Server 2025 / Windows 11 24H2
+            @{
+                Version = '24H2'
+                Server = 'Windows Server 2025 (26100)'
+                ServerEndOfSupport = '2034-10-10'
+                Workstation = 'Windows 11 24H2 (26100)'
+                WorkstationEndOfSupport = '2027-10-12'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                DCBaseline = @()
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 24H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
+                )
+            }
+
+            '17763' = # Windows Server 2019 / Windows 10 1809 LTS
+            @{
+                Version = '1809'
+                Server = 'Windows Server 2019 (17763)'
+                ServerEndOfSupport = '2029-01-09'
+                #Workstation = 'Windows 10 1809 (17763)'
+                #WorkstationEndOfSupport = '2029-01-09'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                DCBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
+                )
+                ServerBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2019 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
+                )
+                <#
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 10 1809 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
+                )
+                #>
+            }
+
+            '14393' = # Windows Server 2016 / Windows 10 1607 LTS
+            @{
+                Version = '1607'
+                Server = 'Windows Server 2016 (14393)'
+                ServerEndOfSupport = '2027-01-12'
+                #Workstation = 'Windows 10 1607 (14393)'
+                #WorkstationEndOfSupport = '2026-11-13'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                )
+                DCBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
+                )
+                ServerBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
+                )
+                <#
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
+                )
+                #>
+            }
+
             #################
             # Windows Server
             #################
-
-            # Build
 
             '20348' = # Windows Server 2022
             @{
@@ -745,80 +820,9 @@ Begin
                 )
             }
 
-            '17763' = # Windows Server 2019 / Windows 10 1809 LTS
-            @{
-                Version = '1809'
-                Server = 'Windows Server 2019 (17763)'
-                ServerEndOfSupport = '2029-01-09'
-                Workstation = 'Windows 10 1809 (17763)'
-                WorkstationEndOfSupport = '2029-01-09'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                DCBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2019 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
-                )
-                ServerBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2019 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 1809 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
-                )
-            }
-
-            '14393' = # Windows Server 2016 / Windows 10 1607 LTS
-            @{
-                Version = '1607'
-                Server = 'Windows Server 2016 (14393)'
-                ServerEndOfSupport = '2027-01-12'
-                Workstation = 'Windows 10 1607 (14393)'
-                WorkstationEndOfSupport = '2026-11-13'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                DCBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
-                )
-                ServerBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
-                )
-            }
-
             ########################
             # Windows 11 Enterprise
             ########################
-
-            # Build
-
-            '26100' = # Windows 11 24H2
-            @{
-                Version = '24H2'
-                Workstation = 'Windows 11 24H2 (26100)'
-                WorkstationEndOfSupport = '2027-10-12'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 11 24H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 24H2 - Credential Guard';        Enabled = '-';    Enforced = 'No';  }
-                )
-            }
 
             '22631' = # Windows 11 23H2
             @{
@@ -917,18 +921,18 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
-            $OrganizationalUnits += @{ Name = "$Tier";                                                Path = "OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Administrators';                             Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Computers';                                  Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Groups';                                     Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Access Control';                  Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Computers';                       Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Local Administrators';            Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Remote Desktop Access';           Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{   Name = 'Security Roles';                  Path = "OU=Groups,OU=$Tier,OU=$DomainName,$BaseDN"; }
-            $OrganizationalUnits += @{  Name = 'Users';                                      Path = "OU=$Tier,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{ Name = "Tier $t";                                                Path = "OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Administrators';                             Path = "OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Computers';                                  Path = "OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Groups';                                     Path = "OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Access Control';                  Path = "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Computers';                       Path = "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Local Administrators';            Path = "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Remote Desktop Access';           Path = "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{   Name = 'Security Roles';                  Path = "OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"; }
+            $OrganizationalUnits += @{  Name = 'Users';                                      Path = "OU=Tier $t,OU=$DomainName,$BaseDN"; }
         }
 
         ##########
@@ -1072,11 +1076,13 @@ Begin
         {
             $UserNeverExpires = $true
             $UserNotDelegated = $false
+            $UserMemberOf = @()
         }
         else
         {
             $UserNeverExpires = -not $RestrictDomain
             $UserNotDelegated = $RestrictDomain
+            $UserMemberOf = @('Protected Users')
         }
 
         $Users =
@@ -1136,7 +1142,7 @@ Begin
                 Password = 'P455w0rd'
                 NeverExpires = $UserNeverExpires
                 NotDelegated = $UserNotDelegated
-                MemberOf = @()
+                MemberOf = $UserMemberOf
             }
 
             # Remote Access Users
@@ -2771,12 +2777,12 @@ Begin
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Secure WinRM HTTPS";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = 'Default Domain Policy';                                       Enabled = 'Yes';  Enforced = 'No';   }
+                @{ Name = 'Default Domain Policy';                                       Enabled = '-';    Enforced = 'No';   }
             )
 
             #####################
@@ -2796,10 +2802,10 @@ Begin
                 <#
                 @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Domain - Secure WinRM HTTPS";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'No';   }
@@ -2815,12 +2821,12 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        foreach ($t in @('DC', '0', '1', '2'))
         {
             # Set computer policy
             $ComputerPolicy = $DomainSecurity
 
-            if ($Tier -eq 'Tier 2')
+            if ($t -eq '2')
             {
                 # Workstations
                 $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = '-';    Enforced = 'Yes';  }
@@ -2845,16 +2851,16 @@ Begin
             # Link tier gpos
             $ComputerPolicy +=
             @(
-                @{ Name = "$DomainPrefix - $Tier - Local Users and Groups";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - MSFT Overrule";                                             Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - $Tier - Restrict User Rights Assignment";                           Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - Local Users and Groups";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - MSFT Overrule";                                             Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - Restrict User Rights Assignment";                           Enabled = '-';    Enforced = 'Yes';  }
                 # -->
-                @{ Name = "$DomainPrefix - $Tier - IPSec - Restrict";                                          Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - IPSec - Restrict";                                          Enabled = '-';    Enforced = 'Yes';  }
                 # <!--
             )
 
             # Link computer policy
-            $GPOLinks.Add("OU=Computers,OU=$Tier,OU=$DomainName,$BaseDN", $ComputerPolicy)
+            $GPOLinks.Add("OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $ComputerPolicy)
         }
 
         ################
@@ -2867,15 +2873,21 @@ Begin
             foreach ($Build in $WinBuilds.GetEnumerator())
             {
                 # Check if server build
-                if ($Build.Value.Server -and
-                    $Build.Value.Baseline -and
-                    $Build.Value.ServerBaseline)
+                if ($Build.Value.Server)
                 {
-                    $GpoBase = @(
+                    $GpoBase = @()
 
-                        $Build.Value.Baseline +
-                        $Build.Value.ServerBaseline
-                    )
+                    if ($Build.Value.Baseline)
+                    {
+
+                        $GpoBase += $Build.Value.Baseline
+                    }
+
+                    if ($Build.Value.ServerBaseline)
+                    {
+
+                        $GpoBase += $Build.Value.ServerBaseline
+                    }
 
                     # Server 2016 disable SMB
                     if ($Build.Name -eq '14393')
@@ -2968,10 +2980,10 @@ Begin
         # Service Accounts
         ###################
 
-        foreach ($Tier in @(0, 1))
+        foreach ($t in @('0', '1'))
         {
             # Link password policy
-            $GPOLinks.Add("OU=Service Accounts,OU=Tier $Tier,OU=$DomainName,$BaseDN", (
+            $GPOLinks.Add("OU=Service Accounts,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
                     @{ Name = "$DomainPrefix - Security - Service Password Policy";  Enabled = '-';    Enforced = 'Yes';  }
                 )
@@ -2983,24 +2995,19 @@ Begin
         # Tier DC, 0-2
         ###############
 
-        foreach ($Tier in @('Tier DC', 'Tier 0', 'Tier 1', 'Tier 2'))
+        $GPOLinks.Add("OU=Domain Admins,OU=Domain Administration,OU=$DomainName,$BaseDN", @(
+
+                @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
+            )
+        )
+
+        foreach ($t in @('0', '1', '2'))
         {
-            # Link administrator policy
-            $GPOLinks.Add("OU=Administrators,OU=$Tier,OU=$DomainName,$BaseDN", @(
+            $GPOLinks.Add("OU=Administrators,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
                     @{ Name = "$DomainPrefix - User - Admin Display Settings";       Enabled = 'Yes';  Enforced = 'Yes';  }
                 )
             )
-
-            if ($Tier -eq 'Tier 2')
-            {
-                # Link users policy
-                $GPOLinks.Add("OU=Users,OU=$Tier,OU=$DomainName,$BaseDN", @(
-
-                        # DO IT
-                    )
-                )
-            }
         }
 
         ############
@@ -3035,13 +3042,19 @@ Begin
         }
 
         # Itterate targets
-        foreach ($Target in $GPOLinks.Keys)
+        foreach ($GpoKey in $GPOLinks.Keys)
         {
             $Order = 1
 
             # Itterate GPOs
-            foreach ($Gpo in ($GPOLinks.Item($Target)))
+            foreach ($Gpo in ($GPOLinks.Item($GpoKey)))
             {
+                if ($Gpo.Name -like $null)
+                {
+                    ShouldProcess @WhatIfSplat -Message "Gpo name empty for key `"$GpoKey`"" -WriteWarning > $null
+                    continue
+                }
+
                 # Get gpo report
                 [xml]$GpoXml = Get-GPOReport -Name $Gpo.Name -ReportType Xml -ErrorAction SilentlyContinue
 
@@ -3049,7 +3062,7 @@ Begin
                 {
                     $GpoEnabled = $Gpo.Enabled
 
-                    $IsRestrictingGpo = $GpoEnabled -eq '-'
+                    $IsRestrictingGpo = $GpoEnabled -eq '-' -and $Gpo.Name -notmatch 'IPSec'
 
                     if ($IsRestrictingGpo -and $RestrictDomain -notlike $null)
                     {
@@ -3067,8 +3080,8 @@ Begin
                     $DoRestriction = ($IsRestrictingGpo -and $RestrictDomain -eq $true) -or ($IsIPSecGpo -and $EnableIPSec -eq $true)
                     $UndoRestriction = ($IsRestrictingGpo -and $RestrictDomain -eq $false) -or ($IsIPSecGpo -and $EnableIPSec -eq $false)
 
-                    $TargetCN = ConvertTo-CanonicalName -DistinguishedName $Target
-                    $TargetShort = $Target -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
+                    $TargetCN = ConvertTo-CanonicalName -DistinguishedName $GpoKey
+                    $TargetShort = $GpoKey -match '((?:cn|ou|dc)=.*?,(?:cn|ou|dc)=.*?)(?:,|$)' | ForEach-Object { $Matches[1] }
 
                     # Link dont exist
                     if (-not ($TargetCN -in $GpoXml.GPO.LinksTo.SOMPath))
@@ -3077,7 +3090,7 @@ Begin
                             (ShouldProcess @WhatIfSplat -Message "Link [Created=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
                             # Create link
-                            New-GPLink -Name $Gpo.Name -Target $Target -Order $Order -LinkEnabled $GpoEnabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
+                            New-GPLink -Name $Gpo.Name -Target $GpoKey -Order $Order -LinkEnabled $GpoEnabled -Enforced $Gpo.Enforced -ErrorAction Stop > $null
                             $Order++
                         }
                     }
@@ -3086,7 +3099,7 @@ Begin
                         if ($UndoRestriction -and
                             (ShouldProcess @WhatIfSplat -Message "Link [Removed] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                         {
-                            Remove-GPLink -Name $Gpo.Name -Target $Target > $null
+                            Remove-GPLink -Name $Gpo.Name -Target $GpoKey > $null
                         }
                         else
                         {
@@ -3097,21 +3110,21 @@ Begin
                                     ($IsStandardGpo -or $DoRestriction) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link [Enabled=$($GpoEnabled)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                                 {
-                                        Set-GPLink -Name $Gpo.Name -Target $Target -LinkEnabled $GpoEnabled > $null
+                                        Set-GPLink -Name $Gpo.Name -Target $GpoKey -LinkEnabled $GpoEnabled > $null
                                 }
 
                                 # Check Enforced
                                 if ((('No', 'Yes')[$_.NoOverride -eq 'true'] -ne $Gpo.Enforced) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link [Enforced=$($Gpo.Enforced)] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`"" @VerboseSplat))
                                 {
-                                    Set-GPLink -Name $Gpo.Name -Target $Target -Enforced $Gpo.Enforced > $null
+                                    Set-GPLink -Name $Gpo.Name -Target $GpoKey -Enforced $Gpo.Enforced > $null
                                 }
 
                                 # Check order
-                                if ($Order -ne (Get-GPInheritance -Target $Target | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $Gpo.Name } | Select-Object -ExpandProperty Order) -and
+                                if ($Order -ne (Get-GPInheritance -Target $GpoKey | Select-Object -ExpandProperty GpoLinks | Where-Object { $_.DisplayName -eq $Gpo.Name } | Select-Object -ExpandProperty Order) -and
                                     (ShouldProcess @WhatIfSplat -Message "Link [Order=$Order] `"$($Gpo.Name)`" ($Order) -> `"$TargetShort`" " @VerboseSplat))
                                 {
-                                    Set-GPLink -Name $Gpo.Name -Target $Target -Order $Order > $null
+                                    Set-GPLink -Name $Gpo.Name -Target $GpoKey -Order $Order > $null
                                 }
                             }
                             $Order++

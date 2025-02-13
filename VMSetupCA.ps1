@@ -1612,7 +1612,8 @@ Begin
         # ╚██████╗██║  ██║███████╗
         #  ╚═════╝╚═╝  ╚═╝╚══════╝
 
-        if ($PublishCRL.IsPresent -and
+        if (($PublishCRL.IsPresent -or
+            (-not $CAConfigured -and $ParameterSetName -match 'Root')) -and
             (ShouldProcess @WhatIfSplat -Message "Publishing CRL..." @VerboseSplat))
         {
             TryCatch { certutil -crl } > $null
