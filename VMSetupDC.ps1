@@ -2716,7 +2716,6 @@ Begin
             @{ Name = "$DomainPrefix - Security - Enable Virtualization Based Security";  Enabled = '-';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require Client LDAP Signing";           Enabled = '-';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Require NTLMv2, Refuse LM & NTLM";      Enabled = '-';  Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Security - Require Restricted Admin";              Enabled = '-';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict Kerberos Encryption Types";    Enabled = '-';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict PowerShell & Enable Logging";  Enabled = '-';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Security - Restrict SSL Cipher Suites";            Enabled = '-';  Enforced = 'Yes';  }
