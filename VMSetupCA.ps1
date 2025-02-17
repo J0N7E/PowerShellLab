@@ -1284,7 +1284,7 @@ Begin
 
             ShouldProcess @WhatIfSplat -Message "Post settings:" @VerboseSplat > $null
 
-            foreach($Setting in (Get-Variable -Name PathLength, Validity*, AuditFilter, CRL*, CACertPublicationURLs))
+            foreach($Setting in (Get-Variable -Name PathLength, ValidityPeriodUnits, AuditFilter, CRLPeriod*,  CRLOverlap*, CRLPublicationURLs, CACertPublicationURLs))
             {
                 if ($Setting.Value)
                 {
