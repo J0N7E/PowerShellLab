@@ -2728,9 +2728,9 @@ Begin
         $DomainControllerGpos =
         @(
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Default Encryption Types";                Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = '-';    Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = '-';    Enforced = 'Yes';  }
@@ -2771,16 +2771,16 @@ Begin
 
             $BaseDN =
             @(
-                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Force Registry & Security Policy";   Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Windows Update";                     Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = 'Default Domain Policy';                                       Enabled = '-';    Enforced = 'No';   }
             )
 
@@ -2799,18 +2799,18 @@ Begin
             "OU=$DomainName,$BaseDN" =
             @(
                 <#
-                @{ Name = "$DomainPrefix - Domain - Force Group Policy";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Domain - Force Registry & Security Policy";   Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Certificate Services Client";        Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Disable IE";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable Remote Desktop";              Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 #>
-                @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = '-';  Enforced = 'No';   }
-                @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = '-';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = '-';    Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - Security - Local Admin Password Solution";    Enabled = '-';    Enforced = 'Yes';  }
             )
         }
 
@@ -2903,7 +2903,8 @@ Begin
                         $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
                                 @{ Name = "$DomainPrefix - Firewall - Permit SMB In";         Enabled = 'Yes';  Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Web Server";                       Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Firewall - Web Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Computer - Web Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                     }
@@ -2913,7 +2914,8 @@ Begin
                         # Certificate Authorities
                         $GPOLinks.Add("OU=Certificate Authorities,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name = "$DomainPrefix - Certificate Authority";            Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Firewall - Certificate Authority"; Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Computer - Certificate Authority"; Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                         # -->
@@ -2922,7 +2924,7 @@ Begin
                         $GPOLinks.Add("OU=Federation Services,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
                                 @{ Name = "$DomainPrefix - IPSec - Web Server";               Enabled = '-';    Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Web Server";                       Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Firewall - Web Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
 
@@ -2930,7 +2932,8 @@ Begin
                         $GPOLinks.Add("OU=Network Policy Server,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
                                 @{ Name = "$DomainPrefix - IPSec - Network Policy Server";    Enabled = '-';    Enforced = 'Yes';  }
-                                @{ Name = "$DomainPrefix - Network Policy Server";            Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Firewall - Network Policy Server"; Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name = "$DomainPrefix - Computer - Network Policy Server"; Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                         # <!--
@@ -2942,7 +2945,7 @@ Begin
                         # Remote Access Servers
                         $GPOLinks.Add("OU=Remote Access Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
 
-                                @{ Name= "$DomainPrefix - Remote Access Server";              Enabled = 'Yes';  Enforced = 'Yes';  }
+                                @{ Name= "$DomainPrefix - Firewall - Remote Access Server";   Enabled = 'Yes';  Enforced = 'Yes';  }
                             )
                         )
                     }
