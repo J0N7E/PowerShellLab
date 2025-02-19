@@ -538,7 +538,7 @@ Begin
             # CRL settings                              # Default
             CRLPeriodUnits = 180                        # 1
             CRLPeriod = 'Days'                          # Weeks
-            CRLOverlapUnits = 14                        # 0
+            CRLOverlapUnits = 90                        # 0
             CRLOverlapPeriod = 'Days'                   # Hours
             CRLDeltaPeriodUnits = 0                     # 1
             CRLDeltaPeriod = 'Days'
@@ -556,10 +556,10 @@ Begin
             ValidityPeriod = 'Years'
 
             # CRL settings                              # Default
-            CRLPeriodUnits = 1
-            CRLPeriod = 'Weeks'
-            CRLOverlapUnits = 84                        # 0
-            CRLOverlapPeriod = 'Hours'
+            CRLPeriodUnits = 10                         # 1
+            CRLPeriod = 'Days'                          # Weeks
+            CRLOverlapUnits = 5                         # 0
+            CRLOverlapPeriod = 'Days'                   # Hours
             CRLDeltaPeriodUnits = 0                     # 1
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
@@ -576,10 +576,10 @@ Begin
             ValidityPeriod = 'Years'
 
             # CRL settings                              # Default
-            CRLPeriodUnits = 1
-            CRLPeriod = 'Weeks'
-            CRLOverlapUnits = 84                        # 0
-            CRLOverlapPeriod = 'Hours'
+            CRLPeriodUnits = 10                         # 1
+            CRLPeriod = 'Days'                          # Weeks
+            CRLOverlapUnits = 5                         # 0
+            CRLOverlapPeriod = 'Days'                   # Hours
             CRLDeltaPeriodUnits = 0                     # 1
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
@@ -596,10 +596,10 @@ Begin
             ValidityPeriod = 'Years'
 
             # CRL settings                              # Default
-            CRLPeriodUnits = 1
-            CRLPeriod = 'Weeks'
-            CRLOverlapUnits = 84                        # 0
-            CRLOverlapPeriod = 'Hours'
+            CRLPeriodUnits = 10                         # 1
+            CRLPeriod = 'Days'                          # Weeks
+            CRLOverlapUnits = 5                         # 0
+            CRLOverlapPeriod = 'Days'                   # Hours
             CRLDeltaPeriodUnits = 0                     # 1
             CRLDeltaPeriod = 'Days'
             CRLDeltaOverlapUnits = 0
