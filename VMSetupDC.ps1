@@ -2730,7 +2730,8 @@ Begin
             @{ Name = "$DomainPrefix - Domain Controller - Advanced Audit";                          Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - NTP Client - PDC";                        Enabled = 'Yes';  Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Default Encryption Types";                Enabled = '-';    Enforced = 'Yes';  }
-            @{ Name = "$DomainPrefix - Domain Controller - KDC Kerberos Armoring";                   Enabled = '-';    Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Filter EfsRpc";                           Enabled = '-';    Enforced = 'Yes';  }
+            @{ Name = "$DomainPrefix - Domain Controller - Kerberos Armoring";                       Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Require LDAP Signing & Channel Binding";  Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Domain Controller - Restrict User Rights Assignment";         Enabled = '-';    Enforced = 'Yes';  }
             @{ Name = "$DomainPrefix - Firewall - Domain Controller";                                Enabled = '-';    Enforced = 'Yes';  }

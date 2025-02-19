@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{cd6692be-f0da-4bfe-8ae6-4499823cd99e}</Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{666a3bc0-cf7d-4482-b574-354c4c15e925}</Identifier>
     <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
   </Identifier>
-  <Name>%domain_prefix% - Domain Controller - KDC Kerberos Armoring</Name>
+  <Name>%domain_prefix% - Domain Controller - Filter EfsRpc</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2025-02-18T09:53:57</CreatedTime>
-  <ModifiedTime>2025-02-18T09:53:57</ModifiedTime>
-  <ReadTime>2025-02-18T15:35:01.6322591Z</ReadTime>
+  <CreatedTime>2025-02-19T12:31:48</CreatedTime>
+  <ModifiedTime>2025-02-19T12:56:10</ModifiedTime>
+  <ReadTime>2025-02-19T13:02:45.6021965Z</ReadTime>
   <SecurityDescriptor>
     <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-876441562-1722500034-152111835-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
@@ -127,55 +127,104 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>7</VersionDirectory>
+    <VersionSysvol>7</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
-      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Security" xsi:type="q1:SecuritySettings">
-        <q1:Blocked>false</q1:Blocked>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/ScheduledTasks" xsi:type="q1:ScheduledTasksSettings">
+        <q1:ScheduledTasks clsid="{CC63F200-7309-4ba0-B154-A71CD118DBCC}">
+          <q1:ImmediateTaskV2 clsid="{9756B581-76EC-4169-9AFC-0CA8D43ADB5F}" name="FilterEfsRpc" image="0" changed="2025-02-19 12:56:10" uid="{0B300A5D-E545-4782-80C5-2C316259CC3B}" userContext="0" removePolicy="0">
+            <q1:GPOSettingOrder>1</q1:GPOSettingOrder>
+            <q1:Properties action="C" name="FilterEfsRpc" runAs="NT AUTHORITY\System" logonType="S4U">
+              <q1:Task version="1.2">
+                <q1:RegistrationInfo>
+                  <q1:Author>lab\admin</q1:Author>
+                  <q1:Description />
+                </q1:RegistrationInfo>
+                <q1:Triggers>
+                  <q1:TimeTrigger>
+                    <q1:Enabled>true</q1:Enabled>
+                    <q1:StartBoundary>%LocalTimeXmlEx%</q1:StartBoundary>
+                    <q1:EndBoundary>%LocalTimeXmlEx%</q1:EndBoundary>
+                  </q1:TimeTrigger>
+                </q1:Triggers>
+                <q1:Settings>
+                  <q1:AllowStartOnDemand>false</q1:AllowStartOnDemand>
+                  <q1:DisallowStartIfOnBatteries>false</q1:DisallowStartIfOnBatteries>
+                  <q1:StopIfGoingOnBatteries>false</q1:StopIfGoingOnBatteries>
+                  <q1:AllowHardTerminate>false</q1:AllowHardTerminate>
+                  <q1:StartWhenAvailable>true</q1:StartWhenAvailable>
+                  <q1:Enabled>true</q1:Enabled>
+                  <q1:Hidden>false</q1:Hidden>
+                  <q1:DeleteExpiredTaskAfter>PT0S</q1:DeleteExpiredTaskAfter>
+                  <q1:MultipleInstancesPolicy>IgnoreNew</q1:MultipleInstancesPolicy>
+                  <q1:Priority>7</q1:Priority>
+                  <q1:ExecutionTimeLimit>PT0S</q1:ExecutionTimeLimit>
+                  <q1:IdleSettings>
+                    <q1:Duration>PT10M</q1:Duration>
+                    <q1:WaitTimeout>PT1H</q1:WaitTimeout>
+                    <q1:StopOnIdleEnd>true</q1:StopOnIdleEnd>
+                    <q1:RestartOnIdle>false</q1:RestartOnIdle>
+                  </q1:IdleSettings>
+                </q1:Settings>
+                <q1:Principals>
+                  <q1:Principal id="Author">
+                    <q1:UserId>NT AUTHORITY\System</q1:UserId>
+                    <q1:LogonType>S4U</q1:LogonType>
+                    <q1:RunLevel>HighestAvailable</q1:RunLevel>
+                  </q1:Principal>
+                </q1:Principals>
+                <q1:Actions>
+                  <q1:Exec>
+                    <q1:Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</q1:Command>
+                    <q1:Arguments>-NoProfile -ExecutionPolicy ByPass -Command "Set-Content -Path $env:temp\pp.txt -Value @('rpc','filter','add rule layer=um actiontype=block','add condition field=if_uuid matchtype=equal data=c681d488-d850-11d0-8c52-00c04fd90f7e','add filter','add rule layer=um actiontype=block','add condition field=if_uuid matchtype=equal data=df1941c5-fe89-4e79-bf10-463657acf44d','add filter','quit'); netsh -f $env:temp\pp.txt; Remove-Item -Path $env:temp\pp.txt"</q1:Arguments>
+                  </q1:Exec>
+                </q1:Actions>
+              </q1:Task>
+            </q1:Properties>
+            <q1:Filters />
+          </q1:ImmediateTaskV2>
+        </q1:ScheduledTasks>
       </Extension>
-      <Name>Security</Name>
+      <Name>Scheduled Tasks</Name>
     </ExtensionData>
     <ExtensionData>
       <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q2:RegistrySettings">
         <q2:Policy>
-          <q2:Name>KDC support for claims, compound authentication and Kerberos armoring</q2:Name>
+          <q2:Name>Configure Scheduled Tasks preference extension policy processing</q2:Name>
           <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting allows you to configure a domain controller to support claims and compound authentication for Dynamic Access Control and Kerberos armoring using Kerberos authentication.
+          <q2:Explain>This policy setting allows you to configure when preference items in the Scheduled Tasks preference extension are updated.
 
-If you enable this policy setting, client computers that support claims and compound authentication for Dynamic Access Control and are Kerberos armor-aware will use this feature for Kerberos authentication messages. This policy should be applied to all domain controllers to ensure consistent application of this policy in the domain. 
+If you enable this policy setting, you can configure processing options for Scheduled Task and Immediate Task preference items.
 
-If you disable or do not configure this policy setting, the domain controller does not support claims, compound authentication or armoring.
+If you disable or do not configure this policy setting, Scheduled Task and Immediate Task preference items are allowed to process across a slow network connection, to be applied during background processing, and to process even if the Group Policy objects (GPOs) are unchanged. By default, background processing priority is "Idle."
 
-If you configure the "Not supported" option, the domain controller does not support claims, compound authentication or armoring which is the default behavior for domain controllers running Windows Server 2008 R2 or earlier operating systems.
+Notes:
 
-Note:  For the following options of this KDC policy to be effective, the Kerberos Group Policy "Kerberos client support for claims, compound authentication and Kerberos armoring" must be enabled on supported systems. If the Kerberos policy setting is not enabled, Kerberos authentication messages will not use these features.  
+1. The "Allow processing across a slow network connection" option updates preference items even when the update is transmitted across a slow network connection, such as a telephone line. Updates across slow connections can cause significant delays. 
 
-If you configure "Supported", the domain controller supports claims, compound authentication and Kerberos armoring. The domain controller advertises to Kerberos client computers that the domain is capable of claims and compound authentication for Dynamic Access Control and Kerberos armoring. 
+2. The "Do not apply during periodic background processing" option prevents the system from updating affected preference items in the background while the computer is in use. When background updates are disabled, preference item changes do not take effect until the next user logon or system restart.
 
-Domain functional level requirements
-For the options "Always provide claims" and "Fail unarmored authentication requests", when the domain functional level is set to Windows Server 2008 R2 or earlier then domain controllers behave as if the "Supported" option is selected. 
-
-When the domain functional level is set to Windows Server 2012 then the domain controller advertises to Kerberos client computers that the domain is capable of claims and compound authentication for Dynamic Access Control and Kerberos armoring, and:
-   - If you set the "Always provide claims" option, always returns claims for accounts and supports the RFC behavior for advertising the flexible authentication secure tunneling (FAST).
-   - If you set the "Fail unarmored authentication requests" option, rejects unarmored Kerberos messages.
-
-Warning: When "Fail unarmored authentication requests" is set, then client computers which do not support Kerberos armoring will fail to authenticate to the domain controller.
-
-To ensure this feature is effective, deploy enough domain controllers that support claims and compound authentication for Dynamic Access Control and are Kerberos armor-aware to handle the authentication requests. Insufficient number of domain controllers that support this policy result in authentication failures whenever Dynamic Access Control or Kerberos armoring is required (that is, the "Supported" option is enabled).
-
-Impact on domain controller performance when this policy setting is enabled:
-   - Secure Kerberos domain capability discovery is required resulting in additional message exchanges.
-   - Claims and compound authentication for Dynamic Access Control increases the size and complexity of the data in the message which results in more processing time and greater Kerberos service ticket size.
-   - Kerberos armoring fully encrypts Kerberos messages and signs Kerberos errors which results in increased processing time, but does not change the service ticket size.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2012, Windows 8 or Windows RT</q2:Supported>
-          <q2:Category>System/KDC</q2:Category>
+3. The "Process even if the Group Policy objects have not changed" option updates and reapplies the preference items even if the preference items have not changed. Many policy implementations specify that they are updated only when changed. However, you might want to update unchanged preference items, such as reapplying a desired preference setting in case a user has changed it.</q2:Explain>
+          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional with SP2</q2:Supported>
+          <q2:Category>System/Group Policy</q2:Category>
+          <q2:CheckBox>
+            <q2:Name>Allow processing across a slow network connection</q2:Name>
+            <q2:State>Disabled</q2:State>
+          </q2:CheckBox>
+          <q2:CheckBox>
+            <q2:Name>Do not apply during periodic background processing</q2:Name>
+            <q2:State>Disabled</q2:State>
+          </q2:CheckBox>
+          <q2:CheckBox>
+            <q2:Name>Process even if the Group Policy objects have not changed</q2:Name>
+            <q2:State>Enabled</q2:State>
+          </q2:CheckBox>
           <q2:DropDownList>
-            <q2:Name>Claims, compound authentication for Dynamic Access Control and Kerberos armoring options:</q2:Name>
+            <q2:Name>Background priority</q2:Name>
             <q2:State>Enabled</q2:State>
             <q2:Value>
-              <q2:Name>Supported</q2:Name>
+              <q2:Name>Normal</q2:Name>
             </q2:Value>
           </q2:DropDownList>
         </q2:Policy>
@@ -189,4 +238,10 @@ Impact on domain controller performance when this policy setting is enabled:
     <VersionSysvol>1</VersionSysvol>
     <Enabled>false</Enabled>
   </User>
+  <LinksTo>
+    <SOMName>Domain Controllers</SOMName>
+    <SOMPath>work.bcl.nu/Domain Controllers</SOMPath>
+    <Enabled>false</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
 </GPO>
