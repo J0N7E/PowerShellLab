@@ -485,6 +485,9 @@ Begin
             # Powershell black background
             @{ Name = 'ScreenColors';  Value = 6;  PropertyType = 'DWord';   Path = 'HKEY_CURRENT_USER\Console\%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe' }
 
+            # Check for publisher's certificate revocation
+            #HKCU\Software\Microsoft\Windows\CurrentVersion\WinTrust\Trust Providers\Software Publishing\State to 0x00023e00
+
         )
 
         if ($Result)

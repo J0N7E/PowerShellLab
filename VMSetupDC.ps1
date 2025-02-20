@@ -1440,7 +1440,9 @@ Begin
                 Name                = "Domain Admins"
                 Scope               = 'Global'
                 Path                = "CN=Users,OU=$DomainName,$BaseDN"
+                # -->
                 MemberOf            = $( if ($RestrictDomain) { @('Protected Users') })
+                # <!--
                 Members             =
                 @(
                     @{
