@@ -7,8 +7,8 @@
   <Name>%domain_prefix% - Tier 0 - Restrict User Rights Assignment</Name>
   <IncludeComments>true</IncludeComments>
   <CreatedTime>2025-02-18T09:54:11</CreatedTime>
-  <ModifiedTime>2025-02-18T09:54:11</ModifiedTime>
-  <ReadTime>2025-02-18T15:35:06.9916359Z</ReadTime>
+  <ModifiedTime>2025-03-04T15:11:49</ModifiedTime>
+  <ReadTime>2025-03-04T15:56:30.1805349Z</ReadTime>
   <SecurityDescriptor>
     <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-876441562-1722500034-152111835-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
@@ -127,8 +127,8 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>2</VersionDirectory>
+    <VersionSysvol>2</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
       <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Security" xsi:type="q1:SecuritySettings">
@@ -149,20 +149,20 @@
         <q1:UserRightsAssignment>
           <q1:Name>SeCreateGlobalPrivilege</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-19</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\LOCAL SERVICE</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-6</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SERVICE</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-20</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\NETWORK SERVICE</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-6</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SERVICE</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-19</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\LOCAL SERVICE</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
@@ -184,83 +184,91 @@
         <q1:UserRightsAssignment>
           <q1:Name>SeDenyBatchLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
           <q1:Name>SeDenyInteractiveLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
           <q1:Name>SeDenyNetworkLogonRight</q1:Name>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
+          </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
@@ -281,87 +289,87 @@
         <q1:UserRightsAssignment>
           <q1:Name>SeDenyRemoteInteractiveLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-113</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Local account</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
           </q1:Member>
-        </q1:UserRightsAssignment>
-        <q1:UserRightsAssignment>
-          <q1:Name>SeDenyServiceLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-113</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Local account</Name>
+          </q1:Member>
+        </q1:UserRightsAssignment>
+        <q1:UserRightsAssignment>
+          <q1:Name>SeDenyServiceLogonRight</q1:Name>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1123</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 0 - Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1131</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Admins</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-518</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Schema Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1137</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 1 - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1139</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1149</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 2 - Users</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1115</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Admins</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1121</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier DC - Users</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
@@ -370,31 +378,31 @@
         <q1:UserRightsAssignment>
           <q1:Name>SeImpersonatePrivilege</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
-          </q1:Member>
-          <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-19</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\LOCAL SERVICE</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-6</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SERVICE</Name>
           </q1:Member>
           <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-20</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\NETWORK SERVICE</Name>
           </q1:Member>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-6</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SERVICE</Name>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-19</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\LOCAL SERVICE</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
           <q1:Name>SeInteractiveLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
-          </q1:Member>
-          <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-1129</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Tier 0 - Users</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
@@ -434,12 +442,12 @@
         <q1:UserRightsAssignment>
           <q1:Name>SeRemoteInteractiveLogonRight</q1:Name>
           <q1:Member>
-            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-555</SID>
-            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Remote Desktop Users</Name>
-          </q1:Member>
-          <q1:Member>
             <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-544</SID>
             <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Administrators</Name>
+          </q1:Member>
+          <q1:Member>
+            <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-32-555</SID>
+            <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">BUILTIN\Remote Desktop Users</Name>
           </q1:Member>
         </q1:UserRightsAssignment>
         <q1:UserRightsAssignment>
@@ -500,4 +508,10 @@
     <VersionSysvol>1</VersionSysvol>
     <Enabled>false</Enabled>
   </User>
+  <LinksTo>
+    <SOMName>Computers</SOMName>
+    <SOMPath>work.bcl.nu/work.bcl.nu/Tier 0/Computers</SOMPath>
+    <Enabled>true</Enabled>
+    <NoOverride>true</NoOverride>
+  </LinksTo>
 </GPO>
