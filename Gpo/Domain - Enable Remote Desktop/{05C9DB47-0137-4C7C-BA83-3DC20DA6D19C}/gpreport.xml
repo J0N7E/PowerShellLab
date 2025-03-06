@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{db2dc03e-4ab2-4372-ac9e-accc08f37b99}</Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{4fe591aa-66fa-4a4a-9acd-84e9e94971b3}</Identifier>
     <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
   </Identifier>
   <Name>%domain_prefix% - Domain - Enable Remote Desktop</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2025-02-18T09:53:54</CreatedTime>
-  <ModifiedTime>2025-02-18T09:53:54</ModifiedTime>
-  <ReadTime>2025-02-18T15:35:00.5518653Z</ReadTime>
+  <CreatedTime>2025-03-06T09:35:33</CreatedTime>
+  <ModifiedTime>2025-03-06T10:19:22</ModifiedTime>
+  <ReadTime>2025-03-06T16:09:43.3238658Z</ReadTime>
   <SecurityDescriptor>
-    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-876441562-1722500034-152111835-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3221060182-2944434855-3404756099-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Owner>
     <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Group>
     <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
@@ -44,7 +44,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -104,7 +104,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-519</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -127,25 +127,15 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>2</VersionDirectory>
+    <VersionSysvol>2</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
-      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/WindowsFirewall" xsi:type="q1:WindowsFirewallSettings">
-        <q1:GlobalSettings>
-          <q1:PolicyVersion>
-            <q1:Value>543</q1:Value>
-          </q1:PolicyVersion>
-        </q1:GlobalSettings>
-      </Extension>
-      <Name>Windows Firewall</Name>
-    </ExtensionData>
-    <ExtensionData>
-      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q2:RegistrySettings">
-        <q2:Policy>
-          <q2:Name>Allow users to connect remotely by using Remote Desktop Services</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting allows you to configure remote access to computers by using Remote Desktop Services.
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q1:RegistrySettings">
+        <q1:Policy>
+          <q1:Name>Allow users to connect remotely by using Remote Desktop Services</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting allows you to configure remote access to computers by using Remote Desktop Services.
 
 If you enable this policy setting, users who are members of the Remote Desktop Users group on the target computer can connect remotely to the target computer by using Remote Desktop Services.
 
@@ -156,14 +146,14 @@ If you do not configure this policy setting, Remote Desktop Services uses the Re
 Note: You can limit which clients are able to connect remotely by using Remote Desktop Services by configuring the policy setting at Computer Configuration\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Security\Require user authentication for remote connections by using Network Level Authentication. 
 
 You can limit the number of users who can connect simultaneously by configuring the policy setting at Computer Configuration\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Connections\Limit number of connections, or by configuring the policy setting Maximum Connections by using the Remote Desktop Session Host WMI Provider.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Connections</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Do not allow Clipboard redirection</q2:Name>
-          <q2:State>Disabled</q2:State>
-          <q2:Explain>This policy setting specifies whether to prevent the sharing of Clipboard contents (Clipboard redirection) between a remote computer and a client computer during a Remote Desktop Services session.
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Connections</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Do not allow Clipboard redirection</q1:Name>
+          <q1:State>Disabled</q1:State>
+          <q1:Explain>This policy setting specifies whether to prevent the sharing of Clipboard contents (Clipboard redirection) between a remote computer and a client computer during a Remote Desktop Services session.
 
 You can use this setting to prevent users from redirecting Clipboard data to and from the remote computer and the local computer. By default, Remote Desktop Services allows Clipboard redirection.
 
@@ -172,14 +162,14 @@ If you enable this policy setting, users cannot redirect Clipboard data.
 If you disable this policy setting, Remote Desktop Services always allows Clipboard redirection.
 
 If you do not configure this policy setting, Clipboard redirection is not specified at the Group Policy level. 
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Device and Resource Redirection</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Do not allow drive redirection</q2:Name>
-          <q2:State>Disabled</q2:State>
-          <q2:Explain>This policy setting specifies whether to prevent the mapping of client drives in a Remote Desktop Services session (drive redirection).
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Device and Resource Redirection</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Do not allow drive redirection</q1:Name>
+          <q1:State>Disabled</q1:State>
+          <q1:Explain>This policy setting specifies whether to prevent the mapping of client drives in a Remote Desktop Services session (drive redirection).
 
 By default, an RD Session Host server maps client drives automatically upon connection. Mapped drives appear in the session folder tree in File Explorer or Computer in the format &lt;driveletter&gt; on &lt;computername&gt;. You can use this policy setting to override this behavior.
 
@@ -188,14 +178,14 @@ If you enable this policy setting, client drive redirection is not allowed in Re
 If you disable this policy setting, client drive redirection is always allowed. In addition, Clipboard file copy redirection is always allowed if Clipboard redirection is allowed.
 
 If you do not configure this policy setting, client drive redirection and Clipboard file copy redirection are not specified at the Group Policy level.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Device and Resource Redirection</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Set time limit for active but idle Remote Desktop Services sessions</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting allows you to specify the maximum amount of time that an active Remote Desktop Services session can be idle (without user input) before it is automatically disconnected.
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Device and Resource Redirection</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Set time limit for active but idle Remote Desktop Services sessions</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting allows you to specify the maximum amount of time that an active Remote Desktop Services session can be idle (without user input) before it is automatically disconnected.
 
 If you enable this policy setting, you must select the desired time limit in the Idle session limit list. Remote Desktop Services will automatically disconnect active but idle sessions after the specified amount of time. The user receives a warning two minutes before the session disconnects, which allows the user to press a key or move the mouse to keep the session active. If you have a console session, idle session time limits do not apply.
 
@@ -204,21 +194,21 @@ If you disable or do not configure this policy setting, the time limit is not sp
 If you want Remote Desktop Services to end instead of disconnect a session when the time limit is reached, you can configure the policy setting Computer Configuration\Administrative Templates\Windows Components\Remote Desktop Services\Remote Desktop Session Host\Session Time Limits\End session when time limits are reached.
 
 Note: This policy setting appears in both Computer Configuration and User Configuration. If both policy settings are configured, the Computer Configuration policy setting takes precedence.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Session Time Limits</q2:Category>
-          <q2:DropDownList>
-            <q2:Name>Idle session limit:</q2:Name>
-            <q2:State>Enabled</q2:State>
-            <q2:Value>
-              <q2:Name>2 hours</q2:Name>
-            </q2:Value>
-          </q2:DropDownList>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Set time limit for disconnected sessions</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting allows you to configure a time limit for disconnected Remote Desktop Services sessions.
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Session Time Limits</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Idle session limit:</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>2 hours</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Set time limit for disconnected sessions</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting allows you to configure a time limit for disconnected Remote Desktop Services sessions.
 
 You can use this policy setting to specify the maximum amount of time that a disconnected session remains active on the server. By default, Remote Desktop Services allows users to disconnect from a Remote Desktop Services session without logging off and ending the session.
 
@@ -230,22 +220,18 @@ If you enable this policy setting, disconnected sessions are deleted from the se
 If you disable or do not configure this policy setting, this policy setting is not specified at the Group Policy level. Be y default, Remote Desktop Services disconnected sessions are maintained for an unlimited amount of time. 
 
 Note: This policy setting appears in both Computer Configuration and User Configuration. If both policy settings are configured, the Computer Configuration policy setting takes precedence.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Session Time Limits</q2:Category>
-          <q2:DropDownList>
-            <q2:Name>End a disconnected session</q2:Name>
-            <q2:State>Enabled</q2:State>
-            <q2:Value>
-              <q2:Name>10 minutes</q2:Name>
-            </q2:Value>
-          </q2:DropDownList>
-        </q2:Policy>
-        <q2:RegistrySetting>
-          <q2:KeyPath>Software\Policies\Microsoft\WindowsFirewall\FirewallRules</q2:KeyPath>
-          <q2:AdmSetting>false</q2:AdmSetting>
-        </q2:RegistrySetting>
-        <q2:Blocked>false</q2:Blocked>
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Session Time Limits</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>End a disconnected session</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>10 minutes</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+        </q1:Policy>
+        <q1:Blocked>false</q1:Blocked>
       </Extension>
       <Name>Registry</Name>
     </ExtensionData>

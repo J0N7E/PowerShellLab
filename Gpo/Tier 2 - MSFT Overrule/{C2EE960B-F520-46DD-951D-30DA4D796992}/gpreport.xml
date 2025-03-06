@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{78a9b248-7419-4869-965f-df89f46fe85e}</Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{b8c87982-7c12-4e38-b12b-03ad4a9b852d}</Identifier>
     <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
   </Identifier>
   <Name>%domain_prefix% - Tier 2 - MSFT Overrule</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2025-02-18T09:54:13</CreatedTime>
-  <ModifiedTime>2025-02-18T09:54:14</ModifiedTime>
-  <ReadTime>2025-02-18T15:35:07.9603835Z</ReadTime>
+  <CreatedTime>2025-03-06T09:35:53</CreatedTime>
+  <ModifiedTime>2025-03-06T13:10:40</ModifiedTime>
+  <ReadTime>2025-03-06T16:09:48.1363773Z</ReadTime>
   <SecurityDescriptor>
-    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-876441562-1722500034-152111835-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3221060182-2944434855-3404756099-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Owner>
     <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Group>
     <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
@@ -44,7 +44,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -104,7 +104,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-519</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -127,8 +127,8 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>2</VersionDirectory>
+    <VersionSysvol>2</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
       <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Security" xsi:type="q1:SecuritySettings">
@@ -144,6 +144,35 @@
         <q1:Blocked>false</q1:Blocked>
       </Extension>
       <Name>Security</Name>
+    </ExtensionData>
+    <ExtensionData>
+      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q2:RegistrySettings">
+        <q2:Policy>
+          <q2:Name>Prohibit use of Internet Connection Sharing on your DNS domain network</q2:Name>
+          <q2:State>Disabled</q2:State>
+          <q2:Explain>Determines whether administrators can enable and configure the Internet Connection Sharing (ICS) feature of an Internet connection and if the ICS service can run on the computer.
+
+ICS lets administrators configure their system as an Internet gateway for a small network and provides network services, such as name resolution and addressing through DHCP, to the local private network.
+
+If you enable this setting, ICS cannot be enabled or configured by administrators, and the ICS service cannot run on the computer. The Advanced tab in the Properties dialog box for a LAN or remote access connection is removed. The Internet Connection Sharing page is removed from the New Connection Wizard. The Network Setup Wizard is disabled.
+
+If you disable this setting or do not configure it and have two or more connections, administrators can enable ICS. The Advanced tab in the properties dialog box for a LAN or remote access connection is available. In addition, the user is presented with the option to enable Internet Connection Sharing in the Network Setup Wizard and Make New Connection Wizard. (The Network Setup Wizard is available only in Windows XP Professional.)
+
+By default, ICS is disabled when you create a remote access connection, but administrators can use the Advanced tab to enable it. When running the New Connection Wizard or Network Setup Wizard, administrators can choose to enable ICS.
+
+Note: Internet Connection Sharing is only available when two or more network connections are present.
+
+Note: When the "Prohibit access to properties of a LAN connection," "Ability to change properties of an all user remote access connection," or "Prohibit changing properties of a private remote access connection" settings are set to deny access to the Connection Properties dialog box, the Advanced tab for the connection is blocked.
+
+Note: Nonadministrators are already prohibited from configuring Internet Connection Sharing, regardless of this setting.
+
+Note: Disabling this setting does not prevent Wireless Hosted Networking from using the ICS service for DHCP services. To prevent the ICS service from running, on the Network Permissions tab in the network's policy properties, select the "Don't use hosted networks" check box.</q2:Explain>
+          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
+          <q2:Category>Network/Network Connections</q2:Category>
+        </q2:Policy>
+        <q2:Blocked>false</q2:Blocked>
+      </Extension>
+      <Name>Registry</Name>
     </ExtensionData>
   </Computer>
   <User>

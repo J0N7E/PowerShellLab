@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{4384a667-c58d-4f9b-9a02-45990d02307a}</Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{286e2806-1766-4789-a6e0-115b435ae956}</Identifier>
     <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
   </Identifier>
   <Name>%domain_prefix% - Domain - Secure Remote Desktop</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2025-02-18T09:53:55</CreatedTime>
-  <ModifiedTime>2025-02-18T09:53:55</ModifiedTime>
-  <ReadTime>2025-02-18T15:35:01.0228951Z</ReadTime>
+  <CreatedTime>2025-03-06T09:35:34</CreatedTime>
+  <ModifiedTime>2025-03-06T13:48:29</ModifiedTime>
+  <ReadTime>2025-03-06T16:09:41.0426278Z</ReadTime>
   <SecurityDescriptor>
-    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-876441562-1722500034-152111835-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3221060182-2944434855-3404756099-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Owner>
     <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
-      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
       <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
     </Group>
     <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
@@ -44,7 +44,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-512</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -104,7 +104,7 @@
       </TrusteePermissions>
       <TrusteePermissions>
         <Trustee>
-          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-876441562-1722500034-152111835-519</SID>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-519</SID>
           <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
         </Trustee>
         <Type xsi:type="PermissionType">
@@ -127,38 +127,28 @@
   </SecurityDescriptor>
   <FilterDataAvailable>true</FilterDataAvailable>
   <Computer>
-    <VersionDirectory>1</VersionDirectory>
-    <VersionSysvol>1</VersionSysvol>
+    <VersionDirectory>7</VersionDirectory>
+    <VersionSysvol>7</VersionSysvol>
     <Enabled>true</Enabled>
     <ExtensionData>
-      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/WindowsFirewall" xsi:type="q1:WindowsFirewallSettings">
-        <q1:GlobalSettings>
-          <q1:PolicyVersion>
-            <q1:Value>543</q1:Value>
-          </q1:PolicyVersion>
-        </q1:GlobalSettings>
-      </Extension>
-      <Name>Windows Firewall</Name>
-    </ExtensionData>
-    <ExtensionData>
-      <Extension xmlns:q2="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q2:RegistrySettings">
-        <q2:Policy>
-          <q2:Name>Remote host allows delegation of non-exportable credentials</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>Remote host allows delegation of non-exportable credentials
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q1:RegistrySettings">
+        <q1:Policy>
+          <q1:Name>Remote host allows delegation of non-exportable credentials</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Remote host allows delegation of non-exportable credentials
 
 When using credential delegation, devices provide an exportable version of credentials to the remote host. This exposes users to the risk of credential theft from attackers on the remote host.
 
 If you enable this policy setting, the host supports Restricted Admin or Remote Credential Guard mode.
 
-If you disable or do not configure this policy setting, Restricted Administration and Remote Credential Guard mode are not supported. User will always need to pass their credentials to the host.</q2:Explain>
-          <q2:Supported>At least Windows Server 2016, Windows 10 Version 1703</q2:Supported>
-          <q2:Category>System/Credentials Delegation</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Restrict delegation of credentials to remote servers</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>When running in Restricted Admin or Remote Credential Guard mode, participating apps do not expose signed in or supplied credentials to a remote host. Restricted Admin limits access to resources located on other servers or networks from the remote host because credentials are not delegated. Remote Credential Guard does not limit access to resources because it redirects all requests back to the client device.
+If you disable or do not configure this policy setting, Restricted Administration and Remote Credential Guard mode are not supported. User will always need to pass their credentials to the host.</q1:Explain>
+          <q1:Supported>At least Windows Server 2016, Windows 10 Version 1703</q1:Supported>
+          <q1:Category>System/Credentials Delegation</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Restrict delegation of credentials to remote servers</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>When running in Restricted Admin or Remote Credential Guard mode, participating apps do not expose signed in or supplied credentials to a remote host. Restricted Admin limits access to resources located on other servers or networks from the remote host because credentials are not delegated. Remote Credential Guard does not limit access to resources because it redirects all requests back to the client device.
 
 Participating apps:
 Remote Desktop Client
@@ -176,32 +166,32 @@ If you disable or do not configure this policy setting, Restricted Admin and Rem
 Note: To disable most credential delegation, it may be sufficient to deny delegation in Credential Security Support Provider (CredSSP) by modifying Administrative template settings (located at Computer Configuration\Administrative Templates\System\Credentials Delegation).
 
 Note: On Windows 8.1 and Windows Server 2012 R2, enabling this policy will enforce Restricted Administration mode, regardless of the mode chosen. These versions do not support Remote Credential Guard.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2012 R2, Windows 8.1 or Windows RT 8.1</q2:Supported>
-          <q2:Category>System/Credentials Delegation</q2:Category>
-          <q2:DropDownList>
-            <q2:Name>Use the following restricted mode:</q2:Name>
-            <q2:State>Enabled</q2:State>
-            <q2:Value>
-              <q2:Name>Require Remote Credential Guard</q2:Name>
-            </q2:Value>
-          </q2:DropDownList>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Do not allow passwords to be saved</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>Controls whether passwords can be saved on this computer from Remote Desktop Connection.
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2012 R2, Windows 8.1 or Windows RT 8.1</q1:Supported>
+          <q1:Category>System/Credentials Delegation</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Use the following restricted mode:</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>Require Restricted Admin</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Do not allow passwords to be saved</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Controls whether passwords can be saved on this computer from Remote Desktop Connection.
 
 If you enable this setting the password saving checkbox in Remote Desktop Connection will be disabled and users will no longer be able to save passwords. When a user opens an RDP file using Remote Desktop Connection and saves his settings, any password that previously existed in the RDP file will be deleted.
 
-If you disable this setting or leave it not configured, the user will be able to save passwords using Remote Desktop Connection.</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems with SP1 or Windows XP Professional with SP2</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Connection Client</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Require secure RPC communication</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>Specifies whether a Remote Desktop Session Host server requires secure RPC communication with all clients or allows unsecured communication.
+If you disable this setting or leave it not configured, the user will be able to save passwords using Remote Desktop Connection.</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems with SP1 or Windows XP Professional with SP2</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Connection Client</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require secure RPC communication</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Specifies whether a Remote Desktop Session Host server requires secure RPC communication with all clients or allows unsecured communication.
 
 You can use this setting to strengthen the security of RPC communication with clients by allowing only authenticated and encrypted requests.
 
@@ -211,14 +201,14 @@ If the status is set to Disabled, Remote Desktop Services always requests securi
 
 If the status is set to Not Configured, unsecured communication is allowed.
 
-Note: The RPC interface is used for administering and configuring Remote Desktop Services.</q2:Explain>
-          <q2:Supported>At least Windows Server 2003</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Require use of specific security layer for remote (RDP) connections</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting specifies whether to require the use of a specific security layer to secure communications between clients and RD Session Host servers during Remote Desktop Protocol (RDP) connections.
+Note: The RPC interface is used for administering and configuring Remote Desktop Services.</q1:Explain>
+          <q1:Supported>At least Windows Server 2003</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require use of specific security layer for remote (RDP) connections</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting specifies whether to require the use of a specific security layer to secure communications between clients and RD Session Host servers during Remote Desktop Protocol (RDP) connections.
 
 If you enable this policy setting, all communications between clients and RD Session Host servers during remote connections must use the security method specified in this setting. The following security methods are available:
 
@@ -229,24 +219,24 @@ If you enable this policy setting, all communications between clients and RD Ses
 * SSL (TLS 1.0): The SSL method requires the use of TLS 1.0 to authenticate the RD Session Host server. If TLS is not supported, the connection fails. This is the recommended setting for this policy.
 
 If you disable or do not configure this policy setting, the security method to be used for remote connections to RD Session Host servers is not specified at the Group Policy level.
-</q2:Explain>
-          <q2:Supported>At least Windows Vista</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q2:Category>
-          <q2:DropDownList>
-            <q2:Name>Security Layer</q2:Name>
-            <q2:State>Enabled</q2:State>
-            <q2:Value>
-              <q2:Name>SSL</q2:Name>
-            </q2:Value>
-          </q2:DropDownList>
-          <q2:Text>
-            <q2:Name>Choose the security layer from the drop-down list.</q2:Name>
-          </q2:Text>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Require user authentication for remote connections by using Network Level Authentication</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>This policy setting allows you to specify whether to require user authentication for remote connections to the RD Session Host server by using Network Level Authentication. This policy setting enhances security by requiring that user authentication occur earlier in the remote connection process.
+</q1:Explain>
+          <q1:Supported>At least Windows Vista</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Security Layer</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>SSL</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>Choose the security layer from the drop-down list.</q1:Name>
+          </q1:Text>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require user authentication for remote connections by using Network Level Authentication</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting allows you to specify whether to require user authentication for remote connections to the RD Session Host server by using Network Level Authentication. This policy setting enhances security by requiring that user authentication occur earlier in the remote connection process.
 
 If you enable this policy setting, only client computers that support Network Level Authentication can connect to the RD Session Host server.
 
@@ -257,14 +247,14 @@ If you disable this policy setting, Network Level Authentication is not required
 If you do not configure this policy setting, the local setting on the target computer will be enforced. On Windows Server 2012 and Windows 8, Network Level Authentication is enforced by default.
 
 Important: Disabling this policy setting provides less security because user authentication will occur later in the remote connection process.
-</q2:Explain>
-          <q2:Supported>At least Windows Vista</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q2:Category>
-        </q2:Policy>
-        <q2:Policy>
-          <q2:Name>Set client connection encryption level</q2:Name>
-          <q2:State>Enabled</q2:State>
-          <q2:Explain>Specifies whether to require the use of a specific encryption level to secure communications between client computers and RD Session Host servers during Remote Desktop Protocol (RDP) connections. This policy only applies when you are using native RDP encryption. However, native RDP encryption (as opposed to SSL encryption) is not recommended. This policy does not apply to SSL encryption.
+</q1:Explain>
+          <q1:Supported>At least Windows Vista</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Set client connection encryption level</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Specifies whether to require the use of a specific encryption level to secure communications between client computers and RD Session Host servers during Remote Desktop Protocol (RDP) connections. This policy only applies when you are using native RDP encryption. However, native RDP encryption (as opposed to SSL encryption) is not recommended. This policy does not apply to SSL encryption.
 
 If you enable this policy setting, all communications between clients and RD Session Host servers during remote connections must use the encryption method specified in this setting. By default, the encryption level is set to High. The following encryption methods are available:
 
@@ -279,25 +269,21 @@ If you disable or do not configure this setting, the encryption level to be used
 Important
 
 FIPS compliance can be configured through the System cryptography. Use FIPS compliant algorithms for encryption, hashing, and signing settings in Group Policy (under Computer Configuration\Windows Settings\Security Settings\Local Policies\Security Options.) The FIPS compliant setting encrypts and decrypts data sent from the client to the server and from the server to the client, with the Federal Information Processing Standard (FIPS) 140 encryption algorithms, by using Microsoft cryptographic modules. Use this encryption level when communications between clients and RD Session Host servers requires the highest level of encryption.
-</q2:Explain>
-          <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
-          <q2:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q2:Category>
-          <q2:DropDownList>
-            <q2:Name>Encryption Level</q2:Name>
-            <q2:State>Enabled</q2:State>
-            <q2:Value>
-              <q2:Name>High Level</q2:Name>
-            </q2:Value>
-          </q2:DropDownList>
-          <q2:Text>
-            <q2:Name>Choose the encryption level from the drop-down list.</q2:Name>
-          </q2:Text>
-        </q2:Policy>
-        <q2:RegistrySetting>
-          <q2:KeyPath>Software\Policies\Microsoft\WindowsFirewall\FirewallRules</q2:KeyPath>
-          <q2:AdmSetting>false</q2:AdmSetting>
-        </q2:RegistrySetting>
-        <q2:Blocked>false</q2:Blocked>
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Encryption Level</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>High Level</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>Choose the encryption level from the drop-down list.</q1:Name>
+          </q1:Text>
+        </q1:Policy>
+        <q1:Blocked>false</q1:Blocked>
       </Extension>
       <Name>Registry</Name>
     </ExtensionData>
