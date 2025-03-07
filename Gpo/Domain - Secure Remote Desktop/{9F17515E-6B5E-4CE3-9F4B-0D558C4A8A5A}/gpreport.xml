@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-16"?>
+<GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
+  <Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{286e2806-1766-4789-a6e0-115b435ae956}</Identifier>
+    <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
+  </Identifier>
+  <Name>%domain_prefix% - Domain - Secure Remote Desktop</Name>
+  <IncludeComments>true</IncludeComments>
+  <CreatedTime>2025-03-06T09:35:34</CreatedTime>
+  <ModifiedTime>2025-03-07T14:19:14</ModifiedTime>
+  <ReadTime>2025-03-07T14:20:16.4092649Z</ReadTime>
+  <SecurityDescriptor>
+    <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3221060182-2944434855-3404756099-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
+    <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+    </Owner>
+    <Group xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
+      <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+    </Group>
+    <PermissionsPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">true</PermissionsPresent>
+    <Permissions xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
+      <InheritsFromParent>false</InheritsFromParent>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-9</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\ENTERPRISE DOMAIN CONTROLLERS</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Read</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-512</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Domain Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-18</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\SYSTEM</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-11</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">NT AUTHORITY\Authenticated Users</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Apply Group Policy</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+      <TrusteePermissions>
+        <Trustee>
+          <SID xmlns="http://www.microsoft.com/GroupPolicy/Types">S-1-5-21-3221060182-2944434855-3404756099-519</SID>
+          <Name xmlns="http://www.microsoft.com/GroupPolicy/Types">work\Enterprise Admins</Name>
+        </Trustee>
+        <Type xsi:type="PermissionType">
+          <PermissionType>Allow</PermissionType>
+        </Type>
+        <Inherited>false</Inherited>
+        <Applicability>
+          <ToSelf>true</ToSelf>
+          <ToDescendantObjects>false</ToDescendantObjects>
+          <ToDescendantContainers>true</ToDescendantContainers>
+          <ToDirectDescendantsOnly>false</ToDirectDescendantsOnly>
+        </Applicability>
+        <Standard>
+          <GPOGroupedAccessEnum>Edit, delete, modify security</GPOGroupedAccessEnum>
+        </Standard>
+        <AccessMask>0</AccessMask>
+      </TrusteePermissions>
+    </Permissions>
+    <AuditingPresent xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">false</AuditingPresent>
+  </SecurityDescriptor>
+  <FilterDataAvailable>true</FilterDataAvailable>
+  <Computer>
+    <VersionDirectory>11</VersionDirectory>
+    <VersionSysvol>11</VersionSysvol>
+    <Enabled>true</Enabled>
+    <ExtensionData>
+      <Extension xmlns:q1="http://www.microsoft.com/GroupPolicy/Settings/Registry" xsi:type="q1:RegistrySettings">
+        <q1:Policy>
+          <q1:Name>Do not allow passwords to be saved</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Controls whether passwords can be saved on this computer from Remote Desktop Connection.
+
+If you enable this setting the password saving checkbox in Remote Desktop Connection will be disabled and users will no longer be able to save passwords. When a user opens an RDP file using Remote Desktop Connection and saves his settings, any password that previously existed in the RDP file will be deleted.
+
+If you disable this setting or leave it not configured, the user will be able to save passwords using Remote Desktop Connection.</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems with SP1 or Windows XP Professional with SP2</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Connection Client</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require secure RPC communication</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Specifies whether a Remote Desktop Session Host server requires secure RPC communication with all clients or allows unsecured communication.
+
+You can use this setting to strengthen the security of RPC communication with clients by allowing only authenticated and encrypted requests.
+
+If the status is set to Enabled, Remote Desktop Services accepts requests from RPC clients that support secure requests, and does not allow unsecured communication with untrusted clients.
+
+If the status is set to Disabled, Remote Desktop Services always requests security for all RPC traffic. However, unsecured communication is allowed for RPC clients that do not respond to the request.
+
+If the status is set to Not Configured, unsecured communication is allowed.
+
+Note: The RPC interface is used for administering and configuring Remote Desktop Services.</q1:Explain>
+          <q1:Supported>At least Windows Server 2003</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require use of specific security layer for remote (RDP) connections</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting specifies whether to require the use of a specific security layer to secure communications between clients and RD Session Host servers during Remote Desktop Protocol (RDP) connections.
+
+If you enable this policy setting, all communications between clients and RD Session Host servers during remote connections must use the security method specified in this setting. The following security methods are available:
+
+* Negotiate: The Negotiate method enforces the most secure method that is supported by the client. If Transport Layer Security (TLS) version 1.0 is supported, it is used to authenticate the RD Session Host server. If TLS is not supported, native Remote Desktop Protocol (RDP) encryption is used to secure communications, but the RD Session Host server is not authenticated. Native RDP encryption (as opposed to SSL encryption) is not recommended.
+
+* RDP: The RDP method uses native RDP encryption to secure communications between the client and RD Session Host server. If you select this setting, the RD Session Host server is not authenticated. Native RDP encryption (as opposed to SSL encryption) is not recommended.
+
+* SSL (TLS 1.0): The SSL method requires the use of TLS 1.0 to authenticate the RD Session Host server. If TLS is not supported, the connection fails. This is the recommended setting for this policy.
+
+If you disable or do not configure this policy setting, the security method to be used for remote connections to RD Session Host servers is not specified at the Group Policy level.
+</q1:Explain>
+          <q1:Supported>At least Windows Vista</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Security Layer</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>SSL</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>Choose the security layer from the drop-down list.</q1:Name>
+          </q1:Text>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Require user authentication for remote connections by using Network Level Authentication</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>This policy setting allows you to specify whether to require user authentication for remote connections to the RD Session Host server by using Network Level Authentication. This policy setting enhances security by requiring that user authentication occur earlier in the remote connection process.
+
+If you enable this policy setting, only client computers that support Network Level Authentication can connect to the RD Session Host server.
+
+To determine whether a client computer supports Network Level Authentication, start Remote Desktop Connection on the client computer, click the icon in the upper-left corner of the Remote Desktop Connection dialog box, and then click About. In the About Remote Desktop Connection dialog box, look for the phrase Network Level Authentication supported.
+
+If you disable this policy setting, Network Level Authentication is not required for user authentication before allowing remote connections to the RD Session Host server.
+
+If you do not configure this policy setting, the local setting on the target computer will be enforced. On Windows Server 2012 and Windows 8, Network Level Authentication is enforced by default.
+
+Important: Disabling this policy setting provides less security because user authentication will occur later in the remote connection process.
+</q1:Explain>
+          <q1:Supported>At least Windows Vista</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+        </q1:Policy>
+        <q1:Policy>
+          <q1:Name>Set client connection encryption level</q1:Name>
+          <q1:State>Enabled</q1:State>
+          <q1:Explain>Specifies whether to require the use of a specific encryption level to secure communications between client computers and RD Session Host servers during Remote Desktop Protocol (RDP) connections. This policy only applies when you are using native RDP encryption. However, native RDP encryption (as opposed to SSL encryption) is not recommended. This policy does not apply to SSL encryption.
+
+If you enable this policy setting, all communications between clients and RD Session Host servers during remote connections must use the encryption method specified in this setting. By default, the encryption level is set to High. The following encryption methods are available:
+
+* High: The High setting encrypts data sent from the client to the server and from the server to the client by using strong 128-bit encryption. Use this encryption level in environments that contain only 128-bit clients (for example, clients that run Remote Desktop Connection). Clients that do not support this encryption level cannot connect to RD Session Host servers.
+
+* Client Compatible: The Client Compatible setting encrypts data sent between the client and the server at the maximum key strength supported by the client. Use this encryption level in environments that include clients that do not support 128-bit encryption.
+
+* Low: The Low setting encrypts only data sent from the client to the server by using 56-bit encryption.
+
+If you disable or do not configure this setting, the encryption level to be used for remote connections to RD Session Host servers is not enforced through Group Policy.
+
+Important
+
+FIPS compliance can be configured through the System cryptography. Use FIPS compliant algorithms for encryption, hashing, and signing settings in Group Policy (under Computer Configuration\Windows Settings\Security Settings\Local Policies\Security Options.) The FIPS compliant setting encrypts and decrypts data sent from the client to the server and from the server to the client, with the Federal Information Processing Standard (FIPS) 140 encryption algorithms, by using Microsoft cryptographic modules. Use this encryption level when communications between clients and RD Session Host servers requires the highest level of encryption.
+</q1:Explain>
+          <q1:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q1:Supported>
+          <q1:Category>Windows Components/Remote Desktop Services/Remote Desktop Session Host/Security</q1:Category>
+          <q1:DropDownList>
+            <q1:Name>Encryption Level</q1:Name>
+            <q1:State>Enabled</q1:State>
+            <q1:Value>
+              <q1:Name>High Level</q1:Name>
+            </q1:Value>
+          </q1:DropDownList>
+          <q1:Text>
+            <q1:Name>Choose the encryption level from the drop-down list.</q1:Name>
+          </q1:Text>
+        </q1:Policy>
+        <q1:Blocked>false</q1:Blocked>
+      </Extension>
+      <Name>Registry</Name>
+    </ExtensionData>
+  </Computer>
+  <User>
+    <VersionDirectory>1</VersionDirectory>
+    <VersionSysvol>1</VersionSysvol>
+    <Enabled>false</Enabled>
+  </User>
+</GPO>

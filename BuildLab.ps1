@@ -129,6 +129,7 @@ Begin
 
             RootCA = @{ Name = 'CA01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @();       Credential = $Settings.Lac; }
             DC     = @{ Name = 'DC01';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Dac; }
+            DC3    = @{ Name = 'DC03';    Domain = $false;  OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Dac; }
             SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
             AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
             ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 21H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }

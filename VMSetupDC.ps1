@@ -731,7 +731,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
                 )
                 DCBaseline = @()
                 WorkstationBaseline =
@@ -750,7 +750,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2019 & Windows 10 1809 - Defender Antivirus';  Enabled = '-';    Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
@@ -778,7 +778,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = '-';    Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
@@ -808,7 +808,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows Server 2022 - Domain Security';                       Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                    Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2022 - Defender Antivirus';                    Enabled = '-';    Enforced = 'No';  }
                 )
                 DCBaseline =
                 @(
@@ -832,7 +832,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows 11 23H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 23H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
@@ -848,7 +848,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
@@ -870,7 +870,7 @@ Begin
                 Baseline =
                 @(
                     @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = 'Yes';  Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
@@ -2831,7 +2831,11 @@ Begin
             if ($t -eq '2')
             {
                 # Workstations
-                $ComputerPolicy += @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";  Enabled = '-';    Enforced = 'Yes';  }
+                $ComputerPolicy +=
+                @(
+                    @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";                 Enabled = '-';    Enforced = 'Yes';  }
+                    @{ Name = "$DomainPrefix - Security - Enable Restricted Admin";                            Enabled = '-';    Enforced = 'Yes';  }
+                )
             }
             else
             {
@@ -2853,11 +2857,11 @@ Begin
             # Link tier gpos
             $ComputerPolicy +=
             @(
-                @{ Name = "$DomainPrefix - Tier $t - Local Users and Groups";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Tier $t - MSFT Overrule";                                             Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Tier $t - Restrict User Rights Assignment";                           Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - Local Users and Groups";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - MSFT Overrule";                                           Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - Restrict User Rights Assignment";                         Enabled = '-';    Enforced = 'Yes';  }
                 # -->
-                @{ Name = "$DomainPrefix - Tier $t - IPSec - Restrict";                                          Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Tier $t - IPSec - Restrict";                                        Enabled = '-';    Enforced = 'Yes';  }
                 # <!--
             )
 
