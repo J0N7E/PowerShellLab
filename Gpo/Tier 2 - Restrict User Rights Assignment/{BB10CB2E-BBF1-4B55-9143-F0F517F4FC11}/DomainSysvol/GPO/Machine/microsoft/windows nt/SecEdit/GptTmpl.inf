@@ -32,6 +32,5 @@ SeProfileSingleProcessPrivilege = *S-1-5-32-544
 SeTakeOwnershipPrivilege = *S-1-5-32-544
 SeRestorePrivilege = *S-1-5-32-544
 SeBatchLogonRight = *S-1-5-32-544
-SeShutdownPrivilege = *S-1-5-32-544
 SeMachineAccountPrivilege =
 
