@@ -2825,38 +2825,28 @@ Begin
 
         foreach ($t in @('DC', '0', '1', '2'))
         {
-            # Set computer policy
-            $ComputerPolicy = $DomainSecurity
+            # Set default policy
+            $ServerPolicy = $DomainSecurity
+            $WorkstationPolicy = $DomainSecurity
 
-            if ($t -eq '2')
-            {
-                # Workstations
-                $ComputerPolicy +=
-                @(
-                    @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";                 Enabled = '-';    Enforced = 'Yes';  }
-                    @{ Name = "$DomainPrefix - Security - Enable Restricted Admin";                            Enabled = '-';    Enforced = 'Yes';  }
-                )
-            }
-            else
-            {
-                # Servers
-                $ComputerPolicy +=
-                @(
-                    @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";                         Enabled = '-';    Enforced = 'Yes';  }
-                    @{ Name = "$DomainPrefix - Security - Disable Spooler";                                    Enabled = '-';    Enforced = 'Yes';  }
-                )
+            # Servers
+            $ServerPolicy +=
+            @(
+                @{ Name = "$DomainPrefix - Security - Disable Cached Credentials";                         Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Security - Disable Spooler";                                    Enabled = '-';    Enforced = 'Yes';  }
+            )
 
-            }
+            # Workstations
+            $WorkstationPolicy +=
+            @(
+                @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";                 Enabled = '-';    Enforced = 'Yes';  }
+                @{ Name = "$DomainPrefix - Security - Enable Restricted Admin";                            Enabled = '-';    Enforced = 'Yes';  }
+            )
 
-            $ComputerPolicy +=
+            $ComputerPolicy =
             @(
                 @{ Name = "$DomainPrefix - Computer - Display Settings";                                       Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Permit General Mgmt";                                    Enabled = 'Yes';  Enforced = 'Yes';  }
-            )
-
-            # Link tier gpos
-            $ComputerPolicy +=
-            @(
                 @{ Name = "$DomainPrefix - Tier $t - Local Users and Groups";                                  Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $t - MSFT Overrule";                                           Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Tier $t - Restrict User Rights Assignment";                         Enabled = '-';    Enforced = 'Yes';  }
@@ -2865,13 +2855,21 @@ Begin
                 # <!--
             )
 
-            # Link computer policy
-            $GPOLinks.Add("OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $ComputerPolicy)
+            $ServerPolicy += $ComputerPolicy
+            $WorkstationPolicy += $ComputerPolicy
 
-            if ($t -eq '2')
+            if ($t -ne '2')
             {
                 # Link server policy
-                $GPOLinks.Add("OU=Servers,OU=Tier $t,OU=$DomainName,$BaseDN", $ComputerPolicy)
+                $GPOLinks.Add("OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $ServerPolicy)
+            }
+            else
+            {
+                # Link workstation policy
+                $GPOLinks.Add("OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $WorkstationPolicy)
+
+                # Link server policy
+                $GPOLinks.Add("OU=Servers,OU=Tier $t,OU=$DomainName,$BaseDN", $ServerPolicy)
             }
         }
 
