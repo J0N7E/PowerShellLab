@@ -1518,15 +1518,15 @@ Begin
                     {
                         $DomainGroups +=
                         @{
-                            Name                = "Tier 2 - Computers - $($Build.Value.Workstation)"
+                            Name                = "Tier $t - Computers - $($Build.Value.Workstation)"
                             Description         = "End of support $($Build.Value.WorkstationEndOfSupport)"
                             Scope               = 'Global'
-                            Path                = "OU=Computers,OU=Groups,OU=Tier 2,OU=$DomainName,$BaseDN"
+                            Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
                             Members             =
                             @(
                                 @{
                                     Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -notlike '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                    SearchBase  = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"
+                                    SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
                                     SearchScope = 'Subtree'
                                 }
                             )
@@ -2818,9 +2818,9 @@ Begin
         }
 
         ###############
+        # Tier DC, 0-2
         # Computer
         # Base
-        # Tier DC, 0-2
         ###############
 
         foreach ($t in @('DC', '0', '1', '2'))
@@ -2867,12 +2867,19 @@ Begin
 
             # Link computer policy
             $GPOLinks.Add("OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $ComputerPolicy)
+
+            if ($t -eq '2')
+            {
+                # Link server policy
+                $GPOLinks.Add("OU=Servers,OU=Tier $t,OU=$DomainName,$BaseDN", $ComputerPolicy)
+            }
         }
 
-        ################
-        # Tier DC, 0, 1
+        ###############
+        # Tier DC, 0-2
+        # Computer
         # By build
-        ################
+        ###############
 
         foreach ($t in @('DC', '0', '1', '2'))
         {
@@ -2904,7 +2911,7 @@ Begin
                     # Link server base
                     $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $GpoBase)
 
-                    if ($t -ne 'DC' -and $t -ne '2')
+                    if ($t -eq '0' -or $t -eq '1')
                     {
                         # Web Servers
                         $GPOLinks.Add("OU=Web Servers,OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", @(
