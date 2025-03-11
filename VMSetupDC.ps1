@@ -1006,6 +1006,8 @@ Begin
         # Tier 2
         #########
 
+        $OrganizationalUnits += @{ Name = 'Servers';                                     Path = "OU=Tier 2,OU=$DomainName,$BaseDN"; }
+
         # Server builds
         foreach ($Build in $WinBuilds.GetEnumerator())
         {
@@ -1013,8 +1015,8 @@ Begin
             {
                 $ServerName = $Build.Value.Server
 
-                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
-                $OrganizationalUnits += @{ Name = 'Remote Desktop Servers';    Path = "OU=$ServerName,OU=Computers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
+                $OrganizationalUnits += @{ Name = $ServerName;                                Path = "OU=Servers,OU=Tier 2,OU=$DomainName,$BaseDN";  Description = "End of support $($Build.Value.ServerEndOfSupport)"; }
+                $OrganizationalUnits += @{ Name = 'Remote Desktop Servers';    Path = "OU=$ServerName,OU=Servers,OU=Tier 2,OU=$DomainName,$BaseDN"; }
             }
         }
 
@@ -1076,13 +1078,11 @@ Begin
         {
             $UserNeverExpires = $true
             $UserNotDelegated = $false
-            $UserMemberOf = @()
         }
         else
         {
             $UserNeverExpires = -not $RestrictDomain
             $UserNotDelegated = $RestrictDomain
-            $UserMemberOf = @('Protected Users')
         }
 
         $Users =
@@ -1142,7 +1142,7 @@ Begin
                 Password = 'P455w0rd'
                 NeverExpires = $UserNeverExpires
                 NotDelegated = $UserNotDelegated
-                MemberOf = $UserMemberOf
+                MemberOf = @()
             }
 
             # Remote Access Users
@@ -2877,7 +2877,7 @@ Begin
 
         ###############
         # Tier DC, 0-2
-        # Computer
+        # Server
         # By build
         ###############
 
@@ -2905,11 +2905,21 @@ Begin
                     # Server 2016 disable SMB
                     if ($Build.Name -eq '14393')
                     {
-                        $GpoBase = @(@{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = '-';  Enforced = 'Yes';  }) + $GpoBase
+                        $GpoBase =
+                        @(
+                            @{ Name = "$DomainPrefix - Security - Disable SMB 1.0";  Enabled = '-';  Enforced = 'Yes';  }
+                        ) + $GpoBase
                     }
 
                     # Link server base
-                    $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $GpoBase)
+                    if ($t -ne '2')
+                    {
+                        $GPOLinks.Add("OU=$($Build.Value.Server),OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN", $GpoBase)
+                    }
+                    else
+                    {
+                        $GPOLinks.Add("OU=$($Build.Value.Server),OU=Servers,OU=Tier $t,OU=$DomainName,$BaseDN", $GpoBase)
+                    }
 
                     if ($t -eq '0' -or $t -eq '1')
                     {
@@ -2969,10 +2979,11 @@ Begin
             }
         }
 
-        ###########
+        ##############
         # Tier 2
+        # Workstation
         # By build
-        ###########
+        ##############
 
         foreach ($Build in $WinBuilds.GetEnumerator())
         {
