@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-16"?>
 <GPO xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.microsoft.com/GroupPolicy/Settings">
   <Identifier>
-    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{b8c87982-7c12-4e38-b12b-03ad4a9b852d}</Identifier>
+    <Identifier xmlns="http://www.microsoft.com/GroupPolicy/Types">{9f913d4a-92f9-439c-ad86-ea41fde143e3}</Identifier>
     <Domain xmlns="http://www.microsoft.com/GroupPolicy/Types">work.bcl.nu</Domain>
   </Identifier>
   <Name>%domain_prefix% - Tier 2 - MSFT Overrule</Name>
   <IncludeComments>true</IncludeComments>
-  <CreatedTime>2025-03-06T09:35:53</CreatedTime>
-  <ModifiedTime>2025-03-06T13:10:40</ModifiedTime>
-  <ReadTime>2025-03-06T16:09:48.1363773Z</ReadTime>
+  <CreatedTime>2025-03-17T09:29:42</CreatedTime>
+  <ModifiedTime>2025-03-17T10:07:06</ModifiedTime>
+  <ReadTime>2025-03-17T10:08:17.7341216Z</ReadTime>
   <SecurityDescriptor>
     <SDDL xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">O:DAG:DAD:PAI(OA;CI;CR;edacfd8f-ffb3-11d1-b41d-00a0c968f939;;AU)(A;;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;DA)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;S-1-5-21-3221060182-2944434855-3404756099-519)(A;CI;LCRPLORC;;;ED)(A;CI;LCRPLORC;;;AU)(A;CI;CCDCLCSWRPWPDTLOSDRCWDWO;;;SY)(A;CIIO;CCDCLCSWRPWPDTLOSDRCWDWO;;;CO)S:AI(OU;CIIDSA;WPWD;;f30e3bc2-9ff0-11d1-b603-0000f80367c1;WD)(OU;CIIOIDSA;WP;f30e3bbe-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)(OU;CIIOIDSA;WP;f30e3bbf-9ff0-11d1-b603-0000f80367c1;bf967aa5-0de6-11d0-a285-00aa003049e2;WD)</SDDL>
     <Owner xmlns="http://www.microsoft.com/GroupPolicy/Types/Security">
@@ -169,6 +169,21 @@ Note: Nonadministrators are already prohibited from configuring Internet Connect
 Note: Disabling this setting does not prevent Wireless Hosted Networking from using the ICS service for DHCP services. To prevent the ICS service from running, on the Network Permissions tab in the network's policy properties, select the "Don't use hosted networks" check box.</q2:Explain>
           <q2:Supported>At least Windows Server 2003 operating systems or Windows XP Professional</q2:Supported>
           <q2:Category>Network/Network Connections</q2:Category>
+        </q2:Policy>
+        <q2:Policy>
+          <q2:Name>Turn on convenience PIN sign-in</q2:Name>
+          <q2:State>Enabled</q2:State>
+          <q2:Explain>This policy setting allows you to control whether a domain user can sign in using a convenience PIN.
+
+If you enable this policy setting, a domain user can set up and sign in with a convenience PIN.
+
+If you disable or don't configure this policy setting, a domain user can't set up and use a convenience PIN.
+
+Note: The user's domain password will be cached in the system vault when using this feature.
+
+To configure Windows Hello for Business, use the Administrative Template policies under Windows Hello for Business.</q2:Explain>
+          <q2:Supported>At least Windows Server 2012, Windows 8 or Windows RT</q2:Supported>
+          <q2:Category>System/Logon</q2:Category>
         </q2:Policy>
         <q2:Blocked>false</q2:Blocked>
       </Extension>
