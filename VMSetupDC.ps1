@@ -1479,41 +1479,63 @@ Begin
                 Members             =
                 @(
                     @{
-                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'" # -and OperatingSystem -like '*Server*'"
+                        Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer'"
                         SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
                     }
                 )
             }
 
-            # Servers by build Tier DC, 0-2
-            foreach ($Build in $WinBuilds.GetEnumerator())
+            if ($t -ne '2')
             {
-                if ($Build.Value.Server)
+                # Servers by build Tier DC, 0-1
+                foreach ($Build in $WinBuilds.GetEnumerator())
                 {
-                    $DomainGroups +=
-                    @{
-                        Name                = "Tier $t - Computers - $($Build.Value.Server)"
-                        Description         = "End of support $($Build.Value.ServerEndOfSupport)"
-                        Scope               = 'Global'
-                        Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
-                        Members             =
-                        @(
-                            @{
-                                Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
-                                SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
-                                SearchScope = 'Subtree'
-                            }
-                        )
+                    if ($Build.Value.Server)
+                    {
+                        $DomainGroups +=
+                        @{
+                            Name                = "Tier $t - Computers - $($Build.Value.Server)"
+                            Description         = "End of support $($Build.Value.ServerEndOfSupport)"
+                            Scope               = 'Global'
+                            Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                            Members             =
+                            @(
+                                @{
+                                    Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                                    SearchBase  = "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN"
+                                    SearchScope = 'Subtree'
+                                }
+                            )
+                        }
                     }
                 }
             }
-
-            if ($t -eq '2')
+            else
             {
-                # Workstations by build Tier 2
                 foreach ($Build in $WinBuilds.GetEnumerator())
                 {
+                    # Servers by build Tier 2
+                    if ($Build.Value.Server)
+                    {
+                        $DomainGroups +=
+                        @{
+                            Name                = "Tier $t - Computers - $($Build.Value.server)"
+                            Description         = "End of support $($Build.Value.ServerEndOfSupport)"
+                            Scope               = 'Global'
+                            Path                = "OU=Computers,OU=Groups,OU=Tier $t,OU=$DomainName,$BaseDN"
+                            Members             =
+                            @(
+                                @{
+                                    Filter      = "Name -like '*' -and ObjectCategory -eq 'Computer' -and OperatingSystem -like '*Server*' -and OperatingSystemVersion -like '*$($Build.Key)*'"
+                                    SearchBase  = "OU=Servers,OU=Tier $t,OU=$DomainName,$BaseDN"
+                                    SearchScope = 'Subtree'
+                                }
+                            )
+                        }
+                    }
+
+                    # Workstations by build Tier 2
                     if ($Build.Value.Workstation)
                     {
                         $DomainGroups +=
@@ -1536,7 +1558,7 @@ Begin
             }
 
             # Local computer groups
-            foreach ($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Computers,OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
+            foreach ($Computer in (Get-ADObject -Filter "Name -like '*' -and ObjectCategory -eq 'Computer'" -SearchBase "OU=Tier $t,OU=$DomainName,$BaseDN" -SearchScope Subtree ))
             {
                 # Local admin
                 $DomainGroups +=
