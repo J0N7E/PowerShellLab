@@ -2862,7 +2862,6 @@ Begin
             $WorkstationPolicy +=
             @(
                 @{ Name = "$DomainPrefix - Security - Disable Spooler Client Connections";                 Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Security - Enable Restricted Admin";                            Enabled = '-';    Enforced = 'Yes';  }
             )
 
             $ComputerPolicy =
