@@ -523,7 +523,7 @@ Start-Process $PowerShell -ArgumentList `
     #"-IssuancePolicies $(Serialize (@( @{Name='Policy1'; OID='1.2.3'}, @{Name='Policy2'; OID='4.5.6'})))",
     "-CRLPeriodUnits 180",
     "-CRLPeriod Days",
-    "-CRLOverlapUnits 14",
+    "-CRLOverlapUnits 180",
     "-CRLOverlapPeriod Days"
 )
 
