@@ -67,7 +67,7 @@ $Settings +=
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
         #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        #NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
         RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab', 'HvExt');  Credential = $Settings.Ac0; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 24H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
     }
@@ -164,7 +164,7 @@ function Setup-VMs
         }
         elseif ($VM.Value.Name -ne $Settings.VMs.DC.Name -and (Get-VM -Name $VM.Value.Name -ErrorAction SilentlyContinue).State -eq 'Running')
         {
-            if ($Network.IsPresent)
+            if ($Network.IsPresent -and $VM.Value.Switch)
             {
                 Start-Process $PowerShell @WaitSplat -ArgumentList `
                 @(
@@ -501,9 +501,10 @@ Start-Process $PowerShell -ArgumentList `
 
 # FIX join/restart array
 
+# Domain join
 Setup-DC -DomainJoin RAS01, NPS01
 
-# Rename & Domain Join
+# Rename & join domain
 Setup-VMs -JoinDomain -NoExit
 
 # Rerun DC setup step 1 to configure AD
@@ -629,10 +630,10 @@ Start-Process $PowerShell -ArgumentList `
 Start-Process $PowerShell -ArgumentList `
 @(
     "-NoExit -File $LabPath\VMSetupNetwork.ps1 $RAS $Ac1 -Verbose",
-    "-AdapterName LabDmz",
-    "-IPAddress `"$($LabDms.NetworkId).200`"",
-    "-DefaultGateway `"$($LabDmz.GW)`"",
-    "-DNSServerAddresses $(Serialize @(`"$($LabDmz.DNS)`"))"
+    "-AdapterName HvExt",
+    "-IPAddress `"172.17.2.200`"",
+    "-DefaultGateway `"172.17.2.17`"",
+    "-DNSServerAddresses $(Serialize @(`"172.17.2.30`"))"
 )
 
 # SIG # Begin signature block
