@@ -85,7 +85,7 @@ Begin
     $JoinBlob = @{}
     $FilePath = "$PSScriptRoot\Join-$NewName.blob"
 
-    if (Test-Path -Path $FilePath)
+    if ($JoinDomain.IsPresent -and (Test-Path -Path $FilePath))
     {
         $JoinBlob.Add((Get-Item -Path $FilePath), (Get-Content @GetContentSplat -Path $FilePath))
 
@@ -167,7 +167,7 @@ Begin
         # Domain join
         ##############
 
-        if ($JoinBlob.Count -and $JoinDomain.IsPresent)
+        if ($JoinDomain.IsPresent -and $JoinBlob.Count)
         {
             $Win32ComputerSystem   = Get-CimInstance -ClassName Win32_ComputerSystem
             $Win32Domain           = $Win32ComputerSystem.Domain

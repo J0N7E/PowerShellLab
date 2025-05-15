@@ -67,8 +67,8 @@ $Settings +=
         SubCA  = @{ Name = 'CA02';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
         AS     = @{ Name = 'AS01';    Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
         #ADFS   = @{ Name = 'ADFS01';  Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        RAS   = @{ Name = 'RAS01';  Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
-        NPS   = @{ Name = 'NPS01';  Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        #NPS    = @{ Name = 'NPS01';   Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab');  Credential = $Settings.Ac0; }
+        RAS    = @{ Name = 'RAS01';   Domain = $true;   OSVersion = '*Experience x64 24H2*';     Switch = @('Lab', 'HvExt');  Credential = $Settings.Ac0; }
         WIN    = @{ Name = 'WIN11';   Domain = $true;   OSVersion = '*11 Enterprise x64 24H2*';  Switch = @('Lab');  Credential = $Settings.Ac2; }
     }
 }
@@ -109,7 +109,8 @@ function Setup-VMs
         [switch]$NoExit,
         [switch]$Create,
         [switch]$Network,
-        [switch]$Rename
+        [switch]$Rename,
+        [switch]$JoinDomain
     )
 
     # Check parameters
@@ -181,6 +182,14 @@ function Setup-VMs
                     "-VMName $($VM.Value.Name) -Restart"
                 )
             }
+            elseif ($JoinDomain.IsPresent -and $VM.Value.Domain)
+            {
+                Start-Process $PowerShell @WaitSplat -ArgumentList `
+                @(
+                    "$NoExitStr-File $LabPath\VMRename.ps1 $Lac -Verbose",
+                    "-VMName $($VM.Value.Name) -JoinDomain -Restart"
+                )
+            }        
         }
     }
 }
@@ -371,6 +380,12 @@ else
 
 return
 
+#############
+# Create VMs
+#############
+
+Setup-VMs -Create
+
 #########
 # DC
 # Step 1
@@ -426,10 +441,10 @@ Start-Process $PowerShell -ArgumentList `
 #>
 
 ################
-# Setup network
+# Setup Network
 ################
 
-Setup-VMs -Network
+Setup-VMs -Network -NoExit
 
 #########
 # DC
@@ -484,10 +499,18 @@ Start-Process $PowerShell -ArgumentList `
 # Join domain
 ##############
 
-Setup-VMs -Rename
+# FIX join/restart array
+
+Setup-DC -DomainJoin RAS01, NPS01
+
+# Rename & Domain Join
+Setup-VMs -JoinDomain -NoExit
 
 # Rerun DC setup step 1 to configure AD
 Setup-DC
+
+# Restart
+Restart-VM -VMName RAS01, NPS01 -Force 
 
 #########
 # AS
