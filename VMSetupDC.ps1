@@ -1868,6 +1868,16 @@ Begin
                         SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
                         SearchScope = 'Subtree'
                     }
+                    @{
+                        Filter      = "Name -like 'NPS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 0,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
+                    @{
+                        Filter      = "Name -like 'RAS*' -and ObjectCategory -eq 'Computer'"
+                        SearchBase  = "OU=Computers,OU=Tier 1,OU=$DomainName,$BaseDN"
+                        SearchScope = 'Subtree'
+                    }
                 )
             }
 
