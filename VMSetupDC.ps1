@@ -2841,7 +2841,7 @@ Begin
                 @{ Name = "$DomainPrefix - Domain - Secure Remote Desktop";              Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Domain - Enable WinRM HTTPS";                 Enabled = 'Yes';  Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - Firewall - Settings";                         Enabled = '-';    Enforced = 'Yes';  }
-                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'No';   }
+                @{ Name = "$DomainPrefix - Firewall - Block Legacy Protocols";           Enabled = '-';    Enforced = 'Yes';  }
                 @{ Name = "$DomainPrefix - User - Disable WPAD";                         Enabled = '-';    Enforced = 'Yes';  }
                 #>
                 @{ Name = "$DomainPrefix - Firewall - Block SMB In";                     Enabled = '-';    Enforced = 'No';   }
