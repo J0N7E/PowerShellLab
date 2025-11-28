@@ -720,25 +720,43 @@ Begin
         $WinBuilds =
         [ordered]@{
 
+            <#
+            '19044' = # Windows 10 21H2 LTS
+            @{
+                Version = '21H2'
+                Workstation = 'Windows 10 21H2 (19044)'
+                WorkstationEndOfSupport = '2027-01-12'
+            }
+            #>
+
             # Build
 
-            '26100' = # Windows Server 2025 / Windows 11 24H2
+            '14393' = # Windows Server 2016 / Windows 10 1607 LTS
             @{
-                Version = '24H2'
-                Server = 'Windows Server 2025 (26100)'
-                ServerEndOfSupport = '2034-10-10'
-                Workstation = 'Windows 11 24H2 (26100)'
-                WorkstationEndOfSupport = '2027-10-12'
+                Version = '1607'
+                Server = 'Windows Server 2016 (14393)'
+                ServerEndOfSupport = '2027-01-12'
+                #Workstation = 'Windows 10 1607 (14393)'
+                #WorkstationEndOfSupport = '2026-11-13'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = '-';    Enforced = 'No';  }
                 )
-                DCBaseline = @()
+                DCBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
+                )
+                ServerBaseline =
+                @(
+                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
+                )
+                <#
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 24H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
                 )
+                #>
             }
 
             '17763' = # Windows Server 2019 / Windows 10 1809 LTS
@@ -769,38 +787,6 @@ Begin
                 #>
             }
 
-            '14393' = # Windows Server 2016 / Windows 10 1607 LTS
-            @{
-                Version = '1607'
-                Server = 'Windows Server 2016 (14393)'
-                ServerEndOfSupport = '2027-01-12'
-                #Workstation = 'Windows 10 1607 (14393)'
-                #WorkstationEndOfSupport = '2026-11-13'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Domain Security';     Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows Server 2016 & Windows 10 1607 - Defender Antivirus';  Enabled = '-';    Enforced = 'No';  }
-                )
-                DCBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 - Domain Controller';                     Enabled = '-';    Enforced = 'No';  }
-                )
-                ServerBaseline =
-                @(
-                    @{ Name = 'MSFT Windows Server 2016 - Member Server';                         Enabled = '-';    Enforced = 'No';  }
-                )
-                <#
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 1607 - Computer';                                  Enabled = '-';    Enforced = 'No';  }
-                )
-                #>
-            }
-
-            #################
-            # Windows Server
-            #################
-
             '20348' = # Windows Server 2022
             @{
                 Version = '21H2'
@@ -821,10 +807,6 @@ Begin
                 )
             }
 
-            ########################
-            # Windows 11 Enterprise
-            ########################
-
             '22631' = # Windows 11 23H2
             @{
                 Version = '23H2'
@@ -841,59 +823,40 @@ Begin
                 )
             }
 
-            '22621' = # Windows 11 22H2
+            '26100' = # Windows Server 2025 / Windows 11 24H2
             @{
-                Version = '22H2'
-                Workstation = 'Windows 11 22H2 (22621)'
-                WorkstationEndOfSupport = '2025-10-14'
+                Version = '24H2'
+                Server = 'Windows Server 2025 (26100)'
+                ServerEndOfSupport = '2034-10-10'
+                Workstation = 'Windows 11 24H2 (26100)'
+                WorkstationEndOfSupport = '2027-10-12'
                 Baseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 11 22H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 24H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
+                )
+                DCBaseline = @()
+                WorkstationBaseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 24H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
+                )
+            }
+
+            '26200' = # Windows 11 25H2
+            @{
+                Version = '25H2'
+                Workstation = 'Windows 11 25H2 (26200)'
+                WorkstationEndOfSupport = '2028-10-28'
+                Baseline =
+                @(
+                    @{ Name = 'MSFT Windows 11 25H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 25H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
                 )
                 WorkstationBaseline =
                 @(
-                    @{ Name = 'MSFT Windows 11 22H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
+                    @{ Name = 'MSFT Windows 11 25H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
                 )
             }
-
-            ########################
-            # Windows 10 Enterprise
-            ########################
-
-            # Build
-
-            '19045' = # Windows 10 22H2
-            @{
-                Version = '22H2'
-                Workstation = 'Windows 10 22H2 (19045)'
-                WorkstationEndOfSupport = '2025-10-14'
-                Baseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Domain Security';         Enabled = '-';    Enforced = 'No';  }
-                    @{ Name = 'MSFT Windows 10 22H2 - Defender Antivirus';      Enabled = '-';    Enforced = 'No';  }
-                )
-                WorkstationBaseline =
-                @(
-                    @{ Name = 'MSFT Windows 10 22H2 - Computer';                Enabled = '-';    Enforced = 'No';  }
-                )
-            }
-
-            <#
-            '19044' = # Windows 10 21H2 LTS
-            @{
-                Version = '21H2'
-                Workstation = 'Windows 10 21H2 (19044)'
-                WorkstationEndOfSupport = '2027-01-12'
-            }
-
-            '10240' = # Windows 10 1507 LTS
-            @{
-                Version = '1507'
-                Workstation = 'Windows 10 1507 (10240)'
-                WorkstationEndOfSupport = '2025-11-14'
-            }
-            #>
         }
 
         #  ██████╗ ██╗   ██╗
@@ -3897,8 +3860,8 @@ End
 # SIG # Begin signature block
 # MIIeygYJKoZIhvcNAQcCoIIeuzCCHrcCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpTYEXgRY51GdwtJK/XyA1ZVQ
-# XN2gghhFMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNsTP5eOOf8Wyie3WUROjJ2QH
+# iAugghhFMIIFBzCCAu+gAwIBAgIQdFzLNL2pfZhJwaOXpCuimDANBgkqhkiG9w0B
 # AQsFADAQMQ4wDAYDVQQDDAVKME43RTAeFw0yMzA5MDcxODU5NDVaFw0yODA5MDcx
 # OTA5NDRaMBAxDjAMBgNVBAMMBUowTjdFMIICIjANBgkqhkiG9w0BAQEFAAOCAg8A
 # MIICCgKCAgEA0cNYCTtcJ6XUSG6laNYH7JzFfJMTiQafxQ1dV8cjdJ4ysJXAOs8r
@@ -4030,34 +3993,34 @@ End
 # Ls84ZPvmpovq90K8eWyG2N01c4IhSOxqt81nMYIF7zCCBesCAQEwJDAQMQ4wDAYD
 # VQQDDAVKME43RQIQdFzLNL2pfZhJwaOXpCuimDAJBgUrDgMCGgUAoHgwGAYKKwYB
 # BAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAc
-# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQURB8k
-# Fm6YyYQ6P78ZsoNHngss0FowDQYJKoZIhvcNAQEBBQAEggIAA8XLnjrsNajVvuO9
-# 3cQfmARGbpiyx/MBxhb6Ig96CX+DbSXKVVKgdYEQvjpbfARrJ4jpewzIuaF4TTNn
-# oKetvsROniqe6avZUjWmTRQ+NtGXL/TzsX2FlIUpcsTP2W/xYRUwS8CEs1X4vIoW
-# WYT/m/cyXvan/9HfRskQN8fagk6lGBTr/PwG3DjrhFQ+5uxrkj+MGa42ulmwoBms
-# s4oTBsGR+2aEO2jaBojbZpitU7JEwx4ytBpSvt1m/5BD5n8z45c0HbXkt4MmCCwS
-# /z1NI/HI49C3zC9VpHoelGGMDd01tVA5ScwQgfP2A8SKCkvvW88Mc4AOjKNxenND
-# yAUrP76ZiMEIDjNs2dZmOpK+emTCsrRy+ba54UgnPcTyYPk0Fmcx3FIkufIPIrzy
-# yMIheIZL9TXRULQgAlILrxyUTD5pbf+zoMrsLVIzBgvfGAKYvgEvA1vRWMscUAWD
-# 1u3NlSLqsd2Vsyi6AOuoIVBQTyaMePgjwj9Oxr579E2kZAND0lAMrExctBVbB/xD
-# OzW6DaCtEDIHNSnEziyb1AoPpisxv7a4Sw1rZrBDwx1k9xVogsPG8mWFZds4TYru
-# QwCXqpo6KcnIIZG8EVD9dHeXcMSJ7daASb9/T6QT20nvj1P7Bg+MhN92rTnaC1VL
-# ba1Zq/WNtMvZ3ArtunHaQaqcwTqhggMmMIIDIgYJKoZIhvcNAQkGMYIDEzCCAw8C
+# BgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUMoRQ
+# YZ8XhOHSqXHrFsy4vwBuCQMwDQYJKoZIhvcNAQEBBQAEggIAe3tfdVDr4KhmBr99
+# iPg2Yn7avAzTCQSBDbLk80rS0eLr+eox8UXdH6lQbbiiCa+sRkhtjUr3cgPX9mIq
+# VuXFsjNoqaR0SX09K2+YJZxZ8huErEu9EkbQtgkSrptfVisXnCkZSfYUnzBubZXf
+# H/wRbq63dhDza2o9dENokKo87wtZBh45/0d7TiLZ/n25ldmUXJN6VzsyAYeEZFkH
+# Z8cMdw6VbOb1O9ttCuI3c0TdXycnCNDezTSL/6tba0GrDSLghHHZ7c6tmOxCV0JV
+# H5yIQq0CL40OBGGC0rlThwoQ0C7Oc2grsPmt+0CxJlJfrMfX3nF5e51ejvAQd12F
+# Iu3PuCLhIdCcJDhKVTChOc4xWuoUqdSjI4yvsq79vcDiMtmwET5W0t74SvarZUSQ
+# 3QnzZ1bQSY+YlXhm9CQIpxAWLZAwGmnYZ8z1iUsmlrLwzRYOtnVTVtOhnYBK8A1D
+# v8t0eegdV1fG7a/w6UKOxVVq5aCk+UiJLWxivLZ+fv7zo2b6MCk7i3W5nUZZuWq5
+# nIEoIC2cPgz628DTKLS2yOpFqHnRUa9PNziFuzlqtabptkBZIMNvqtR8mhGUp+GH
+# qs0hXUu4iSlUeraMcx/Ce5MU8++ogdU96gz5iIkKfgNWPEOzOk124qumxNg4ax2r
+# yfY84BHROUW1XlvtrJ8SoRftGYmhggMmMIIDIgYJKoZIhvcNAQkGMYIDEzCCAw8C
 # AQEwfTBpMQswCQYDVQQGEwJVUzEXMBUGA1UEChMORGlnaUNlcnQsIEluYy4xQTA/
 # BgNVBAMTOERpZ2lDZXJ0IFRydXN0ZWQgRzQgVGltZVN0YW1waW5nIFJTQTQwOTYg
 # U0hBMjU2IDIwMjUgQ0ExAhAKgO8YS43xBYLRxHanlXRoMA0GCWCGSAFlAwQCAQUA
 # oGkwGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjUx
-# MDA3MDgwMDAzWjAvBgkqhkiG9w0BCQQxIgQgSxn6DU7eCUrqwLf1/yVP6lH6sj2S
-# XZRyUs5gWrkrFiIwDQYJKoZIhvcNAQEBBQAEggIAea/GB5+aQ0bHgTa4Qpnldr3d
-# O52YXYdcLWFDjcm+g92Oe+EhCMZ7gjhrl67YZF2TYhAeHh1n8k4OsvztLL3UcqRx
-# IwwZaP/tXO6Hf+BADJqwrDNnZboZxLShZ5zarVRvT8208/WHAOlWvqmcN/nAYzIA
-# ctiWKQXW/7d+/dge3zVLND4JR8OSDCyZrZoMCcuDIVu3SmS/76oU/Suo+Ph76bzi
-# Uxo4ixbiAH907YeXi7rHI4JB+UDhmCVm77bRfN7SzGSaSmeFlalW8FAjUfchk9Qe
-# 4ZL3MMaDgYJMZ0VaZ+p6uR3d9pC7RUPrLr3mpWJ7BuOwbhEBDZ05Tvbrlg1Q0T28
-# Yx/PZUfTlcLjRZ3Xzq1V6gtxGEmP2L0fBDl36P57hDycd0kP3fHUsOvk7Xjm5l3+
-# LGS4NYtcRXI2pWuA819fla3fWlCCVW1MVnLxBQsAop3MrAsWQcR3ehijoMrnaXKZ
-# K35cySbb3d4YLz5AqtEmdkqu1YV/2efBPjP8XbOTGtX7NhcIYVx9n0lS6OCNokJa
-# Gdm7Z8y3zilfF4m9qdWnT40qYGs82AUFlGtt5r1g25y2wA1TkxNV+fmAHg1GzvSO
-# UQNCupNXiqJ5AhOm7s5WI6OZxxJ/ztWZwpwfwvW2Ai4nxWJJdUwLmOpQYJv3Xq3r
-# nkSXY5aPu0+zAKnu7Do=
+# MTI4MTcwMDAzWjAvBgkqhkiG9w0BCQQxIgQgtEZ6vWi6WNjgdns27++tCYWXG1Hg
+# tl5bVYmLa3UguBMwDQYJKoZIhvcNAQEBBQAEggIAn3UYgSDwff0AA33P1aTI9ZPk
+# lrxUk8vvoA5/1aB2dhhhgEKA5cLNoJltXM/WFU0Q8IOimT2y5IEWfGTbjXgUSh6N
+# KMrJQ+0SQoLXEXGJUFG6lYsqZ8174ahUhzFUSuDX5TA366Ym/NFj2dMsgHcBnm9e
+# 38SxrBMOdBIM18DrKazKW03AwdMhxBd6/6q49LHzSNBzxmT8uIiV4DEeW3u6F5ER
+# IbZ4wL2V/FEqrhnZxGyIf4//sncwDhGYMon/S6Os9kFSzfXQjp9FJiJGNZBd4PGN
+# U/y4lQhmE8okoTErfFNKAKDNMvmmtOHeXRTCdS6UA4X/p0EbSMO/dgdQKXd5gVgH
+# VKQQQpAJhXsEJ8ksEzwe1EwfcDnthlkJln04OHbBTo/c3XEMtuHtYh9MQspIZ4wB
+# UgwC8yup120f/UpgfLcUBSBtpssV7qawI30+q36/GTZ01xsPRrUawg4gbDzATXOp
+# 18hQX6I1/XrpUKhXZlXi40DttCwLXOWGS6dl2MFGpvo4B6IF+TNr4etb7JHTT5/e
+# XWtQslAwkq48C7Kjt79iYczNjDMdJJ8ywVKUeUNsmI+p8cX+4jMYagsSMwRyLtjN
+# NZEQ4uYwRC+z/jidbzhM4c74LB7xoVHtkcpa2JgoVONA/vivMc84XwiFKid5HoC7
+# 4bUwcfctgzBZsj3T+9E=
 # SIG # End signature block
